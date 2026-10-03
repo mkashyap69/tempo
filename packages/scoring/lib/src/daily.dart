@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'baseline.dart';
 import 'recovery.dart';
 import 'resting_hr.dart';
@@ -98,7 +100,10 @@ DailyScore scoreDay({
         !m.ts.isBefore(wake) && (nextSleep == null || m.ts.isBefore(nextSleep)),
   );
 
-  final prevMax = history.isEmpty ? p.defaultHrMax : history.first.hrMax;
+  // defaultHrMax doubles as a user-set floor (Settings → HR max).
+  final prevMax = history.isEmpty
+      ? p.defaultHrMax
+      : max(history.first.hrMax, p.defaultHrMax);
   final hrMax = updatedHrMax(prevMax, minutes.map((m) => m.hr));
 
   final rhr = night == null ? null : restingHr(night.minutes);

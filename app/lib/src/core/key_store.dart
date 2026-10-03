@@ -9,7 +9,14 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 /// ignore it; the key is pasted in the UI instead.
 class KeyStore {
   KeyStore([FlutterSecureStorage? storage])
-    : _storage = storage ?? const FlutterSecureStorage();
+    : _storage =
+          storage ??
+          const FlutterSecureStorage(
+            // Background sync runs while the phone is locked.
+            iOptions: IOSOptions(
+              accessibility: KeychainAccessibility.first_unlock_this_device,
+            ),
+          );
 
   final FlutterSecureStorage _storage;
   static const _slot = 'band_auth_key';

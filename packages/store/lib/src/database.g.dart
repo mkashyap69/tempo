@@ -3407,18 +3407,16 @@ typedef $$MinuteSamplesTableProcessedTableManager =
       MinuteSample,
       PrefetchHooks Function()
     >;
-typedef $$HrLiveTableCreateCompanionBuilder =
-    HrLiveCompanion Function({
-      Value<int> ts,
-      required int bpm,
-      Value<String> source,
-    });
-typedef $$HrLiveTableUpdateCompanionBuilder =
-    HrLiveCompanion Function({
-      Value<int> ts,
-      Value<int> bpm,
-      Value<String> source,
-    });
+typedef $$HrLiveTableCreateCompanionBuilder = HrLiveCompanion Function({
+  Value<int> ts,
+  required int bpm,
+  Value<String> source,
+});
+typedef $$HrLiveTableUpdateCompanionBuilder = HrLiveCompanion Function({
+  Value<int> ts,
+  Value<int> bpm,
+  Value<String> source,
+});
 
 class $$HrLiveTableFilterComposer extends Composer<_$TempoDb, $HrLiveTable> {
   $$HrLiveTableFilterComposer({
@@ -3513,18 +3511,16 @@ class $$HrLiveTableTableManager
               $$HrLiveTableOrderingComposer($db: db, $table: table),
           createComputedFieldComposer: () =>
               $$HrLiveTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback:
-              ({
-                Value<int> ts = const Value.absent(),
-                Value<int> bpm = const Value.absent(),
-                Value<String> source = const Value.absent(),
-              }) => HrLiveCompanion(ts: ts, bpm: bpm, source: source),
-          createCompanionCallback:
-              ({
-                Value<int> ts = const Value.absent(),
-                required int bpm,
-                Value<String> source = const Value.absent(),
-              }) => HrLiveCompanion.insert(ts: ts, bpm: bpm, source: source),
+          updateCompanionCallback: ({
+            Value<int> ts = const Value.absent(),
+            Value<int> bpm = const Value.absent(),
+            Value<String> source = const Value.absent(),
+          }) => HrLiveCompanion(ts: ts, bpm: bpm, source: source),
+          createCompanionCallback: ({
+            Value<int> ts = const Value.absent(),
+            required int bpm,
+            Value<String> source = const Value.absent(),
+          }) => HrLiveCompanion.insert(ts: ts, bpm: bpm, source: source),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
               .toList(),
@@ -3637,14 +3633,14 @@ class $$StressSamplesTableTableManager
               $$StressSamplesTableOrderingComposer($db: db, $table: table),
           createComputedFieldComposer: () =>
               $$StressSamplesTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback:
-              ({
-                Value<int> ts = const Value.absent(),
-                Value<int> value = const Value.absent(),
-              }) => StressSamplesCompanion(ts: ts, value: value),
-          createCompanionCallback:
-              ({Value<int> ts = const Value.absent(), required int value}) =>
-                  StressSamplesCompanion.insert(ts: ts, value: value),
+          updateCompanionCallback: ({
+            Value<int> ts = const Value.absent(),
+            Value<int> value = const Value.absent(),
+          }) => StressSamplesCompanion(ts: ts, value: value),
+          createCompanionCallback: ({
+            Value<int> ts = const Value.absent(),
+            required int value,
+          }) => StressSamplesCompanion.insert(ts: ts, value: value),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
               .toList(),
@@ -3760,14 +3756,14 @@ class $$Spo2SamplesTableTableManager
               $$Spo2SamplesTableOrderingComposer($db: db, $table: table),
           createComputedFieldComposer: () =>
               $$Spo2SamplesTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback:
-              ({
-                Value<int> ts = const Value.absent(),
-                Value<int> value = const Value.absent(),
-              }) => Spo2SamplesCompanion(ts: ts, value: value),
-          createCompanionCallback:
-              ({Value<int> ts = const Value.absent(), required int value}) =>
-                  Spo2SamplesCompanion.insert(ts: ts, value: value),
+          updateCompanionCallback: ({
+            Value<int> ts = const Value.absent(),
+            Value<int> value = const Value.absent(),
+          }) => Spo2SamplesCompanion(ts: ts, value: value),
+          createCompanionCallback: ({
+            Value<int> ts = const Value.absent(),
+            required int value,
+          }) => Spo2SamplesCompanion.insert(ts: ts, value: value),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
               .toList(),
@@ -4362,24 +4358,22 @@ typedef $$DailyScoresTableProcessedTableManager =
       DailyScore,
       PrefetchHooks Function()
     >;
-typedef $$BaselinesTableCreateCompanionBuilder =
-    BaselinesCompanion Function({
-      required String metric,
-      required int window,
-      required double mean,
-      required double sd,
-      required int updatedAt,
-      Value<int> rowid,
-    });
-typedef $$BaselinesTableUpdateCompanionBuilder =
-    BaselinesCompanion Function({
-      Value<String> metric,
-      Value<int> window,
-      Value<double> mean,
-      Value<double> sd,
-      Value<int> updatedAt,
-      Value<int> rowid,
-    });
+typedef $$BaselinesTableCreateCompanionBuilder = BaselinesCompanion Function({
+  required String metric,
+  required int window,
+  required double mean,
+  required double sd,
+  required int updatedAt,
+  Value<int> rowid,
+});
+typedef $$BaselinesTableUpdateCompanionBuilder = BaselinesCompanion Function({
+  Value<String> metric,
+  Value<int> window,
+  Value<double> mean,
+  Value<double> sd,
+  Value<int> updatedAt,
+  Value<int> rowid,
+});
 
 class $$BaselinesTableFilterComposer
     extends Composer<_$TempoDb, $BaselinesTable> {
@@ -4556,20 +4550,18 @@ typedef $$BaselinesTableProcessedTableManager =
       Baseline,
       PrefetchHooks Function()
     >;
-typedef $$JournalTableCreateCompanionBuilder =
-    JournalCompanion Function({
-      required String date,
-      required String tag,
-      required bool value,
-      Value<int> rowid,
-    });
-typedef $$JournalTableUpdateCompanionBuilder =
-    JournalCompanion Function({
-      Value<String> date,
-      Value<String> tag,
-      Value<bool> value,
-      Value<int> rowid,
-    });
+typedef $$JournalTableCreateCompanionBuilder = JournalCompanion Function({
+  required String date,
+  required String tag,
+  required bool value,
+  Value<int> rowid,
+});
+typedef $$JournalTableUpdateCompanionBuilder = JournalCompanion Function({
+  Value<String> date,
+  Value<String> tag,
+  Value<bool> value,
+  Value<int> rowid,
+});
 
 class $$JournalTableFilterComposer extends Composer<_$TempoDb, $JournalTable> {
   $$JournalTableFilterComposer({
@@ -4711,20 +4703,18 @@ typedef $$JournalTableProcessedTableManager =
       JournalData,
       PrefetchHooks Function()
     >;
-typedef $$SyncStateTableCreateCompanionBuilder =
-    SyncStateCompanion Function({
-      required String device,
-      required String dataType,
-      required int lastTs,
-      Value<int> rowid,
-    });
-typedef $$SyncStateTableUpdateCompanionBuilder =
-    SyncStateCompanion Function({
-      Value<String> device,
-      Value<String> dataType,
-      Value<int> lastTs,
-      Value<int> rowid,
-    });
+typedef $$SyncStateTableCreateCompanionBuilder = SyncStateCompanion Function({
+  required String device,
+  required String dataType,
+  required int lastTs,
+  Value<int> rowid,
+});
+typedef $$SyncStateTableUpdateCompanionBuilder = SyncStateCompanion Function({
+  Value<String> device,
+  Value<String> dataType,
+  Value<int> lastTs,
+  Value<int> rowid,
+});
 
 class $$SyncStateTableFilterComposer
     extends Composer<_$TempoDb, $SyncStateTable> {
@@ -4873,18 +4863,16 @@ typedef $$SyncStateTableProcessedTableManager =
       SyncStateData,
       PrefetchHooks Function()
     >;
-typedef $$SettingsTableCreateCompanionBuilder =
-    SettingsCompanion Function({
-      required String key,
-      required String value,
-      Value<int> rowid,
-    });
-typedef $$SettingsTableUpdateCompanionBuilder =
-    SettingsCompanion Function({
-      Value<String> key,
-      Value<String> value,
-      Value<int> rowid,
-    });
+typedef $$SettingsTableCreateCompanionBuilder = SettingsCompanion Function({
+  required String key,
+  required String value,
+  Value<int> rowid,
+});
+typedef $$SettingsTableUpdateCompanionBuilder = SettingsCompanion Function({
+  Value<String> key,
+  Value<String> value,
+  Value<int> rowid,
+});
 
 class $$SettingsTableFilterComposer
     extends Composer<_$TempoDb, $SettingsTable> {
@@ -4968,22 +4956,16 @@ class $$SettingsTableTableManager
               $$SettingsTableOrderingComposer($db: db, $table: table),
           createComputedFieldComposer: () =>
               $$SettingsTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback:
-              ({
-                Value<String> key = const Value.absent(),
-                Value<String> value = const Value.absent(),
-                Value<int> rowid = const Value.absent(),
-              }) => SettingsCompanion(key: key, value: value, rowid: rowid),
-          createCompanionCallback:
-              ({
-                required String key,
-                required String value,
-                Value<int> rowid = const Value.absent(),
-              }) => SettingsCompanion.insert(
-                key: key,
-                value: value,
-                rowid: rowid,
-              ),
+          updateCompanionCallback: ({
+            Value<String> key = const Value.absent(),
+            Value<String> value = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) => SettingsCompanion(key: key, value: value, rowid: rowid),
+          createCompanionCallback: ({
+            required String key,
+            required String value,
+            Value<int> rowid = const Value.absent(),
+          }) => SettingsCompanion.insert(key: key, value: value, rowid: rowid),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
               .toList(),

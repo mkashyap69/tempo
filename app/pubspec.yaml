@@ -16,6 +16,14 @@ dependencies:
   flutter_riverpod: ^3.4.3
   flutter_secure_storage: ^11.2.0
   path_provider: ^2.1.6
+  drift: ^2.31.0
+  drift_flutter: ^0.2.8
+  fl_chart: ^1.2.0
+  workmanager: ^0.10.10
+  store:
+    path: ../packages/store
+  scoring:
+    path: ../packages/scoring
 
 dev_dependencies:
   flutter_test:

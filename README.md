@@ -2,19 +2,28 @@
 
 Personal recovery/strain app for the Mi Band 6. See `PLAN.md` and `CLAUDE.md`.
 
-## Phase 0 spike: run it
+## Status
 
-1. Make sure Mi Fitness / Zepp Life is force-stopped (only one app can hold the band).
-2. `cp .env.example .env` and fill in `BAND_AUTH_KEY` (32 hex digits).
-3. `cd app && flutter run --dart-define-from-file=../.env` (debug build, phone plugged in).
-   Or skip the `.env` and paste the key in the app.
-4. Tap **Scan**, pick the band, wait for "Authenticated", then live BPM.
-5. `tools/pull_packets.sh` to copy the packet log into `docs/packets/`, review it, commit it.
+Phases 0–4 are implemented but **not yet run on hardware**. All BLE details
+are `TODO(verify)`. Follow `docs/testing.md`.
+
+## Run
+
+1. Force-stop Mi Fitness / Zepp Life (only one app can hold the band).
+2. `cp .env.example .env` and fill in `BAND_AUTH_KEY` (32 hex digits), or paste it in the app.
+3. `flutter pub get`, then `cd app && flutter run --dart-define-from-file=../.env`.
+4. Pair → first sync → Today. Pull packet logs with `tools/pull_packets.sh`.
 
 ## Tests
 
 ```
 flutter pub get
 flutter analyze
+(cd packages/scoring && dart test)
+(cd packages/store && dart test)
 (cd packages/band_ble && flutter test)
+(cd tools/backtest && dart test)
+(cd app && flutter test)
 ```
+
+Regenerate the Drift code after schema changes: `cd packages/store && dart run build_runner build`.

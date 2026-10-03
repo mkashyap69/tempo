@@ -2,6 +2,15 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>bluetooth-central</string>
+		<string>fetch</string>
+	</array>
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>tempo.sync</string>
+	</array>
 	<key>NSBluetoothAlwaysUsageDescription</key>
 	<string>Tempo connects to your band to read heart rate.</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
