@@ -1,0 +1,5033 @@
+// GENERATED CODE - DO NOT MODIFY BY HAND
+
+part of 'database.dart';
+
+// ignore_for_file: type=lint
+class $MinuteSamplesTable extends MinuteSamples
+    with TableInfo<$MinuteSamplesTable, MinuteSample> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $MinuteSamplesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _tsMeta = const VerificationMeta('ts');
+  @override
+  late final GeneratedColumn<int> ts = GeneratedColumn<int>(
+    'ts',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _stepsMeta = const VerificationMeta('steps');
+  @override
+  late final GeneratedColumn<int> steps = GeneratedColumn<int>(
+    'steps',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _intensityMeta = const VerificationMeta(
+    'intensity',
+  );
+  @override
+  late final GeneratedColumn<int> intensity = GeneratedColumn<int>(
+    'intensity',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _kindMeta = const VerificationMeta('kind');
+  @override
+  late final GeneratedColumn<int> kind = GeneratedColumn<int>(
+    'kind',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _hrMeta = const VerificationMeta('hr');
+  @override
+  late final GeneratedColumn<int> hr = GeneratedColumn<int>(
+    'hr',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [ts, steps, intensity, kind, hr];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'minute_samples';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<MinuteSample> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('ts')) {
+      context.handle(_tsMeta, ts.isAcceptableOrUnknown(data['ts']!, _tsMeta));
+    }
+    if (data.containsKey('steps')) {
+      context.handle(
+        _stepsMeta,
+        steps.isAcceptableOrUnknown(data['steps']!, _stepsMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_stepsMeta);
+    }
+    if (data.containsKey('intensity')) {
+      context.handle(
+        _intensityMeta,
+        intensity.isAcceptableOrUnknown(data['intensity']!, _intensityMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_intensityMeta);
+    }
+    if (data.containsKey('kind')) {
+      context.handle(
+        _kindMeta,
+        kind.isAcceptableOrUnknown(data['kind']!, _kindMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_kindMeta);
+    }
+    if (data.containsKey('hr')) {
+      context.handle(_hrMeta, hr.isAcceptableOrUnknown(data['hr']!, _hrMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {ts};
+  @override
+  MinuteSample map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return MinuteSample(
+      ts: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}ts'],
+      )!,
+      steps: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}steps'],
+      )!,
+      intensity: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}intensity'],
+      )!,
+      kind: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}kind'],
+      )!,
+      hr: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}hr'],
+      ),
+    );
+  }
+
+  @override
+  $MinuteSamplesTable createAlias(String alias) {
+    return $MinuteSamplesTable(attachedDatabase, alias);
+  }
+}
+
+class MinuteSample extends DataClass implements Insertable<MinuteSample> {
+  final int ts;
+  final int steps;
+  final int intensity;
+  final int kind;
+  final int? hr;
+  const MinuteSample({
+    required this.ts,
+    required this.steps,
+    required this.intensity,
+    required this.kind,
+    this.hr,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['ts'] = Variable<int>(ts);
+    map['steps'] = Variable<int>(steps);
+    map['intensity'] = Variable<int>(intensity);
+    map['kind'] = Variable<int>(kind);
+    if (!nullToAbsent || hr != null) {
+      map['hr'] = Variable<int>(hr);
+    }
+    return map;
+  }
+
+  MinuteSamplesCompanion toCompanion(bool nullToAbsent) {
+    return MinuteSamplesCompanion(
+      ts: Value(ts),
+      steps: Value(steps),
+      intensity: Value(intensity),
+      kind: Value(kind),
+      hr: hr == null && nullToAbsent ? const Value.absent() : Value(hr),
+    );
+  }
+
+  factory MinuteSample.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return MinuteSample(
+      ts: serializer.fromJson<int>(json['ts']),
+      steps: serializer.fromJson<int>(json['steps']),
+      intensity: serializer.fromJson<int>(json['intensity']),
+      kind: serializer.fromJson<int>(json['kind']),
+      hr: serializer.fromJson<int?>(json['hr']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'ts': serializer.toJson<int>(ts),
+      'steps': serializer.toJson<int>(steps),
+      'intensity': serializer.toJson<int>(intensity),
+      'kind': serializer.toJson<int>(kind),
+      'hr': serializer.toJson<int?>(hr),
+    };
+  }
+
+  MinuteSample copyWith({
+    int? ts,
+    int? steps,
+    int? intensity,
+    int? kind,
+    Value<int?> hr = const Value.absent(),
+  }) => MinuteSample(
+    ts: ts ?? this.ts,
+    steps: steps ?? this.steps,
+    intensity: intensity ?? this.intensity,
+    kind: kind ?? this.kind,
+    hr: hr.present ? hr.value : this.hr,
+  );
+  MinuteSample copyWithCompanion(MinuteSamplesCompanion data) {
+    return MinuteSample(
+      ts: data.ts.present ? data.ts.value : this.ts,
+      steps: data.steps.present ? data.steps.value : this.steps,
+      intensity: data.intensity.present ? data.intensity.value : this.intensity,
+      kind: data.kind.present ? data.kind.value : this.kind,
+      hr: data.hr.present ? data.hr.value : this.hr,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MinuteSample(')
+          ..write('ts: $ts, ')
+          ..write('steps: $steps, ')
+          ..write('intensity: $intensity, ')
+          ..write('kind: $kind, ')
+          ..write('hr: $hr')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(ts, steps, intensity, kind, hr);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is MinuteSample &&
+          other.ts == this.ts &&
+          other.steps == this.steps &&
+          other.intensity == this.intensity &&
+          other.kind == this.kind &&
+          other.hr == this.hr);
+}
+
+class MinuteSamplesCompanion extends UpdateCompanion<MinuteSample> {
+  final Value<int> ts;
+  final Value<int> steps;
+  final Value<int> intensity;
+  final Value<int> kind;
+  final Value<int?> hr;
+  const MinuteSamplesCompanion({
+    this.ts = const Value.absent(),
+    this.steps = const Value.absent(),
+    this.intensity = const Value.absent(),
+    this.kind = const Value.absent(),
+    this.hr = const Value.absent(),
+  });
+  MinuteSamplesCompanion.insert({
+    this.ts = const Value.absent(),
+    required int steps,
+    required int intensity,
+    required int kind,
+    this.hr = const Value.absent(),
+  }) : steps = Value(steps),
+       intensity = Value(intensity),
+       kind = Value(kind);
+  static Insertable<MinuteSample> custom({
+    Expression<int>? ts,
+    Expression<int>? steps,
+    Expression<int>? intensity,
+    Expression<int>? kind,
+    Expression<int>? hr,
+  }) {
+    return RawValuesInsertable({
+      if (ts != null) 'ts': ts,
+      if (steps != null) 'steps': steps,
+      if (intensity != null) 'intensity': intensity,
+      if (kind != null) 'kind': kind,
+      if (hr != null) 'hr': hr,
+    });
+  }
+
+  MinuteSamplesCompanion copyWith({
+    Value<int>? ts,
+    Value<int>? steps,
+    Value<int>? intensity,
+    Value<int>? kind,
+    Value<int?>? hr,
+  }) {
+    return MinuteSamplesCompanion(
+      ts: ts ?? this.ts,
+      steps: steps ?? this.steps,
+      intensity: intensity ?? this.intensity,
+      kind: kind ?? this.kind,
+      hr: hr ?? this.hr,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (ts.present) {
+      map['ts'] = Variable<int>(ts.value);
+    }
+    if (steps.present) {
+      map['steps'] = Variable<int>(steps.value);
+    }
+    if (intensity.present) {
+      map['intensity'] = Variable<int>(intensity.value);
+    }
+    if (kind.present) {
+      map['kind'] = Variable<int>(kind.value);
+    }
+    if (hr.present) {
+      map['hr'] = Variable<int>(hr.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MinuteSamplesCompanion(')
+          ..write('ts: $ts, ')
+          ..write('steps: $steps, ')
+          ..write('intensity: $intensity, ')
+          ..write('kind: $kind, ')
+          ..write('hr: $hr')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $HrLiveTable extends HrLive with TableInfo<$HrLiveTable, HrLiveData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $HrLiveTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _tsMeta = const VerificationMeta('ts');
+  @override
+  late final GeneratedColumn<int> ts = GeneratedColumn<int>(
+    'ts',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _bpmMeta = const VerificationMeta('bpm');
+  @override
+  late final GeneratedColumn<int> bpm = GeneratedColumn<int>(
+    'bpm',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sourceMeta = const VerificationMeta('source');
+  @override
+  late final GeneratedColumn<String> source = GeneratedColumn<String>(
+    'source',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('band'),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [ts, bpm, source];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'hr_live';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<HrLiveData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('ts')) {
+      context.handle(_tsMeta, ts.isAcceptableOrUnknown(data['ts']!, _tsMeta));
+    }
+    if (data.containsKey('bpm')) {
+      context.handle(
+        _bpmMeta,
+        bpm.isAcceptableOrUnknown(data['bpm']!, _bpmMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_bpmMeta);
+    }
+    if (data.containsKey('source')) {
+      context.handle(
+        _sourceMeta,
+        source.isAcceptableOrUnknown(data['source']!, _sourceMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {ts};
+  @override
+  HrLiveData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return HrLiveData(
+      ts: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}ts'],
+      )!,
+      bpm: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}bpm'],
+      )!,
+      source: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source'],
+      )!,
+    );
+  }
+
+  @override
+  $HrLiveTable createAlias(String alias) {
+    return $HrLiveTable(attachedDatabase, alias);
+  }
+}
+
+class HrLiveData extends DataClass implements Insertable<HrLiveData> {
+  final int ts;
+  final int bpm;
+  final String source;
+  const HrLiveData({required this.ts, required this.bpm, required this.source});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['ts'] = Variable<int>(ts);
+    map['bpm'] = Variable<int>(bpm);
+    map['source'] = Variable<String>(source);
+    return map;
+  }
+
+  HrLiveCompanion toCompanion(bool nullToAbsent) {
+    return HrLiveCompanion(
+      ts: Value(ts),
+      bpm: Value(bpm),
+      source: Value(source),
+    );
+  }
+
+  factory HrLiveData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return HrLiveData(
+      ts: serializer.fromJson<int>(json['ts']),
+      bpm: serializer.fromJson<int>(json['bpm']),
+      source: serializer.fromJson<String>(json['source']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'ts': serializer.toJson<int>(ts),
+      'bpm': serializer.toJson<int>(bpm),
+      'source': serializer.toJson<String>(source),
+    };
+  }
+
+  HrLiveData copyWith({int? ts, int? bpm, String? source}) => HrLiveData(
+    ts: ts ?? this.ts,
+    bpm: bpm ?? this.bpm,
+    source: source ?? this.source,
+  );
+  HrLiveData copyWithCompanion(HrLiveCompanion data) {
+    return HrLiveData(
+      ts: data.ts.present ? data.ts.value : this.ts,
+      bpm: data.bpm.present ? data.bpm.value : this.bpm,
+      source: data.source.present ? data.source.value : this.source,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('HrLiveData(')
+          ..write('ts: $ts, ')
+          ..write('bpm: $bpm, ')
+          ..write('source: $source')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(ts, bpm, source);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is HrLiveData &&
+          other.ts == this.ts &&
+          other.bpm == this.bpm &&
+          other.source == this.source);
+}
+
+class HrLiveCompanion extends UpdateCompanion<HrLiveData> {
+  final Value<int> ts;
+  final Value<int> bpm;
+  final Value<String> source;
+  const HrLiveCompanion({
+    this.ts = const Value.absent(),
+    this.bpm = const Value.absent(),
+    this.source = const Value.absent(),
+  });
+  HrLiveCompanion.insert({
+    this.ts = const Value.absent(),
+    required int bpm,
+    this.source = const Value.absent(),
+  }) : bpm = Value(bpm);
+  static Insertable<HrLiveData> custom({
+    Expression<int>? ts,
+    Expression<int>? bpm,
+    Expression<String>? source,
+  }) {
+    return RawValuesInsertable({
+      if (ts != null) 'ts': ts,
+      if (bpm != null) 'bpm': bpm,
+      if (source != null) 'source': source,
+    });
+  }
+
+  HrLiveCompanion copyWith({
+    Value<int>? ts,
+    Value<int>? bpm,
+    Value<String>? source,
+  }) {
+    return HrLiveCompanion(
+      ts: ts ?? this.ts,
+      bpm: bpm ?? this.bpm,
+      source: source ?? this.source,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (ts.present) {
+      map['ts'] = Variable<int>(ts.value);
+    }
+    if (bpm.present) {
+      map['bpm'] = Variable<int>(bpm.value);
+    }
+    if (source.present) {
+      map['source'] = Variable<String>(source.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('HrLiveCompanion(')
+          ..write('ts: $ts, ')
+          ..write('bpm: $bpm, ')
+          ..write('source: $source')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $StressSamplesTable extends StressSamples
+    with TableInfo<$StressSamplesTable, StressSample> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $StressSamplesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _tsMeta = const VerificationMeta('ts');
+  @override
+  late final GeneratedColumn<int> ts = GeneratedColumn<int>(
+    'ts',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _valueMeta = const VerificationMeta('value');
+  @override
+  late final GeneratedColumn<int> value = GeneratedColumn<int>(
+    'value',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [ts, value];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'stress_samples';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<StressSample> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('ts')) {
+      context.handle(_tsMeta, ts.isAcceptableOrUnknown(data['ts']!, _tsMeta));
+    }
+    if (data.containsKey('value')) {
+      context.handle(
+        _valueMeta,
+        value.isAcceptableOrUnknown(data['value']!, _valueMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_valueMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {ts};
+  @override
+  StressSample map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return StressSample(
+      ts: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}ts'],
+      )!,
+      value: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}value'],
+      )!,
+    );
+  }
+
+  @override
+  $StressSamplesTable createAlias(String alias) {
+    return $StressSamplesTable(attachedDatabase, alias);
+  }
+}
+
+class StressSample extends DataClass implements Insertable<StressSample> {
+  final int ts;
+  final int value;
+  const StressSample({required this.ts, required this.value});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['ts'] = Variable<int>(ts);
+    map['value'] = Variable<int>(value);
+    return map;
+  }
+
+  StressSamplesCompanion toCompanion(bool nullToAbsent) {
+    return StressSamplesCompanion(ts: Value(ts), value: Value(value));
+  }
+
+  factory StressSample.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return StressSample(
+      ts: serializer.fromJson<int>(json['ts']),
+      value: serializer.fromJson<int>(json['value']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'ts': serializer.toJson<int>(ts),
+      'value': serializer.toJson<int>(value),
+    };
+  }
+
+  StressSample copyWith({int? ts, int? value}) =>
+      StressSample(ts: ts ?? this.ts, value: value ?? this.value);
+  StressSample copyWithCompanion(StressSamplesCompanion data) {
+    return StressSample(
+      ts: data.ts.present ? data.ts.value : this.ts,
+      value: data.value.present ? data.value.value : this.value,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('StressSample(')
+          ..write('ts: $ts, ')
+          ..write('value: $value')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(ts, value);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is StressSample &&
+          other.ts == this.ts &&
+          other.value == this.value);
+}
+
+class StressSamplesCompanion extends UpdateCompanion<StressSample> {
+  final Value<int> ts;
+  final Value<int> value;
+  const StressSamplesCompanion({
+    this.ts = const Value.absent(),
+    this.value = const Value.absent(),
+  });
+  StressSamplesCompanion.insert({
+    this.ts = const Value.absent(),
+    required int value,
+  }) : value = Value(value);
+  static Insertable<StressSample> custom({
+    Expression<int>? ts,
+    Expression<int>? value,
+  }) {
+    return RawValuesInsertable({
+      if (ts != null) 'ts': ts,
+      if (value != null) 'value': value,
+    });
+  }
+
+  StressSamplesCompanion copyWith({Value<int>? ts, Value<int>? value}) {
+    return StressSamplesCompanion(
+      ts: ts ?? this.ts,
+      value: value ?? this.value,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (ts.present) {
+      map['ts'] = Variable<int>(ts.value);
+    }
+    if (value.present) {
+      map['value'] = Variable<int>(value.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('StressSamplesCompanion(')
+          ..write('ts: $ts, ')
+          ..write('value: $value')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $Spo2SamplesTable extends Spo2Samples
+    with TableInfo<$Spo2SamplesTable, Spo2Sample> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $Spo2SamplesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _tsMeta = const VerificationMeta('ts');
+  @override
+  late final GeneratedColumn<int> ts = GeneratedColumn<int>(
+    'ts',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _valueMeta = const VerificationMeta('value');
+  @override
+  late final GeneratedColumn<int> value = GeneratedColumn<int>(
+    'value',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [ts, value];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'spo2_samples';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<Spo2Sample> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('ts')) {
+      context.handle(_tsMeta, ts.isAcceptableOrUnknown(data['ts']!, _tsMeta));
+    }
+    if (data.containsKey('value')) {
+      context.handle(
+        _valueMeta,
+        value.isAcceptableOrUnknown(data['value']!, _valueMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_valueMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {ts};
+  @override
+  Spo2Sample map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Spo2Sample(
+      ts: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}ts'],
+      )!,
+      value: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}value'],
+      )!,
+    );
+  }
+
+  @override
+  $Spo2SamplesTable createAlias(String alias) {
+    return $Spo2SamplesTable(attachedDatabase, alias);
+  }
+}
+
+class Spo2Sample extends DataClass implements Insertable<Spo2Sample> {
+  final int ts;
+  final int value;
+  const Spo2Sample({required this.ts, required this.value});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['ts'] = Variable<int>(ts);
+    map['value'] = Variable<int>(value);
+    return map;
+  }
+
+  Spo2SamplesCompanion toCompanion(bool nullToAbsent) {
+    return Spo2SamplesCompanion(ts: Value(ts), value: Value(value));
+  }
+
+  factory Spo2Sample.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Spo2Sample(
+      ts: serializer.fromJson<int>(json['ts']),
+      value: serializer.fromJson<int>(json['value']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'ts': serializer.toJson<int>(ts),
+      'value': serializer.toJson<int>(value),
+    };
+  }
+
+  Spo2Sample copyWith({int? ts, int? value}) =>
+      Spo2Sample(ts: ts ?? this.ts, value: value ?? this.value);
+  Spo2Sample copyWithCompanion(Spo2SamplesCompanion data) {
+    return Spo2Sample(
+      ts: data.ts.present ? data.ts.value : this.ts,
+      value: data.value.present ? data.value.value : this.value,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Spo2Sample(')
+          ..write('ts: $ts, ')
+          ..write('value: $value')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(ts, value);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Spo2Sample && other.ts == this.ts && other.value == this.value);
+}
+
+class Spo2SamplesCompanion extends UpdateCompanion<Spo2Sample> {
+  final Value<int> ts;
+  final Value<int> value;
+  const Spo2SamplesCompanion({
+    this.ts = const Value.absent(),
+    this.value = const Value.absent(),
+  });
+  Spo2SamplesCompanion.insert({
+    this.ts = const Value.absent(),
+    required int value,
+  }) : value = Value(value);
+  static Insertable<Spo2Sample> custom({
+    Expression<int>? ts,
+    Expression<int>? value,
+  }) {
+    return RawValuesInsertable({
+      if (ts != null) 'ts': ts,
+      if (value != null) 'value': value,
+    });
+  }
+
+  Spo2SamplesCompanion copyWith({Value<int>? ts, Value<int>? value}) {
+    return Spo2SamplesCompanion(ts: ts ?? this.ts, value: value ?? this.value);
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (ts.present) {
+      map['ts'] = Variable<int>(ts.value);
+    }
+    if (value.present) {
+      map['value'] = Variable<int>(value.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Spo2SamplesCompanion(')
+          ..write('ts: $ts, ')
+          ..write('value: $value')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $SleepSessionsTable extends SleepSessions
+    with TableInfo<$SleepSessionsTable, SleepSession> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SleepSessionsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _startMeta = const VerificationMeta('start');
+  @override
+  late final GeneratedColumn<int> start = GeneratedColumn<int>(
+    'start',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _endMeta = const VerificationMeta('end');
+  @override
+  late final GeneratedColumn<int> end = GeneratedColumn<int>(
+    'end',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _stagesMeta = const VerificationMeta('stages');
+  @override
+  late final GeneratedColumn<String> stages = GeneratedColumn<String>(
+    'stages',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _algoVersionMeta = const VerificationMeta(
+    'algoVersion',
+  );
+  @override
+  late final GeneratedColumn<int> algoVersion = GeneratedColumn<int>(
+    'algo_version',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, start, end, stages, algoVersion];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'sleep_sessions';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<SleepSession> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('start')) {
+      context.handle(
+        _startMeta,
+        start.isAcceptableOrUnknown(data['start']!, _startMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_startMeta);
+    }
+    if (data.containsKey('end')) {
+      context.handle(
+        _endMeta,
+        end.isAcceptableOrUnknown(data['end']!, _endMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_endMeta);
+    }
+    if (data.containsKey('stages')) {
+      context.handle(
+        _stagesMeta,
+        stages.isAcceptableOrUnknown(data['stages']!, _stagesMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_stagesMeta);
+    }
+    if (data.containsKey('algo_version')) {
+      context.handle(
+        _algoVersionMeta,
+        algoVersion.isAcceptableOrUnknown(
+          data['algo_version']!,
+          _algoVersionMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_algoVersionMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  SleepSession map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return SleepSession(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      start: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}start'],
+      )!,
+      end: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}end'],
+      )!,
+      stages: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}stages'],
+      )!,
+      algoVersion: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}algo_version'],
+      )!,
+    );
+  }
+
+  @override
+  $SleepSessionsTable createAlias(String alias) {
+    return $SleepSessionsTable(attachedDatabase, alias);
+  }
+}
+
+class SleepSession extends DataClass implements Insertable<SleepSession> {
+  final int id;
+  final int start;
+  final int end;
+  final String stages;
+  final int algoVersion;
+  const SleepSession({
+    required this.id,
+    required this.start,
+    required this.end,
+    required this.stages,
+    required this.algoVersion,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['start'] = Variable<int>(start);
+    map['end'] = Variable<int>(end);
+    map['stages'] = Variable<String>(stages);
+    map['algo_version'] = Variable<int>(algoVersion);
+    return map;
+  }
+
+  SleepSessionsCompanion toCompanion(bool nullToAbsent) {
+    return SleepSessionsCompanion(
+      id: Value(id),
+      start: Value(start),
+      end: Value(end),
+      stages: Value(stages),
+      algoVersion: Value(algoVersion),
+    );
+  }
+
+  factory SleepSession.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SleepSession(
+      id: serializer.fromJson<int>(json['id']),
+      start: serializer.fromJson<int>(json['start']),
+      end: serializer.fromJson<int>(json['end']),
+      stages: serializer.fromJson<String>(json['stages']),
+      algoVersion: serializer.fromJson<int>(json['algoVersion']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'start': serializer.toJson<int>(start),
+      'end': serializer.toJson<int>(end),
+      'stages': serializer.toJson<String>(stages),
+      'algoVersion': serializer.toJson<int>(algoVersion),
+    };
+  }
+
+  SleepSession copyWith({
+    int? id,
+    int? start,
+    int? end,
+    String? stages,
+    int? algoVersion,
+  }) => SleepSession(
+    id: id ?? this.id,
+    start: start ?? this.start,
+    end: end ?? this.end,
+    stages: stages ?? this.stages,
+    algoVersion: algoVersion ?? this.algoVersion,
+  );
+  SleepSession copyWithCompanion(SleepSessionsCompanion data) {
+    return SleepSession(
+      id: data.id.present ? data.id.value : this.id,
+      start: data.start.present ? data.start.value : this.start,
+      end: data.end.present ? data.end.value : this.end,
+      stages: data.stages.present ? data.stages.value : this.stages,
+      algoVersion: data.algoVersion.present
+          ? data.algoVersion.value
+          : this.algoVersion,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SleepSession(')
+          ..write('id: $id, ')
+          ..write('start: $start, ')
+          ..write('end: $end, ')
+          ..write('stages: $stages, ')
+          ..write('algoVersion: $algoVersion')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, start, end, stages, algoVersion);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SleepSession &&
+          other.id == this.id &&
+          other.start == this.start &&
+          other.end == this.end &&
+          other.stages == this.stages &&
+          other.algoVersion == this.algoVersion);
+}
+
+class SleepSessionsCompanion extends UpdateCompanion<SleepSession> {
+  final Value<int> id;
+  final Value<int> start;
+  final Value<int> end;
+  final Value<String> stages;
+  final Value<int> algoVersion;
+  const SleepSessionsCompanion({
+    this.id = const Value.absent(),
+    this.start = const Value.absent(),
+    this.end = const Value.absent(),
+    this.stages = const Value.absent(),
+    this.algoVersion = const Value.absent(),
+  });
+  SleepSessionsCompanion.insert({
+    this.id = const Value.absent(),
+    required int start,
+    required int end,
+    required String stages,
+    required int algoVersion,
+  }) : start = Value(start),
+       end = Value(end),
+       stages = Value(stages),
+       algoVersion = Value(algoVersion);
+  static Insertable<SleepSession> custom({
+    Expression<int>? id,
+    Expression<int>? start,
+    Expression<int>? end,
+    Expression<String>? stages,
+    Expression<int>? algoVersion,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (start != null) 'start': start,
+      if (end != null) 'end': end,
+      if (stages != null) 'stages': stages,
+      if (algoVersion != null) 'algo_version': algoVersion,
+    });
+  }
+
+  SleepSessionsCompanion copyWith({
+    Value<int>? id,
+    Value<int>? start,
+    Value<int>? end,
+    Value<String>? stages,
+    Value<int>? algoVersion,
+  }) {
+    return SleepSessionsCompanion(
+      id: id ?? this.id,
+      start: start ?? this.start,
+      end: end ?? this.end,
+      stages: stages ?? this.stages,
+      algoVersion: algoVersion ?? this.algoVersion,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (start.present) {
+      map['start'] = Variable<int>(start.value);
+    }
+    if (end.present) {
+      map['end'] = Variable<int>(end.value);
+    }
+    if (stages.present) {
+      map['stages'] = Variable<String>(stages.value);
+    }
+    if (algoVersion.present) {
+      map['algo_version'] = Variable<int>(algoVersion.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SleepSessionsCompanion(')
+          ..write('id: $id, ')
+          ..write('start: $start, ')
+          ..write('end: $end, ')
+          ..write('stages: $stages, ')
+          ..write('algoVersion: $algoVersion')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $DailyScoresTable extends DailyScores
+    with TableInfo<$DailyScoresTable, DailyScore> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $DailyScoresTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _dateMeta = const VerificationMeta('date');
+  @override
+  late final GeneratedColumn<String> date = GeneratedColumn<String>(
+    'date',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _strainMeta = const VerificationMeta('strain');
+  @override
+  late final GeneratedColumn<double> strain = GeneratedColumn<double>(
+    'strain',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _trimpMeta = const VerificationMeta('trimp');
+  @override
+  late final GeneratedColumn<double> trimp = GeneratedColumn<double>(
+    'trimp',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _hrMaxMeta = const VerificationMeta('hrMax');
+  @override
+  late final GeneratedColumn<int> hrMax = GeneratedColumn<int>(
+    'hr_max',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sleepPerfMeta = const VerificationMeta(
+    'sleepPerf',
+  );
+  @override
+  late final GeneratedColumn<double> sleepPerf = GeneratedColumn<double>(
+    'sleep_perf',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _sleptHoursMeta = const VerificationMeta(
+    'sleptHours',
+  );
+  @override
+  late final GeneratedColumn<double> sleptHours = GeneratedColumn<double>(
+    'slept_hours',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _needHoursMeta = const VerificationMeta(
+    'needHours',
+  );
+  @override
+  late final GeneratedColumn<double> needHours = GeneratedColumn<double>(
+    'need_hours',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _sleepStartMeta = const VerificationMeta(
+    'sleepStart',
+  );
+  @override
+  late final GeneratedColumn<int> sleepStart = GeneratedColumn<int>(
+    'sleep_start',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _sleepEndMeta = const VerificationMeta(
+    'sleepEnd',
+  );
+  @override
+  late final GeneratedColumn<int> sleepEnd = GeneratedColumn<int>(
+    'sleep_end',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _recoveryMeta = const VerificationMeta(
+    'recovery',
+  );
+  @override
+  late final GeneratedColumn<double> recovery = GeneratedColumn<double>(
+    'recovery',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _rhrMeta = const VerificationMeta('rhr');
+  @override
+  late final GeneratedColumn<double> rhr = GeneratedColumn<double>(
+    'rhr',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _hrvProxyMeta = const VerificationMeta(
+    'hrvProxy',
+  );
+  @override
+  late final GeneratedColumn<double> hrvProxy = GeneratedColumn<double>(
+    'hrv_proxy',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _calibratingMeta = const VerificationMeta(
+    'calibrating',
+  );
+  @override
+  late final GeneratedColumn<bool> calibrating = GeneratedColumn<bool>(
+    'calibrating',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("calibrating" IN (0, 1))',
+    ),
+  );
+  static const VerificationMeta _algoVersionMeta = const VerificationMeta(
+    'algoVersion',
+  );
+  @override
+  late final GeneratedColumn<int> algoVersion = GeneratedColumn<int>(
+    'algo_version',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    date,
+    strain,
+    trimp,
+    hrMax,
+    sleepPerf,
+    sleptHours,
+    needHours,
+    sleepStart,
+    sleepEnd,
+    recovery,
+    rhr,
+    hrvProxy,
+    calibrating,
+    algoVersion,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'daily_scores';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<DailyScore> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('date')) {
+      context.handle(
+        _dateMeta,
+        date.isAcceptableOrUnknown(data['date']!, _dateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_dateMeta);
+    }
+    if (data.containsKey('strain')) {
+      context.handle(
+        _strainMeta,
+        strain.isAcceptableOrUnknown(data['strain']!, _strainMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_strainMeta);
+    }
+    if (data.containsKey('trimp')) {
+      context.handle(
+        _trimpMeta,
+        trimp.isAcceptableOrUnknown(data['trimp']!, _trimpMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_trimpMeta);
+    }
+    if (data.containsKey('hr_max')) {
+      context.handle(
+        _hrMaxMeta,
+        hrMax.isAcceptableOrUnknown(data['hr_max']!, _hrMaxMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_hrMaxMeta);
+    }
+    if (data.containsKey('sleep_perf')) {
+      context.handle(
+        _sleepPerfMeta,
+        sleepPerf.isAcceptableOrUnknown(data['sleep_perf']!, _sleepPerfMeta),
+      );
+    }
+    if (data.containsKey('slept_hours')) {
+      context.handle(
+        _sleptHoursMeta,
+        sleptHours.isAcceptableOrUnknown(data['slept_hours']!, _sleptHoursMeta),
+      );
+    }
+    if (data.containsKey('need_hours')) {
+      context.handle(
+        _needHoursMeta,
+        needHours.isAcceptableOrUnknown(data['need_hours']!, _needHoursMeta),
+      );
+    }
+    if (data.containsKey('sleep_start')) {
+      context.handle(
+        _sleepStartMeta,
+        sleepStart.isAcceptableOrUnknown(data['sleep_start']!, _sleepStartMeta),
+      );
+    }
+    if (data.containsKey('sleep_end')) {
+      context.handle(
+        _sleepEndMeta,
+        sleepEnd.isAcceptableOrUnknown(data['sleep_end']!, _sleepEndMeta),
+      );
+    }
+    if (data.containsKey('recovery')) {
+      context.handle(
+        _recoveryMeta,
+        recovery.isAcceptableOrUnknown(data['recovery']!, _recoveryMeta),
+      );
+    }
+    if (data.containsKey('rhr')) {
+      context.handle(
+        _rhrMeta,
+        rhr.isAcceptableOrUnknown(data['rhr']!, _rhrMeta),
+      );
+    }
+    if (data.containsKey('hrv_proxy')) {
+      context.handle(
+        _hrvProxyMeta,
+        hrvProxy.isAcceptableOrUnknown(data['hrv_proxy']!, _hrvProxyMeta),
+      );
+    }
+    if (data.containsKey('calibrating')) {
+      context.handle(
+        _calibratingMeta,
+        calibrating.isAcceptableOrUnknown(
+          data['calibrating']!,
+          _calibratingMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_calibratingMeta);
+    }
+    if (data.containsKey('algo_version')) {
+      context.handle(
+        _algoVersionMeta,
+        algoVersion.isAcceptableOrUnknown(
+          data['algo_version']!,
+          _algoVersionMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_algoVersionMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {date};
+  @override
+  DailyScore map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return DailyScore(
+      date: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}date'],
+      )!,
+      strain: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}strain'],
+      )!,
+      trimp: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}trimp'],
+      )!,
+      hrMax: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}hr_max'],
+      )!,
+      sleepPerf: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}sleep_perf'],
+      ),
+      sleptHours: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}slept_hours'],
+      ),
+      needHours: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}need_hours'],
+      ),
+      sleepStart: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sleep_start'],
+      ),
+      sleepEnd: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sleep_end'],
+      ),
+      recovery: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}recovery'],
+      ),
+      rhr: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}rhr'],
+      ),
+      hrvProxy: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}hrv_proxy'],
+      ),
+      calibrating: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}calibrating'],
+      )!,
+      algoVersion: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}algo_version'],
+      )!,
+    );
+  }
+
+  @override
+  $DailyScoresTable createAlias(String alias) {
+    return $DailyScoresTable(attachedDatabase, alias);
+  }
+}
+
+class DailyScore extends DataClass implements Insertable<DailyScore> {
+  final String date;
+  final double strain;
+  final double trimp;
+  final int hrMax;
+  final double? sleepPerf;
+  final double? sleptHours;
+  final double? needHours;
+  final int? sleepStart;
+  final int? sleepEnd;
+  final double? recovery;
+  final double? rhr;
+  final double? hrvProxy;
+  final bool calibrating;
+  final int algoVersion;
+  const DailyScore({
+    required this.date,
+    required this.strain,
+    required this.trimp,
+    required this.hrMax,
+    this.sleepPerf,
+    this.sleptHours,
+    this.needHours,
+    this.sleepStart,
+    this.sleepEnd,
+    this.recovery,
+    this.rhr,
+    this.hrvProxy,
+    required this.calibrating,
+    required this.algoVersion,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['date'] = Variable<String>(date);
+    map['strain'] = Variable<double>(strain);
+    map['trimp'] = Variable<double>(trimp);
+    map['hr_max'] = Variable<int>(hrMax);
+    if (!nullToAbsent || sleepPerf != null) {
+      map['sleep_perf'] = Variable<double>(sleepPerf);
+    }
+    if (!nullToAbsent || sleptHours != null) {
+      map['slept_hours'] = Variable<double>(sleptHours);
+    }
+    if (!nullToAbsent || needHours != null) {
+      map['need_hours'] = Variable<double>(needHours);
+    }
+    if (!nullToAbsent || sleepStart != null) {
+      map['sleep_start'] = Variable<int>(sleepStart);
+    }
+    if (!nullToAbsent || sleepEnd != null) {
+      map['sleep_end'] = Variable<int>(sleepEnd);
+    }
+    if (!nullToAbsent || recovery != null) {
+      map['recovery'] = Variable<double>(recovery);
+    }
+    if (!nullToAbsent || rhr != null) {
+      map['rhr'] = Variable<double>(rhr);
+    }
+    if (!nullToAbsent || hrvProxy != null) {
+      map['hrv_proxy'] = Variable<double>(hrvProxy);
+    }
+    map['calibrating'] = Variable<bool>(calibrating);
+    map['algo_version'] = Variable<int>(algoVersion);
+    return map;
+  }
+
+  DailyScoresCompanion toCompanion(bool nullToAbsent) {
+    return DailyScoresCompanion(
+      date: Value(date),
+      strain: Value(strain),
+      trimp: Value(trimp),
+      hrMax: Value(hrMax),
+      sleepPerf: sleepPerf == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sleepPerf),
+      sleptHours: sleptHours == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sleptHours),
+      needHours: needHours == null && nullToAbsent
+          ? const Value.absent()
+          : Value(needHours),
+      sleepStart: sleepStart == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sleepStart),
+      sleepEnd: sleepEnd == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sleepEnd),
+      recovery: recovery == null && nullToAbsent
+          ? const Value.absent()
+          : Value(recovery),
+      rhr: rhr == null && nullToAbsent ? const Value.absent() : Value(rhr),
+      hrvProxy: hrvProxy == null && nullToAbsent
+          ? const Value.absent()
+          : Value(hrvProxy),
+      calibrating: Value(calibrating),
+      algoVersion: Value(algoVersion),
+    );
+  }
+
+  factory DailyScore.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return DailyScore(
+      date: serializer.fromJson<String>(json['date']),
+      strain: serializer.fromJson<double>(json['strain']),
+      trimp: serializer.fromJson<double>(json['trimp']),
+      hrMax: serializer.fromJson<int>(json['hrMax']),
+      sleepPerf: serializer.fromJson<double?>(json['sleepPerf']),
+      sleptHours: serializer.fromJson<double?>(json['sleptHours']),
+      needHours: serializer.fromJson<double?>(json['needHours']),
+      sleepStart: serializer.fromJson<int?>(json['sleepStart']),
+      sleepEnd: serializer.fromJson<int?>(json['sleepEnd']),
+      recovery: serializer.fromJson<double?>(json['recovery']),
+      rhr: serializer.fromJson<double?>(json['rhr']),
+      hrvProxy: serializer.fromJson<double?>(json['hrvProxy']),
+      calibrating: serializer.fromJson<bool>(json['calibrating']),
+      algoVersion: serializer.fromJson<int>(json['algoVersion']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'date': serializer.toJson<String>(date),
+      'strain': serializer.toJson<double>(strain),
+      'trimp': serializer.toJson<double>(trimp),
+      'hrMax': serializer.toJson<int>(hrMax),
+      'sleepPerf': serializer.toJson<double?>(sleepPerf),
+      'sleptHours': serializer.toJson<double?>(sleptHours),
+      'needHours': serializer.toJson<double?>(needHours),
+      'sleepStart': serializer.toJson<int?>(sleepStart),
+      'sleepEnd': serializer.toJson<int?>(sleepEnd),
+      'recovery': serializer.toJson<double?>(recovery),
+      'rhr': serializer.toJson<double?>(rhr),
+      'hrvProxy': serializer.toJson<double?>(hrvProxy),
+      'calibrating': serializer.toJson<bool>(calibrating),
+      'algoVersion': serializer.toJson<int>(algoVersion),
+    };
+  }
+
+  DailyScore copyWith({
+    String? date,
+    double? strain,
+    double? trimp,
+    int? hrMax,
+    Value<double?> sleepPerf = const Value.absent(),
+    Value<double?> sleptHours = const Value.absent(),
+    Value<double?> needHours = const Value.absent(),
+    Value<int?> sleepStart = const Value.absent(),
+    Value<int?> sleepEnd = const Value.absent(),
+    Value<double?> recovery = const Value.absent(),
+    Value<double?> rhr = const Value.absent(),
+    Value<double?> hrvProxy = const Value.absent(),
+    bool? calibrating,
+    int? algoVersion,
+  }) => DailyScore(
+    date: date ?? this.date,
+    strain: strain ?? this.strain,
+    trimp: trimp ?? this.trimp,
+    hrMax: hrMax ?? this.hrMax,
+    sleepPerf: sleepPerf.present ? sleepPerf.value : this.sleepPerf,
+    sleptHours: sleptHours.present ? sleptHours.value : this.sleptHours,
+    needHours: needHours.present ? needHours.value : this.needHours,
+    sleepStart: sleepStart.present ? sleepStart.value : this.sleepStart,
+    sleepEnd: sleepEnd.present ? sleepEnd.value : this.sleepEnd,
+    recovery: recovery.present ? recovery.value : this.recovery,
+    rhr: rhr.present ? rhr.value : this.rhr,
+    hrvProxy: hrvProxy.present ? hrvProxy.value : this.hrvProxy,
+    calibrating: calibrating ?? this.calibrating,
+    algoVersion: algoVersion ?? this.algoVersion,
+  );
+  DailyScore copyWithCompanion(DailyScoresCompanion data) {
+    return DailyScore(
+      date: data.date.present ? data.date.value : this.date,
+      strain: data.strain.present ? data.strain.value : this.strain,
+      trimp: data.trimp.present ? data.trimp.value : this.trimp,
+      hrMax: data.hrMax.present ? data.hrMax.value : this.hrMax,
+      sleepPerf: data.sleepPerf.present ? data.sleepPerf.value : this.sleepPerf,
+      sleptHours: data.sleptHours.present
+          ? data.sleptHours.value
+          : this.sleptHours,
+      needHours: data.needHours.present ? data.needHours.value : this.needHours,
+      sleepStart: data.sleepStart.present
+          ? data.sleepStart.value
+          : this.sleepStart,
+      sleepEnd: data.sleepEnd.present ? data.sleepEnd.value : this.sleepEnd,
+      recovery: data.recovery.present ? data.recovery.value : this.recovery,
+      rhr: data.rhr.present ? data.rhr.value : this.rhr,
+      hrvProxy: data.hrvProxy.present ? data.hrvProxy.value : this.hrvProxy,
+      calibrating: data.calibrating.present
+          ? data.calibrating.value
+          : this.calibrating,
+      algoVersion: data.algoVersion.present
+          ? data.algoVersion.value
+          : this.algoVersion,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DailyScore(')
+          ..write('date: $date, ')
+          ..write('strain: $strain, ')
+          ..write('trimp: $trimp, ')
+          ..write('hrMax: $hrMax, ')
+          ..write('sleepPerf: $sleepPerf, ')
+          ..write('sleptHours: $sleptHours, ')
+          ..write('needHours: $needHours, ')
+          ..write('sleepStart: $sleepStart, ')
+          ..write('sleepEnd: $sleepEnd, ')
+          ..write('recovery: $recovery, ')
+          ..write('rhr: $rhr, ')
+          ..write('hrvProxy: $hrvProxy, ')
+          ..write('calibrating: $calibrating, ')
+          ..write('algoVersion: $algoVersion')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    date,
+    strain,
+    trimp,
+    hrMax,
+    sleepPerf,
+    sleptHours,
+    needHours,
+    sleepStart,
+    sleepEnd,
+    recovery,
+    rhr,
+    hrvProxy,
+    calibrating,
+    algoVersion,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is DailyScore &&
+          other.date == this.date &&
+          other.strain == this.strain &&
+          other.trimp == this.trimp &&
+          other.hrMax == this.hrMax &&
+          other.sleepPerf == this.sleepPerf &&
+          other.sleptHours == this.sleptHours &&
+          other.needHours == this.needHours &&
+          other.sleepStart == this.sleepStart &&
+          other.sleepEnd == this.sleepEnd &&
+          other.recovery == this.recovery &&
+          other.rhr == this.rhr &&
+          other.hrvProxy == this.hrvProxy &&
+          other.calibrating == this.calibrating &&
+          other.algoVersion == this.algoVersion);
+}
+
+class DailyScoresCompanion extends UpdateCompanion<DailyScore> {
+  final Value<String> date;
+  final Value<double> strain;
+  final Value<double> trimp;
+  final Value<int> hrMax;
+  final Value<double?> sleepPerf;
+  final Value<double?> sleptHours;
+  final Value<double?> needHours;
+  final Value<int?> sleepStart;
+  final Value<int?> sleepEnd;
+  final Value<double?> recovery;
+  final Value<double?> rhr;
+  final Value<double?> hrvProxy;
+  final Value<bool> calibrating;
+  final Value<int> algoVersion;
+  final Value<int> rowid;
+  const DailyScoresCompanion({
+    this.date = const Value.absent(),
+    this.strain = const Value.absent(),
+    this.trimp = const Value.absent(),
+    this.hrMax = const Value.absent(),
+    this.sleepPerf = const Value.absent(),
+    this.sleptHours = const Value.absent(),
+    this.needHours = const Value.absent(),
+    this.sleepStart = const Value.absent(),
+    this.sleepEnd = const Value.absent(),
+    this.recovery = const Value.absent(),
+    this.rhr = const Value.absent(),
+    this.hrvProxy = const Value.absent(),
+    this.calibrating = const Value.absent(),
+    this.algoVersion = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  DailyScoresCompanion.insert({
+    required String date,
+    required double strain,
+    required double trimp,
+    required int hrMax,
+    this.sleepPerf = const Value.absent(),
+    this.sleptHours = const Value.absent(),
+    this.needHours = const Value.absent(),
+    this.sleepStart = const Value.absent(),
+    this.sleepEnd = const Value.absent(),
+    this.recovery = const Value.absent(),
+    this.rhr = const Value.absent(),
+    this.hrvProxy = const Value.absent(),
+    required bool calibrating,
+    required int algoVersion,
+    this.rowid = const Value.absent(),
+  }) : date = Value(date),
+       strain = Value(strain),
+       trimp = Value(trimp),
+       hrMax = Value(hrMax),
+       calibrating = Value(calibrating),
+       algoVersion = Value(algoVersion);
+  static Insertable<DailyScore> custom({
+    Expression<String>? date,
+    Expression<double>? strain,
+    Expression<double>? trimp,
+    Expression<int>? hrMax,
+    Expression<double>? sleepPerf,
+    Expression<double>? sleptHours,
+    Expression<double>? needHours,
+    Expression<int>? sleepStart,
+    Expression<int>? sleepEnd,
+    Expression<double>? recovery,
+    Expression<double>? rhr,
+    Expression<double>? hrvProxy,
+    Expression<bool>? calibrating,
+    Expression<int>? algoVersion,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (date != null) 'date': date,
+      if (strain != null) 'strain': strain,
+      if (trimp != null) 'trimp': trimp,
+      if (hrMax != null) 'hr_max': hrMax,
+      if (sleepPerf != null) 'sleep_perf': sleepPerf,
+      if (sleptHours != null) 'slept_hours': sleptHours,
+      if (needHours != null) 'need_hours': needHours,
+      if (sleepStart != null) 'sleep_start': sleepStart,
+      if (sleepEnd != null) 'sleep_end': sleepEnd,
+      if (recovery != null) 'recovery': recovery,
+      if (rhr != null) 'rhr': rhr,
+      if (hrvProxy != null) 'hrv_proxy': hrvProxy,
+      if (calibrating != null) 'calibrating': calibrating,
+      if (algoVersion != null) 'algo_version': algoVersion,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  DailyScoresCompanion copyWith({
+    Value<String>? date,
+    Value<double>? strain,
+    Value<double>? trimp,
+    Value<int>? hrMax,
+    Value<double?>? sleepPerf,
+    Value<double?>? sleptHours,
+    Value<double?>? needHours,
+    Value<int?>? sleepStart,
+    Value<int?>? sleepEnd,
+    Value<double?>? recovery,
+    Value<double?>? rhr,
+    Value<double?>? hrvProxy,
+    Value<bool>? calibrating,
+    Value<int>? algoVersion,
+    Value<int>? rowid,
+  }) {
+    return DailyScoresCompanion(
+      date: date ?? this.date,
+      strain: strain ?? this.strain,
+      trimp: trimp ?? this.trimp,
+      hrMax: hrMax ?? this.hrMax,
+      sleepPerf: sleepPerf ?? this.sleepPerf,
+      sleptHours: sleptHours ?? this.sleptHours,
+      needHours: needHours ?? this.needHours,
+      sleepStart: sleepStart ?? this.sleepStart,
+      sleepEnd: sleepEnd ?? this.sleepEnd,
+      recovery: recovery ?? this.recovery,
+      rhr: rhr ?? this.rhr,
+      hrvProxy: hrvProxy ?? this.hrvProxy,
+      calibrating: calibrating ?? this.calibrating,
+      algoVersion: algoVersion ?? this.algoVersion,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (date.present) {
+      map['date'] = Variable<String>(date.value);
+    }
+    if (strain.present) {
+      map['strain'] = Variable<double>(strain.value);
+    }
+    if (trimp.present) {
+      map['trimp'] = Variable<double>(trimp.value);
+    }
+    if (hrMax.present) {
+      map['hr_max'] = Variable<int>(hrMax.value);
+    }
+    if (sleepPerf.present) {
+      map['sleep_perf'] = Variable<double>(sleepPerf.value);
+    }
+    if (sleptHours.present) {
+      map['slept_hours'] = Variable<double>(sleptHours.value);
+    }
+    if (needHours.present) {
+      map['need_hours'] = Variable<double>(needHours.value);
+    }
+    if (sleepStart.present) {
+      map['sleep_start'] = Variable<int>(sleepStart.value);
+    }
+    if (sleepEnd.present) {
+      map['sleep_end'] = Variable<int>(sleepEnd.value);
+    }
+    if (recovery.present) {
+      map['recovery'] = Variable<double>(recovery.value);
+    }
+    if (rhr.present) {
+      map['rhr'] = Variable<double>(rhr.value);
+    }
+    if (hrvProxy.present) {
+      map['hrv_proxy'] = Variable<double>(hrvProxy.value);
+    }
+    if (calibrating.present) {
+      map['calibrating'] = Variable<bool>(calibrating.value);
+    }
+    if (algoVersion.present) {
+      map['algo_version'] = Variable<int>(algoVersion.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DailyScoresCompanion(')
+          ..write('date: $date, ')
+          ..write('strain: $strain, ')
+          ..write('trimp: $trimp, ')
+          ..write('hrMax: $hrMax, ')
+          ..write('sleepPerf: $sleepPerf, ')
+          ..write('sleptHours: $sleptHours, ')
+          ..write('needHours: $needHours, ')
+          ..write('sleepStart: $sleepStart, ')
+          ..write('sleepEnd: $sleepEnd, ')
+          ..write('recovery: $recovery, ')
+          ..write('rhr: $rhr, ')
+          ..write('hrvProxy: $hrvProxy, ')
+          ..write('calibrating: $calibrating, ')
+          ..write('algoVersion: $algoVersion, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $BaselinesTable extends Baselines
+    with TableInfo<$BaselinesTable, Baseline> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $BaselinesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _metricMeta = const VerificationMeta('metric');
+  @override
+  late final GeneratedColumn<String> metric = GeneratedColumn<String>(
+    'metric',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _windowMeta = const VerificationMeta('window');
+  @override
+  late final GeneratedColumn<int> window = GeneratedColumn<int>(
+    'window',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _meanMeta = const VerificationMeta('mean');
+  @override
+  late final GeneratedColumn<double> mean = GeneratedColumn<double>(
+    'mean',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sdMeta = const VerificationMeta('sd');
+  @override
+  late final GeneratedColumn<double> sd = GeneratedColumn<double>(
+    'sd',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<int> updatedAt = GeneratedColumn<int>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [metric, window, mean, sd, updatedAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'baselines';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<Baseline> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('metric')) {
+      context.handle(
+        _metricMeta,
+        metric.isAcceptableOrUnknown(data['metric']!, _metricMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_metricMeta);
+    }
+    if (data.containsKey('window')) {
+      context.handle(
+        _windowMeta,
+        window.isAcceptableOrUnknown(data['window']!, _windowMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_windowMeta);
+    }
+    if (data.containsKey('mean')) {
+      context.handle(
+        _meanMeta,
+        mean.isAcceptableOrUnknown(data['mean']!, _meanMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_meanMeta);
+    }
+    if (data.containsKey('sd')) {
+      context.handle(_sdMeta, sd.isAcceptableOrUnknown(data['sd']!, _sdMeta));
+    } else if (isInserting) {
+      context.missing(_sdMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {metric, window};
+  @override
+  Baseline map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Baseline(
+      metric: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}metric'],
+      )!,
+      window: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}window'],
+      )!,
+      mean: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}mean'],
+      )!,
+      sd: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}sd'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $BaselinesTable createAlias(String alias) {
+    return $BaselinesTable(attachedDatabase, alias);
+  }
+}
+
+class Baseline extends DataClass implements Insertable<Baseline> {
+  final String metric;
+  final int window;
+  final double mean;
+  final double sd;
+  final int updatedAt;
+  const Baseline({
+    required this.metric,
+    required this.window,
+    required this.mean,
+    required this.sd,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['metric'] = Variable<String>(metric);
+    map['window'] = Variable<int>(window);
+    map['mean'] = Variable<double>(mean);
+    map['sd'] = Variable<double>(sd);
+    map['updated_at'] = Variable<int>(updatedAt);
+    return map;
+  }
+
+  BaselinesCompanion toCompanion(bool nullToAbsent) {
+    return BaselinesCompanion(
+      metric: Value(metric),
+      window: Value(window),
+      mean: Value(mean),
+      sd: Value(sd),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory Baseline.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Baseline(
+      metric: serializer.fromJson<String>(json['metric']),
+      window: serializer.fromJson<int>(json['window']),
+      mean: serializer.fromJson<double>(json['mean']),
+      sd: serializer.fromJson<double>(json['sd']),
+      updatedAt: serializer.fromJson<int>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'metric': serializer.toJson<String>(metric),
+      'window': serializer.toJson<int>(window),
+      'mean': serializer.toJson<double>(mean),
+      'sd': serializer.toJson<double>(sd),
+      'updatedAt': serializer.toJson<int>(updatedAt),
+    };
+  }
+
+  Baseline copyWith({
+    String? metric,
+    int? window,
+    double? mean,
+    double? sd,
+    int? updatedAt,
+  }) => Baseline(
+    metric: metric ?? this.metric,
+    window: window ?? this.window,
+    mean: mean ?? this.mean,
+    sd: sd ?? this.sd,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  Baseline copyWithCompanion(BaselinesCompanion data) {
+    return Baseline(
+      metric: data.metric.present ? data.metric.value : this.metric,
+      window: data.window.present ? data.window.value : this.window,
+      mean: data.mean.present ? data.mean.value : this.mean,
+      sd: data.sd.present ? data.sd.value : this.sd,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Baseline(')
+          ..write('metric: $metric, ')
+          ..write('window: $window, ')
+          ..write('mean: $mean, ')
+          ..write('sd: $sd, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(metric, window, mean, sd, updatedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Baseline &&
+          other.metric == this.metric &&
+          other.window == this.window &&
+          other.mean == this.mean &&
+          other.sd == this.sd &&
+          other.updatedAt == this.updatedAt);
+}
+
+class BaselinesCompanion extends UpdateCompanion<Baseline> {
+  final Value<String> metric;
+  final Value<int> window;
+  final Value<double> mean;
+  final Value<double> sd;
+  final Value<int> updatedAt;
+  final Value<int> rowid;
+  const BaselinesCompanion({
+    this.metric = const Value.absent(),
+    this.window = const Value.absent(),
+    this.mean = const Value.absent(),
+    this.sd = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  BaselinesCompanion.insert({
+    required String metric,
+    required int window,
+    required double mean,
+    required double sd,
+    required int updatedAt,
+    this.rowid = const Value.absent(),
+  }) : metric = Value(metric),
+       window = Value(window),
+       mean = Value(mean),
+       sd = Value(sd),
+       updatedAt = Value(updatedAt);
+  static Insertable<Baseline> custom({
+    Expression<String>? metric,
+    Expression<int>? window,
+    Expression<double>? mean,
+    Expression<double>? sd,
+    Expression<int>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (metric != null) 'metric': metric,
+      if (window != null) 'window': window,
+      if (mean != null) 'mean': mean,
+      if (sd != null) 'sd': sd,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  BaselinesCompanion copyWith({
+    Value<String>? metric,
+    Value<int>? window,
+    Value<double>? mean,
+    Value<double>? sd,
+    Value<int>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return BaselinesCompanion(
+      metric: metric ?? this.metric,
+      window: window ?? this.window,
+      mean: mean ?? this.mean,
+      sd: sd ?? this.sd,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (metric.present) {
+      map['metric'] = Variable<String>(metric.value);
+    }
+    if (window.present) {
+      map['window'] = Variable<int>(window.value);
+    }
+    if (mean.present) {
+      map['mean'] = Variable<double>(mean.value);
+    }
+    if (sd.present) {
+      map['sd'] = Variable<double>(sd.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<int>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('BaselinesCompanion(')
+          ..write('metric: $metric, ')
+          ..write('window: $window, ')
+          ..write('mean: $mean, ')
+          ..write('sd: $sd, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $JournalTable extends Journal with TableInfo<$JournalTable, JournalData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $JournalTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _dateMeta = const VerificationMeta('date');
+  @override
+  late final GeneratedColumn<String> date = GeneratedColumn<String>(
+    'date',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _tagMeta = const VerificationMeta('tag');
+  @override
+  late final GeneratedColumn<String> tag = GeneratedColumn<String>(
+    'tag',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _valueMeta = const VerificationMeta('value');
+  @override
+  late final GeneratedColumn<bool> value = GeneratedColumn<bool>(
+    'value',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("value" IN (0, 1))',
+    ),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [date, tag, value];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'journal';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<JournalData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('date')) {
+      context.handle(
+        _dateMeta,
+        date.isAcceptableOrUnknown(data['date']!, _dateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_dateMeta);
+    }
+    if (data.containsKey('tag')) {
+      context.handle(
+        _tagMeta,
+        tag.isAcceptableOrUnknown(data['tag']!, _tagMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_tagMeta);
+    }
+    if (data.containsKey('value')) {
+      context.handle(
+        _valueMeta,
+        value.isAcceptableOrUnknown(data['value']!, _valueMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_valueMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {date, tag};
+  @override
+  JournalData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return JournalData(
+      date: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}date'],
+      )!,
+      tag: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}tag'],
+      )!,
+      value: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}value'],
+      )!,
+    );
+  }
+
+  @override
+  $JournalTable createAlias(String alias) {
+    return $JournalTable(attachedDatabase, alias);
+  }
+}
+
+class JournalData extends DataClass implements Insertable<JournalData> {
+  final String date;
+  final String tag;
+  final bool value;
+  const JournalData({
+    required this.date,
+    required this.tag,
+    required this.value,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['date'] = Variable<String>(date);
+    map['tag'] = Variable<String>(tag);
+    map['value'] = Variable<bool>(value);
+    return map;
+  }
+
+  JournalCompanion toCompanion(bool nullToAbsent) {
+    return JournalCompanion(
+      date: Value(date),
+      tag: Value(tag),
+      value: Value(value),
+    );
+  }
+
+  factory JournalData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return JournalData(
+      date: serializer.fromJson<String>(json['date']),
+      tag: serializer.fromJson<String>(json['tag']),
+      value: serializer.fromJson<bool>(json['value']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'date': serializer.toJson<String>(date),
+      'tag': serializer.toJson<String>(tag),
+      'value': serializer.toJson<bool>(value),
+    };
+  }
+
+  JournalData copyWith({String? date, String? tag, bool? value}) => JournalData(
+    date: date ?? this.date,
+    tag: tag ?? this.tag,
+    value: value ?? this.value,
+  );
+  JournalData copyWithCompanion(JournalCompanion data) {
+    return JournalData(
+      date: data.date.present ? data.date.value : this.date,
+      tag: data.tag.present ? data.tag.value : this.tag,
+      value: data.value.present ? data.value.value : this.value,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('JournalData(')
+          ..write('date: $date, ')
+          ..write('tag: $tag, ')
+          ..write('value: $value')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(date, tag, value);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is JournalData &&
+          other.date == this.date &&
+          other.tag == this.tag &&
+          other.value == this.value);
+}
+
+class JournalCompanion extends UpdateCompanion<JournalData> {
+  final Value<String> date;
+  final Value<String> tag;
+  final Value<bool> value;
+  final Value<int> rowid;
+  const JournalCompanion({
+    this.date = const Value.absent(),
+    this.tag = const Value.absent(),
+    this.value = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  JournalCompanion.insert({
+    required String date,
+    required String tag,
+    required bool value,
+    this.rowid = const Value.absent(),
+  }) : date = Value(date),
+       tag = Value(tag),
+       value = Value(value);
+  static Insertable<JournalData> custom({
+    Expression<String>? date,
+    Expression<String>? tag,
+    Expression<bool>? value,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (date != null) 'date': date,
+      if (tag != null) 'tag': tag,
+      if (value != null) 'value': value,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  JournalCompanion copyWith({
+    Value<String>? date,
+    Value<String>? tag,
+    Value<bool>? value,
+    Value<int>? rowid,
+  }) {
+    return JournalCompanion(
+      date: date ?? this.date,
+      tag: tag ?? this.tag,
+      value: value ?? this.value,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (date.present) {
+      map['date'] = Variable<String>(date.value);
+    }
+    if (tag.present) {
+      map['tag'] = Variable<String>(tag.value);
+    }
+    if (value.present) {
+      map['value'] = Variable<bool>(value.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('JournalCompanion(')
+          ..write('date: $date, ')
+          ..write('tag: $tag, ')
+          ..write('value: $value, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $SyncStateTable extends SyncState
+    with TableInfo<$SyncStateTable, SyncStateData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SyncStateTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _deviceMeta = const VerificationMeta('device');
+  @override
+  late final GeneratedColumn<String> device = GeneratedColumn<String>(
+    'device',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _dataTypeMeta = const VerificationMeta(
+    'dataType',
+  );
+  @override
+  late final GeneratedColumn<String> dataType = GeneratedColumn<String>(
+    'data_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _lastTsMeta = const VerificationMeta('lastTs');
+  @override
+  late final GeneratedColumn<int> lastTs = GeneratedColumn<int>(
+    'last_ts',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [device, dataType, lastTs];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'sync_state';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<SyncStateData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('device')) {
+      context.handle(
+        _deviceMeta,
+        device.isAcceptableOrUnknown(data['device']!, _deviceMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_deviceMeta);
+    }
+    if (data.containsKey('data_type')) {
+      context.handle(
+        _dataTypeMeta,
+        dataType.isAcceptableOrUnknown(data['data_type']!, _dataTypeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_dataTypeMeta);
+    }
+    if (data.containsKey('last_ts')) {
+      context.handle(
+        _lastTsMeta,
+        lastTs.isAcceptableOrUnknown(data['last_ts']!, _lastTsMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_lastTsMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {device, dataType};
+  @override
+  SyncStateData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return SyncStateData(
+      device: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}device'],
+      )!,
+      dataType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}data_type'],
+      )!,
+      lastTs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}last_ts'],
+      )!,
+    );
+  }
+
+  @override
+  $SyncStateTable createAlias(String alias) {
+    return $SyncStateTable(attachedDatabase, alias);
+  }
+}
+
+class SyncStateData extends DataClass implements Insertable<SyncStateData> {
+  final String device;
+  final String dataType;
+  final int lastTs;
+  const SyncStateData({
+    required this.device,
+    required this.dataType,
+    required this.lastTs,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['device'] = Variable<String>(device);
+    map['data_type'] = Variable<String>(dataType);
+    map['last_ts'] = Variable<int>(lastTs);
+    return map;
+  }
+
+  SyncStateCompanion toCompanion(bool nullToAbsent) {
+    return SyncStateCompanion(
+      device: Value(device),
+      dataType: Value(dataType),
+      lastTs: Value(lastTs),
+    );
+  }
+
+  factory SyncStateData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SyncStateData(
+      device: serializer.fromJson<String>(json['device']),
+      dataType: serializer.fromJson<String>(json['dataType']),
+      lastTs: serializer.fromJson<int>(json['lastTs']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'device': serializer.toJson<String>(device),
+      'dataType': serializer.toJson<String>(dataType),
+      'lastTs': serializer.toJson<int>(lastTs),
+    };
+  }
+
+  SyncStateData copyWith({String? device, String? dataType, int? lastTs}) =>
+      SyncStateData(
+        device: device ?? this.device,
+        dataType: dataType ?? this.dataType,
+        lastTs: lastTs ?? this.lastTs,
+      );
+  SyncStateData copyWithCompanion(SyncStateCompanion data) {
+    return SyncStateData(
+      device: data.device.present ? data.device.value : this.device,
+      dataType: data.dataType.present ? data.dataType.value : this.dataType,
+      lastTs: data.lastTs.present ? data.lastTs.value : this.lastTs,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SyncStateData(')
+          ..write('device: $device, ')
+          ..write('dataType: $dataType, ')
+          ..write('lastTs: $lastTs')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(device, dataType, lastTs);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SyncStateData &&
+          other.device == this.device &&
+          other.dataType == this.dataType &&
+          other.lastTs == this.lastTs);
+}
+
+class SyncStateCompanion extends UpdateCompanion<SyncStateData> {
+  final Value<String> device;
+  final Value<String> dataType;
+  final Value<int> lastTs;
+  final Value<int> rowid;
+  const SyncStateCompanion({
+    this.device = const Value.absent(),
+    this.dataType = const Value.absent(),
+    this.lastTs = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  SyncStateCompanion.insert({
+    required String device,
+    required String dataType,
+    required int lastTs,
+    this.rowid = const Value.absent(),
+  }) : device = Value(device),
+       dataType = Value(dataType),
+       lastTs = Value(lastTs);
+  static Insertable<SyncStateData> custom({
+    Expression<String>? device,
+    Expression<String>? dataType,
+    Expression<int>? lastTs,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (device != null) 'device': device,
+      if (dataType != null) 'data_type': dataType,
+      if (lastTs != null) 'last_ts': lastTs,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  SyncStateCompanion copyWith({
+    Value<String>? device,
+    Value<String>? dataType,
+    Value<int>? lastTs,
+    Value<int>? rowid,
+  }) {
+    return SyncStateCompanion(
+      device: device ?? this.device,
+      dataType: dataType ?? this.dataType,
+      lastTs: lastTs ?? this.lastTs,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (device.present) {
+      map['device'] = Variable<String>(device.value);
+    }
+    if (dataType.present) {
+      map['data_type'] = Variable<String>(dataType.value);
+    }
+    if (lastTs.present) {
+      map['last_ts'] = Variable<int>(lastTs.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SyncStateCompanion(')
+          ..write('device: $device, ')
+          ..write('dataType: $dataType, ')
+          ..write('lastTs: $lastTs, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $SettingsTable extends Settings with TableInfo<$SettingsTable, Setting> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SettingsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _keyMeta = const VerificationMeta('key');
+  @override
+  late final GeneratedColumn<String> key = GeneratedColumn<String>(
+    'key',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _valueMeta = const VerificationMeta('value');
+  @override
+  late final GeneratedColumn<String> value = GeneratedColumn<String>(
+    'value',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [key, value];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'settings';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<Setting> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('key')) {
+      context.handle(
+        _keyMeta,
+        key.isAcceptableOrUnknown(data['key']!, _keyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_keyMeta);
+    }
+    if (data.containsKey('value')) {
+      context.handle(
+        _valueMeta,
+        value.isAcceptableOrUnknown(data['value']!, _valueMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_valueMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {key};
+  @override
+  Setting map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Setting(
+      key: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}key'],
+      )!,
+      value: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}value'],
+      )!,
+    );
+  }
+
+  @override
+  $SettingsTable createAlias(String alias) {
+    return $SettingsTable(attachedDatabase, alias);
+  }
+}
+
+class Setting extends DataClass implements Insertable<Setting> {
+  final String key;
+  final String value;
+  const Setting({required this.key, required this.value});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['key'] = Variable<String>(key);
+    map['value'] = Variable<String>(value);
+    return map;
+  }
+
+  SettingsCompanion toCompanion(bool nullToAbsent) {
+    return SettingsCompanion(key: Value(key), value: Value(value));
+  }
+
+  factory Setting.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Setting(
+      key: serializer.fromJson<String>(json['key']),
+      value: serializer.fromJson<String>(json['value']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'key': serializer.toJson<String>(key),
+      'value': serializer.toJson<String>(value),
+    };
+  }
+
+  Setting copyWith({String? key, String? value}) =>
+      Setting(key: key ?? this.key, value: value ?? this.value);
+  Setting copyWithCompanion(SettingsCompanion data) {
+    return Setting(
+      key: data.key.present ? data.key.value : this.key,
+      value: data.value.present ? data.value.value : this.value,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Setting(')
+          ..write('key: $key, ')
+          ..write('value: $value')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(key, value);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Setting && other.key == this.key && other.value == this.value);
+}
+
+class SettingsCompanion extends UpdateCompanion<Setting> {
+  final Value<String> key;
+  final Value<String> value;
+  final Value<int> rowid;
+  const SettingsCompanion({
+    this.key = const Value.absent(),
+    this.value = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  SettingsCompanion.insert({
+    required String key,
+    required String value,
+    this.rowid = const Value.absent(),
+  }) : key = Value(key),
+       value = Value(value);
+  static Insertable<Setting> custom({
+    Expression<String>? key,
+    Expression<String>? value,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (key != null) 'key': key,
+      if (value != null) 'value': value,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  SettingsCompanion copyWith({
+    Value<String>? key,
+    Value<String>? value,
+    Value<int>? rowid,
+  }) {
+    return SettingsCompanion(
+      key: key ?? this.key,
+      value: value ?? this.value,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (key.present) {
+      map['key'] = Variable<String>(key.value);
+    }
+    if (value.present) {
+      map['value'] = Variable<String>(value.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SettingsCompanion(')
+          ..write('key: $key, ')
+          ..write('value: $value, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+abstract class _$TempoDb extends GeneratedDatabase {
+  _$TempoDb(QueryExecutor e) : super(e);
+  $TempoDbManager get managers => $TempoDbManager(this);
+  late final $MinuteSamplesTable minuteSamples = $MinuteSamplesTable(this);
+  late final $HrLiveTable hrLive = $HrLiveTable(this);
+  late final $StressSamplesTable stressSamples = $StressSamplesTable(this);
+  late final $Spo2SamplesTable spo2Samples = $Spo2SamplesTable(this);
+  late final $SleepSessionsTable sleepSessions = $SleepSessionsTable(this);
+  late final $DailyScoresTable dailyScores = $DailyScoresTable(this);
+  late final $BaselinesTable baselines = $BaselinesTable(this);
+  late final $JournalTable journal = $JournalTable(this);
+  late final $SyncStateTable syncState = $SyncStateTable(this);
+  late final $SettingsTable settings = $SettingsTable(this);
+  @override
+  Iterable<TableInfo<Table, Object?>> get allTables =>
+      allSchemaEntities.whereType<TableInfo<Table, Object?>>();
+  @override
+  List<DatabaseSchemaEntity> get allSchemaEntities => [
+    minuteSamples,
+    hrLive,
+    stressSamples,
+    spo2Samples,
+    sleepSessions,
+    dailyScores,
+    baselines,
+    journal,
+    syncState,
+    settings,
+  ];
+}
+
+typedef $$MinuteSamplesTableCreateCompanionBuilder =
+    MinuteSamplesCompanion Function({
+      Value<int> ts,
+      required int steps,
+      required int intensity,
+      required int kind,
+      Value<int?> hr,
+    });
+typedef $$MinuteSamplesTableUpdateCompanionBuilder =
+    MinuteSamplesCompanion Function({
+      Value<int> ts,
+      Value<int> steps,
+      Value<int> intensity,
+      Value<int> kind,
+      Value<int?> hr,
+    });
+
+class $$MinuteSamplesTableFilterComposer
+    extends Composer<_$TempoDb, $MinuteSamplesTable> {
+  $$MinuteSamplesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get ts => $composableBuilder(
+    column: $table.ts,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get steps => $composableBuilder(
+    column: $table.steps,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get intensity => $composableBuilder(
+    column: $table.intensity,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get hr => $composableBuilder(
+    column: $table.hr,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$MinuteSamplesTableOrderingComposer
+    extends Composer<_$TempoDb, $MinuteSamplesTable> {
+  $$MinuteSamplesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get ts => $composableBuilder(
+    column: $table.ts,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get steps => $composableBuilder(
+    column: $table.steps,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get intensity => $composableBuilder(
+    column: $table.intensity,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get hr => $composableBuilder(
+    column: $table.hr,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$MinuteSamplesTableAnnotationComposer
+    extends Composer<_$TempoDb, $MinuteSamplesTable> {
+  $$MinuteSamplesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get ts =>
+      $composableBuilder(column: $table.ts, builder: (column) => column);
+
+  GeneratedColumn<int> get steps =>
+      $composableBuilder(column: $table.steps, builder: (column) => column);
+
+  GeneratedColumn<int> get intensity =>
+      $composableBuilder(column: $table.intensity, builder: (column) => column);
+
+  GeneratedColumn<int> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => column);
+
+  GeneratedColumn<int> get hr =>
+      $composableBuilder(column: $table.hr, builder: (column) => column);
+}
+
+class $$MinuteSamplesTableTableManager
+    extends
+        RootTableManager<
+          _$TempoDb,
+          $MinuteSamplesTable,
+          MinuteSample,
+          $$MinuteSamplesTableFilterComposer,
+          $$MinuteSamplesTableOrderingComposer,
+          $$MinuteSamplesTableAnnotationComposer,
+          $$MinuteSamplesTableCreateCompanionBuilder,
+          $$MinuteSamplesTableUpdateCompanionBuilder,
+          (
+            MinuteSample,
+            BaseReferences<_$TempoDb, $MinuteSamplesTable, MinuteSample>,
+          ),
+          MinuteSample,
+          PrefetchHooks Function()
+        > {
+  $$MinuteSamplesTableTableManager(_$TempoDb db, $MinuteSamplesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$MinuteSamplesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$MinuteSamplesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$MinuteSamplesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> ts = const Value.absent(),
+                Value<int> steps = const Value.absent(),
+                Value<int> intensity = const Value.absent(),
+                Value<int> kind = const Value.absent(),
+                Value<int?> hr = const Value.absent(),
+              }) => MinuteSamplesCompanion(
+                ts: ts,
+                steps: steps,
+                intensity: intensity,
+                kind: kind,
+                hr: hr,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> ts = const Value.absent(),
+                required int steps,
+                required int intensity,
+                required int kind,
+                Value<int?> hr = const Value.absent(),
+              }) => MinuteSamplesCompanion.insert(
+                ts: ts,
+                steps: steps,
+                intensity: intensity,
+                kind: kind,
+                hr: hr,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$MinuteSamplesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$TempoDb,
+      $MinuteSamplesTable,
+      MinuteSample,
+      $$MinuteSamplesTableFilterComposer,
+      $$MinuteSamplesTableOrderingComposer,
+      $$MinuteSamplesTableAnnotationComposer,
+      $$MinuteSamplesTableCreateCompanionBuilder,
+      $$MinuteSamplesTableUpdateCompanionBuilder,
+      (
+        MinuteSample,
+        BaseReferences<_$TempoDb, $MinuteSamplesTable, MinuteSample>,
+      ),
+      MinuteSample,
+      PrefetchHooks Function()
+    >;
+typedef $$HrLiveTableCreateCompanionBuilder =
+    HrLiveCompanion Function({
+      Value<int> ts,
+      required int bpm,
+      Value<String> source,
+    });
+typedef $$HrLiveTableUpdateCompanionBuilder =
+    HrLiveCompanion Function({
+      Value<int> ts,
+      Value<int> bpm,
+      Value<String> source,
+    });
+
+class $$HrLiveTableFilterComposer extends Composer<_$TempoDb, $HrLiveTable> {
+  $$HrLiveTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get ts => $composableBuilder(
+    column: $table.ts,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get bpm => $composableBuilder(
+    column: $table.bpm,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get source => $composableBuilder(
+    column: $table.source,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$HrLiveTableOrderingComposer extends Composer<_$TempoDb, $HrLiveTable> {
+  $$HrLiveTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get ts => $composableBuilder(
+    column: $table.ts,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get bpm => $composableBuilder(
+    column: $table.bpm,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get source => $composableBuilder(
+    column: $table.source,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$HrLiveTableAnnotationComposer
+    extends Composer<_$TempoDb, $HrLiveTable> {
+  $$HrLiveTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get ts =>
+      $composableBuilder(column: $table.ts, builder: (column) => column);
+
+  GeneratedColumn<int> get bpm =>
+      $composableBuilder(column: $table.bpm, builder: (column) => column);
+
+  GeneratedColumn<String> get source =>
+      $composableBuilder(column: $table.source, builder: (column) => column);
+}
+
+class $$HrLiveTableTableManager
+    extends
+        RootTableManager<
+          _$TempoDb,
+          $HrLiveTable,
+          HrLiveData,
+          $$HrLiveTableFilterComposer,
+          $$HrLiveTableOrderingComposer,
+          $$HrLiveTableAnnotationComposer,
+          $$HrLiveTableCreateCompanionBuilder,
+          $$HrLiveTableUpdateCompanionBuilder,
+          (HrLiveData, BaseReferences<_$TempoDb, $HrLiveTable, HrLiveData>),
+          HrLiveData,
+          PrefetchHooks Function()
+        > {
+  $$HrLiveTableTableManager(_$TempoDb db, $HrLiveTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$HrLiveTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$HrLiveTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$HrLiveTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> ts = const Value.absent(),
+                Value<int> bpm = const Value.absent(),
+                Value<String> source = const Value.absent(),
+              }) => HrLiveCompanion(ts: ts, bpm: bpm, source: source),
+          createCompanionCallback:
+              ({
+                Value<int> ts = const Value.absent(),
+                required int bpm,
+                Value<String> source = const Value.absent(),
+              }) => HrLiveCompanion.insert(ts: ts, bpm: bpm, source: source),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$HrLiveTableProcessedTableManager =
+    ProcessedTableManager<
+      _$TempoDb,
+      $HrLiveTable,
+      HrLiveData,
+      $$HrLiveTableFilterComposer,
+      $$HrLiveTableOrderingComposer,
+      $$HrLiveTableAnnotationComposer,
+      $$HrLiveTableCreateCompanionBuilder,
+      $$HrLiveTableUpdateCompanionBuilder,
+      (HrLiveData, BaseReferences<_$TempoDb, $HrLiveTable, HrLiveData>),
+      HrLiveData,
+      PrefetchHooks Function()
+    >;
+typedef $$StressSamplesTableCreateCompanionBuilder =
+    StressSamplesCompanion Function({Value<int> ts, required int value});
+typedef $$StressSamplesTableUpdateCompanionBuilder =
+    StressSamplesCompanion Function({Value<int> ts, Value<int> value});
+
+class $$StressSamplesTableFilterComposer
+    extends Composer<_$TempoDb, $StressSamplesTable> {
+  $$StressSamplesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get ts => $composableBuilder(
+    column: $table.ts,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get value => $composableBuilder(
+    column: $table.value,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$StressSamplesTableOrderingComposer
+    extends Composer<_$TempoDb, $StressSamplesTable> {
+  $$StressSamplesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get ts => $composableBuilder(
+    column: $table.ts,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get value => $composableBuilder(
+    column: $table.value,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$StressSamplesTableAnnotationComposer
+    extends Composer<_$TempoDb, $StressSamplesTable> {
+  $$StressSamplesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get ts =>
+      $composableBuilder(column: $table.ts, builder: (column) => column);
+
+  GeneratedColumn<int> get value =>
+      $composableBuilder(column: $table.value, builder: (column) => column);
+}
+
+class $$StressSamplesTableTableManager
+    extends
+        RootTableManager<
+          _$TempoDb,
+          $StressSamplesTable,
+          StressSample,
+          $$StressSamplesTableFilterComposer,
+          $$StressSamplesTableOrderingComposer,
+          $$StressSamplesTableAnnotationComposer,
+          $$StressSamplesTableCreateCompanionBuilder,
+          $$StressSamplesTableUpdateCompanionBuilder,
+          (
+            StressSample,
+            BaseReferences<_$TempoDb, $StressSamplesTable, StressSample>,
+          ),
+          StressSample,
+          PrefetchHooks Function()
+        > {
+  $$StressSamplesTableTableManager(_$TempoDb db, $StressSamplesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$StressSamplesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$StressSamplesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$StressSamplesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> ts = const Value.absent(),
+                Value<int> value = const Value.absent(),
+              }) => StressSamplesCompanion(ts: ts, value: value),
+          createCompanionCallback:
+              ({Value<int> ts = const Value.absent(), required int value}) =>
+                  StressSamplesCompanion.insert(ts: ts, value: value),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$StressSamplesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$TempoDb,
+      $StressSamplesTable,
+      StressSample,
+      $$StressSamplesTableFilterComposer,
+      $$StressSamplesTableOrderingComposer,
+      $$StressSamplesTableAnnotationComposer,
+      $$StressSamplesTableCreateCompanionBuilder,
+      $$StressSamplesTableUpdateCompanionBuilder,
+      (
+        StressSample,
+        BaseReferences<_$TempoDb, $StressSamplesTable, StressSample>,
+      ),
+      StressSample,
+      PrefetchHooks Function()
+    >;
+typedef $$Spo2SamplesTableCreateCompanionBuilder =
+    Spo2SamplesCompanion Function({Value<int> ts, required int value});
+typedef $$Spo2SamplesTableUpdateCompanionBuilder =
+    Spo2SamplesCompanion Function({Value<int> ts, Value<int> value});
+
+class $$Spo2SamplesTableFilterComposer
+    extends Composer<_$TempoDb, $Spo2SamplesTable> {
+  $$Spo2SamplesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get ts => $composableBuilder(
+    column: $table.ts,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get value => $composableBuilder(
+    column: $table.value,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$Spo2SamplesTableOrderingComposer
+    extends Composer<_$TempoDb, $Spo2SamplesTable> {
+  $$Spo2SamplesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get ts => $composableBuilder(
+    column: $table.ts,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get value => $composableBuilder(
+    column: $table.value,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$Spo2SamplesTableAnnotationComposer
+    extends Composer<_$TempoDb, $Spo2SamplesTable> {
+  $$Spo2SamplesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get ts =>
+      $composableBuilder(column: $table.ts, builder: (column) => column);
+
+  GeneratedColumn<int> get value =>
+      $composableBuilder(column: $table.value, builder: (column) => column);
+}
+
+class $$Spo2SamplesTableTableManager
+    extends
+        RootTableManager<
+          _$TempoDb,
+          $Spo2SamplesTable,
+          Spo2Sample,
+          $$Spo2SamplesTableFilterComposer,
+          $$Spo2SamplesTableOrderingComposer,
+          $$Spo2SamplesTableAnnotationComposer,
+          $$Spo2SamplesTableCreateCompanionBuilder,
+          $$Spo2SamplesTableUpdateCompanionBuilder,
+          (
+            Spo2Sample,
+            BaseReferences<_$TempoDb, $Spo2SamplesTable, Spo2Sample>,
+          ),
+          Spo2Sample,
+          PrefetchHooks Function()
+        > {
+  $$Spo2SamplesTableTableManager(_$TempoDb db, $Spo2SamplesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$Spo2SamplesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$Spo2SamplesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$Spo2SamplesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> ts = const Value.absent(),
+                Value<int> value = const Value.absent(),
+              }) => Spo2SamplesCompanion(ts: ts, value: value),
+          createCompanionCallback:
+              ({Value<int> ts = const Value.absent(), required int value}) =>
+                  Spo2SamplesCompanion.insert(ts: ts, value: value),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$Spo2SamplesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$TempoDb,
+      $Spo2SamplesTable,
+      Spo2Sample,
+      $$Spo2SamplesTableFilterComposer,
+      $$Spo2SamplesTableOrderingComposer,
+      $$Spo2SamplesTableAnnotationComposer,
+      $$Spo2SamplesTableCreateCompanionBuilder,
+      $$Spo2SamplesTableUpdateCompanionBuilder,
+      (Spo2Sample, BaseReferences<_$TempoDb, $Spo2SamplesTable, Spo2Sample>),
+      Spo2Sample,
+      PrefetchHooks Function()
+    >;
+typedef $$SleepSessionsTableCreateCompanionBuilder =
+    SleepSessionsCompanion Function({
+      Value<int> id,
+      required int start,
+      required int end,
+      required String stages,
+      required int algoVersion,
+    });
+typedef $$SleepSessionsTableUpdateCompanionBuilder =
+    SleepSessionsCompanion Function({
+      Value<int> id,
+      Value<int> start,
+      Value<int> end,
+      Value<String> stages,
+      Value<int> algoVersion,
+    });
+
+class $$SleepSessionsTableFilterComposer
+    extends Composer<_$TempoDb, $SleepSessionsTable> {
+  $$SleepSessionsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get start => $composableBuilder(
+    column: $table.start,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get end => $composableBuilder(
+    column: $table.end,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get stages => $composableBuilder(
+    column: $table.stages,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get algoVersion => $composableBuilder(
+    column: $table.algoVersion,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$SleepSessionsTableOrderingComposer
+    extends Composer<_$TempoDb, $SleepSessionsTable> {
+  $$SleepSessionsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get start => $composableBuilder(
+    column: $table.start,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get end => $composableBuilder(
+    column: $table.end,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get stages => $composableBuilder(
+    column: $table.stages,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get algoVersion => $composableBuilder(
+    column: $table.algoVersion,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$SleepSessionsTableAnnotationComposer
+    extends Composer<_$TempoDb, $SleepSessionsTable> {
+  $$SleepSessionsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get start =>
+      $composableBuilder(column: $table.start, builder: (column) => column);
+
+  GeneratedColumn<int> get end =>
+      $composableBuilder(column: $table.end, builder: (column) => column);
+
+  GeneratedColumn<String> get stages =>
+      $composableBuilder(column: $table.stages, builder: (column) => column);
+
+  GeneratedColumn<int> get algoVersion => $composableBuilder(
+    column: $table.algoVersion,
+    builder: (column) => column,
+  );
+}
+
+class $$SleepSessionsTableTableManager
+    extends
+        RootTableManager<
+          _$TempoDb,
+          $SleepSessionsTable,
+          SleepSession,
+          $$SleepSessionsTableFilterComposer,
+          $$SleepSessionsTableOrderingComposer,
+          $$SleepSessionsTableAnnotationComposer,
+          $$SleepSessionsTableCreateCompanionBuilder,
+          $$SleepSessionsTableUpdateCompanionBuilder,
+          (
+            SleepSession,
+            BaseReferences<_$TempoDb, $SleepSessionsTable, SleepSession>,
+          ),
+          SleepSession,
+          PrefetchHooks Function()
+        > {
+  $$SleepSessionsTableTableManager(_$TempoDb db, $SleepSessionsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SleepSessionsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SleepSessionsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SleepSessionsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> start = const Value.absent(),
+                Value<int> end = const Value.absent(),
+                Value<String> stages = const Value.absent(),
+                Value<int> algoVersion = const Value.absent(),
+              }) => SleepSessionsCompanion(
+                id: id,
+                start: start,
+                end: end,
+                stages: stages,
+                algoVersion: algoVersion,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int start,
+                required int end,
+                required String stages,
+                required int algoVersion,
+              }) => SleepSessionsCompanion.insert(
+                id: id,
+                start: start,
+                end: end,
+                stages: stages,
+                algoVersion: algoVersion,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$SleepSessionsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$TempoDb,
+      $SleepSessionsTable,
+      SleepSession,
+      $$SleepSessionsTableFilterComposer,
+      $$SleepSessionsTableOrderingComposer,
+      $$SleepSessionsTableAnnotationComposer,
+      $$SleepSessionsTableCreateCompanionBuilder,
+      $$SleepSessionsTableUpdateCompanionBuilder,
+      (
+        SleepSession,
+        BaseReferences<_$TempoDb, $SleepSessionsTable, SleepSession>,
+      ),
+      SleepSession,
+      PrefetchHooks Function()
+    >;
+typedef $$DailyScoresTableCreateCompanionBuilder =
+    DailyScoresCompanion Function({
+      required String date,
+      required double strain,
+      required double trimp,
+      required int hrMax,
+      Value<double?> sleepPerf,
+      Value<double?> sleptHours,
+      Value<double?> needHours,
+      Value<int?> sleepStart,
+      Value<int?> sleepEnd,
+      Value<double?> recovery,
+      Value<double?> rhr,
+      Value<double?> hrvProxy,
+      required bool calibrating,
+      required int algoVersion,
+      Value<int> rowid,
+    });
+typedef $$DailyScoresTableUpdateCompanionBuilder =
+    DailyScoresCompanion Function({
+      Value<String> date,
+      Value<double> strain,
+      Value<double> trimp,
+      Value<int> hrMax,
+      Value<double?> sleepPerf,
+      Value<double?> sleptHours,
+      Value<double?> needHours,
+      Value<int?> sleepStart,
+      Value<int?> sleepEnd,
+      Value<double?> recovery,
+      Value<double?> rhr,
+      Value<double?> hrvProxy,
+      Value<bool> calibrating,
+      Value<int> algoVersion,
+      Value<int> rowid,
+    });
+
+class $$DailyScoresTableFilterComposer
+    extends Composer<_$TempoDb, $DailyScoresTable> {
+  $$DailyScoresTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get date => $composableBuilder(
+    column: $table.date,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get strain => $composableBuilder(
+    column: $table.strain,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get trimp => $composableBuilder(
+    column: $table.trimp,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get hrMax => $composableBuilder(
+    column: $table.hrMax,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get sleepPerf => $composableBuilder(
+    column: $table.sleepPerf,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get sleptHours => $composableBuilder(
+    column: $table.sleptHours,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get needHours => $composableBuilder(
+    column: $table.needHours,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get sleepStart => $composableBuilder(
+    column: $table.sleepStart,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get sleepEnd => $composableBuilder(
+    column: $table.sleepEnd,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get recovery => $composableBuilder(
+    column: $table.recovery,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get rhr => $composableBuilder(
+    column: $table.rhr,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get hrvProxy => $composableBuilder(
+    column: $table.hrvProxy,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get calibrating => $composableBuilder(
+    column: $table.calibrating,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get algoVersion => $composableBuilder(
+    column: $table.algoVersion,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$DailyScoresTableOrderingComposer
+    extends Composer<_$TempoDb, $DailyScoresTable> {
+  $$DailyScoresTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get date => $composableBuilder(
+    column: $table.date,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get strain => $composableBuilder(
+    column: $table.strain,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get trimp => $composableBuilder(
+    column: $table.trimp,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get hrMax => $composableBuilder(
+    column: $table.hrMax,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get sleepPerf => $composableBuilder(
+    column: $table.sleepPerf,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get sleptHours => $composableBuilder(
+    column: $table.sleptHours,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get needHours => $composableBuilder(
+    column: $table.needHours,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get sleepStart => $composableBuilder(
+    column: $table.sleepStart,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get sleepEnd => $composableBuilder(
+    column: $table.sleepEnd,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get recovery => $composableBuilder(
+    column: $table.recovery,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get rhr => $composableBuilder(
+    column: $table.rhr,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get hrvProxy => $composableBuilder(
+    column: $table.hrvProxy,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get calibrating => $composableBuilder(
+    column: $table.calibrating,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get algoVersion => $composableBuilder(
+    column: $table.algoVersion,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$DailyScoresTableAnnotationComposer
+    extends Composer<_$TempoDb, $DailyScoresTable> {
+  $$DailyScoresTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get date =>
+      $composableBuilder(column: $table.date, builder: (column) => column);
+
+  GeneratedColumn<double> get strain =>
+      $composableBuilder(column: $table.strain, builder: (column) => column);
+
+  GeneratedColumn<double> get trimp =>
+      $composableBuilder(column: $table.trimp, builder: (column) => column);
+
+  GeneratedColumn<int> get hrMax =>
+      $composableBuilder(column: $table.hrMax, builder: (column) => column);
+
+  GeneratedColumn<double> get sleepPerf =>
+      $composableBuilder(column: $table.sleepPerf, builder: (column) => column);
+
+  GeneratedColumn<double> get sleptHours => $composableBuilder(
+    column: $table.sleptHours,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get needHours =>
+      $composableBuilder(column: $table.needHours, builder: (column) => column);
+
+  GeneratedColumn<int> get sleepStart => $composableBuilder(
+    column: $table.sleepStart,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get sleepEnd =>
+      $composableBuilder(column: $table.sleepEnd, builder: (column) => column);
+
+  GeneratedColumn<double> get recovery =>
+      $composableBuilder(column: $table.recovery, builder: (column) => column);
+
+  GeneratedColumn<double> get rhr =>
+      $composableBuilder(column: $table.rhr, builder: (column) => column);
+
+  GeneratedColumn<double> get hrvProxy =>
+      $composableBuilder(column: $table.hrvProxy, builder: (column) => column);
+
+  GeneratedColumn<bool> get calibrating => $composableBuilder(
+    column: $table.calibrating,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get algoVersion => $composableBuilder(
+    column: $table.algoVersion,
+    builder: (column) => column,
+  );
+}
+
+class $$DailyScoresTableTableManager
+    extends
+        RootTableManager<
+          _$TempoDb,
+          $DailyScoresTable,
+          DailyScore,
+          $$DailyScoresTableFilterComposer,
+          $$DailyScoresTableOrderingComposer,
+          $$DailyScoresTableAnnotationComposer,
+          $$DailyScoresTableCreateCompanionBuilder,
+          $$DailyScoresTableUpdateCompanionBuilder,
+          (
+            DailyScore,
+            BaseReferences<_$TempoDb, $DailyScoresTable, DailyScore>,
+          ),
+          DailyScore,
+          PrefetchHooks Function()
+        > {
+  $$DailyScoresTableTableManager(_$TempoDb db, $DailyScoresTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$DailyScoresTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$DailyScoresTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$DailyScoresTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> date = const Value.absent(),
+                Value<double> strain = const Value.absent(),
+                Value<double> trimp = const Value.absent(),
+                Value<int> hrMax = const Value.absent(),
+                Value<double?> sleepPerf = const Value.absent(),
+                Value<double?> sleptHours = const Value.absent(),
+                Value<double?> needHours = const Value.absent(),
+                Value<int?> sleepStart = const Value.absent(),
+                Value<int?> sleepEnd = const Value.absent(),
+                Value<double?> recovery = const Value.absent(),
+                Value<double?> rhr = const Value.absent(),
+                Value<double?> hrvProxy = const Value.absent(),
+                Value<bool> calibrating = const Value.absent(),
+                Value<int> algoVersion = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => DailyScoresCompanion(
+                date: date,
+                strain: strain,
+                trimp: trimp,
+                hrMax: hrMax,
+                sleepPerf: sleepPerf,
+                sleptHours: sleptHours,
+                needHours: needHours,
+                sleepStart: sleepStart,
+                sleepEnd: sleepEnd,
+                recovery: recovery,
+                rhr: rhr,
+                hrvProxy: hrvProxy,
+                calibrating: calibrating,
+                algoVersion: algoVersion,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String date,
+                required double strain,
+                required double trimp,
+                required int hrMax,
+                Value<double?> sleepPerf = const Value.absent(),
+                Value<double?> sleptHours = const Value.absent(),
+                Value<double?> needHours = const Value.absent(),
+                Value<int?> sleepStart = const Value.absent(),
+                Value<int?> sleepEnd = const Value.absent(),
+                Value<double?> recovery = const Value.absent(),
+                Value<double?> rhr = const Value.absent(),
+                Value<double?> hrvProxy = const Value.absent(),
+                required bool calibrating,
+                required int algoVersion,
+                Value<int> rowid = const Value.absent(),
+              }) => DailyScoresCompanion.insert(
+                date: date,
+                strain: strain,
+                trimp: trimp,
+                hrMax: hrMax,
+                sleepPerf: sleepPerf,
+                sleptHours: sleptHours,
+                needHours: needHours,
+                sleepStart: sleepStart,
+                sleepEnd: sleepEnd,
+                recovery: recovery,
+                rhr: rhr,
+                hrvProxy: hrvProxy,
+                calibrating: calibrating,
+                algoVersion: algoVersion,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$DailyScoresTableProcessedTableManager =
+    ProcessedTableManager<
+      _$TempoDb,
+      $DailyScoresTable,
+      DailyScore,
+      $$DailyScoresTableFilterComposer,
+      $$DailyScoresTableOrderingComposer,
+      $$DailyScoresTableAnnotationComposer,
+      $$DailyScoresTableCreateCompanionBuilder,
+      $$DailyScoresTableUpdateCompanionBuilder,
+      (DailyScore, BaseReferences<_$TempoDb, $DailyScoresTable, DailyScore>),
+      DailyScore,
+      PrefetchHooks Function()
+    >;
+typedef $$BaselinesTableCreateCompanionBuilder =
+    BaselinesCompanion Function({
+      required String metric,
+      required int window,
+      required double mean,
+      required double sd,
+      required int updatedAt,
+      Value<int> rowid,
+    });
+typedef $$BaselinesTableUpdateCompanionBuilder =
+    BaselinesCompanion Function({
+      Value<String> metric,
+      Value<int> window,
+      Value<double> mean,
+      Value<double> sd,
+      Value<int> updatedAt,
+      Value<int> rowid,
+    });
+
+class $$BaselinesTableFilterComposer
+    extends Composer<_$TempoDb, $BaselinesTable> {
+  $$BaselinesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get metric => $composableBuilder(
+    column: $table.metric,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get window => $composableBuilder(
+    column: $table.window,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get mean => $composableBuilder(
+    column: $table.mean,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get sd => $composableBuilder(
+    column: $table.sd,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$BaselinesTableOrderingComposer
+    extends Composer<_$TempoDb, $BaselinesTable> {
+  $$BaselinesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get metric => $composableBuilder(
+    column: $table.metric,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get window => $composableBuilder(
+    column: $table.window,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get mean => $composableBuilder(
+    column: $table.mean,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get sd => $composableBuilder(
+    column: $table.sd,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$BaselinesTableAnnotationComposer
+    extends Composer<_$TempoDb, $BaselinesTable> {
+  $$BaselinesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get metric =>
+      $composableBuilder(column: $table.metric, builder: (column) => column);
+
+  GeneratedColumn<int> get window =>
+      $composableBuilder(column: $table.window, builder: (column) => column);
+
+  GeneratedColumn<double> get mean =>
+      $composableBuilder(column: $table.mean, builder: (column) => column);
+
+  GeneratedColumn<double> get sd =>
+      $composableBuilder(column: $table.sd, builder: (column) => column);
+
+  GeneratedColumn<int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$BaselinesTableTableManager
+    extends
+        RootTableManager<
+          _$TempoDb,
+          $BaselinesTable,
+          Baseline,
+          $$BaselinesTableFilterComposer,
+          $$BaselinesTableOrderingComposer,
+          $$BaselinesTableAnnotationComposer,
+          $$BaselinesTableCreateCompanionBuilder,
+          $$BaselinesTableUpdateCompanionBuilder,
+          (Baseline, BaseReferences<_$TempoDb, $BaselinesTable, Baseline>),
+          Baseline,
+          PrefetchHooks Function()
+        > {
+  $$BaselinesTableTableManager(_$TempoDb db, $BaselinesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$BaselinesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$BaselinesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$BaselinesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> metric = const Value.absent(),
+                Value<int> window = const Value.absent(),
+                Value<double> mean = const Value.absent(),
+                Value<double> sd = const Value.absent(),
+                Value<int> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => BaselinesCompanion(
+                metric: metric,
+                window: window,
+                mean: mean,
+                sd: sd,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String metric,
+                required int window,
+                required double mean,
+                required double sd,
+                required int updatedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => BaselinesCompanion.insert(
+                metric: metric,
+                window: window,
+                mean: mean,
+                sd: sd,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$BaselinesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$TempoDb,
+      $BaselinesTable,
+      Baseline,
+      $$BaselinesTableFilterComposer,
+      $$BaselinesTableOrderingComposer,
+      $$BaselinesTableAnnotationComposer,
+      $$BaselinesTableCreateCompanionBuilder,
+      $$BaselinesTableUpdateCompanionBuilder,
+      (Baseline, BaseReferences<_$TempoDb, $BaselinesTable, Baseline>),
+      Baseline,
+      PrefetchHooks Function()
+    >;
+typedef $$JournalTableCreateCompanionBuilder =
+    JournalCompanion Function({
+      required String date,
+      required String tag,
+      required bool value,
+      Value<int> rowid,
+    });
+typedef $$JournalTableUpdateCompanionBuilder =
+    JournalCompanion Function({
+      Value<String> date,
+      Value<String> tag,
+      Value<bool> value,
+      Value<int> rowid,
+    });
+
+class $$JournalTableFilterComposer extends Composer<_$TempoDb, $JournalTable> {
+  $$JournalTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get date => $composableBuilder(
+    column: $table.date,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get tag => $composableBuilder(
+    column: $table.tag,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get value => $composableBuilder(
+    column: $table.value,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$JournalTableOrderingComposer
+    extends Composer<_$TempoDb, $JournalTable> {
+  $$JournalTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get date => $composableBuilder(
+    column: $table.date,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get tag => $composableBuilder(
+    column: $table.tag,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get value => $composableBuilder(
+    column: $table.value,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$JournalTableAnnotationComposer
+    extends Composer<_$TempoDb, $JournalTable> {
+  $$JournalTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get date =>
+      $composableBuilder(column: $table.date, builder: (column) => column);
+
+  GeneratedColumn<String> get tag =>
+      $composableBuilder(column: $table.tag, builder: (column) => column);
+
+  GeneratedColumn<bool> get value =>
+      $composableBuilder(column: $table.value, builder: (column) => column);
+}
+
+class $$JournalTableTableManager
+    extends
+        RootTableManager<
+          _$TempoDb,
+          $JournalTable,
+          JournalData,
+          $$JournalTableFilterComposer,
+          $$JournalTableOrderingComposer,
+          $$JournalTableAnnotationComposer,
+          $$JournalTableCreateCompanionBuilder,
+          $$JournalTableUpdateCompanionBuilder,
+          (JournalData, BaseReferences<_$TempoDb, $JournalTable, JournalData>),
+          JournalData,
+          PrefetchHooks Function()
+        > {
+  $$JournalTableTableManager(_$TempoDb db, $JournalTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$JournalTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$JournalTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$JournalTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> date = const Value.absent(),
+                Value<String> tag = const Value.absent(),
+                Value<bool> value = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => JournalCompanion(
+                date: date,
+                tag: tag,
+                value: value,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String date,
+                required String tag,
+                required bool value,
+                Value<int> rowid = const Value.absent(),
+              }) => JournalCompanion.insert(
+                date: date,
+                tag: tag,
+                value: value,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$JournalTableProcessedTableManager =
+    ProcessedTableManager<
+      _$TempoDb,
+      $JournalTable,
+      JournalData,
+      $$JournalTableFilterComposer,
+      $$JournalTableOrderingComposer,
+      $$JournalTableAnnotationComposer,
+      $$JournalTableCreateCompanionBuilder,
+      $$JournalTableUpdateCompanionBuilder,
+      (JournalData, BaseReferences<_$TempoDb, $JournalTable, JournalData>),
+      JournalData,
+      PrefetchHooks Function()
+    >;
+typedef $$SyncStateTableCreateCompanionBuilder =
+    SyncStateCompanion Function({
+      required String device,
+      required String dataType,
+      required int lastTs,
+      Value<int> rowid,
+    });
+typedef $$SyncStateTableUpdateCompanionBuilder =
+    SyncStateCompanion Function({
+      Value<String> device,
+      Value<String> dataType,
+      Value<int> lastTs,
+      Value<int> rowid,
+    });
+
+class $$SyncStateTableFilterComposer
+    extends Composer<_$TempoDb, $SyncStateTable> {
+  $$SyncStateTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get device => $composableBuilder(
+    column: $table.device,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get dataType => $composableBuilder(
+    column: $table.dataType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get lastTs => $composableBuilder(
+    column: $table.lastTs,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$SyncStateTableOrderingComposer
+    extends Composer<_$TempoDb, $SyncStateTable> {
+  $$SyncStateTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get device => $composableBuilder(
+    column: $table.device,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get dataType => $composableBuilder(
+    column: $table.dataType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get lastTs => $composableBuilder(
+    column: $table.lastTs,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$SyncStateTableAnnotationComposer
+    extends Composer<_$TempoDb, $SyncStateTable> {
+  $$SyncStateTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get device =>
+      $composableBuilder(column: $table.device, builder: (column) => column);
+
+  GeneratedColumn<String> get dataType =>
+      $composableBuilder(column: $table.dataType, builder: (column) => column);
+
+  GeneratedColumn<int> get lastTs =>
+      $composableBuilder(column: $table.lastTs, builder: (column) => column);
+}
+
+class $$SyncStateTableTableManager
+    extends
+        RootTableManager<
+          _$TempoDb,
+          $SyncStateTable,
+          SyncStateData,
+          $$SyncStateTableFilterComposer,
+          $$SyncStateTableOrderingComposer,
+          $$SyncStateTableAnnotationComposer,
+          $$SyncStateTableCreateCompanionBuilder,
+          $$SyncStateTableUpdateCompanionBuilder,
+          (
+            SyncStateData,
+            BaseReferences<_$TempoDb, $SyncStateTable, SyncStateData>,
+          ),
+          SyncStateData,
+          PrefetchHooks Function()
+        > {
+  $$SyncStateTableTableManager(_$TempoDb db, $SyncStateTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SyncStateTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SyncStateTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SyncStateTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> device = const Value.absent(),
+                Value<String> dataType = const Value.absent(),
+                Value<int> lastTs = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => SyncStateCompanion(
+                device: device,
+                dataType: dataType,
+                lastTs: lastTs,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String device,
+                required String dataType,
+                required int lastTs,
+                Value<int> rowid = const Value.absent(),
+              }) => SyncStateCompanion.insert(
+                device: device,
+                dataType: dataType,
+                lastTs: lastTs,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$SyncStateTableProcessedTableManager =
+    ProcessedTableManager<
+      _$TempoDb,
+      $SyncStateTable,
+      SyncStateData,
+      $$SyncStateTableFilterComposer,
+      $$SyncStateTableOrderingComposer,
+      $$SyncStateTableAnnotationComposer,
+      $$SyncStateTableCreateCompanionBuilder,
+      $$SyncStateTableUpdateCompanionBuilder,
+      (
+        SyncStateData,
+        BaseReferences<_$TempoDb, $SyncStateTable, SyncStateData>,
+      ),
+      SyncStateData,
+      PrefetchHooks Function()
+    >;
+typedef $$SettingsTableCreateCompanionBuilder =
+    SettingsCompanion Function({
+      required String key,
+      required String value,
+      Value<int> rowid,
+    });
+typedef $$SettingsTableUpdateCompanionBuilder =
+    SettingsCompanion Function({
+      Value<String> key,
+      Value<String> value,
+      Value<int> rowid,
+    });
+
+class $$SettingsTableFilterComposer
+    extends Composer<_$TempoDb, $SettingsTable> {
+  $$SettingsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get key => $composableBuilder(
+    column: $table.key,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get value => $composableBuilder(
+    column: $table.value,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$SettingsTableOrderingComposer
+    extends Composer<_$TempoDb, $SettingsTable> {
+  $$SettingsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get key => $composableBuilder(
+    column: $table.key,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get value => $composableBuilder(
+    column: $table.value,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$SettingsTableAnnotationComposer
+    extends Composer<_$TempoDb, $SettingsTable> {
+  $$SettingsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get key =>
+      $composableBuilder(column: $table.key, builder: (column) => column);
+
+  GeneratedColumn<String> get value =>
+      $composableBuilder(column: $table.value, builder: (column) => column);
+}
+
+class $$SettingsTableTableManager
+    extends
+        RootTableManager<
+          _$TempoDb,
+          $SettingsTable,
+          Setting,
+          $$SettingsTableFilterComposer,
+          $$SettingsTableOrderingComposer,
+          $$SettingsTableAnnotationComposer,
+          $$SettingsTableCreateCompanionBuilder,
+          $$SettingsTableUpdateCompanionBuilder,
+          (Setting, BaseReferences<_$TempoDb, $SettingsTable, Setting>),
+          Setting,
+          PrefetchHooks Function()
+        > {
+  $$SettingsTableTableManager(_$TempoDb db, $SettingsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SettingsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SettingsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SettingsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> key = const Value.absent(),
+                Value<String> value = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => SettingsCompanion(key: key, value: value, rowid: rowid),
+          createCompanionCallback:
+              ({
+                required String key,
+                required String value,
+                Value<int> rowid = const Value.absent(),
+              }) => SettingsCompanion.insert(
+                key: key,
+                value: value,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$SettingsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$TempoDb,
+      $SettingsTable,
+      Setting,
+      $$SettingsTableFilterComposer,
+      $$SettingsTableOrderingComposer,
+      $$SettingsTableAnnotationComposer,
+      $$SettingsTableCreateCompanionBuilder,
+      $$SettingsTableUpdateCompanionBuilder,
+      (Setting, BaseReferences<_$TempoDb, $SettingsTable, Setting>),
+      Setting,
+      PrefetchHooks Function()
+    >;
+
+class $TempoDbManager {
+  final _$TempoDb _db;
+  $TempoDbManager(this._db);
+  $$MinuteSamplesTableTableManager get minuteSamples =>
+      $$MinuteSamplesTableTableManager(_db, _db.minuteSamples);
+  $$HrLiveTableTableManager get hrLive =>
+      $$HrLiveTableTableManager(_db, _db.hrLive);
+  $$StressSamplesTableTableManager get stressSamples =>
+      $$StressSamplesTableTableManager(_db, _db.stressSamples);
+  $$Spo2SamplesTableTableManager get spo2Samples =>
+      $$Spo2SamplesTableTableManager(_db, _db.spo2Samples);
+  $$SleepSessionsTableTableManager get sleepSessions =>
+      $$SleepSessionsTableTableManager(_db, _db.sleepSessions);
+  $$DailyScoresTableTableManager get dailyScores =>
+      $$DailyScoresTableTableManager(_db, _db.dailyScores);
+  $$BaselinesTableTableManager get baselines =>
+      $$BaselinesTableTableManager(_db, _db.baselines);
+  $$JournalTableTableManager get journal =>
+      $$JournalTableTableManager(_db, _db.journal);
+  $$SyncStateTableTableManager get syncState =>
+      $$SyncStateTableTableManager(_db, _db.syncState);
+  $$SettingsTableTableManager get settings =>
+      $$SettingsTableTableManager(_db, _db.settings);
+}

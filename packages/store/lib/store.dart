@@ -1,2 +1,5 @@
-/// Placeholder. Implementation starts in a later phase (see PLAN.md → Milestones).
+/// Drift schema and DAOs. Raw sample tables are append-only (enforced by
+/// SQL triggers); everything else is derived and recomputable.
 library;
+
+export 'src/database.dart';
