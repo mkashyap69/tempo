@@ -1,2 +1,12 @@
-/// Placeholder. Implementation starts in a later phase (see PLAN.md → Milestones).
+/// Strain, Sleep performance and Recovery. Pure Dart: no Flutter, no BLE.
+///
+/// Every constant is a starting value to calibrate (PLAN.md → Scoring engine).
 library;
+
+export 'src/baseline.dart';
+export 'src/daily.dart';
+export 'src/recovery.dart';
+export 'src/resting_hr.dart';
+export 'src/sleep.dart';
+export 'src/strain.dart';
+export 'src/types.dart';
