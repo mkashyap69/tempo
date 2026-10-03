@@ -19,6 +19,17 @@ abstract final class BandUuids {
   // Huami vendor service that carries the auth characteristic.
   static final huamiService1 = _sig('fee1'); // TODO(verify)
   static const auth = '00000009-0000-3512-2118-0009af100700'; // TODO(verify)
+
+  // Huami vendor service with config, fetch and user-info characteristics.
+  static final huamiService0 = _sig('fee0'); // TODO(verify)
+  static const config = '00000003-0000-3512-2118-0009af100700'; // TODO(verify)
+  static const fetchControl =
+      '00000004-0000-3512-2118-0009af100700'; // TODO(verify)
+  static const activityData =
+      '00000005-0000-3512-2118-0009af100700'; // TODO(verify)
+  static const userSettings =
+      '00000008-0000-3512-2118-0009af100700'; // TODO(verify)
+  static final currentTime = _sig('2a2b'); // TODO(verify)
 }
 
 /// Advertised names we accept in the scan list. TODO(verify) against a scan.

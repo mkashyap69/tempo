@@ -6,7 +6,9 @@ library;
 
 export 'src/auth_key.dart';
 export 'src/crypto.dart';
+export 'src/fetch.dart';
 export 'src/mi_band.dart';
 export 'src/packet_log.dart';
 export 'src/protocol.dart';
+export 'src/settings.dart';
 export 'src/uuids.dart';
