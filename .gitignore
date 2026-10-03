@@ -1,0 +1,12 @@
+# Secrets — the auth key never enters git
+.env
+.env.*
+!.env.example
+
+.dart_tool/
+build/
+pubspec.lock
+!/pubspec.lock
+*.iml
+.idea/
+.DS_Store

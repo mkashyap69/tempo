@@ -1,0 +1,8 @@
+name: scoring
+description: Tempo scoring package (Phase 1+). Placeholder.
+publish_to: none
+resolution: workspace
+environment:
+  sdk: ^3.13.0
+dev_dependencies:
+  test: ^1.25.0

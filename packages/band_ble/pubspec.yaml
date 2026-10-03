@@ -1,0 +1,15 @@
+name: band_ble
+description: Huami (Mi Band 6) BLE protocol on flutter_blue_plus. Own implementation.
+publish_to: none
+resolution: workspace
+environment:
+  sdk: ^3.13.0
+  flutter: ">=3.30.0"
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_blue_plus: ^2.3.13
+  pointycastle: ^4.0.0
+dev_dependencies:
+  flutter_test:
+    sdk: flutter

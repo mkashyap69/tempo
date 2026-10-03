@@ -1,0 +1,9 @@
+name: backtest
+description: CLI that runs scoring over an Apple Health export (Phase 2).
+publish_to: none
+resolution: workspace
+environment:
+  sdk: ^3.13.0
+dependencies:
+  scoring:
+    path: ../../packages/scoring
