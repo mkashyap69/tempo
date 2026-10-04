@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:store/store.dart' as st;
 
+import '../core/background_guard.dart';
+import '../core/battery.dart';
 import '../core/coach_service.dart';
 import '../core/format.dart';
 import '../core/profile.dart';
@@ -12,6 +14,7 @@ import '../core/profile.dart';
 import 'package:band_ble/band_ble.dart' show notWornKinds;
 
 import '../design/components.dart';
+import '../design/icons.dart';
 import '../design/tokens.dart';
 import '../design/type.dart';
 import '../state/providers.dart';
@@ -29,6 +32,8 @@ class _Health {
     this.daysStored,
     this.notWornMin,
     this.gaps,
+    this.batteryDays,
+    this.batteryExempt,
   );
   final List<(DateTime, List<(int, int)>)> days;
   final List<st.SyncLogData> log;
@@ -37,6 +42,8 @@ class _Health {
   final double coverage;
   final int dbBytes, daysStored, notWornMin;
   final List<(DateTime, int)> gaps;
+  final double? batteryDays;
+  final bool batteryExempt;
 }
 
 final _healthProvider = FutureProvider<_Health>((ref) async {
@@ -102,6 +109,8 @@ final _healthProvider = FutureProvider<_Health>((ref) async {
     first == null ? 0 : today.difference(dayOf(first)).inDays + 1,
     notWorn,
     gaps,
+    batteryDaysLeft(await batteryLog(db)),
+    await BackgroundGuard.batteryExempt,
   );
 });
 
@@ -126,7 +135,7 @@ class DataHealthScreen extends ConsumerWidget {
                   h.battery == null ? '—' : '${h.battery}%',
                   sub: h.battery == null
                       ? 'not read yet'
-                      : '~${(h.battery! * .14).round()} days left (est.)',
+                      : batteryLeftLabel(h.batteryDays),
                 ),
               ),
               Expanded(
@@ -148,6 +157,17 @@ class DataHealthScreen extends ConsumerWidget {
             ],
           ),
         ),
+        if (!h.batteryExempt)
+          StatusBanner(
+            icon: TempoIcons.alert,
+            title: 'Background sync is restricted',
+            body: 'Battery optimisation can stop overnight syncs, which leaves gaps when the band’s memory fills.',
+            action: 'Allow',
+            onAction: () async {
+              await BackgroundGuard.requestBatteryExemption();
+              ref.invalidate(_healthProvider);
+            },
+          ),
         TempoCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,

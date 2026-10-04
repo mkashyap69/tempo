@@ -25,6 +25,14 @@ abstract final class Keys {
   static const reportCardTheme = 'report_card_theme';
   static const reportExact = 'report_exact';
   static const rangeHaptic = 'range_haptic_day'; // date of the last one
+  static const batteryLog = 'battery_log'; // JSON [[unix s, pct], …]
+  static const sleepAssist = 'band_sleep_assist'; // 1 | 0
+  static const stressMonitor = 'band_stress'; // 1 | 0
+  static const smartAlarm = 'smart_alarm'; // HH:mm or off
+  static const healthExport = 'health_export'; // 1 | 0
+  static const healthExportedTo = 'health_exported_to'; // ISO, last written
+  static const pauses = 'pauses'; // JSON, see pause.dart
+  static const batteryPrompted = 'battery_opt_prompted'; // 1 once asked
 }
 
 /// Everything the user tells Tempo in onboarding and Profile.
@@ -61,6 +69,7 @@ final class Profile {
   final String wornOn;
 
   int get effectiveMaxHr => maxHr ?? maxHrFromAge(age);
+  bool get wornLeft => wornOn != 'Right wrist';
   bool get maxHrEstimated => maxHr == null;
 
   CoachPrefs get prefs =>

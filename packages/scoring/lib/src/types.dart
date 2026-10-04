@@ -1,6 +1,8 @@
 /// Bump whenever any formula or constant changes. Stored on every score.
 /// 2: activity kind 0xf0 counts as sleep (V1.0.6.20 capture).
-const algoVersion = 2;
+/// 3: TRIMP floor at 30% of HR reserve, k 40; learned base sleep need;
+///    naps count against debt; strength sessions use sRPE.
+const algoVersion = 3;
 
 enum Stage { wake, light, deep, rem, unknown }
 

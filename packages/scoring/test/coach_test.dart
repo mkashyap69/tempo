@@ -216,6 +216,82 @@ void main() {
       final a = adaptWeek(week(), 0, DayState.go, reason: 'x');
       expect(a.changes, isEmpty);
     });
+    test('heavy effort eases a hard day on a go morning', () {
+      final a = adaptWeek(
+        week(),
+        3,
+        DayState.go,
+        reason: 'Recovery 80%',
+        effort: Effort.heavy,
+      );
+      expect(a.week[3].key, 'steady_run');
+      expect(a.changes.first.reason, contains('harder than planned'));
+      expect(a.week[6].key, 'threshold_run'); // carried to Sunday
+    });
+    test('light effort steps an easy day up when it fits', () {
+      final a = adaptWeek(
+        week(),
+        1,
+        DayState.go,
+        reason: 'Recovery 85%',
+        effort: Effort.light,
+      );
+      expect(a.week[1].key, 'vo2_run');
+      expect(a.changes.single.reason, contains('felt easy'));
+    });
+    test('light effort never stacks a third hard day', () {
+      final w = week()..[5] = sessionTemplate('vo2_run');
+      final a = adaptWeek(w, 1, DayState.go, reason: 'x', effort: Effort.light);
+      expect(a.changes, isEmpty);
+    });
+    test('after a rest day, tomorrow\'s hard session starts easy', () {
+      final a = adaptWeek(week(), 2, DayState.rest, reason: 'Recovery 30%');
+      expect(a.week[2].isRest, isTrue);
+      expect(a.week[3].key, 'steady_run');
+      expect(a.changes.any((c) => c.dayIndex == 3), isTrue);
+      // The threshold run is placed again ≥ 48 h out.
+      expect(a.week.where((s) => s.key == 'threshold_run'), hasLength(1));
+    });
+    test('never two hard days in a row within three days', () {
+      final w = week()..[4] = sessionTemplate('vo2_run');
+      final a = adaptWeek(w, 2, DayState.go, reason: 'x');
+      expect(a.week[3].isHard && a.week[4].isHard, isFalse);
+      expect(a.week[4].key, 'steady_run');
+    });
+  });
+
+  group('effort', () {
+    test('needs two rated sessions', () {
+      expect(effortTrend([(9, Intensity.easy)]), Effort.unknown);
+    });
+    test('harder than planned → heavy', () {
+      expect(
+        effortTrend([(6, Intensity.easy), (8, Intensity.moderate)]),
+        Effort.heavy,
+      );
+    });
+    test('easier than planned → light', () {
+      expect(
+        effortTrend([(5, Intensity.hard), (4, Intensity.hard)]),
+        Effort.light,
+      );
+    });
+    test('close to plan → on track; only the newest three count', () {
+      expect(
+        effortTrend([
+          (7, Intensity.hard),
+          (3, Intensity.easy),
+          (5, Intensity.moderate),
+          (10, Intensity.easy),
+        ]),
+        Effort.onTrack,
+      );
+    });
+    test('unplanned workouts are graded by strain', () {
+      expect(intensityForStrain(5), Intensity.easy);
+      expect(intensityForStrain(10), Intensity.moderate);
+      expect(intensityForStrain(15), Intensity.hard);
+    });
   });
 
   group('activity detection', () {

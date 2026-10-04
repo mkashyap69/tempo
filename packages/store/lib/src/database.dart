@@ -39,7 +39,7 @@ class TempoDb extends _$TempoDb {
   TempoDb(super.e);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -61,6 +61,10 @@ class TempoDb extends _$TempoDb {
         await m.createTable(workouts);
         await m.createTable(planDays);
         await m.createTable(syncLog);
+      }
+      if (from < 3) {
+        await m.addColumn(dailyScores, dailyScores.napHours);
+        await m.addColumn(dailyScores, dailyScores.baseNeed);
       }
     },
   );
@@ -165,6 +169,17 @@ class TempoDb extends _$TempoDb {
     )..where((s) => s.end.isBetweenValues(toTs(from), toTs(to)))).go();
     await batch((b) => b.insertAll(sleepSessions, rows));
   });
+
+  /// Main-sleep sessions ending in (from, to], oldest first.
+  Future<List<SleepSession>> sleepSessionsBetween(DateTime from, DateTime to) =>
+      (select(sleepSessions)
+            ..where(
+              (s) =>
+                  s.end.isBiggerThanValue(toTs(from)) &
+                  s.end.isSmallerOrEqualValue(toTs(to)),
+            )
+            ..orderBy([(s) => OrderingTerm.asc(s.end)]))
+          .get();
 
   Future<SleepSession?> sleepEndingAt(int endTs) => (select(
     sleepSessions,
@@ -361,4 +376,79 @@ class TempoDb extends _$TempoDb {
             ..orderBy([(l) => OrderingTerm.desc(l.ts)])
             ..limit(limit))
           .watch();
+
+  // ---- restore -------------------------------------------------------------
+
+  /// Tables a JSON export can restore, in insert order.
+  static const restorable = [
+    ...rawTables,
+    'sleep_sessions',
+    'daily_scores',
+    'baselines',
+    'journal',
+    'sync_state',
+    'workouts',
+    'plan_days',
+    'sync_log',
+  ];
+
+  /// Restores rows from an export (`table → rows`). Raw rows already here
+  /// are kept (insert-or-ignore, so the append-only rule holds); derived
+  /// rows are replaced. Workouts and log rows get fresh ids, and a workout
+  /// already stored at the same start is skipped. Columns this schema does
+  /// not have are dropped. Returns rows written per table.
+  Future<Map<String, int>> restoreRows(
+    Map<String, List<Map<String, Object?>>> data,
+  ) => transaction(() async {
+    final out = <String, int>{};
+    for (final t in restorable) {
+      final rows = data[t];
+      if (rows == null || rows.isEmpty) continue;
+      final cols = {
+        for (final r in await customSelect('PRAGMA table_info($t)').get())
+          r.read<String>('name'),
+      };
+      final fresh = t == 'workouts' || t == 'sync_log';
+      final verb = rawTables.contains(t)
+          ? 'INSERT OR IGNORE'
+          : fresh
+          ? 'INSERT'
+          : 'INSERT OR REPLACE';
+      var n = 0;
+      for (final r in rows) {
+        if (t == 'workouts' && r['start'] is int) {
+          final dup = await customSelect(
+            'SELECT 1 FROM workouts WHERE start = ?',
+            variables: [Variable.withInt(r['start'] as int)],
+          ).get();
+          if (dup.isNotEmpty) continue;
+        }
+        final keys = [
+          for (final k in r.keys)
+            if (cols.contains(k) && !(fresh && k == 'id')) k,
+        ];
+        if (keys.isEmpty) continue;
+        n += await customUpdate(
+          '$verb INTO $t (${keys.join(', ')}) '
+          'VALUES (${List.filled(keys.length, '?').join(', ')})',
+          variables: [for (final k in keys) _variable(r[k])],
+          updates: {
+            for (final tb in allTables)
+              if (tb.actualTableName == t) tb,
+          },
+          updateKind: UpdateKind.insert,
+        );
+      }
+      out[t] = n;
+    }
+    return out;
+  });
+
+  static Variable<Object> _variable(Object? v) => switch (v) {
+    null => const Variable(null),
+    int i => Variable.withInt(i),
+    double d => Variable.withReal(d),
+    bool b => Variable.withBool(b),
+    _ => Variable.withString('$v'),
+  };
 }

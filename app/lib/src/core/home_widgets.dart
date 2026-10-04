@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:home_widget/home_widget.dart';
 import 'package:store/store.dart' as st;
@@ -7,6 +10,7 @@ import 'profile.dart';
 import 'today.dart';
 import 'coach_service.dart';
 import 'format.dart';
+import 'health_export.dart';
 
 /// iOS app group shared with the WidgetKit extension.
 const widgetAppGroup = 'group.dev.tempo.tempo';
@@ -73,6 +77,11 @@ Future<void> afterSync(st.TempoDb db) async {
   final t = await loadToday(db);
   await updateHomeWidgets(t);
   await rescheduleNotifications(db, t);
+  try {
+    await HealthExport(db).exportNew();
+  } catch (e) {
+    debugPrint('health export: $e');
+  }
 }
 
 Future<void> rescheduleNotifications(st.TempoDb db, TodayData t) async {
@@ -89,4 +98,28 @@ Future<void> rescheduleNotifications(st.TempoDb db, TodayData t) async {
   } catch (e) {
     debugPrint('notifications: $e');
   }
+}
+
+/// Which detail screen a widget tap asks for: recovery, strain, sleep or
+/// today (the tab itself). null for anything else.
+String? widgetTarget(Uri? uri) {
+  if (uri == null || uri.scheme != 'tempo') return null;
+  final t = uri.host.isNotEmpty ? uri.host : uri.path.replaceAll('/', '');
+  return const {'recovery', 'strain', 'sleep', 'today'}.contains(t) ? t : null;
+}
+
+/// Widget taps, both the one that launched the app and later ones. Skipped
+/// under `flutter test`, where the platform channels don't exist.
+StreamSubscription<Uri?>? listenWidgetTaps(void Function(String) open) {
+  if (Platform.environment.containsKey('FLUTTER_TEST')) return null;
+  HomeWidget.initiallyLaunchedFromHomeWidget()
+      .then((u) {
+        final t = widgetTarget(u);
+        if (t != null) open(t);
+      })
+      .catchError((Object _) {});
+  return HomeWidget.widgetClicked.listen((u) {
+    final t = widgetTarget(u);
+    if (t != null) open(t);
+  }, onError: (Object _) {});
 }

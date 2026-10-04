@@ -54,6 +54,8 @@ class DailyScores extends Table {
   RealColumn get sleepPerf => real().nullable()();
   RealColumn get sleptHours => real().nullable()();
   RealColumn get needHours => real().nullable()();
+  RealColumn get napHours => real().withDefault(const Constant(0.0))();
+  RealColumn get baseNeed => real().nullable()();
   IntColumn get sleepStart => integer().nullable()();
   IntColumn get sleepEnd => integer().nullable()();
   RealColumn get recovery => real().nullable()();

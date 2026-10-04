@@ -3,6 +3,7 @@ import 'package:drift/drift.dart';
 import 'package:store/store.dart';
 
 import 'band_link.dart';
+import 'battery.dart';
 import 'profile.dart' show Keys;
 import 'score_service.dart';
 
@@ -16,10 +17,18 @@ const firstSyncWindow = Duration(days: 7);
 typedef SyncProgress = void Function(int read, int total);
 
 class SyncReport {
-  SyncReport(this.counts, this.earliestNew, {this.newWorkouts = 0});
+  SyncReport(
+    this.counts,
+    this.earliestNew, {
+    this.newWorkouts = 0,
+    this.gapMinutes = 0,
+  });
   final Map<String, int> counts;
   final DateTime? earliestNew;
   final int newWorkouts;
+
+  /// Activity minutes the band had already overwritten (memory full).
+  final int gapMinutes;
 
   int get minutes => counts[FetchType.activity.key] ?? 0;
   @override
@@ -72,6 +81,7 @@ class SyncService {
         },
       );
       await db.deleteSetting(Keys.lastError);
+      if (r.gapMinutes > 0) await db.logSync(gapSummary(r.gapMinutes), 'gap');
       await db.logSync(_summary(r), 'ok', took: DateTime.now().difference(t0));
       return r;
     } catch (e) {
@@ -85,6 +95,13 @@ class SyncService {
     } finally {
       await link.close();
     }
+  }
+
+  /// "Band memory was full · 3h 20m not recovered".
+  static String gapSummary(int minutes) {
+    final h = minutes ~/ 60, m = minutes % 60;
+    final d = h == 0 ? '$m min' : '${h}h ${m.toString().padLeft(2, '0')}m';
+    return 'Band memory was full · $d not recovered';
   }
 
   static String _summary(SyncReport r) {
@@ -103,17 +120,14 @@ class SyncService {
   Future<SyncReport> syncWith(MiBand band, {SyncProgress? onProgress}) async {
     try {
       final pct = await band.readBattery();
-      if (pct != null) {
-        await db.putSetting(Keys.battery, '$pct');
-        await db.putSetting(Keys.batteryAt, DateTime.now().toIso8601String());
-      }
+      if (pct != null) await recordBattery(db, pct);
     } catch (_) {}
     final counts = <String, int>{};
     DateTime? earliest;
+    var gap = 0;
     for (final type in syncedTypes) {
-      final since =
-          await db.cursor(band.id, type.key) ??
-          DateTime.now().subtract(firstSyncWindow);
+      final cursor = await db.cursor(band.id, type.key);
+      final since = cursor ?? DateTime.now().subtract(firstSyncWindow);
       final r = await band.fetch(
         type,
         since,
@@ -127,6 +141,9 @@ class SyncService {
         counts[type.key] = 0;
         continue;
       }
+      // The band starts from the oldest record it still has. Later than
+      // our cursor means it overwrote minutes we never fetched.
+      if (type == FetchType.activity) gap = activityGapMinutes(cursor, start);
       DateTime? last;
       switch (type) {
         case FetchType.activity:
@@ -196,6 +213,15 @@ class SyncService {
       counts,
       earliest,
       newWorkouts: (after - before).clamp(0, 999),
+      gapMinutes: gap,
     );
   }
+}
+
+/// Minutes lost between [cursor] and the first record the band sent; a
+/// couple of minutes of slack for clock rounding. 0 on the first sync.
+int activityGapMinutes(DateTime? cursor, DateTime start) {
+  if (cursor == null) return 0;
+  final d = start.difference(cursor).inMinutes;
+  return d > 2 ? d : 0;
 }

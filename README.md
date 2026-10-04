@@ -98,15 +98,19 @@ Five tabs and a start button:
 | **Coach** | Today's readiness, the suggested workout and why, this week's plan against what you did, cardio load and six short Learn cards with your own numbers. |
 | **Trends** | 7 / 30 / 90-day cards for recovery, strain, sleep, resting HR, stress, SpO₂ and steps, plus the day timeline, your baselines, a recovery calendar and data health. |
 | **Journal** | A five-tap morning check-in (alcohol, late meal, late caffeine, stressful day, travel). After 30 check-ins it shows what each one does to your next-morning recovery, with sample size and confidence. |
-| **Profile** | Band status, your details, training preferences, band settings, notifications, export (CSV or JSON), weekly report share card, re-pair, delete all data, theme. |
+| **Profile** | Band status and battery estimate, your details, training preferences, pause (ill or travelling), band settings (HR interval, sleep detection, stress monitoring and wrist are written to the band), background sync, notifications, export (CSV or JSON), restore from a JSON export, Apple Health / Health Connect export, weekly report share card, re-pair, delete all data, theme. |
 
-The **play button** starts a workout: today's suggested session (guided intervals, with a buzz on the band 5 s before each change) or an open session for any sport. You can minimise it and come back. At the end you rate how hard it felt.
+The **play button** starts a workout: today's suggested session (guided intervals, with a buzz on the band 5 s before each change) or an open session for any sport. You can minimise it and come back; on Android a foreground service keeps the band connection while the screen is locked. At the end you rate how hard it felt (RPE). Coach uses the ratings: sessions that keep feeling harder than planned ease the next hard day, sessions that feel easy step one up. For strength sessions, where wrist HR undercounts, the rating also sets the session's load.
 
 Every detail screen explains itself: Recovery breaks down what moved it against your 30-day baseline, Strain shows the day's heart rate, time in zones and how it built up, Sleep shows the hypnogram, need, debt and tonight's bedtime, and so on.
 
-**Home-screen widgets.** Small (Recovery) and medium (Recovery, Strain, Sleep). On Android add them from the launcher's widget list. On iOS the widget extension needs a one-time Xcode step, see [`app/ios/TempoWidget/README.md`](app/ios/TempoWidget/README.md).
+**Home-screen widgets.** Small (Recovery) and medium (Recovery, Strain, Sleep). Tapping a score opens its detail screen. On Android add them from the launcher's widget list. On iOS the widget extension needs a one-time Xcode step, see [`app/ios/TempoWidget/README.md`](app/ios/TempoWidget/README.md).
 
-**Syncing.** Tempo syncs when you open the app and in the background: every 3 hours on Android, and whenever iOS allows it on iPhone. The band holds several days of data, so a missed sync catches up next time.
+**Syncing.** Tempo syncs when you open the app and in the background: every 3 hours on Android, and whenever iOS allows it on iPhone. The band holds several days of data, so a missed sync catches up next time. If the band's memory filled before a sync, Data health logs a gap with the minutes lost. On Android, Tempo asks once to be left out of battery optimisation so overnight syncs keep running.
+
+**Pause.** Ill or travelling? Profile → *Pause*. Scores still show, but those days don't move your baselines, calibration or learned sleep need, and Coach stops adapting the plan until you resume.
+
+**Smart alarm.** Sleep → Tonight → *Smart alarm* writes an alarm to the band that buzzes in light sleep up to 30 minutes before the time you pick.
 
 **Your first two weeks.** Recovery shows **Calibrating** for the first 14 nights while Tempo learns your baseline. Strain and Sleep work from day one.
 
@@ -116,10 +120,10 @@ Every detail screen explains itself: Recovery breaks down what moved it against 
 
 All three scores are calculated on your phone from the band's per-minute data. Every constant is a starting point that will be tuned over time.
 
-**Strain (0–21).** For every minute, your heart rate is placed between your resting HR and your HR max (Banister TRIMP). Harder minutes count much more than easy ones. The day's total is squeezed onto a 0–21 scale, so going from 18 to 19 takes far more work than going from 5 to 6. HR max starts at 190 and rises automatically if the band ever records higher; you can also set it in Profile.
+**Strain (0–21).** For every minute, your heart rate is placed between your resting HR and your HR max (Banister TRIMP). Minutes below 30 % of that range (sitting, pottering about) count for nothing; above it, harder minutes count much more than easy ones. A desk day lands near 0, an easy run day around 5–8, a threshold session around 13 and two hard hours past 18. Strength sessions you rate count as at least their session-RPE load. The day's total is squeezed onto a 0–21 scale, so going from 18 to 19 takes far more work than going from 5 to 6. HR max starts at 190 and rises automatically if the band ever records higher; you can also set it in Profile.
 
 **Sleep performance (%).** Hours slept ÷ hours needed, capped at 100 %.
-Need = 7.5 h + half of your recent sleep debt (capped at 2 h) + a little extra for yesterday's strain.
+Need = your base need + half of your recent sleep debt (capped at 2 h) + a little extra for yesterday's strain. The base starts at 7.5 h; after 14 scored nights it becomes the median sleep on the third of nights you recovered best after (kept between 6.5 and 9.5 h). Naps of 20 minutes or more count against the debt.
 
 **Recovery (%).** Last night compared with your own 30-day baseline:
 
@@ -133,7 +137,7 @@ Need = 7.5 h + half of your recent sleep debt (capped at 2 h) + a little extra f
 
 **Cardio load.** Your last 7 days of strain-weighted heart rate (TRIMP) against your last 28: below 0.8× is detraining, 0.8–1.0× maintaining, 1.0–1.3× building, above 1.3× overreaching.
 
-**The plan.** Coach builds each week from your goal, the workouts you like and the days and minutes you have, with at most two hard sessions and never two in a row. After the first sync each morning it adapts the next days to your recovery and load and says what changed and why.
+**The plan.** Coach builds each week from your goal, the workouts you like and the days and minutes you have, with at most two hard sessions and never two in a row. After the first sync each morning it adapts today and the next two days to your recovery, load and recent RPE, and says what changed and why: a rest morning also makes tomorrow's hard session easy, and two hard days never sit back to back. A displaced hard session moves at least 48 h later.
 
 The Mi Band 6 doesn't expose raw beat-to-beat (HRV) data, so Recovery uses the band's stress index as a stand-in. It's a reasonable proxy, not a true HRV measurement.
 
@@ -142,7 +146,8 @@ The Mi Band 6 doesn't expose raw beat-to-beat (HRV) data, so Recovery uses the b
 - **No network.** Tempo makes no network calls at runtime. There are no servers, analytics or accounts.
 - **On-device database.** All data lives in a local SQLite database on your phone.
 - **The auth key** is kept only in secure storage. It's never written to logs, the database or exports.
-- **Export.** Profile → *Export* writes CSV (one file per table) or one JSON file and opens the share sheet.
+- **Export.** Profile → *Export* writes CSV (one file per table) or one JSON file and opens the share sheet. *Restore from export* reads that JSON file back (on a new phone, say); samples already on the phone are kept.
+- **Apple Health / Health Connect.** Off by default. When you turn it on, Tempo writes confirmed workouts and nights with sleep stages after each sync. It never reads Health data.
 - **Delete.** Profile → *Delete all data* removes the database and the key. *Re-pair or change band* removes the pairing and starts over.
 - **Packet logs.** The app writes a log of Bluetooth traffic to its documents folder for debugging. It contains your band's data but never the key.
 
@@ -150,9 +155,9 @@ The Mi Band 6 doesn't expose raw beat-to-beat (HRV) data, so Recovery uses the b
 
 - **Untested on hardware.** See the status note at the top.
 - **One band, one person.** No multi-user support.
-- **Workouts run in the foreground.** You can minimise the workout inside Tempo, but if the phone kills the app (or you lock it for a long time on Android) the live connection drops. There is no foreground service yet.
+- **Live workouts on iPhone** need Tempo open or recently used; iOS has no foreground service. On Android a foreground service holds the connection.
 - **Background sync on iPhone isn't guaranteed.** iOS decides when it runs. Opening the app always syncs.
-- **Wrist heart rate lags** during intervals and weightlifting, so workout strain may be undercounted.
+- **Wrist heart rate lags** during intervals and weightlifting. Rate strength sessions so their load counts; intervals may still be undercounted.
 - **Firmware updates** can change the band's protocol. Avoid updating the band through Mi Fitness.
 
 ### Troubleshooting

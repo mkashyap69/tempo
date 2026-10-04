@@ -8,6 +8,7 @@
     android:orientation="horizontal"
     android:padding="16dp">
     <LinearLayout
+        android:id="@+id/rec_col"
         android:layout_width="0dp"
         android:layout_height="match_parent"
         android:layout_weight="1"
@@ -31,6 +32,7 @@
     </LinearLayout>
         <TextView android:layout_width="14dp" android:layout_height="match_parent" />
     <LinearLayout
+        android:id="@+id/strain_col"
         android:layout_width="0dp"
         android:layout_height="match_parent"
         android:layout_weight="1"
@@ -54,6 +56,7 @@
     </LinearLayout>
         <TextView android:layout_width="14dp" android:layout_height="match_parent" />
     <LinearLayout
+        android:id="@+id/sleep_col"
         android:layout_width="0dp"
         android:layout_height="match_parent"
         android:layout_weight="1"

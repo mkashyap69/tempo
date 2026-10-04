@@ -19,6 +19,35 @@ enum Intensity { rest, easy, moderate, hard }
 
 enum DayState { go, easeOff, rest, general }
 
+/// How recent sessions felt against what was planned, from logged RPE.
+enum Effort { heavy, onTrack, light, unknown }
+
+/// The RPE a session of [i] should feel like.
+int expectedRpe(Intensity i) => switch (i) {
+  Intensity.rest => 1,
+  Intensity.easy => 3,
+  Intensity.moderate => 5,
+  Intensity.hard => 7,
+};
+
+/// Intensity of an unplanned workout, from the strain it added.
+Intensity intensityForStrain(double strain) => strain < 8
+    ? Intensity.easy
+    : strain < 14
+    ? Intensity.moderate
+    : Intensity.hard;
+
+/// Mean of (RPE − expected) over the newest [n] rated sessions, newest
+/// first. ≥ 1.5 points over → heavy; ≥ 1.5 under → light. Needs 2.
+Effort effortTrend(List<(int, Intensity)> recent, {int n = 3}) {
+  final r = recent.take(n).toList();
+  if (r.length < 2) return Effort.unknown;
+  final d = r.fold<int>(0, (a, e) => a + e.$1 - expectedRpe(e.$2)) / r.length;
+  if (d >= 1.5) return Effort.heavy;
+  if (d <= -1.5) return Effort.light;
+  return Effort.onTrack;
+}
+
 final class Segment {
   const Segment(this.minutes, this.zone);
   final int minutes;
@@ -145,8 +174,8 @@ Session sessionTemplate(String key) => switch (key) {
     title: 'Easy walk',
     sport: Sport.walking,
     segments: [Segment(25, 1)],
-    strainLo: 4,
-    strainHi: 7,
+    strainLo: 2,
+    strainHi: 5,
     intensity: Intensity.easy,
   ),
   'mobility' => const Session(
@@ -154,8 +183,8 @@ Session sessionTemplate(String key) => switch (key) {
     title: 'Mobility flow',
     sport: Sport.yoga,
     segments: [Segment(15, 1)],
-    strainLo: 2,
-    strainHi: 5,
+    strainLo: 1,
+    strainHi: 4,
     intensity: Intensity.easy,
   ),
   'easy_run' => const Session(
@@ -163,8 +192,8 @@ Session sessionTemplate(String key) => switch (key) {
     title: 'Easy run',
     sport: Sport.running,
     segments: [Segment(5, 1), Segment(25, 2), Segment(5, 1)],
-    strainLo: 8,
-    strainHi: 10,
+    strainLo: 5,
+    strainHi: 8,
     intensity: Intensity.easy,
   ),
   'aerobic_run' => const Session(
@@ -172,8 +201,8 @@ Session sessionTemplate(String key) => switch (key) {
     title: 'Easy aerobic run',
     sport: Sport.running,
     segments: [Segment(5, 1), Segment(25, 2), Segment(5, 1)],
-    strainLo: 8,
-    strainHi: 10,
+    strainLo: 5,
+    strainHi: 8,
     intensity: Intensity.moderate,
   ),
   'steady_run' => const Session(
@@ -181,8 +210,8 @@ Session sessionTemplate(String key) => switch (key) {
     title: 'Steady Z2 run',
     sport: Sport.running,
     segments: [Segment(5, 1), Segment(30, 2), Segment(5, 1)],
-    strainLo: 9,
-    strainHi: 11,
+    strainLo: 6,
+    strainHi: 9,
     intensity: Intensity.moderate,
   ),
   'threshold_run' => Session(
@@ -194,8 +223,8 @@ Session sessionTemplate(String key) => switch (key) {
       ..._reps(5, const Segment(3, 4), const Segment(2, 1)),
       const Segment(8, 2),
     ],
-    strainLo: 13,
-    strainHi: 16,
+    strainLo: 12,
+    strainHi: 15,
     intensity: Intensity.hard,
   ),
   'vo2_run' => Session(
@@ -207,8 +236,8 @@ Session sessionTemplate(String key) => switch (key) {
       ..._reps(5, const Segment(3, 5), const Segment(3, 1)),
       const Segment(8, 2),
     ],
-    strainLo: 15,
-    strainHi: 18,
+    strainLo: 14,
+    strainHi: 17,
     intensity: Intensity.hard,
   ),
   'long_run' => const Session(
@@ -216,8 +245,8 @@ Session sessionTemplate(String key) => switch (key) {
     title: 'Long run',
     sport: Sport.running,
     segments: [Segment(5, 1), Segment(50, 2), Segment(5, 1)],
-    strainLo: 12,
-    strainHi: 14,
+    strainLo: 8,
+    strainHi: 11,
     intensity: Intensity.moderate,
   ),
   'easy_ride' => const Session(
@@ -225,8 +254,8 @@ Session sessionTemplate(String key) => switch (key) {
     title: 'Easy ride',
     sport: Sport.cycling,
     segments: [Segment(5, 1), Segment(35, 2), Segment(5, 1)],
-    strainLo: 8,
-    strainHi: 10,
+    strainLo: 6,
+    strainHi: 9,
     intensity: Intensity.easy,
   ),
   'long_ride' => const Session(
@@ -234,8 +263,8 @@ Session sessionTemplate(String key) => switch (key) {
     title: 'Long ride',
     sport: Sport.cycling,
     segments: [Segment(5, 1), Segment(65, 2), Segment(5, 1)],
-    strainLo: 12,
-    strainHi: 14,
+    strainLo: 9,
+    strainHi: 12,
     intensity: Intensity.moderate,
   ),
   'tempo_ride' => Session(
@@ -247,8 +276,8 @@ Session sessionTemplate(String key) => switch (key) {
       ..._reps(2, const Segment(12, 3), const Segment(4, 1)),
       const Segment(8, 2),
     ],
-    strainLo: 13,
-    strainHi: 15,
+    strainLo: 11,
+    strainHi: 14,
     intensity: Intensity.hard,
   ),
   'strength_full' => const Session(
@@ -256,7 +285,7 @@ Session sessionTemplate(String key) => switch (key) {
     title: 'Strength',
     sport: Sport.strength,
     segments: [Segment(45, 2)],
-    strainLo: 10,
+    strainLo: 9,
     strainHi: 12,
     intensity: Intensity.moderate,
     note: 'full body',
@@ -266,7 +295,7 @@ Session sessionTemplate(String key) => switch (key) {
     title: 'Strength',
     sport: Sport.strength,
     segments: [Segment(45, 2)],
-    strainLo: 10,
+    strainLo: 9,
     strainHi: 12,
     intensity: Intensity.moderate,
     note: 'lower body',
@@ -276,8 +305,8 @@ Session sessionTemplate(String key) => switch (key) {
     title: 'Yoga',
     sport: Sport.yoga,
     segments: [Segment(40, 1)],
-    strainLo: 5,
-    strainHi: 8,
+    strainLo: 3,
+    strainHi: 6,
     intensity: Intensity.easy,
   ),
   'hiit' => Session(
@@ -289,8 +318,8 @@ Session sessionTemplate(String key) => switch (key) {
       ..._reps(8, const Segment(1, 5), const Segment(1, 1)),
       const Segment(6, 2),
     ],
-    strainLo: 12,
-    strainHi: 15,
+    strainLo: 11,
+    strainHi: 14,
     intensity: Intensity.hard,
   ),
   'sport' => const Session(
@@ -529,6 +558,7 @@ Adaptation adaptWeek(
   required String reason,
   Session? carried,
   Set<int> available = const {1, 2, 3, 4, 5, 6, 7},
+  Effort effort = Effort.unknown,
 }) {
   final w = [...week];
   final changes = <PlanChange>[];
@@ -556,6 +586,38 @@ Adaptation adaptWeek(
           ),
         );
         pending = null;
+      } else if (effort == Effort.heavy && now.isHard && pending == null) {
+        final to = sessionTemplate(easierKeyFor(now));
+        w[today] = to;
+        changes.add(
+          PlanChange(
+            today,
+            now,
+            to,
+            'Your last sessions felt harder than planned. '
+            '${now.title} carried forward.',
+            state,
+          ),
+        );
+        pending = now;
+      } else if (effort == Effort.light &&
+          pending == null &&
+          now.intensity == Intensity.easy &&
+          canTakeHard(today)) {
+        final k = harderKeyFor(now);
+        if (k != null) {
+          final to = sessionTemplate(k);
+          w[today] = to;
+          changes.add(
+            PlanChange(
+              today,
+              now,
+              to,
+              '$reason and your last sessions felt easy — today steps up.',
+              state,
+            ),
+          );
+        }
       }
     case DayState.easeOff:
       if (now.isHard) {
@@ -601,6 +663,37 @@ Adaptation adaptWeek(
           ),
         );
       }
+  }
+  // Look three days ahead (today … today+2).
+  if (state == DayState.rest && today < 6 && w[today + 1].isHard) {
+    // Tomorrow starts easy after a rest day.
+    final from = w[today + 1], to = sessionTemplate(easierKeyFor(from));
+    w[today + 1] = to;
+    changes.add(
+      PlanChange(
+        today + 1,
+        from,
+        to,
+        'After a rest day, tomorrow starts easy. ${from.title} moves later.',
+        state,
+      ),
+    );
+    pending ??= from;
+  }
+  for (var i = today; i < 6 && i <= today + 2; i++) {
+    if (w[i].isHard && w[i + 1].isHard) {
+      final from = w[i + 1], to = sessionTemplate(easierKeyFor(from));
+      w[i + 1] = to;
+      changes.add(
+        PlanChange(
+          i + 1,
+          from,
+          to,
+          'No two hard days in a row — this one eases.',
+          state,
+        ),
+      );
+    }
   }
   // Try to place a carried session later this week.
   if (pending != null) {

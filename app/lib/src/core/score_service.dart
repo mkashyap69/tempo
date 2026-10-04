@@ -4,6 +4,7 @@ import 'package:drift/drift.dart';
 import 'package:scoring/scoring.dart' as sc;
 import 'package:store/store.dart' as st;
 
+import 'pause.dart';
 import 'profile.dart' show sportLabel;
 import 'stages.dart';
 
@@ -24,6 +25,7 @@ class ScoreService {
       defaultHrMax: int.tryParse(await db.setting(hrMaxKey) ?? '') ?? 190,
     );
     final today = _day(DateTime.now());
+    _pauses = await loadPauses(db);
     var day = _day(from);
     var n = 0;
     while (!day.isAfter(today)) {
@@ -43,6 +45,8 @@ class ScoreService {
     if (first != null) await recomputeFrom(first);
   }
 
+  List<Pause> _pauses = const [];
+
   Future<void> _scoreOne(DateTime day, sc.ScoringParams p) async {
     final from = day.subtract(const Duration(hours: 12));
     final to = day.add(const Duration(hours: 36));
@@ -60,13 +64,18 @@ class ScoreService {
       for (final s in await db.stressBetween(from, to))
         sc.StressReading(st.fromTs(s.ts), s.value),
     ];
-    final history = (await db.scoresBefore(day)).map(toScoring).toList();
+    // Paused days (ill, travelling) don't shape baselines or calibration.
+    final history = [
+      for (final d in await db.scoresBefore(day, limit: 90))
+        if (!isPaused(_pauses, parseDateKey(d.date))) toScoring(d),
+    ];
     final s = sc.scoreDay(
       date: day,
       minutes: minutes,
       stress: stress,
       history: history,
       p: p,
+      extraTrimp: await _strengthExtra(day),
     );
     await db.upsertScore(fromScoring(s));
     await _activities(day, s, minutes);
@@ -92,6 +101,23 @@ class ScoreService {
         ),
       ]);
     }
+  }
+
+  /// HR undercounts lifting: confirmed strength sessions with an RPE count
+  /// as at least their session-RPE load (see sc.strengthCorrection).
+  Future<double> _strengthExtra(DateTime day) async {
+    final ws = await db.workoutsBetween(day, day.add(const Duration(days: 1)));
+    var extra = 0.0;
+    for (final w in ws) {
+      if (w.sport != sc.Sport.strength.name || w.rpe == null) continue;
+      if (w.source == 'auto' && !w.confirmed) continue;
+      extra += sc.strengthCorrection(
+        hrTrimp: w.trimp,
+        rpe: w.rpe!,
+        minutes: ((w.end - w.start) / 60).round(),
+      );
+    }
+    return extra;
   }
 
   /// Auto-detects workouts on [day] and stores them as unconfirmed 'auto'
@@ -144,10 +170,13 @@ class ScoreService {
   }
 
   Future<void> _baselines(DateTime today) async {
-    final recent = await db.scoresBefore(
-      today.add(const Duration(days: 1)),
-      limit: 30,
-    );
+    final recent = [
+      for (final d in await db.scoresBefore(
+        today.add(const Duration(days: 1)),
+        limit: 60,
+      ))
+        if (!isPaused(_pauses, parseDateKey(d.date))) d,
+    ].take(30).toList();
     void put(String metric, Iterable<double?> xs) {
       final b = sc.Baseline.of(xs);
       if (b != null) db.putBaseline(metric, 30, b.mean, b.sd);
@@ -160,6 +189,17 @@ class ScoreService {
   }
 
   static DateTime _day(DateTime t) => DateTime(t.year, t.month, t.day);
+}
+
+/// Saves how hard a workout felt. Coach reads it at the next morning
+/// adaptation; a strength session's day is rescored since RPE sets its load.
+Future<void> saveRpe(st.TempoDb db, int workoutId, int rpe) async {
+  await db.updateWorkout(workoutId, st.WorkoutsCompanion(rpe: Value(rpe)));
+  final w = await db.workout(workoutId);
+  if (w != null && w.sport == sc.Sport.strength.name) {
+    final t = st.fromTs(w.start);
+    await ScoreService(db).recomputeFrom(DateTime(t.year, t.month, t.day));
+  }
 }
 
 DateTime parseDateKey(String k) {
@@ -176,6 +216,8 @@ sc.DailyScore toScoring(st.DailyScore d) => sc.DailyScore(
   sleepEnd: d.sleepEnd == null ? null : st.fromTs(d.sleepEnd!),
   sleptHours: d.sleptHours,
   needHours: d.needHours,
+  napHours: d.napHours,
+  baseNeedHours: d.baseNeed,
   sleepPerf: d.sleepPerf,
   rhr: d.rhr,
   hrvProxy: d.hrvProxy,
@@ -193,6 +235,8 @@ st.DailyScoresCompanion fromScoring(sc.DailyScore s) =>
       sleepPerf: Value(s.sleepPerf),
       sleptHours: Value(s.sleptHours),
       needHours: Value(s.needHours),
+      napHours: Value(s.napHours),
+      baseNeed: Value(s.baseNeedHours),
       sleepStart: Value(s.sleepStart == null ? null : st.toTs(s.sleepStart!)),
       sleepEnd: Value(s.sleepEnd == null ? null : st.toTs(s.sleepEnd!)),
       recovery: Value(s.recovery),

@@ -7,5 +7,10 @@
 	<array>
 		<string>group.dev.tempo.tempo</string>
 	</array>
+	<!-- Profile → Health export writes workouts and sleep. -->
+	<key>com.apple.developer.healthkit</key>
+	<true/>
+	<key>com.apple.developer.healthkit.access</key>
+	<array/>
 </dict>
 </plist>

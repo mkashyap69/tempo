@@ -39,3 +39,18 @@
 - 2026-10-04 · Home-screen widgets via `home_widget`: Android AppWidget providers in Kotlin; iOS WidgetKit sources in `ios/TempoWidget` with the target to be added in Xcode (adding a target by hand-editing pbxproj is too fragile). App group `group.dev.tempo.tempo`.
 - 2026-10-04 · Notifications are local only (flutter_local_notifications): a daily morning call and tonight's bedtime nudge, rescheduled after every sync.
 - 2026-10-04 · The live workout session lives in a Riverpod notifier, not the screen, so it survives minimising; it holds the band lock and the open-time sync skips while it runs.
+- 2026-10-04 · Scoring v3 (algo_version 3): TRIMP ignores minutes below 30 % of HR reserve and rescales the rest, k 120 → 40. A rest day used to collect ~12 strain from resting-level HR alone. Session strain ranges in `sessionTemplate` were re-tuned to the new scale.
+- 2026-10-04 · Base sleep need is learned after 14 non-calibrating, non-paused nights: the median sleep of the best-recovered third, clamped to 6.5–9.5 h, else 7.5 h. Stored per day as `daily_scores.base_need`.
+- 2026-10-04 · Naps = daytime sleep ≥ 20 min after waking and < 3 h, before the next main sleep; stored as `daily_scores.nap_hours` and added to slept hours in the debt sum (not to sleep performance).
+- 2026-10-04 · Strength strain correction: confirmed strength workouts with an RPE add max(0, 0.11 · RPE · minutes − HR TRIMP) to the day's TRIMP (Foster sRPE, scaled so RPE 7 for an hour ≈ a threshold run).
+- 2026-10-04 · Effort feedback: mean (RPE − expected) over the last 3 rated sessions in 7 days, expected 3 / 5 / 7 for easy / moderate / hard (unplanned sessions are graded by strain). ≥ +1.5 heavy → a go-day hard session eases and is carried; ≤ −1.5 light → one easy session steps up if it fits.
+- 2026-10-04 · Adaptation looks three days ahead: after a rest morning tomorrow's hard session eases and is carried; no hard day follows a hard day within today … today+2.
+- 2026-10-04 · Pause (ill / travelling) is a settings list of date ranges. Paused days are still scored but are left out of every history window (baselines, calibration, learned need), and the morning adaptation is skipped.
+- 2026-10-04 · Schema v3 adds `daily_scores.nap_hours` (default 0) and `base_need`. Restore from a JSON export uses insert-or-ignore for raw tables (append-only still holds), replace for derived ones, and new ids for workouts and the sync log; then everything is rescored.
+- 2026-10-04 · New band writes, all TODO(verify): wear location on the user-settings char `20 00 00 02|82`; sleep assist off `15 00 00`; stress off `fe 06 00 00`; alarm on the config char `02 [enabled 0x80 | not-smart 0x40 | slot] hh mm days`. Tempo owns alarm slot 0.
+- 2026-10-04 · Android live workouts run under a `connectedDevice` foreground service (flutter_foreground_task) with no task of its own; the session stays in the main isolate. A one-time prompt asks for the battery-optimisation exemption, repeatable from Profile and Data health.
+- 2026-10-04 · Sync gap = first activity record later than the cursor by > 2 min; logged as a `gap` row in `sync_log` with the minutes lost.
+- 2026-10-04 · Battery days left = least-squares drain over the current discharge run (readings ≥ 1 h apart, ≥ 1 day span, ≥ 0.5 %/day), else "learning". Replaces the fixed 0.14 × % guess.
+- 2026-10-04 · Health export (package `health`) is write-only and opt-in: confirmed workouts and main-sleep sessions with stage runs, from 7 days before turning it on. MainActivity is a FlutterFragmentActivity and minSdk 26 for Health Connect.
+- 2026-10-04 · Widget taps open `tempo://recovery|strain|sleep|today`; the small widget opens Recovery, the medium widget opens each column's detail.
+

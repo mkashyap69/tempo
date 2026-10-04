@@ -1361,6 +1361,29 @@ class $DailyScoresTable extends DailyScores
     type: DriftSqlType.double,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _napHoursMeta = const VerificationMeta(
+    'napHours',
+  );
+  @override
+  late final GeneratedColumn<double> napHours = GeneratedColumn<double>(
+    'nap_hours',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0.0),
+  );
+  static const VerificationMeta _baseNeedMeta = const VerificationMeta(
+    'baseNeed',
+  );
+  @override
+  late final GeneratedColumn<double> baseNeed = GeneratedColumn<double>(
+    'base_need',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _sleepStartMeta = const VerificationMeta(
     'sleepStart',
   );
@@ -1448,6 +1471,8 @@ class $DailyScoresTable extends DailyScores
     sleepPerf,
     sleptHours,
     needHours,
+    napHours,
+    baseNeed,
     sleepStart,
     sleepEnd,
     recovery,
@@ -1516,6 +1541,18 @@ class $DailyScoresTable extends DailyScores
       context.handle(
         _needHoursMeta,
         needHours.isAcceptableOrUnknown(data['need_hours']!, _needHoursMeta),
+      );
+    }
+    if (data.containsKey('nap_hours')) {
+      context.handle(
+        _napHoursMeta,
+        napHours.isAcceptableOrUnknown(data['nap_hours']!, _napHoursMeta),
+      );
+    }
+    if (data.containsKey('base_need')) {
+      context.handle(
+        _baseNeedMeta,
+        baseNeed.isAcceptableOrUnknown(data['base_need']!, _baseNeedMeta),
       );
     }
     if (data.containsKey('sleep_start')) {
@@ -1607,6 +1644,14 @@ class $DailyScoresTable extends DailyScores
         DriftSqlType.double,
         data['${effectivePrefix}need_hours'],
       ),
+      napHours: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}nap_hours'],
+      )!,
+      baseNeed: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}base_need'],
+      ),
       sleepStart: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}sleep_start'],
@@ -1652,6 +1697,8 @@ class DailyScore extends DataClass implements Insertable<DailyScore> {
   final double? sleepPerf;
   final double? sleptHours;
   final double? needHours;
+  final double napHours;
+  final double? baseNeed;
   final int? sleepStart;
   final int? sleepEnd;
   final double? recovery;
@@ -1667,6 +1714,8 @@ class DailyScore extends DataClass implements Insertable<DailyScore> {
     this.sleepPerf,
     this.sleptHours,
     this.needHours,
+    required this.napHours,
+    this.baseNeed,
     this.sleepStart,
     this.sleepEnd,
     this.recovery,
@@ -1690,6 +1739,10 @@ class DailyScore extends DataClass implements Insertable<DailyScore> {
     }
     if (!nullToAbsent || needHours != null) {
       map['need_hours'] = Variable<double>(needHours);
+    }
+    map['nap_hours'] = Variable<double>(napHours);
+    if (!nullToAbsent || baseNeed != null) {
+      map['base_need'] = Variable<double>(baseNeed);
     }
     if (!nullToAbsent || sleepStart != null) {
       map['sleep_start'] = Variable<int>(sleepStart);
@@ -1726,6 +1779,10 @@ class DailyScore extends DataClass implements Insertable<DailyScore> {
       needHours: needHours == null && nullToAbsent
           ? const Value.absent()
           : Value(needHours),
+      napHours: Value(napHours),
+      baseNeed: baseNeed == null && nullToAbsent
+          ? const Value.absent()
+          : Value(baseNeed),
       sleepStart: sleepStart == null && nullToAbsent
           ? const Value.absent()
           : Value(sleepStart),
@@ -1757,6 +1814,8 @@ class DailyScore extends DataClass implements Insertable<DailyScore> {
       sleepPerf: serializer.fromJson<double?>(json['sleepPerf']),
       sleptHours: serializer.fromJson<double?>(json['sleptHours']),
       needHours: serializer.fromJson<double?>(json['needHours']),
+      napHours: serializer.fromJson<double>(json['napHours']),
+      baseNeed: serializer.fromJson<double?>(json['baseNeed']),
       sleepStart: serializer.fromJson<int?>(json['sleepStart']),
       sleepEnd: serializer.fromJson<int?>(json['sleepEnd']),
       recovery: serializer.fromJson<double?>(json['recovery']),
@@ -1777,6 +1836,8 @@ class DailyScore extends DataClass implements Insertable<DailyScore> {
       'sleepPerf': serializer.toJson<double?>(sleepPerf),
       'sleptHours': serializer.toJson<double?>(sleptHours),
       'needHours': serializer.toJson<double?>(needHours),
+      'napHours': serializer.toJson<double>(napHours),
+      'baseNeed': serializer.toJson<double?>(baseNeed),
       'sleepStart': serializer.toJson<int?>(sleepStart),
       'sleepEnd': serializer.toJson<int?>(sleepEnd),
       'recovery': serializer.toJson<double?>(recovery),
@@ -1795,6 +1856,8 @@ class DailyScore extends DataClass implements Insertable<DailyScore> {
     Value<double?> sleepPerf = const Value.absent(),
     Value<double?> sleptHours = const Value.absent(),
     Value<double?> needHours = const Value.absent(),
+    double? napHours,
+    Value<double?> baseNeed = const Value.absent(),
     Value<int?> sleepStart = const Value.absent(),
     Value<int?> sleepEnd = const Value.absent(),
     Value<double?> recovery = const Value.absent(),
@@ -1810,6 +1873,8 @@ class DailyScore extends DataClass implements Insertable<DailyScore> {
     sleepPerf: sleepPerf.present ? sleepPerf.value : this.sleepPerf,
     sleptHours: sleptHours.present ? sleptHours.value : this.sleptHours,
     needHours: needHours.present ? needHours.value : this.needHours,
+    napHours: napHours ?? this.napHours,
+    baseNeed: baseNeed.present ? baseNeed.value : this.baseNeed,
     sleepStart: sleepStart.present ? sleepStart.value : this.sleepStart,
     sleepEnd: sleepEnd.present ? sleepEnd.value : this.sleepEnd,
     recovery: recovery.present ? recovery.value : this.recovery,
@@ -1829,6 +1894,8 @@ class DailyScore extends DataClass implements Insertable<DailyScore> {
           ? data.sleptHours.value
           : this.sleptHours,
       needHours: data.needHours.present ? data.needHours.value : this.needHours,
+      napHours: data.napHours.present ? data.napHours.value : this.napHours,
+      baseNeed: data.baseNeed.present ? data.baseNeed.value : this.baseNeed,
       sleepStart: data.sleepStart.present
           ? data.sleepStart.value
           : this.sleepStart,
@@ -1855,6 +1922,8 @@ class DailyScore extends DataClass implements Insertable<DailyScore> {
           ..write('sleepPerf: $sleepPerf, ')
           ..write('sleptHours: $sleptHours, ')
           ..write('needHours: $needHours, ')
+          ..write('napHours: $napHours, ')
+          ..write('baseNeed: $baseNeed, ')
           ..write('sleepStart: $sleepStart, ')
           ..write('sleepEnd: $sleepEnd, ')
           ..write('recovery: $recovery, ')
@@ -1875,6 +1944,8 @@ class DailyScore extends DataClass implements Insertable<DailyScore> {
     sleepPerf,
     sleptHours,
     needHours,
+    napHours,
+    baseNeed,
     sleepStart,
     sleepEnd,
     recovery,
@@ -1894,6 +1965,8 @@ class DailyScore extends DataClass implements Insertable<DailyScore> {
           other.sleepPerf == this.sleepPerf &&
           other.sleptHours == this.sleptHours &&
           other.needHours == this.needHours &&
+          other.napHours == this.napHours &&
+          other.baseNeed == this.baseNeed &&
           other.sleepStart == this.sleepStart &&
           other.sleepEnd == this.sleepEnd &&
           other.recovery == this.recovery &&
@@ -1911,6 +1984,8 @@ class DailyScoresCompanion extends UpdateCompanion<DailyScore> {
   final Value<double?> sleepPerf;
   final Value<double?> sleptHours;
   final Value<double?> needHours;
+  final Value<double> napHours;
+  final Value<double?> baseNeed;
   final Value<int?> sleepStart;
   final Value<int?> sleepEnd;
   final Value<double?> recovery;
@@ -1927,6 +2002,8 @@ class DailyScoresCompanion extends UpdateCompanion<DailyScore> {
     this.sleepPerf = const Value.absent(),
     this.sleptHours = const Value.absent(),
     this.needHours = const Value.absent(),
+    this.napHours = const Value.absent(),
+    this.baseNeed = const Value.absent(),
     this.sleepStart = const Value.absent(),
     this.sleepEnd = const Value.absent(),
     this.recovery = const Value.absent(),
@@ -1944,6 +2021,8 @@ class DailyScoresCompanion extends UpdateCompanion<DailyScore> {
     this.sleepPerf = const Value.absent(),
     this.sleptHours = const Value.absent(),
     this.needHours = const Value.absent(),
+    this.napHours = const Value.absent(),
+    this.baseNeed = const Value.absent(),
     this.sleepStart = const Value.absent(),
     this.sleepEnd = const Value.absent(),
     this.recovery = const Value.absent(),
@@ -1966,6 +2045,8 @@ class DailyScoresCompanion extends UpdateCompanion<DailyScore> {
     Expression<double>? sleepPerf,
     Expression<double>? sleptHours,
     Expression<double>? needHours,
+    Expression<double>? napHours,
+    Expression<double>? baseNeed,
     Expression<int>? sleepStart,
     Expression<int>? sleepEnd,
     Expression<double>? recovery,
@@ -1983,6 +2064,8 @@ class DailyScoresCompanion extends UpdateCompanion<DailyScore> {
       if (sleepPerf != null) 'sleep_perf': sleepPerf,
       if (sleptHours != null) 'slept_hours': sleptHours,
       if (needHours != null) 'need_hours': needHours,
+      if (napHours != null) 'nap_hours': napHours,
+      if (baseNeed != null) 'base_need': baseNeed,
       if (sleepStart != null) 'sleep_start': sleepStart,
       if (sleepEnd != null) 'sleep_end': sleepEnd,
       if (recovery != null) 'recovery': recovery,
@@ -2002,6 +2085,8 @@ class DailyScoresCompanion extends UpdateCompanion<DailyScore> {
     Value<double?>? sleepPerf,
     Value<double?>? sleptHours,
     Value<double?>? needHours,
+    Value<double>? napHours,
+    Value<double?>? baseNeed,
     Value<int?>? sleepStart,
     Value<int?>? sleepEnd,
     Value<double?>? recovery,
@@ -2019,6 +2104,8 @@ class DailyScoresCompanion extends UpdateCompanion<DailyScore> {
       sleepPerf: sleepPerf ?? this.sleepPerf,
       sleptHours: sleptHours ?? this.sleptHours,
       needHours: needHours ?? this.needHours,
+      napHours: napHours ?? this.napHours,
+      baseNeed: baseNeed ?? this.baseNeed,
       sleepStart: sleepStart ?? this.sleepStart,
       sleepEnd: sleepEnd ?? this.sleepEnd,
       recovery: recovery ?? this.recovery,
@@ -2053,6 +2140,12 @@ class DailyScoresCompanion extends UpdateCompanion<DailyScore> {
     }
     if (needHours.present) {
       map['need_hours'] = Variable<double>(needHours.value);
+    }
+    if (napHours.present) {
+      map['nap_hours'] = Variable<double>(napHours.value);
+    }
+    if (baseNeed.present) {
+      map['base_need'] = Variable<double>(baseNeed.value);
     }
     if (sleepStart.present) {
       map['sleep_start'] = Variable<int>(sleepStart.value);
@@ -2091,6 +2184,8 @@ class DailyScoresCompanion extends UpdateCompanion<DailyScore> {
           ..write('sleepPerf: $sleepPerf, ')
           ..write('sleptHours: $sleptHours, ')
           ..write('needHours: $needHours, ')
+          ..write('napHours: $napHours, ')
+          ..write('baseNeed: $baseNeed, ')
           ..write('sleepStart: $sleepStart, ')
           ..write('sleepEnd: $sleepEnd, ')
           ..write('recovery: $recovery, ')
@@ -5521,6 +5616,8 @@ typedef $$DailyScoresTableCreateCompanionBuilder =
       Value<double?> sleepPerf,
       Value<double?> sleptHours,
       Value<double?> needHours,
+      Value<double> napHours,
+      Value<double?> baseNeed,
       Value<int?> sleepStart,
       Value<int?> sleepEnd,
       Value<double?> recovery,
@@ -5539,6 +5636,8 @@ typedef $$DailyScoresTableUpdateCompanionBuilder =
       Value<double?> sleepPerf,
       Value<double?> sleptHours,
       Value<double?> needHours,
+      Value<double> napHours,
+      Value<double?> baseNeed,
       Value<int?> sleepStart,
       Value<int?> sleepEnd,
       Value<double?> recovery,
@@ -5590,6 +5689,16 @@ class $$DailyScoresTableFilterComposer
 
   ColumnFilters<double> get needHours => $composableBuilder(
     column: $table.needHours,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get napHours => $composableBuilder(
+    column: $table.napHours,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get baseNeed => $composableBuilder(
+    column: $table.baseNeed,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5673,6 +5782,16 @@ class $$DailyScoresTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<double> get napHours => $composableBuilder(
+    column: $table.napHours,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get baseNeed => $composableBuilder(
+    column: $table.baseNeed,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get sleepStart => $composableBuilder(
     column: $table.sleepStart,
     builder: (column) => ColumnOrderings(column),
@@ -5741,6 +5860,12 @@ class $$DailyScoresTableAnnotationComposer
   GeneratedColumn<double> get needHours =>
       $composableBuilder(column: $table.needHours, builder: (column) => column);
 
+  GeneratedColumn<double> get napHours =>
+      $composableBuilder(column: $table.napHours, builder: (column) => column);
+
+  GeneratedColumn<double> get baseNeed =>
+      $composableBuilder(column: $table.baseNeed, builder: (column) => column);
+
   GeneratedColumn<int> get sleepStart => $composableBuilder(
     column: $table.sleepStart,
     builder: (column) => column,
@@ -5807,6 +5932,8 @@ class $$DailyScoresTableTableManager
                 Value<double?> sleepPerf = const Value.absent(),
                 Value<double?> sleptHours = const Value.absent(),
                 Value<double?> needHours = const Value.absent(),
+                Value<double> napHours = const Value.absent(),
+                Value<double?> baseNeed = const Value.absent(),
                 Value<int?> sleepStart = const Value.absent(),
                 Value<int?> sleepEnd = const Value.absent(),
                 Value<double?> recovery = const Value.absent(),
@@ -5823,6 +5950,8 @@ class $$DailyScoresTableTableManager
                 sleepPerf: sleepPerf,
                 sleptHours: sleptHours,
                 needHours: needHours,
+                napHours: napHours,
+                baseNeed: baseNeed,
                 sleepStart: sleepStart,
                 sleepEnd: sleepEnd,
                 recovery: recovery,
@@ -5841,6 +5970,8 @@ class $$DailyScoresTableTableManager
                 Value<double?> sleepPerf = const Value.absent(),
                 Value<double?> sleptHours = const Value.absent(),
                 Value<double?> needHours = const Value.absent(),
+                Value<double> napHours = const Value.absent(),
+                Value<double?> baseNeed = const Value.absent(),
                 Value<int?> sleepStart = const Value.absent(),
                 Value<int?> sleepEnd = const Value.absent(),
                 Value<double?> recovery = const Value.absent(),
@@ -5857,6 +5988,8 @@ class $$DailyScoresTableTableManager
                 sleepPerf: sleepPerf,
                 sleptHours: sleptHours,
                 needHours: needHours,
+                napHours: napHours,
+                baseNeed: baseNeed,
                 sleepStart: sleepStart,
                 sleepEnd: sleepEnd,
                 recovery: recovery,

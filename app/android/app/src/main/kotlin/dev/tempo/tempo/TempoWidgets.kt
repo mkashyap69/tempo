@@ -14,7 +14,11 @@ import es.antonborri.home_widget.HomeWidgetProvider
  * Strain and Sleep. Values come from Flutter via home_widget
  * (lib/src/core/home_widgets.dart). Older than 2 h: dim and say when.
  */
-abstract class TempoWidget(private val layout: Int, private val metrics: List<Pair<String, Int>>) : HomeWidgetProvider() {
+abstract class TempoWidget(
+    private val layout: Int,
+    private val metrics: List<Pair<String, Int>>,
+    private val rootUri: String,
+) : HomeWidgetProvider() {
 
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray, widgetData: SharedPreferences) {
         for (id in appWidgetIds) {
@@ -23,9 +27,24 @@ abstract class TempoWidget(private val layout: Int, private val metrics: List<Pa
             val ageMs = if (updated == null) Long.MAX_VALUE else System.currentTimeMillis() - updated
             val stale = ageMs > 2 * 60 * 60 * 1000
             for ((prefix, ticks) in metrics) bind(context, views, widgetData, prefix, ticks, stale, ageMs)
-            views.setOnClickPendingIntent(R.id.widget_root, HomeWidgetLaunchIntent.getActivity(context, MainActivity::class.java, Uri.parse("tempo://today")))
+            views.setOnClickPendingIntent(R.id.widget_root, launch(context, rootUri))
+            // Medium: each column opens its own detail screen. (View ids are
+            // global, so only layouts with several columns bind them.)
+            if (metrics.size > 1) for ((prefix, _) in metrics) {
+                val col = context.resources.getIdentifier("${prefix}_col", "id", context.packageName)
+                if (col != 0) views.setOnClickPendingIntent(col, launch(context, uriFor(prefix)))
+            }
             appWidgetManager.updateAppWidget(id, views)
         }
+    }
+
+    private fun launch(context: Context, uri: String) =
+        HomeWidgetLaunchIntent.getActivity(context, MainActivity::class.java, Uri.parse(uri))
+
+    private fun uriFor(prefix: String) = when (prefix) {
+        "rec" -> "tempo://recovery"
+        "strain" -> "tempo://strain"
+        else -> "tempo://sleep"
     }
 
     private fun bind(context: Context, views: RemoteViews, d: SharedPreferences, prefix: String, ticks: Int, stale: Boolean, ageMs: Long) {
@@ -67,6 +86,6 @@ abstract class TempoWidget(private val layout: Int, private val metrics: List<Pa
     }
 }
 
-class TempoSmallWidget : TempoWidget(R.layout.tempo_widget_small, listOf("rec" to 14))
+class TempoSmallWidget : TempoWidget(R.layout.tempo_widget_small, listOf("rec" to 14), "tempo://recovery")
 
-class TempoMediumWidget : TempoWidget(R.layout.tempo_widget_medium, listOf("rec" to 10, "strain" to 10, "sleep" to 10))
+class TempoMediumWidget : TempoWidget(R.layout.tempo_widget_medium, listOf("rec" to 10, "strain" to 10, "sleep" to 10), "tempo://today")

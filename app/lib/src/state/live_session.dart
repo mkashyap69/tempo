@@ -10,6 +10,8 @@ import 'package:store/store.dart' as st;
 
 import '../core/band_link.dart';
 import '../core/coach_service.dart';
+import '../core/background_guard.dart';
+import '../core/score_service.dart' show saveRpe;
 import '../core/profile.dart';
 import 'providers.dart';
 
@@ -164,6 +166,7 @@ class LiveSession extends Notifier<LiveState?> {
         wait: const Duration(seconds: 15),
       );
       final stream = await link.band.startLiveHr();
+      await BackgroundGuard.start(state!.title);
       HapticFeedback.mediumImpact();
       _hr = stream.listen(_onBeat);
       _lastTick = DateTime.now();
@@ -224,6 +227,11 @@ class LiveSession extends Notifier<LiveState?> {
       bpm: lost ? () => null : null,
     );
     state = next;
+    if (next.elapsed.inSeconds % 15 == 0 && next.bpm != null) {
+      final m = next.elapsed.inMinutes;
+      final sec = (next.elapsed.inSeconds % 60).toString().padLeft(2, '0');
+      BackgroundGuard.update('${next.bpm} bpm · $m:$sec');
+    }
     // Interval cues: buzz the band 5 s before a change; haptic on change.
     if (next.guided) {
       final (i, left) = next.segment;
@@ -307,15 +315,14 @@ class LiveSession extends Notifier<LiveState?> {
     final id = state?.workoutId;
     if (id == null) return;
     HapticFeedback.selectionClick();
-    await ref
-        .read(dbProvider)
-        .updateWorkout(id, st.WorkoutsCompanion(rpe: Value(rpe)));
+    await saveRpe(ref.read(dbProvider), id, rpe);
   }
 
   /// Leaves the summary.
   void close() => state = null;
 
   Future<void> _teardown() async {
+    await BackgroundGuard.stop();
     _clock?.cancel();
     _clock = null;
     await _hr?.cancel();

@@ -1,13 +1,13 @@
 import 'dart:convert';
 import 'dart:math' as math;
 
-import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:scoring/scoring.dart' as sc;
 import 'package:store/store.dart' as st;
 
 import '../core/coach_service.dart';
+import '../core/score_service.dart' show saveRpe;
 import '../core/format.dart';
 import '../core/profile.dart';
 import '../design/chart.dart';
@@ -406,7 +406,7 @@ class ActivityDetailScreen extends ConsumerWidget {
               Expanded(
                 child: Text(
                   w.rpe == null
-                      ? 'How hard did it feel?'
+                      ? 'How hard did it feel? Coach adjusts the next days from it.'
                       : 'You rated it ${w.rpe}/10',
                   style: TempoType.bodyS.c(c.text1),
                 ),
@@ -468,10 +468,6 @@ class ActivityDetailScreen extends ConsumerWidget {
           '$i · ${const ['Very easy', 'Easy', 'Easy', 'Moderate', 'Moderate', 'Somewhat hard', 'Hard', 'Very hard', 'Very hard', 'Max'][i - 1]}',
       selected: w.rpe,
     );
-    if (v != null) {
-      await ref
-          .read(dbProvider)
-          .updateWorkout(w.id, st.WorkoutsCompanion(rpe: Value(v)));
-    }
+    if (v != null) await saveRpe(ref.read(dbProvider), w.id, v);
   }
 }

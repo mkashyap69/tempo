@@ -7,6 +7,7 @@ import 'package:store/store.dart' as st;
 
 import '../core/coach_service.dart';
 import '../core/format.dart';
+import '../core/pause.dart';
 import '../core/today.dart';
 import '../design/chart.dart';
 import '../design/components.dart';
@@ -99,7 +100,27 @@ class CoachScreen extends ConsumerWidget {
               ],
             ),
           ),
-        if (t.stale)
+        if (t.pause != null)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              color: c.surface2,
+              borderRadius: BorderRadius.circular(TempoRadii.md),
+            ),
+            child: Row(
+              children: [
+                TempoIcon(TempoIcons.clock, size: 18, color: c.text1),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Paused (${pauseLabel(t.pause!.reason).toLowerCase()}). The plan won’t adapt and nothing is carried forward; do what feels right.',
+                    style: TempoType.bodyS.c(c.text2),
+                  ),
+                ),
+              ],
+            ),
+          )
+        else if (t.stale)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(

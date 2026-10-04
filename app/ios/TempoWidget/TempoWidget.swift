@@ -145,14 +145,21 @@ struct TempoWidgetView: View {
       if family == .systemSmall {
         MetricColumn(m: entry.rec, big: true, ticks: 14, stale: entry.stale)
       } else {
+        // Each column opens its own detail screen.
         HStack(spacing: 14) {
-          MetricColumn(m: entry.rec, big: false, ticks: 10, stale: entry.stale)
-          MetricColumn(m: entry.strain, big: false, ticks: 10, stale: entry.stale)
-          MetricColumn(m: entry.sleep, big: false, ticks: 10, stale: entry.stale)
+          Link(destination: URL(string: "tempo://recovery")!) {
+            MetricColumn(m: entry.rec, big: false, ticks: 10, stale: entry.stale)
+          }
+          Link(destination: URL(string: "tempo://strain")!) {
+            MetricColumn(m: entry.strain, big: false, ticks: 10, stale: entry.stale)
+          }
+          Link(destination: URL(string: "tempo://sleep")!) {
+            MetricColumn(m: entry.sleep, big: false, ticks: 10, stale: entry.stale)
+          }
         }
       }
     }
-    .widgetURL(URL(string: "tempo://today"))
+    .widgetURL(URL(string: family == .systemSmall ? "tempo://recovery" : "tempo://today"))
     .containerBackground(for: .widget) { Palette.surface(scheme) }
   }
 }

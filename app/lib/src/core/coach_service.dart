@@ -4,6 +4,7 @@ import 'package:drift/drift.dart';
 import 'package:scoring/scoring.dart' as sc;
 import 'package:store/store.dart' as st;
 
+import 'pause.dart';
 import 'profile.dart';
 
 DateTime dayOf(DateTime t) => DateTime(t.year, t.month, t.day);
@@ -90,12 +91,39 @@ class CoachService {
     return null;
   }
 
+  /// How the last rated sessions (7 days) felt against their plan. Guided
+  /// sessions compare with the planned intensity; others with the
+  /// intensity their strain implies.
+  Future<sc.Effort> effort(DateTime day) async {
+    final ws = await db.workoutsBetween(
+      day.subtract(const Duration(days: 7)),
+      day,
+    );
+    final rated = <(int, sc.Intensity)>[];
+    for (final w in ws.reversed) {
+      if (w.rpe == null) continue;
+      sc.Intensity planned;
+      try {
+        planned = w.plan == null
+            ? sc.intensityForStrain(w.strain)
+            : sc.Session.fromJson(jsonDecode(w.plan!) as Map<String, dynamic>)
+                  .intensity;
+      } catch (_) {
+        planned = sc.intensityForStrain(w.strain);
+      }
+      rated.add((w.rpe!, planned));
+    }
+    return sc.effortTrend(rated);
+  }
+
   /// Morning adaptation (Flow · morning plan adaptation). Runs once per day,
   /// only when today's score has last night in it (fresh and complete).
+  /// Looks three days ahead; holds off entirely while paused.
   Future<List<sc.PlanChange>> adaptToday() async {
     final today = dayOf(DateTime.now());
     final key = st.dateKey(today);
     if (await db.setting(Keys.planAdapted) == key) return const [];
+    if (isPaused(await loadPauses(db), today)) return const [];
     final score = await db.scoreFor(today);
     if (score == null || score.sleepEnd == null) return const [];
     final rows = await ensureWeek(today);
@@ -122,6 +150,7 @@ class CoachService {
       reason: _reason(score, load),
       carried: carried,
       available: profile.days,
+      effort: await effort(today),
     );
     final now = st.toTs(DateTime.now());
     for (final ch in a.changes) {

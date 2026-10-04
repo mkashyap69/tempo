@@ -681,7 +681,7 @@ class _SummaryState extends ConsumerState<_Summary> {
               ),
               const SizedBox(height: 4),
               Text(
-                'Your rating teaches Coach how heart rate maps to effort for you.',
+                'Coach compares it with the plan: sessions that keep feeling harder or easier shift the next days.',
                 style: TempoType.bodyS.c(c.text2),
               ),
               const SizedBox(height: 14),

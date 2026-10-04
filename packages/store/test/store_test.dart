@@ -142,4 +142,79 @@ void main() {
     await db.deleteSetting('k');
     expect(await db.setting('k'), isNull);
   });
+
+  test(
+    'restore keeps raw rows, replaces derived, renumbers workouts',
+    () async {
+      await db.appendMinutes([m(60, hr: 50)]);
+      await db.addWorkout(
+        WorkoutsCompanion.insert(
+          start: 1000,
+          end: 2000,
+          sport: const Value('running'),
+          title: 'Run',
+          source: 'live',
+          strain: 8,
+          trimp: 30,
+          zones: '[0,0,0,0,0]',
+        ),
+      );
+      final n = await db.restoreRows({
+        'minute_samples': [
+          {'ts': 60, 'steps': 9, 'intensity': 0, 'kind': 1, 'hr': 99},
+          {'ts': 120, 'steps': 3, 'intensity': 0, 'kind': 1, 'hr': 70},
+        ],
+        'daily_scores': [
+          {
+            'date': '2026-10-01',
+            'strain': 9.5,
+            'trimp': 40,
+            'hr_max': 190,
+            'calibrating': 0,
+            'algo_version': 2,
+            'from_the_future': 'dropped',
+          },
+        ],
+        'workouts': [
+          {
+            'id': 1,
+            'start': 1000,
+            'end': 2000,
+            'sport': 'running',
+            'title': 'dup',
+            'source': 'live',
+            'strain': 8,
+            'trimp': 30,
+            'zones': '[]',
+          },
+          {
+            'id': 1,
+            'start': 5000,
+            'end': 6000,
+            'sport': 'cycling',
+            'title': 'Ride',
+            'source': 'live',
+            'confirmed': 1,
+            'strain': 6,
+            'trimp': 20,
+            'zones': '[]',
+          },
+        ],
+        'settings': [
+          {'key': 'x', 'value': 'ignored'},
+        ],
+      });
+      expect(n['minute_samples'], 1);
+      expect(n['daily_scores'], 1);
+      expect(n['workouts'], 1);
+      expect(n.containsKey('settings'), isFalse);
+      final mins = await db.minutesBetween(fromTs(0), fromTs(200));
+      expect(mins.map((r) => r.hr), [50, 70]); // first write kept
+      final s = await db.scoreFor(DateTime(2026, 10, 1));
+      expect(s!.strain, 9.5);
+      expect(s.napHours, 0);
+      final w = await db.workoutsBetween(fromTs(0), fromTs(10000));
+      expect(w.map((x) => x.title), ['Run', 'Ride']);
+    },
+  );
 }

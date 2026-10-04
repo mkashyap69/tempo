@@ -243,6 +243,9 @@ class _PairingState extends ConsumerState<PairingScreen>
       await band.configure(
         profile.band,
         hrEveryMinutes: every,
+        sleepAssist: await db.setting(Keys.sleepAssist) != '0',
+        stress: await db.setting(Keys.stressMonitor) != '0',
+        wornLeft: profile.wornLeft,
         onStep: (name, {required done, ok = true}) {
           final i = order.indexOf(name);
           if (i < 0) return;

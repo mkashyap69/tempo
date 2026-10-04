@@ -4,6 +4,7 @@ import 'package:scoring/scoring.dart' as sc;
 import 'package:store/store.dart' as st;
 
 import 'coach_service.dart';
+import 'pause.dart';
 import 'profile.dart';
 
 /// Everything the Today and Coach screens, the widgets and the bedtime
@@ -34,6 +35,9 @@ class TodayData {
     required this.stressBase,
     required this.sleepBase,
     this.daysSinceHard,
+    this.pause,
+    this.baseNeedLearned = false,
+    this.smartAlarm,
   });
 
   final DateTime day;
@@ -58,6 +62,18 @@ class TodayData {
   final Profile profile;
   final List<st.Workout> workouts;
   final sc.Baseline? rhrBase, stressBase, sleepBase;
+
+  /// The open ill/travel pause, if any.
+  final Pause? pause;
+
+  /// True once [baseNeed] comes from your own nights, not the 7.5 h default.
+  final bool baseNeedLearned;
+
+  /// Band smart alarm, minute of day, or null when off.
+  final int? smartAlarm;
+
+  /// Naps today (hours).
+  double get napHours => score?.napHours ?? 0;
   final int? daysSinceHard;
 
   bool get calibrating => score?.calibrating ?? (nights < 14);
@@ -136,17 +152,32 @@ Future<TodayData> loadToday(st.TempoDb db, {DateTime? at}) async {
     daysSinceHard: sinceHard,
   );
 
-  // Sleep need tonight: baseline + today's strain + a share of the debt.
+  // Sleep need tonight: your base + today's strain + a share of the debt.
+  // Naps count against the debt. Paused nights don't teach the base.
+  final pauses = await loadPauses(db);
   final nightsForDebt = [
     for (final d in [?score, ...history.take(6)])
       if (d.needHours != null && d.sleptHours != null)
-        sc.NightRecord(needHours: d.needHours!, sleptHours: d.sleptHours!),
+        sc.NightRecord(
+          needHours: d.needHours!,
+          sleptHours: d.sleptHours! + d.napHours,
+        ),
   ];
   const sleepParams = sc.SleepParams();
+  final needSamples = [
+    for (final d in [?score, ...history.take(59)])
+      if (d.sleptHours != null &&
+          d.recovery != null &&
+          !d.calibrating &&
+          !isPaused(pauses, DateTime.parse(d.date)))
+        sc.NeedSample(sleptHours: d.sleptHours!, recovery: d.recovery!),
+  ];
+  final baseNeed = sc.learnedBaseNeed(needSamples);
   final debt = sc.sleepDebtHours(nightsForDebt);
   final needTonight = sc.sleepNeedHours(
     debtHours: debt,
     strainYesterday: score?.strain ?? 0,
+    baseHours: baseNeed,
   );
   final set = parseHm(await db.setting(Keys.wakeTime));
   final ends = [
@@ -172,7 +203,8 @@ Future<TodayData> loadToday(st.TempoDb db, {DateTime? at}) async {
     week: week,
     needTonight: needTonight,
     debt: debt,
-    baseNeed: sleepParams.baseNeedHours,
+    baseNeed: baseNeed,
+    baseNeedLearned: needSamples.length >= sleepParams.learnNights,
     wakeMinute: wake,
     wakeFromUsual: set == null,
     bedtimeMinute: sc.bedtimeMinute(needTonight, wake),
@@ -183,5 +215,7 @@ Future<TodayData> loadToday(st.TempoDb db, {DateTime? at}) async {
     stressBase: stressBase,
     sleepBase: sleepBase,
     daysSinceHard: sinceHard,
+    pause: activePause(pauses),
+    smartAlarm: parseHm(await db.setting(Keys.smartAlarm)),
   );
 }

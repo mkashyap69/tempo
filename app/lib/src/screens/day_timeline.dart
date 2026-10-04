@@ -166,6 +166,17 @@ class _DayTimelineState extends ConsumerState<DayTimelineScreen> {
                   ),
                 );
               }
+              // Naps: daytime sleep the scorer counts against debt.
+              final naps = [
+                for (final n in sc.detectSessions([
+                  for (final m in d.minutes)
+                    sc.Minute(st.fromTs(m.ts), stage: stageForKind(m.kind)),
+                ], const sc.SleepParams(minSessionMinutes: 20)))
+                  if (n.start.hour >= 10 &&
+                      n.start.hour < 21 &&
+                      n.asleep.inMinutes < 180)
+                    n,
+              ];
               // HR path.
               final hrPts = <Offset?>[];
               int? prev;
@@ -217,6 +228,26 @@ class _DayTimelineState extends ConsumerState<DayTimelineScreen> {
                       ),
                     ],
                     ...sleep,
+                    for (final n in naps)
+                      Positioned(
+                        left: actLeft,
+                        width: actW,
+                        top: y(n.start.hour * 60 + n.start.minute),
+                        height: math.max(24, n.inBed.inMinutes * k),
+                        child: Container(
+                          padding: const EdgeInsets.fromLTRB(8, 4, 8, 4),
+                          decoration: BoxDecoration(
+                            color: s.tintSleep,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            'Nap · ${hmShort(n.asleep.inMinutes / 60)}',
+                            maxLines: 1,
+                            overflow: TextOverflow.clip,
+                            style: TempoType.caption.c(c.text1).tnum,
+                          ),
+                        ),
+                      ),
                     for (final wk in d.workouts)
                       Positioned(
                         left: actLeft,

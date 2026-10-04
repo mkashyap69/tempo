@@ -25,6 +25,10 @@ final class SleepParams {
     this.debtCapHours = 2,
     this.maxWakeGapMinutes = 30,
     this.minSessionMinutes = 60,
+    this.minNapMinutes = 20,
+    this.learnNights = 14,
+    this.minNeedHours = 6.5,
+    this.maxNeedHours = 9.5,
   });
   final double baseNeedHours;
   final double debtFactor;
@@ -32,6 +36,13 @@ final class SleepParams {
   final double debtCapHours;
   final int maxWakeGapMinutes;
   final int minSessionMinutes;
+
+  /// Daytime sleep at least this long counts as a nap.
+  final int minNapMinutes;
+
+  /// Nights with recovery needed before the base need is learned.
+  final int learnNights;
+  final double minNeedHours, maxNeedHours;
 }
 
 /// Splits minutes (sorted, one per minute) into sleep sessions. Runs of
@@ -84,12 +95,39 @@ double sleepDebtHours(
   return debt.clamp(0, p.debtCapHours);
 }
 
+/// One night for learning the base need.
+final class NeedSample {
+  const NeedSample({required this.sleptHours, required this.recovery});
+  final double sleptHours;
+  final double recovery;
+}
+
+/// Your base need: the median sleep on the best-recovered third of nights,
+/// clamped to [SleepParams.minNeedHours]–[SleepParams.maxNeedHours]. Falls
+/// back to [SleepParams.baseNeedHours] with fewer than
+/// [SleepParams.learnNights] nights.
+double learnedBaseNeed(
+  List<NeedSample> nights, [
+  SleepParams p = const SleepParams(),
+]) {
+  if (nights.length < p.learnNights) return p.baseNeedHours;
+  final byRecovery = [...nights]
+    ..sort((a, b) => b.recovery.compareTo(a.recovery));
+  final top = [
+    for (final n in byRecovery.take((nights.length / 3).ceil())) n.sleptHours,
+  ]..sort();
+  final mid = top.length ~/ 2;
+  final median = top.length.isOdd ? top[mid] : (top[mid - 1] + top[mid]) / 2;
+  return median.clamp(p.minNeedHours, p.maxNeedHours);
+}
+
 double sleepNeedHours({
   required double debtHours,
   required double strainYesterday,
   SleepParams p = const SleepParams(),
+  double? baseHours,
 }) =>
-    p.baseNeedHours +
+    (baseHours ?? p.baseNeedHours) +
     p.debtFactor * debtHours +
     p.strainFactor * strainYesterday;
 

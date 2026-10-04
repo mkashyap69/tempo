@@ -601,7 +601,7 @@ class _LearnCardsState extends ConsumerState<LearnCardsScreen> {
     return _frame(
       '5 / 6 · Sleep need & debt',
       'Tonight’s target, explained',
-      'Your baseline need, plus a little for today’s strain, plus a share of any debt from recent short nights.',
+      'Your baseline need, plus a little for today’s strain, plus a share of any debt from recent short nights. Naps pay debt down. The baseline starts at 7 h 30 m and, after 14 nights, learns from the nights you recover best after.',
       Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -615,7 +615,10 @@ class _LearnCardsState extends ConsumerState<LearnCardsScreen> {
             ],
           ),
           const SizedBox(height: 10),
-          row('Baseline need', hmShort(t.baseNeed)),
+          row(
+            t.baseNeedLearned ? 'Your baseline need' : 'Starting baseline',
+            hmShort(t.baseNeed),
+          ),
           row('Today’s strain ${n1(t.strain)}', '+${hmShort(strainPart)}'),
           row('Debt repayment', '+${hmShort(debtPart)}'),
           const Hair(),

@@ -71,3 +71,28 @@ Future<File> exportAllJson(TempoDb db) async {
   await f.writeAsString(jsonEncode(out));
   return f;
 }
+
+/// Restores a file written by [exportAllJson]. Rows already on this phone
+/// win for raw samples; scores are recomputed from the restored minutes
+/// afterwards. Throws [FormatException] for anything that isn't a Tempo
+/// export. Returns rows written per table.
+Future<Map<String, int>> restoreJson(TempoDb db, String json) async {
+  final Object? decoded;
+  try {
+    decoded = jsonDecode(json);
+  } catch (_) {
+    throw const FormatException('Not a JSON file');
+  }
+  if (decoded is! Map<String, dynamic> || decoded['exported_at'] == null) {
+    throw const FormatException('Not a Tempo export');
+  }
+  final data = <String, List<Map<String, Object?>>>{
+    for (final t in TempoDb.restorable)
+      if (decoded[t] is List)
+        t: [
+          for (final r in decoded[t] as List)
+            if (r is Map) r.cast<String, Object?>(),
+        ],
+  };
+  return db.restoreRows(data);
+}

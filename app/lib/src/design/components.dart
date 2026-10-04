@@ -602,21 +602,33 @@ class TempoSwitch extends StatelessWidget {
     required this.label,
   });
   final bool value;
-  final ValueChanged<bool> onChanged;
+
+  /// null = disabled (dimmed, no taps).
+  final ValueChanged<bool>? onChanged;
   final String label;
   @override
   Widget build(BuildContext context) {
     final c = context.c;
+    final change = onChanged;
     return Semantics(
       toggled: value,
+      enabled: change != null,
       label: label,
       child: GestureDetector(
-        onTap: () {
-          TempoHaptics.selection();
-          onChanged(!value);
-        },
+        onTap: change == null
+            ? null
+            : () {
+                TempoHaptics.selection();
+                change(!value);
+              },
         child: AnimatedContainer(
           duration: TempoMotion.fast,
+          foregroundDecoration: change == null
+              ? BoxDecoration(
+                  color: c.bg.withValues(alpha: .5),
+                  borderRadius: BorderRadius.circular(16),
+                )
+              : null,
           width: 52,
           height: 32,
           padding: const EdgeInsets.all(3),

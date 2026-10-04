@@ -293,6 +293,7 @@ class MiBand {
     int hrEveryMinutes = 1,
     bool sleepAssist = true,
     bool stress = true,
+    bool wornLeft = true,
     void Function(String name, {required bool done, bool ok})? onStep,
   }) async {
     final failed = <String>[];
@@ -320,26 +321,41 @@ class MiBand {
       SettingsCommands.userInfo(profile),
     );
     await step(
+      'wrist',
+      BandUuids.userSettings,
+      SettingsCommands.wearLocation(left: wornLeft),
+    );
+    await step(
       'hr interval',
       BandUuids.heartRateControlPoint,
       SettingsCommands.hrInterval(hrEveryMinutes),
     );
-    if (sleepAssist) {
-      await step(
-        'sleep assist',
-        BandUuids.heartRateControlPoint,
-        SettingsCommands.sleepAssistOn,
-      );
-    }
-    if (stress) {
-      await step(
-        'stress',
-        BandUuids.config,
-        SettingsCommands.stressMonitoringOn,
-      );
-    }
+    await step(
+      'sleep assist',
+      BandUuids.heartRateControlPoint,
+      SettingsCommands.sleepAssist(sleepAssist),
+    );
+    await step(
+      'stress',
+      BandUuids.config,
+      SettingsCommands.stressMonitoring(stress),
+    );
     return failed;
   }
+
+  /// Tells the band which wrist it is on.
+  Future<void> setWearLocation({required bool left}) =>
+      _write(BandUuids.userSettings, SettingsCommands.wearLocation(left: left));
+
+  Future<void> setSleepAssist(bool on) =>
+      _write(BandUuids.heartRateControlPoint, SettingsCommands.sleepAssist(on));
+
+  Future<void> setStressMonitoring(bool on) =>
+      _write(BandUuids.config, SettingsCommands.stressMonitoring(on));
+
+  /// Writes one alarm slot. Disable with `enabled: false`.
+  Future<void> setAlarm(BandAlarm a) =>
+      _write(BandUuids.config, SettingsCommands.alarm(a));
 
   /// Fetches [type] records since [since]. Returns raw bytes; parse with the
   /// functions in fetch.dart.

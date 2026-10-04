@@ -1,0 +1,208 @@
+import 'dart:convert';
+
+import 'package:drift/drift.dart' hide isNull, isNotNull;
+import 'package:drift/native.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:scoring/scoring.dart' as sc;
+import 'package:store/store.dart';
+import 'package:tempo/src/core/battery.dart';
+import 'package:tempo/src/core/coach_service.dart';
+import 'package:tempo/src/core/export.dart';
+import 'package:tempo/src/core/home_widgets.dart';
+import 'package:tempo/src/core/pause.dart';
+import 'package:tempo/src/core/profile.dart';
+import 'package:tempo/src/core/score_service.dart';
+import 'package:tempo/src/core/sync_service.dart';
+import 'package:tempo/src/core/today.dart';
+
+void main() {
+  late TempoDb db;
+  setUp(() => db = TempoDb(NativeDatabase.memory()));
+  tearDown(() => db.close());
+
+  final t0 = DateTime(2026, 10, 1, 8);
+  BatteryPoint at(double days, int pct) =>
+      (t0.add(Duration(minutes: (days * 1440).round())), pct);
+
+  group('battery days left', () {
+    test('needs a day of readings', () {
+      expect(batteryDaysLeft([at(0, 90), at(0.5, 88)]), isNull);
+    });
+    test('slope over the current discharge run', () {
+      // 5% a day, 70% left → 14 days.
+      final log = [for (var d = 0; d <= 4; d++) at(d.toDouble(), 90 - 5 * d)];
+      expect(batteryDaysLeft(log), closeTo(14, 1e-6));
+    });
+    test('a charge starts a new run', () {
+      final log = [
+        at(0, 40),
+        at(1, 20),
+        at(1.1, 100), // charged
+        at(2.1, 90),
+        at(3.1, 80),
+      ];
+      expect(batteryDaysLeft(log), closeTo(8, 1e-6));
+    });
+    test('flat drain says nothing', () {
+      expect(batteryDaysLeft([at(0, 80), at(2, 80)]), isNull);
+    });
+    test('log keeps one reading an hour', () async {
+      await recordBattery(db, 90, at: t0);
+      await recordBattery(db, 89, at: t0.add(const Duration(minutes: 20)));
+      await recordBattery(db, 88, at: t0.add(const Duration(hours: 2)));
+      final log = await batteryLog(db);
+      expect(log.map((p) => p.$2), [89, 88]);
+      expect(await db.setting(Keys.battery), '88');
+    });
+    test('labels', () {
+      expect(batteryLeftLabel(null), 'learning drain rate');
+      expect(batteryLeftLabel(9.4), '~9 days left');
+      expect(batteryLeftLabel(0.5), 'under a day left');
+    });
+  });
+
+  group('pause', () {
+    test('start, cover, end', () async {
+      final mon = DateTime(2026, 10, 5);
+      await startPause(db, PauseReason.ill, on: mon);
+      var ps = await loadPauses(db);
+      expect(activePause(ps)?.reason, PauseReason.ill);
+      expect(isPaused(ps, mon.add(const Duration(days: 3))), isTrue);
+      expect(isPaused(ps, mon.subtract(const Duration(days: 1))), isFalse);
+      await endPause(db, on: mon.add(const Duration(days: 3)));
+      ps = await loadPauses(db);
+      expect(activePause(ps), isNull);
+      expect(isPaused(ps, mon.add(const Duration(days: 2))), isTrue);
+      expect(isPaused(ps, mon.add(const Duration(days: 3))), isFalse);
+    });
+    test('ending on the start day removes it', () async {
+      final d = DateTime(2026, 10, 5);
+      await startPause(db, PauseReason.travel, on: d);
+      await endPause(db, on: d);
+      expect(await loadPauses(db), isEmpty);
+    });
+    test('paused days are left out of the scoring history', () async {
+      final today = dayOf(DateTime.now());
+      for (var i = 1; i <= 3; i++) {
+        await db.upsertScore(
+          DailyScoresCompanion.insert(
+            date: dateKey(today.subtract(Duration(days: i))),
+            strain: 0,
+            trimp: 0,
+            hrMax: 190,
+            sleptHours: const Value(7),
+            needHours: const Value(7.5),
+            calibrating: true,
+            algoVersion: sc.algoVersion,
+          ),
+        );
+      }
+      await startPause(
+        db,
+        PauseReason.ill,
+        on: today.subtract(const Duration(days: 2)),
+      );
+      // Nap-free day with no data: only history counts toward calibration.
+      await ScoreService(db).recomputeFrom(today);
+      final t = await loadToday(db);
+      expect(t.pause, isNotNull);
+    });
+  });
+
+  group('coach', () {
+    Future<void> rated(int daysAgo, int rpe, double strain) => db.addWorkout(
+      WorkoutsCompanion.insert(
+        start: toTs(
+          dayOf(DateTime.now()).subtract(Duration(days: daysAgo, hours: -9)),
+        ),
+        end: toTs(
+          dayOf(DateTime.now()).subtract(Duration(days: daysAgo, hours: -10)),
+        ),
+        sport: const Value('running'),
+        title: 'Run',
+        source: 'live',
+        strain: strain,
+        trimp: 20,
+        zones: '[0,0,0,0,0]',
+        rpe: Value(rpe),
+      ),
+    );
+    test('effort reads RPE against the strain each session implied', () async {
+      final today = dayOf(DateTime.now());
+      expect(await CoachService(db).effort(today), sc.Effort.unknown);
+      await rated(1, 8, 5); // easy by strain, felt hard
+      await rated(2, 7, 6);
+      expect(await CoachService(db).effort(today), sc.Effort.heavy);
+    });
+    test('no adaptation while paused', () async {
+      final today = dayOf(DateTime.now());
+      await startPause(db, PauseReason.travel, on: today);
+      expect(await CoachService(db).adaptToday(), isEmpty);
+    });
+  });
+
+  test('strength RPE adds load and rescoring picks it up', () async {
+    final today = dayOf(DateTime.now());
+    await ScoreService(db).recomputeFrom(today);
+    final before = (await db.scoreFor(today))!.trimp;
+    final id = await db.addWorkout(
+      WorkoutsCompanion.insert(
+        start: toTs(today.add(const Duration(hours: 7))),
+        end: toTs(today.add(const Duration(hours: 8))),
+        sport: Value(sc.Sport.strength.name),
+        title: 'Strength',
+        source: 'live',
+        strain: 2,
+        trimp: 5,
+        zones: '[0,0,0,0,0]',
+      ),
+    );
+    await saveRpe(db, id, 7);
+    final after = (await db.scoreFor(today))!.trimp;
+    expect(after - before, closeTo(sc.trimpFromRpe(7, 60) - 5, 1e-6));
+  });
+
+  test('restore round-trips an export and rejects other JSON', () async {
+    await db.appendMinutes([
+      MinuteSamplesCompanion.insert(
+        ts: const Value(600),
+        steps: 1,
+        intensity: 0,
+        kind: 1,
+        hr: const Value(60),
+      ),
+    ]);
+    final rows = await db.customSelect('SELECT * FROM minute_samples').get();
+    final json = jsonEncode({
+      'exported_at': '2026-10-04T08:00:00',
+      'minute_samples': [
+        for (final r in rows) r.data,
+        {'ts': 660, 'steps': 2, 'intensity': 0, 'kind': 1, 'hr': 61},
+      ],
+    });
+    final n = await restoreJson(db, json);
+    expect(n['minute_samples'], 1);
+    expect(
+      () => restoreJson(db, '{"hello": 1}'),
+      throwsA(isA<FormatException>()),
+    );
+    expect(() => restoreJson(db, 'nope'), throwsA(isA<FormatException>()));
+  });
+
+  test('sync gap: minutes the band no longer had', () {
+    final c = DateTime(2026, 10, 4, 6);
+    expect(activityGapMinutes(null, c), 0);
+    expect(activityGapMinutes(c, c.add(const Duration(minutes: 1))), 0);
+    expect(activityGapMinutes(c, c.add(const Duration(hours: 3))), 180);
+    expect(SyncService.gapSummary(200), contains('3h 20m'));
+  });
+
+  test('widget links name a detail screen', () {
+    expect(widgetTarget(Uri.parse('tempo://recovery')), 'recovery');
+    expect(widgetTarget(Uri.parse('tempo://sleep')), 'sleep');
+    expect(widgetTarget(Uri.parse('tempo://today')), 'today');
+    expect(widgetTarget(Uri.parse('https://x.y/recovery')), isNull);
+    expect(widgetTarget(Uri.parse('tempo://nope')), isNull);
+    expect(widgetTarget(null), isNull);
+  });
+}

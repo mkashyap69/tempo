@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'core/background_guard.dart';
 import 'core/band_link.dart' show deviceIdKey;
 import 'core/home_widgets.dart';
 import 'core/profile.dart';
@@ -17,7 +18,10 @@ import 'screens/journal.dart';
 import 'screens/live_workout.dart';
 import 'screens/nav.dart';
 import 'screens/onboarding.dart';
+import 'screens/recovery.dart';
 import 'screens/settings.dart';
+import 'screens/sleep.dart';
+import 'screens/strain.dart';
 import 'screens/today.dart';
 import 'screens/trends.dart';
 import 'state/live_session.dart';
@@ -179,18 +183,53 @@ class Shell extends ConsumerStatefulWidget {
 
 class _ShellState extends ConsumerState<Shell> with WidgetsBindingObserver {
   int _tab = 0;
+  StreamSubscription<Uri?>? _widgetTaps;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) => _onOpen());
+    _widgetTaps = listenWidgetTaps(_openFromWidget);
   }
 
   @override
   void dispose() {
+    _widgetTaps?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+
+  /// Home-screen widget tap: Today tab, then the matching detail screen.
+  void _openFromWidget(String target) {
+    if (!mounted) return;
+    Navigator.of(context).popUntil((r) => r.isFirst);
+    select(0);
+    final Widget? screen = switch (target) {
+      'recovery' => const RecoveryScreen(),
+      'strain' => const StrainScreen(),
+      'sleep' => const SleepScreen(),
+      _ => null,
+    };
+    if (screen != null) push(context, screen);
+  }
+
+  /// Android: ask once to be left out of battery optimisation, which can
+  /// stop overnight syncs. Profile → Background sync asks again any time.
+  Future<void> _askBatteryOnce() async {
+    final db = ref.read(dbProvider);
+    if (await db.setting(Keys.batteryPrompted) == '1') return;
+    if ((await db.setting(deviceIdKey) ?? '').isEmpty) return;
+    if (await BackgroundGuard.batteryExempt) return;
+    await db.putSetting(Keys.batteryPrompted, '1');
+    if (!mounted) return;
+    final ok = await confirmSheet(
+      context,
+      title: 'Keep syncing overnight?',
+      body: 'Android’s battery optimisation can stop Tempo syncing in the background, so mornings start with old data. Allow Tempo to run in the background?',
+      action: 'Allow',
+    );
+    if (ok) await BackgroundGuard.requestBatteryExemption();
   }
 
   @override
@@ -211,6 +250,7 @@ class _ShellState extends ConsumerState<Shell> with WidgetsBindingObserver {
           .catchError((Object _) {}),
     );
     _sync();
+    unawaited(_askBatteryOnce());
   }
 
   void _sync() {

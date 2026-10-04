@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:scoring/scoring.dart' as sc;
 
 import '../core/format.dart';
+import '../core/pause.dart';
 import '../core/today.dart';
 import '../design/components.dart';
 import '../design/icons.dart';
@@ -148,6 +149,19 @@ abstract final class TodayBody {
             'Last sync ${clockOf(t.lastSync!)} ${_dayWord(t.lastSync!)}. Open Tempo near your band to refresh.',
         action: 'Sync',
         onAction: () => ref.read(syncProvider.notifier).syncNow(),
+      );
+    }
+    final pause = t.pause;
+    if (banner == null && pause != null) {
+      banner = StatusBanner(
+        icon: TempoIcons.clock,
+        title: 'Paused · ${pauseLabel(pause.reason).toLowerCase()}',
+        body: 'Scores still show. Baselines and the plan hold still until you resume.',
+        action: 'Resume',
+        onAction: () async {
+          await endPause(ref.read(dbProvider));
+          ref.invalidate(todayProvider);
+        },
       );
     }
 

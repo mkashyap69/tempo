@@ -124,6 +124,24 @@ void main() {
 
   test('settings payloads', () {
     expect(SettingsCommands.hrInterval(1), [0x14, 1]);
+    expect(SettingsCommands.sleepAssist(true), [0x15, 0x00, 0x01]);
+    expect(SettingsCommands.sleepAssist(false), [0x15, 0x00, 0x00]);
+    expect(SettingsCommands.stressMonitoring(true), [0xfe, 0x06, 0x00, 0x01]);
+    expect(SettingsCommands.stressMonitoring(false), [0xfe, 0x06, 0x00, 0x00]);
+    expect(SettingsCommands.wearLocation(left: true), [0x20, 0, 0, 0x02]);
+    expect(SettingsCommands.wearLocation(left: false), [0x20, 0, 0, 0x82]);
+    expect(
+      SettingsCommands.alarm(
+        const BandAlarm(hour: 6, minute: 45, slot: 1, days: 0x1f),
+      ),
+      [0x02, 0x81, 6, 45, 0x1f],
+    );
+    expect(
+      SettingsCommands.alarm(
+        const BandAlarm(hour: 7, minute: 0, smart: false, enabled: false),
+      ),
+      [0x02, 0x40, 7, 0, 0],
+    );
     final u = SettingsCommands.userInfo(
       UserProfile(birthDate: DateTime(1990, 5, 6), heightCm: 175, weightKg: 70),
     );

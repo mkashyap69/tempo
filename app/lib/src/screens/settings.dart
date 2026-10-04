@@ -1,6 +1,8 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:band_ble/band_ble.dart' show SettingsCommands;
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,11 +10,15 @@ import 'package:scoring/scoring.dart' as sc;
 import 'package:share_plus/share_plus.dart';
 
 import '../core/band_link.dart';
+import '../core/battery.dart';
 import '../core/export.dart';
 import '../core/format.dart';
+import '../core/health_export.dart';
 import '../core/home_widgets.dart';
+import '../core/background_guard.dart';
 import '../core/key_store.dart';
 import '../core/notifications.dart';
+import '../core/pause.dart';
 import '../core/profile.dart';
 import '../core/score_service.dart';
 import '../core/today.dart';
@@ -40,10 +46,27 @@ final _bandInfoProvider = FutureProvider<Map<String, String?>>((ref) async {
       hrIntervalKey,
       deviceNameKey,
       deviceIdKey,
+      Keys.sleepAssist,
+      Keys.stressMonitor,
+      Keys.healthExport,
     ])
       k: await db.setting(k),
   };
 });
+
+/// Things Profile shows that aren't plain settings.
+final _profileExtrasProvider =
+    FutureProvider<({double? batteryDays, bool batteryExempt, Pause? pause})>((
+      ref,
+    ) async {
+      ref.watch(dbTickProvider);
+      final db = ref.watch(dbProvider);
+      return (
+        batteryDays: batteryDaysLeft(await batteryLog(db)),
+        batteryExempt: await BackgroundGuard.batteryExempt,
+        pause: activePause(await loadPauses(db)),
+      );
+    });
 
 /// Runs a band write behind a blocking dialog, then shows the result.
 /// A snackbar was easy to miss, so writes looked like dead buttons.
@@ -99,10 +122,28 @@ Future<String> writeBandSettings(WidgetRef ref) async {
     final failed = await link.band.configure(
       profile.band,
       hrEveryMinutes: every,
+      sleepAssist: await db.setting(Keys.sleepAssist) != '0',
+      stress: await db.setting(Keys.stressMonitor) != '0',
+      wornLeft: profile.wornLeft,
     );
     return failed.isEmpty
         ? 'Band settings written.'
         : 'Not written: ${failed.join(', ')}';
+  } finally {
+    await link.close();
+  }
+}
+
+/// One band write behind [bandAction]; [what] names it in the result.
+Future<String> writeBandSetting(
+  WidgetRef ref,
+  String what,
+  Future<void> Function(BandLink link) write,
+) async {
+  final link = await BandLink.open(ref.read(dbProvider));
+  try {
+    await write(link);
+    return '$what written to the band.';
   } finally {
     await link.close();
   }
@@ -157,6 +198,41 @@ Future<int?> editNumber(
   return r;
 }
 
+/// Profile → Restore from export: pick a Tempo JSON export, merge it in,
+/// rescore. Samples already on this phone are kept as they are.
+Future<void> restoreFromFile(BuildContext context, WidgetRef ref) async {
+  final ok = await confirmSheet(
+    context,
+    title: 'Restore from an export?',
+    body: 'Adds the samples, workouts, journal and plan from a Tempo JSON export. Anything already on this phone stays; scores are recomputed.',
+    action: 'Choose file',
+  );
+  if (!ok) return;
+  PlatformFile? f;
+  try {
+    f = await FilePicker.pickFile(
+      type: FileType.custom,
+      allowedExtensions: const ['json'],
+    );
+  } catch (_) {}
+  if (f == null || !context.mounted) return;
+  final db = ref.read(dbProvider);
+  String message;
+  try {
+    final n = await restoreJson(db, utf8.decode(await f.readAsBytes()));
+    final first = await db.firstMinute();
+    if (first != null) await ScoreService(db).recomputeFrom(first);
+    final mins = n['minute_samples'] ?? 0;
+    final days = (mins / 1440).toStringAsFixed(mins < 14400 ? 1 : 0);
+    message = 'Restored ~$days days of samples, ${n['workouts'] ?? 0} workouts';
+  } on FormatException catch (e) {
+    message = '${e.message}. Choose a file from Export → JSON.';
+  } catch (e) {
+    message = 'Restore failed: $e';
+  }
+  if (context.mounted) showTempoToast(context, message);
+}
+
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
@@ -164,6 +240,7 @@ class SettingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final p = ref.watch(profileProvider).value;
     final info = ref.watch(_bandInfoProvider).value;
+    final extras = ref.watch(_profileExtrasProvider).value;
     final sync = ref.watch(syncProvider);
     final mode = ref.watch(settingProvider(Keys.theme)).value ?? 'dark';
     final c = context.c;
@@ -182,6 +259,11 @@ class SettingsScreen extends ConsumerWidget {
     final buzz = (info[Keys.buzzCues] ?? '1') == '1';
     final morning = info[Keys.morningCall] ?? '07:00';
     final nudge = info[Keys.bedtimeNudge] ?? '30';
+    final sleepAssist = info[Keys.sleepAssist] != '0';
+    final stressOn = info[Keys.stressMonitor] != '0';
+    final healthOn = info[Keys.healthExport] == '1';
+    final healthName = Platform.isIOS ? 'Apple Health' : 'Health Connect';
+    final pause = extras?.pause;
 
     Future<void> save(Profile next) async {
       await saveAppProfile(db, next);
@@ -314,7 +396,10 @@ class SettingsScreen extends ConsumerWidget {
                       'Battery',
                       info[Keys.battery] == null
                           ? '—'
-                          : '${info[Keys.battery]}%${connected ? '' : ''}',
+                          : '${info[Keys.battery]}%',
+                      sub: info[Keys.battery] == null
+                          ? null
+                          : batteryLeftLabel(extras?.batteryDays),
                     ),
                   ),
                   Expanded(
@@ -485,6 +570,43 @@ class SettingsScreen extends ConsumerWidget {
               if (next != null) await save(next);
             },
           ),
+          ListRow(
+            'Pause',
+            sub: pause == null
+                ? 'Ill or travelling? Baselines and the plan hold still.'
+                : 'Baselines and plan on hold',
+            value: pause == null
+                ? 'Off'
+                : '${pauseLabel(pause.reason)} since ${dm(pause.from)}',
+            onTap: () async {
+              final v = await pickOption<String>(
+                context,
+                title: 'Pause training',
+                options: ['ill', 'travel', if (pause != null) 'resume'],
+                label: (o) => switch (o) {
+                  'ill' => 'Ill · rest, no plan changes',
+                  'travel' => 'Travelling · jet lag and odd sleep',
+                  _ => 'Resume · back to normal from today',
+                },
+                selected: pause?.reason.name,
+              );
+              if (v == null) return;
+              if (v == 'resume') {
+                await endPause(db);
+              } else {
+                await startPause(db, PauseReason.values.byName(v));
+              }
+              ref.invalidate(todayProvider);
+              if (context.mounted) {
+                showTempoToast(
+                  context,
+                  v == 'resume'
+                      ? 'Welcome back. Baselines pick up from today.'
+                      : 'Paused. Scores still show; baselines and the plan hold.',
+                );
+              }
+            },
+          ),
         ]),
         group('Band settings', [
           ListRow(
@@ -511,17 +633,51 @@ class SettingsScreen extends ConsumerWidget {
           ),
           ListRow(
             'Sleep detection',
-            value: 'On · with REM',
+            value: sleepAssist ? 'On · HR-assisted' : 'Motion only',
             onTap: !paired
                 ? null
-                : () => bandAction(context, () => writeBandSettings(ref)),
+                : () async {
+                    final on = await pickOption<bool>(
+                      context,
+                      title: 'Sleep detection',
+                      options: const [true, false],
+                      label: (v) => v
+                          ? 'HR-assisted · stages incl. REM (best)'
+                          : 'Motion only · a little more battery',
+                      selected: sleepAssist,
+                    );
+                    if (on == null || on == sleepAssist || !context.mounted) {
+                      return;
+                    }
+                    await bandAction(context, () async {
+                      final r = await writeBandSetting(
+                        ref,
+                        'Sleep detection',
+                        (l) => l.band.setSleepAssist(on),
+                      );
+                      await db.putSetting(Keys.sleepAssist, on ? '1' : '0');
+                      return r;
+                    });
+                  },
           ),
           ListRow(
             'Stress monitoring',
-            value: 'On',
-            onTap: !paired
-                ? null
-                : () => bandAction(context, () => writeBandSettings(ref)),
+            chevron: false,
+            trailing: TempoSwitch(
+              label: 'Stress monitoring',
+              value: stressOn,
+              onChanged: !paired
+                  ? null
+                  : (v) => bandAction(context, () async {
+                      final r = await writeBandSetting(
+                        ref,
+                        'Stress monitoring',
+                        (l) => l.band.setStressMonitoring(v),
+                      );
+                      await db.putSetting(Keys.stressMonitor, v ? '1' : '0');
+                      return r;
+                    }),
+            ),
           ),
           ListRow(
             'Worn on',
@@ -534,9 +690,32 @@ class SettingsScreen extends ConsumerWidget {
                 label: (s) => s,
                 selected: p.wornOn,
               );
-              if (w != null) await save(p.copyWith(wornOn: w));
+              if (w == null || w == p.wornOn) return;
+              await save(p.copyWith(wornOn: w));
+              if (paired && context.mounted) {
+                await bandAction(
+                  context,
+                  () => writeBandSetting(
+                    ref,
+                    'Wrist',
+                    (l) => l.band.setWearLocation(left: w != 'Right wrist'),
+                  ),
+                );
+              }
             },
           ),
+          if (Platform.isAndroid)
+            ListRow(
+              'Background sync',
+              sub: extras?.batteryExempt ?? true
+                  ? null
+                  : 'Battery optimisation can stop overnight syncs',
+              value: extras?.batteryExempt ?? true ? 'Allowed' : 'Restricted',
+              onTap: () async {
+                await BackgroundGuard.requestBatteryExemption();
+                ref.invalidate(_profileExtrasProvider);
+              },
+            ),
           ListRow(
             'Workout buzz cues',
             chevron: false,
@@ -636,6 +815,36 @@ class SettingsScreen extends ConsumerWidget {
             },
           ),
           ListRow(
+            'Restore from export',
+            value: 'JSON',
+            onTap: () => restoreFromFile(context, ref),
+          ),
+          ListRow(
+            healthName,
+            sub: 'Write workouts and sleep · never reads',
+            chevron: false,
+            trailing: TempoSwitch(
+              label: healthName,
+              value: healthOn,
+              onChanged: (v) async {
+                final h = HealthExport(db);
+                if (!v) {
+                  await h.disable();
+                  return;
+                }
+                final ok = await h.enable();
+                if (!ok && context.mounted) {
+                  showTempoToast(
+                    context,
+                    Platform.isAndroid
+                        ? 'Install Health Connect, then turn this on again.'
+                        : 'Tempo needs write access in Health settings.',
+                  );
+                }
+              },
+            ),
+          ),
+          ListRow(
             'Re-pair or change band',
             onTap: () async {
               final ok = await confirmSheet(
@@ -687,7 +896,7 @@ class SettingsScreen extends ConsumerWidget {
         group('Advanced', [
           ListRow(
             'Rewrite band settings',
-            sub: 'Time, HR interval, sleep assist, stress',
+            sub: 'Time, profile, wrist, HR interval, sleep, stress',
             onTap: !paired
                 ? null
                 : () => bandAction(context, () => writeBandSettings(ref)),
@@ -732,7 +941,12 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
-  static Widget _mini(BuildContext context, String k, String v) => Column(
+  static Widget _mini(
+    BuildContext context,
+    String k,
+    String v, {
+    String? sub,
+  }) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       Text(k, style: TempoType.caption.c(context.c.text3)),
@@ -745,6 +959,13 @@ class SettingsScreen extends ConsumerWidget {
             .copyWith(fontSize: 15, color: context.c.text1)
             .tnum,
       ),
+      if (sub != null)
+        Text(
+          sub,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TempoType.caption.c(context.c.text2),
+        ),
     ],
   );
 }

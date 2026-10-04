@@ -5,6 +5,7 @@
 	<key>BGTaskSchedulerPermittedIdentifiers</key>
 	<array>
 		<string>tempo.sync</string>
+		<string>com.pravera.flutter_foreground_task.refresh</string>
 	</array>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
@@ -30,6 +31,21 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>dev.tempo.tempo</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>tempo</string>
+			</array>
+		</dict>
+	</array>
+	<key>NSHealthShareUsageDescription</key>
+	<string>Tempo only writes to Apple Health. It never reads your Health data.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>Tempo saves your workouts and sleep to Apple Health when you turn on Health export.</string>
 	<key>NSBluetoothAlwaysUsageDescription</key>
 	<string>Tempo reads heart rate, sleep and steps directly from your Mi Band 6, including in the background. All data stays on this phone.</string>
 	<key>UIApplicationSceneManifest</key>

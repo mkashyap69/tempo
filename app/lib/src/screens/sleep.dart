@@ -12,6 +12,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:scoring/scoring.dart' as sc;
 import 'package:store/store.dart' as st;
 
+import '../core/alarm.dart';
+import '../core/band_link.dart' show deviceIdKey;
 import '../core/format.dart';
 import '../core/home_widgets.dart';
 import '../core/profile.dart';
@@ -26,6 +28,7 @@ import '../state/providers.dart';
 import 'learn.dart';
 import 'nav.dart';
 import 'night_detail.dart';
+import 'settings.dart' show bandAction;
 
 /// Last night for the morning of [day], decoded to stages.
 class Night {
@@ -228,6 +231,13 @@ class SleepScreen extends ConsumerWidget {
                   ),
                 ],
               ),
+              if (t.napHours > 0) ...[
+                const SizedBox(height: 6),
+                Text(
+                  '+ ${hmShort(t.napHours)} nap today · counts against your sleep debt',
+                  style: TempoType.caption.c(c.text2).tnum,
+                ),
+              ],
             ],
           ),
           TempoCard(
@@ -306,7 +316,7 @@ class SleepScreen extends ConsumerWidget {
             childAspectRatio: 1.55,
             padding: EdgeInsets.zero,
             children: [
-              _StatTile('Sleep debt', hmShort(t.debt), '7-day, capped at 2h'),
+              _StatTile('Sleep debt', hmShort(t.debt), '7-day · naps count'),
               _StatTile(
                 'Efficiency',
                 '${(night.session.efficiency * 100).round()}%',
@@ -387,7 +397,7 @@ class SleepScreen extends ConsumerWidget {
                   children: [
                     TextSpan(
                       text:
-                          '${hmShort(t.baseNeed)} baseline + ${hmShort(strainPart)} for today’s strain + ${hmShort(debtPart)} toward debt = ',
+                          '${hmShort(t.baseNeed)} ${t.baseNeedLearned ? 'your base' : 'starting base'} + ${hmShort(strainPart)} for today’s strain + ${hmShort(debtPart)} toward debt = ',
                     ),
                     TextSpan(
                       text: hmShort(t.needTonight),
@@ -428,11 +438,36 @@ class SleepScreen extends ConsumerWidget {
                   ),
                 ],
               ),
+              const SizedBox(height: 10),
+              const Hair(),
+              Pressable(
+                label: 'Smart alarm',
+                onTap: () => pickSmartAlarm(context, ref, t),
+                child: SizedBox(
+                  height: 44,
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Smart alarm',
+                          style: TempoType.body.c(c.text1),
+                        ),
+                      ),
+                      Text(
+                        t.smartAlarm == null
+                            ? 'Off'
+                            : 'By ${clock12(t.smartAlarm!)} · light sleep',
+                        style: TempoType.bodyS.c(c.text2).tnum,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ],
           ),
         ),
         Text(
-          'Stages come from the band’s motion and heart rate, so they’re estimates. Need is estimated from your first 14 nights and adjusts to strain and debt.${strainYesterday > 0 ? '' : ''}',
+          'Stages come from the band’s motion and heart rate, so they’re estimates. Need starts at 7 h 30 m; after 14 scored nights it learns from the nights you recover best after, then adjusts to strain and debt.${strainYesterday > 0 ? '' : ''}',
           style: TempoType.caption.c(c.text3),
         ),
       ],
@@ -502,6 +537,39 @@ Future<void> pickWakeTime(
     await db.deleteSetting(Keys.wakeTime);
   }
   await rescheduleNotifications(db, await loadToday(db));
+}
+
+/// Band smart alarm: buzzes in light sleep up to 30 min before the time.
+Future<void> pickSmartAlarm(
+  BuildContext context,
+  WidgetRef ref,
+  TodayData t,
+) async {
+  final paired =
+      (await ref.read(dbProvider).setting(deviceIdKey) ?? '').isNotEmpty;
+  if (!context.mounted) return;
+  if (!paired) {
+    showTempoToast(context, 'Pair your band to set a smart alarm');
+    return;
+  }
+  const off = -1;
+  final base = (t.wakeMinute ~/ 15) * 15;
+  final picked = await pickOption<int>(
+    context,
+    title: 'Smart alarm',
+    options: [off, for (var m = base - 60; m <= base + 60; m += 15) m % 1440],
+    label: (m) => m == off
+        ? 'Off'
+        : '${clock12(m)}${m == t.wakeMinute ? ' · your wake time' : ''}',
+    selected: t.smartAlarm ?? off,
+  );
+  if (!context.mounted || picked == null || picked == (t.smartAlarm ?? off)) {
+    return;
+  }
+  await bandAction(
+    context,
+    () => writeSmartAlarm(ref.read(dbProvider), picked == off ? null : picked),
+  );
 }
 
 class _StatTile extends StatelessWidget {
