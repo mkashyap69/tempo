@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated with the widget design (12 · Home-screen widgets). -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_bg"
+    android:orientation="horizontal"
+    android:padding="16dp">
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:orientation="vertical">
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Recovery" android:textAllCaps="true" android:letterSpacing="0.09" android:textSize="10sp" android:textStyle="bold" android:textColor="@color/widget_text3" />
+        <TextView android:id="@+id/rec_value" android:layout_width="wrap_content" android:layout_height="wrap_content" android:fontFamily="sans-serif-light" android:includeFontPadding="false" android:textSize="52sp" android:textColor="@color/widget_text1" android:text="—" />
+        <TextView android:id="@+id/rec_state" android:layout_width="wrap_content" android:layout_height="wrap_content" android:maxLines="1" android:ellipsize="end" android:textSize="12sp" android:textColor="@color/widget_text2" />
+        <TextView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" />
+        <LinearLayout android:layout_width="match_parent" android:layout_height="16dp" android:gravity="bottom" android:orientation="horizontal">
+        <TextView android:id="@+id/rec_t0" android:layout_width="0dp" android:layout_weight="1" android:layout_height="10dp" android:layout_marginEnd="2dp" android:background="@color/widget_track" />
+        <TextView android:id="@+id/rec_t1" android:layout_width="0dp" android:layout_weight="1" android:layout_height="10dp" android:layout_marginEnd="2dp" android:background="@color/widget_track" />
+        <TextView android:id="@+id/rec_t2" android:layout_width="0dp" android:layout_weight="1" android:layout_height="10dp" android:layout_marginEnd="2dp" android:background="@color/widget_track" />
+        <TextView android:id="@+id/rec_t3" android:layout_width="0dp" android:layout_weight="1" android:layout_height="10dp" android:layout_marginEnd="2dp" android:background="@color/widget_track" />
+        <TextView android:id="@+id/rec_t4" android:layout_width="0dp" android:layout_weight="1" android:layout_height="16dp" android:layout_marginEnd="2dp" android:background="@color/widget_track" />
+        <TextView android:id="@+id/rec_t5" android:layout_width="0dp" android:layout_weight="1" android:layout_height="10dp" android:layout_marginEnd="2dp" android:background="@color/widget_track" />
+        <TextView android:id="@+id/rec_t6" android:layout_width="0dp" android:layout_weight="1" android:layout_height="10dp" android:layout_marginEnd="2dp" android:background="@color/widget_track" />
+        <TextView android:id="@+id/rec_t7" android:layout_width="0dp" android:layout_weight="1" android:layout_height="10dp" android:layout_marginEnd="2dp" android:background="@color/widget_track" />
+        <TextView android:id="@+id/rec_t8" android:layout_width="0dp" android:layout_weight="1" android:layout_height="10dp" android:layout_marginEnd="2dp" android:background="@color/widget_track" />
+        <TextView android:id="@+id/rec_t9" android:layout_width="0dp" android:layout_weight="1" android:layout_height="16dp" android:layout_marginEnd="2dp" android:background="@color/widget_track" />
+        <TextView android:id="@+id/rec_t10" android:layout_width="0dp" android:layout_weight="1" android:layout_height="10dp" android:layout_marginEnd="2dp" android:background="@color/widget_track" />
+        <TextView android:id="@+id/rec_t11" android:layout_width="0dp" android:layout_weight="1" android:layout_height="10dp" android:layout_marginEnd="2dp" android:background="@color/widget_track" />
+        <TextView android:id="@+id/rec_t12" android:layout_width="0dp" android:layout_weight="1" android:layout_height="10dp" android:layout_marginEnd="2dp" android:background="@color/widget_track" />
+        <TextView android:id="@+id/rec_t13" android:layout_width="0dp" android:layout_weight="1" android:layout_height="10dp" android:layout_marginEnd="2dp" android:background="@color/widget_track" />
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>

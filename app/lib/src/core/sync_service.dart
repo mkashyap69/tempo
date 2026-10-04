@@ -3,6 +3,7 @@ import 'package:drift/drift.dart';
 import 'package:store/store.dart';
 
 import 'band_link.dart';
+import 'profile.dart' show Keys;
 import 'score_service.dart';
 
 /// Types synced into the DB. PAI is trends-only and has no table yet.
@@ -11,10 +12,16 @@ const syncedTypes = [FetchType.activity, FetchType.stress, FetchType.spo2];
 /// How far back the very first sync reaches.
 const firstSyncWindow = Duration(days: 7);
 
+/// Minutes read so far / minutes the band announced (activity only).
+typedef SyncProgress = void Function(int read, int total);
+
 class SyncReport {
-  SyncReport(this.counts, this.earliestNew);
+  SyncReport(this.counts, this.earliestNew, {this.newWorkouts = 0});
   final Map<String, int> counts;
   final DateTime? earliestNew;
+  final int newWorkouts;
+
+  int get minutes => counts[FetchType.activity.key] ?? 0;
   @override
   String toString() =>
       counts.entries.map((e) => '${e.key}: ${e.value}').join(', ');
@@ -27,23 +34,94 @@ class SyncService {
   final TempoDb db;
 
   /// Connects, syncs, disconnects. Used by the background job and Sync now.
-  Future<SyncReport> run({Duration wait = const Duration(seconds: 40)}) async {
-    final link = await BandLink.open(db, wait: wait);
+  /// Every attempt is written to the sync log.
+  Future<SyncReport> run({
+    Duration wait = const Duration(seconds: 40),
+    SyncProgress? onProgress,
+    void Function()? onConnected,
+  }) async {
+    final t0 = DateTime.now();
+    await db.putSetting(Keys.lastAttempt, t0.toIso8601String());
+    BandLink link;
     try {
-      return await syncWith(link.band);
+      link = await BandLink.open(db, wait: wait);
+    } on BandBusyException {
+      await db.logSync(
+        'Band busy · another sync holds it',
+        'retried',
+        took: DateTime.now().difference(t0),
+      );
+      rethrow;
+    } catch (e) {
+      await db.putSetting(Keys.lastError, 'disconnected|$e');
+      await db.logSync(
+        'Could not connect to the band',
+        'failed',
+        took: DateTime.now().difference(t0),
+      );
+      rethrow;
+    }
+    onConnected?.call();
+    var pct = 0;
+    try {
+      final r = await syncWith(
+        link.band,
+        onProgress: (read, total) {
+          if (total > 0) pct = (100 * read / total).round();
+          onProgress?.call(read, total);
+        },
+      );
+      await db.deleteSetting(Keys.lastError);
+      await db.logSync(_summary(r), 'ok', took: DateTime.now().difference(t0));
+      return r;
+    } catch (e) {
+      await db.putSetting(Keys.lastError, 'failed|$pct|$e');
+      await db.logSync(
+        'Stopped at $pct% ($e)',
+        'failed',
+        took: DateTime.now().difference(t0),
+      );
+      rethrow;
     } finally {
       await link.close();
     }
   }
 
-  Future<SyncReport> syncWith(MiBand band) async {
+  static String _summary(SyncReport r) {
+    final m = r.minutes;
+    final h = m ~/ 60, mm = m % 60;
+    final dur = m == 0
+        ? 'No new data'
+        : h == 0
+        ? '$mm min of data'
+        : '${h}h ${mm.toString().padLeft(2, '0')}m of data';
+    return r.newWorkouts > 0
+        ? '$dur · ${r.newWorkouts} ${r.newWorkouts == 1 ? 'activity' : 'activities'}'
+        : dur;
+  }
+
+  Future<SyncReport> syncWith(MiBand band, {SyncProgress? onProgress}) async {
+    try {
+      final pct = await band.readBattery();
+      if (pct != null) {
+        await db.putSetting(Keys.battery, '$pct');
+        await db.putSetting(Keys.batteryAt, DateTime.now().toIso8601String());
+      }
+    } catch (_) {}
     final counts = <String, int>{};
     DateTime? earliest;
     for (final type in syncedTypes) {
       final since =
           await db.cursor(band.id, type.key) ??
           DateTime.now().subtract(firstSyncWindow);
-      final r = await band.fetch(type, since);
+      final r = await band.fetch(
+        type,
+        since,
+        onProgress: type == FetchType.activity && onProgress != null
+            ? (bytes, records) =>
+                  onProgress(bytes ~/ activityRecordSize, records)
+            : null,
+      );
       final start = r.start;
       if (start == null || r.data.isEmpty) {
         counts[type.key] = 0;
@@ -100,12 +178,24 @@ class SyncService {
         if (earliest == null || start.isBefore(earliest)) earliest = start;
       }
     }
-    await db.putSetting('last_sync', DateTime.now().toIso8601String());
+    await db.putSetting(Keys.lastSync, DateTime.now().toIso8601String());
+    final before = (await db.workoutsBetween(
+      DateTime(2000),
+      DateTime(2100),
+    )).length;
     final scores = ScoreService(db);
     await scores.recomputeIfStale();
     if (earliest != null) {
       await scores.recomputeFrom(earliest.subtract(const Duration(days: 1)));
     }
-    return SyncReport(counts, earliest);
+    final after = (await db.workoutsBetween(
+      DateTime(2000),
+      DateTime(2100),
+    )).length;
+    return SyncReport(
+      counts,
+      earliest,
+      newWorkouts: (after - before).clamp(0, 999),
+    );
   }
 }

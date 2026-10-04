@@ -15,10 +15,10 @@ packet log goes into `docs/packets/` (`tools/pull_packets.sh`).
 | 1 | Pair: scan, tap band | "Authenticated (modern/legacy)" | status lines + packet log |
 | 2 | Pairing writes settings | "Band settings written." | which settings failed + log |
 | 3 | First sync | "Synced: activity: N…" with N ≈ minutes in last 7 days | log (fetch replies, byte count, gaps) |
-| 4 | Today screen | Strain and Sleep show values; Recovery says Calibrating | screenshot + Settings → Export CSVs |
+| 4 | Today screen | Strain and Sleep show values; Recovery says Calibrating | screenshot + Profile → Export (CSV) |
 | 5 | Sleep detail | Bed/wake times match Mi Fitness within ~15 min | hypnogram screenshot + minute_samples.csv |
 | 6 | Workout button | Live BPM within ~5 s, updates ~1/s, keeps going > 1 min | log |
-| 7 | Background | Close app 3+ h; Settings → Last sync advanced | `adb logcat \| grep -i workmanager` |
+| 7 | Background | Close app 3+ h; Profile → Last sync advanced; Data health → Sync log has a new line | `adb logcat \| grep -i workmanager` |
 | 8 | 7-day check (Phase 1 gate) | Daily steps / sleep totals match Mi Fitness | export CSVs |
 
 ## iOS (Mac + Xcode): `cd app && flutter run --dart-define-from-file=../.env`

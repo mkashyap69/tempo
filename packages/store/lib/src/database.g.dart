@@ -3182,6 +3182,1530 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
   }
 }
 
+class $WorkoutsTable extends Workouts with TableInfo<$WorkoutsTable, Workout> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $WorkoutsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _startMeta = const VerificationMeta('start');
+  @override
+  late final GeneratedColumn<int> start = GeneratedColumn<int>(
+    'start',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _endMeta = const VerificationMeta('end');
+  @override
+  late final GeneratedColumn<int> end = GeneratedColumn<int>(
+    'end',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sportMeta = const VerificationMeta('sport');
+  @override
+  late final GeneratedColumn<String> sport = GeneratedColumn<String>(
+    'sport',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+    'title',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sourceMeta = const VerificationMeta('source');
+  @override
+  late final GeneratedColumn<String> source = GeneratedColumn<String>(
+    'source',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _confirmedMeta = const VerificationMeta(
+    'confirmed',
+  );
+  @override
+  late final GeneratedColumn<bool> confirmed = GeneratedColumn<bool>(
+    'confirmed',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("confirmed" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _strainMeta = const VerificationMeta('strain');
+  @override
+  late final GeneratedColumn<double> strain = GeneratedColumn<double>(
+    'strain',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _trimpMeta = const VerificationMeta('trimp');
+  @override
+  late final GeneratedColumn<double> trimp = GeneratedColumn<double>(
+    'trimp',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _avgHrMeta = const VerificationMeta('avgHr');
+  @override
+  late final GeneratedColumn<int> avgHr = GeneratedColumn<int>(
+    'avg_hr',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _maxHrMeta = const VerificationMeta('maxHr');
+  @override
+  late final GeneratedColumn<int> maxHr = GeneratedColumn<int>(
+    'max_hr',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _zonesMeta = const VerificationMeta('zones');
+  @override
+  late final GeneratedColumn<String> zones = GeneratedColumn<String>(
+    'zones',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _rpeMeta = const VerificationMeta('rpe');
+  @override
+  late final GeneratedColumn<int> rpe = GeneratedColumn<int>(
+    'rpe',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _planMeta = const VerificationMeta('plan');
+  @override
+  late final GeneratedColumn<String> plan = GeneratedColumn<String>(
+    'plan',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    start,
+    end,
+    sport,
+    title,
+    source,
+    confirmed,
+    strain,
+    trimp,
+    avgHr,
+    maxHr,
+    zones,
+    rpe,
+    plan,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'workouts';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<Workout> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('start')) {
+      context.handle(
+        _startMeta,
+        start.isAcceptableOrUnknown(data['start']!, _startMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_startMeta);
+    }
+    if (data.containsKey('end')) {
+      context.handle(
+        _endMeta,
+        end.isAcceptableOrUnknown(data['end']!, _endMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_endMeta);
+    }
+    if (data.containsKey('sport')) {
+      context.handle(
+        _sportMeta,
+        sport.isAcceptableOrUnknown(data['sport']!, _sportMeta),
+      );
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+        _titleMeta,
+        title.isAcceptableOrUnknown(data['title']!, _titleMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_titleMeta);
+    }
+    if (data.containsKey('source')) {
+      context.handle(
+        _sourceMeta,
+        source.isAcceptableOrUnknown(data['source']!, _sourceMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_sourceMeta);
+    }
+    if (data.containsKey('confirmed')) {
+      context.handle(
+        _confirmedMeta,
+        confirmed.isAcceptableOrUnknown(data['confirmed']!, _confirmedMeta),
+      );
+    }
+    if (data.containsKey('strain')) {
+      context.handle(
+        _strainMeta,
+        strain.isAcceptableOrUnknown(data['strain']!, _strainMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_strainMeta);
+    }
+    if (data.containsKey('trimp')) {
+      context.handle(
+        _trimpMeta,
+        trimp.isAcceptableOrUnknown(data['trimp']!, _trimpMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_trimpMeta);
+    }
+    if (data.containsKey('avg_hr')) {
+      context.handle(
+        _avgHrMeta,
+        avgHr.isAcceptableOrUnknown(data['avg_hr']!, _avgHrMeta),
+      );
+    }
+    if (data.containsKey('max_hr')) {
+      context.handle(
+        _maxHrMeta,
+        maxHr.isAcceptableOrUnknown(data['max_hr']!, _maxHrMeta),
+      );
+    }
+    if (data.containsKey('zones')) {
+      context.handle(
+        _zonesMeta,
+        zones.isAcceptableOrUnknown(data['zones']!, _zonesMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_zonesMeta);
+    }
+    if (data.containsKey('rpe')) {
+      context.handle(
+        _rpeMeta,
+        rpe.isAcceptableOrUnknown(data['rpe']!, _rpeMeta),
+      );
+    }
+    if (data.containsKey('plan')) {
+      context.handle(
+        _planMeta,
+        plan.isAcceptableOrUnknown(data['plan']!, _planMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  Workout map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Workout(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      start: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}start'],
+      )!,
+      end: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}end'],
+      )!,
+      sport: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sport'],
+      ),
+      title: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}title'],
+      )!,
+      source: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source'],
+      )!,
+      confirmed: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}confirmed'],
+      )!,
+      strain: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}strain'],
+      )!,
+      trimp: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}trimp'],
+      )!,
+      avgHr: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}avg_hr'],
+      ),
+      maxHr: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}max_hr'],
+      ),
+      zones: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}zones'],
+      )!,
+      rpe: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}rpe'],
+      ),
+      plan: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}plan'],
+      ),
+    );
+  }
+
+  @override
+  $WorkoutsTable createAlias(String alias) {
+    return $WorkoutsTable(attachedDatabase, alias);
+  }
+}
+
+class Workout extends DataClass implements Insertable<Workout> {
+  final int id;
+  final int start;
+  final int end;
+  final String? sport;
+  final String title;
+  final String source;
+  final bool confirmed;
+  final double strain;
+  final double trimp;
+  final int? avgHr;
+  final int? maxHr;
+  final String zones;
+  final int? rpe;
+  final String? plan;
+  const Workout({
+    required this.id,
+    required this.start,
+    required this.end,
+    this.sport,
+    required this.title,
+    required this.source,
+    required this.confirmed,
+    required this.strain,
+    required this.trimp,
+    this.avgHr,
+    this.maxHr,
+    required this.zones,
+    this.rpe,
+    this.plan,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['start'] = Variable<int>(start);
+    map['end'] = Variable<int>(end);
+    if (!nullToAbsent || sport != null) {
+      map['sport'] = Variable<String>(sport);
+    }
+    map['title'] = Variable<String>(title);
+    map['source'] = Variable<String>(source);
+    map['confirmed'] = Variable<bool>(confirmed);
+    map['strain'] = Variable<double>(strain);
+    map['trimp'] = Variable<double>(trimp);
+    if (!nullToAbsent || avgHr != null) {
+      map['avg_hr'] = Variable<int>(avgHr);
+    }
+    if (!nullToAbsent || maxHr != null) {
+      map['max_hr'] = Variable<int>(maxHr);
+    }
+    map['zones'] = Variable<String>(zones);
+    if (!nullToAbsent || rpe != null) {
+      map['rpe'] = Variable<int>(rpe);
+    }
+    if (!nullToAbsent || plan != null) {
+      map['plan'] = Variable<String>(plan);
+    }
+    return map;
+  }
+
+  WorkoutsCompanion toCompanion(bool nullToAbsent) {
+    return WorkoutsCompanion(
+      id: Value(id),
+      start: Value(start),
+      end: Value(end),
+      sport: sport == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sport),
+      title: Value(title),
+      source: Value(source),
+      confirmed: Value(confirmed),
+      strain: Value(strain),
+      trimp: Value(trimp),
+      avgHr: avgHr == null && nullToAbsent
+          ? const Value.absent()
+          : Value(avgHr),
+      maxHr: maxHr == null && nullToAbsent
+          ? const Value.absent()
+          : Value(maxHr),
+      zones: Value(zones),
+      rpe: rpe == null && nullToAbsent ? const Value.absent() : Value(rpe),
+      plan: plan == null && nullToAbsent ? const Value.absent() : Value(plan),
+    );
+  }
+
+  factory Workout.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Workout(
+      id: serializer.fromJson<int>(json['id']),
+      start: serializer.fromJson<int>(json['start']),
+      end: serializer.fromJson<int>(json['end']),
+      sport: serializer.fromJson<String?>(json['sport']),
+      title: serializer.fromJson<String>(json['title']),
+      source: serializer.fromJson<String>(json['source']),
+      confirmed: serializer.fromJson<bool>(json['confirmed']),
+      strain: serializer.fromJson<double>(json['strain']),
+      trimp: serializer.fromJson<double>(json['trimp']),
+      avgHr: serializer.fromJson<int?>(json['avgHr']),
+      maxHr: serializer.fromJson<int?>(json['maxHr']),
+      zones: serializer.fromJson<String>(json['zones']),
+      rpe: serializer.fromJson<int?>(json['rpe']),
+      plan: serializer.fromJson<String?>(json['plan']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'start': serializer.toJson<int>(start),
+      'end': serializer.toJson<int>(end),
+      'sport': serializer.toJson<String?>(sport),
+      'title': serializer.toJson<String>(title),
+      'source': serializer.toJson<String>(source),
+      'confirmed': serializer.toJson<bool>(confirmed),
+      'strain': serializer.toJson<double>(strain),
+      'trimp': serializer.toJson<double>(trimp),
+      'avgHr': serializer.toJson<int?>(avgHr),
+      'maxHr': serializer.toJson<int?>(maxHr),
+      'zones': serializer.toJson<String>(zones),
+      'rpe': serializer.toJson<int?>(rpe),
+      'plan': serializer.toJson<String?>(plan),
+    };
+  }
+
+  Workout copyWith({
+    int? id,
+    int? start,
+    int? end,
+    Value<String?> sport = const Value.absent(),
+    String? title,
+    String? source,
+    bool? confirmed,
+    double? strain,
+    double? trimp,
+    Value<int?> avgHr = const Value.absent(),
+    Value<int?> maxHr = const Value.absent(),
+    String? zones,
+    Value<int?> rpe = const Value.absent(),
+    Value<String?> plan = const Value.absent(),
+  }) => Workout(
+    id: id ?? this.id,
+    start: start ?? this.start,
+    end: end ?? this.end,
+    sport: sport.present ? sport.value : this.sport,
+    title: title ?? this.title,
+    source: source ?? this.source,
+    confirmed: confirmed ?? this.confirmed,
+    strain: strain ?? this.strain,
+    trimp: trimp ?? this.trimp,
+    avgHr: avgHr.present ? avgHr.value : this.avgHr,
+    maxHr: maxHr.present ? maxHr.value : this.maxHr,
+    zones: zones ?? this.zones,
+    rpe: rpe.present ? rpe.value : this.rpe,
+    plan: plan.present ? plan.value : this.plan,
+  );
+  Workout copyWithCompanion(WorkoutsCompanion data) {
+    return Workout(
+      id: data.id.present ? data.id.value : this.id,
+      start: data.start.present ? data.start.value : this.start,
+      end: data.end.present ? data.end.value : this.end,
+      sport: data.sport.present ? data.sport.value : this.sport,
+      title: data.title.present ? data.title.value : this.title,
+      source: data.source.present ? data.source.value : this.source,
+      confirmed: data.confirmed.present ? data.confirmed.value : this.confirmed,
+      strain: data.strain.present ? data.strain.value : this.strain,
+      trimp: data.trimp.present ? data.trimp.value : this.trimp,
+      avgHr: data.avgHr.present ? data.avgHr.value : this.avgHr,
+      maxHr: data.maxHr.present ? data.maxHr.value : this.maxHr,
+      zones: data.zones.present ? data.zones.value : this.zones,
+      rpe: data.rpe.present ? data.rpe.value : this.rpe,
+      plan: data.plan.present ? data.plan.value : this.plan,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Workout(')
+          ..write('id: $id, ')
+          ..write('start: $start, ')
+          ..write('end: $end, ')
+          ..write('sport: $sport, ')
+          ..write('title: $title, ')
+          ..write('source: $source, ')
+          ..write('confirmed: $confirmed, ')
+          ..write('strain: $strain, ')
+          ..write('trimp: $trimp, ')
+          ..write('avgHr: $avgHr, ')
+          ..write('maxHr: $maxHr, ')
+          ..write('zones: $zones, ')
+          ..write('rpe: $rpe, ')
+          ..write('plan: $plan')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    start,
+    end,
+    sport,
+    title,
+    source,
+    confirmed,
+    strain,
+    trimp,
+    avgHr,
+    maxHr,
+    zones,
+    rpe,
+    plan,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Workout &&
+          other.id == this.id &&
+          other.start == this.start &&
+          other.end == this.end &&
+          other.sport == this.sport &&
+          other.title == this.title &&
+          other.source == this.source &&
+          other.confirmed == this.confirmed &&
+          other.strain == this.strain &&
+          other.trimp == this.trimp &&
+          other.avgHr == this.avgHr &&
+          other.maxHr == this.maxHr &&
+          other.zones == this.zones &&
+          other.rpe == this.rpe &&
+          other.plan == this.plan);
+}
+
+class WorkoutsCompanion extends UpdateCompanion<Workout> {
+  final Value<int> id;
+  final Value<int> start;
+  final Value<int> end;
+  final Value<String?> sport;
+  final Value<String> title;
+  final Value<String> source;
+  final Value<bool> confirmed;
+  final Value<double> strain;
+  final Value<double> trimp;
+  final Value<int?> avgHr;
+  final Value<int?> maxHr;
+  final Value<String> zones;
+  final Value<int?> rpe;
+  final Value<String?> plan;
+  const WorkoutsCompanion({
+    this.id = const Value.absent(),
+    this.start = const Value.absent(),
+    this.end = const Value.absent(),
+    this.sport = const Value.absent(),
+    this.title = const Value.absent(),
+    this.source = const Value.absent(),
+    this.confirmed = const Value.absent(),
+    this.strain = const Value.absent(),
+    this.trimp = const Value.absent(),
+    this.avgHr = const Value.absent(),
+    this.maxHr = const Value.absent(),
+    this.zones = const Value.absent(),
+    this.rpe = const Value.absent(),
+    this.plan = const Value.absent(),
+  });
+  WorkoutsCompanion.insert({
+    this.id = const Value.absent(),
+    required int start,
+    required int end,
+    this.sport = const Value.absent(),
+    required String title,
+    required String source,
+    this.confirmed = const Value.absent(),
+    required double strain,
+    required double trimp,
+    this.avgHr = const Value.absent(),
+    this.maxHr = const Value.absent(),
+    required String zones,
+    this.rpe = const Value.absent(),
+    this.plan = const Value.absent(),
+  }) : start = Value(start),
+       end = Value(end),
+       title = Value(title),
+       source = Value(source),
+       strain = Value(strain),
+       trimp = Value(trimp),
+       zones = Value(zones);
+  static Insertable<Workout> custom({
+    Expression<int>? id,
+    Expression<int>? start,
+    Expression<int>? end,
+    Expression<String>? sport,
+    Expression<String>? title,
+    Expression<String>? source,
+    Expression<bool>? confirmed,
+    Expression<double>? strain,
+    Expression<double>? trimp,
+    Expression<int>? avgHr,
+    Expression<int>? maxHr,
+    Expression<String>? zones,
+    Expression<int>? rpe,
+    Expression<String>? plan,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (start != null) 'start': start,
+      if (end != null) 'end': end,
+      if (sport != null) 'sport': sport,
+      if (title != null) 'title': title,
+      if (source != null) 'source': source,
+      if (confirmed != null) 'confirmed': confirmed,
+      if (strain != null) 'strain': strain,
+      if (trimp != null) 'trimp': trimp,
+      if (avgHr != null) 'avg_hr': avgHr,
+      if (maxHr != null) 'max_hr': maxHr,
+      if (zones != null) 'zones': zones,
+      if (rpe != null) 'rpe': rpe,
+      if (plan != null) 'plan': plan,
+    });
+  }
+
+  WorkoutsCompanion copyWith({
+    Value<int>? id,
+    Value<int>? start,
+    Value<int>? end,
+    Value<String?>? sport,
+    Value<String>? title,
+    Value<String>? source,
+    Value<bool>? confirmed,
+    Value<double>? strain,
+    Value<double>? trimp,
+    Value<int?>? avgHr,
+    Value<int?>? maxHr,
+    Value<String>? zones,
+    Value<int?>? rpe,
+    Value<String?>? plan,
+  }) {
+    return WorkoutsCompanion(
+      id: id ?? this.id,
+      start: start ?? this.start,
+      end: end ?? this.end,
+      sport: sport ?? this.sport,
+      title: title ?? this.title,
+      source: source ?? this.source,
+      confirmed: confirmed ?? this.confirmed,
+      strain: strain ?? this.strain,
+      trimp: trimp ?? this.trimp,
+      avgHr: avgHr ?? this.avgHr,
+      maxHr: maxHr ?? this.maxHr,
+      zones: zones ?? this.zones,
+      rpe: rpe ?? this.rpe,
+      plan: plan ?? this.plan,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (start.present) {
+      map['start'] = Variable<int>(start.value);
+    }
+    if (end.present) {
+      map['end'] = Variable<int>(end.value);
+    }
+    if (sport.present) {
+      map['sport'] = Variable<String>(sport.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (source.present) {
+      map['source'] = Variable<String>(source.value);
+    }
+    if (confirmed.present) {
+      map['confirmed'] = Variable<bool>(confirmed.value);
+    }
+    if (strain.present) {
+      map['strain'] = Variable<double>(strain.value);
+    }
+    if (trimp.present) {
+      map['trimp'] = Variable<double>(trimp.value);
+    }
+    if (avgHr.present) {
+      map['avg_hr'] = Variable<int>(avgHr.value);
+    }
+    if (maxHr.present) {
+      map['max_hr'] = Variable<int>(maxHr.value);
+    }
+    if (zones.present) {
+      map['zones'] = Variable<String>(zones.value);
+    }
+    if (rpe.present) {
+      map['rpe'] = Variable<int>(rpe.value);
+    }
+    if (plan.present) {
+      map['plan'] = Variable<String>(plan.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('WorkoutsCompanion(')
+          ..write('id: $id, ')
+          ..write('start: $start, ')
+          ..write('end: $end, ')
+          ..write('sport: $sport, ')
+          ..write('title: $title, ')
+          ..write('source: $source, ')
+          ..write('confirmed: $confirmed, ')
+          ..write('strain: $strain, ')
+          ..write('trimp: $trimp, ')
+          ..write('avgHr: $avgHr, ')
+          ..write('maxHr: $maxHr, ')
+          ..write('zones: $zones, ')
+          ..write('rpe: $rpe, ')
+          ..write('plan: $plan')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $PlanDaysTable extends PlanDays with TableInfo<$PlanDaysTable, PlanDay> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $PlanDaysTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _dateMeta = const VerificationMeta('date');
+  @override
+  late final GeneratedColumn<String> date = GeneratedColumn<String>(
+    'date',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sessionMeta = const VerificationMeta(
+    'session',
+  );
+  @override
+  late final GeneratedColumn<String> session = GeneratedColumn<String>(
+    'session',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _originalMeta = const VerificationMeta(
+    'original',
+  );
+  @override
+  late final GeneratedColumn<String> original = GeneratedColumn<String>(
+    'original',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _reasonMeta = const VerificationMeta('reason');
+  @override
+  late final GeneratedColumn<String> reason = GeneratedColumn<String>(
+    'reason',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _adaptedAtMeta = const VerificationMeta(
+    'adaptedAt',
+  );
+  @override
+  late final GeneratedColumn<int> adaptedAt = GeneratedColumn<int>(
+    'adapted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _generalMeta = const VerificationMeta(
+    'general',
+  );
+  @override
+  late final GeneratedColumn<bool> general = GeneratedColumn<bool>(
+    'general',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("general" IN (0, 1))',
+    ),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    date,
+    session,
+    original,
+    reason,
+    adaptedAt,
+    general,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'plan_days';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<PlanDay> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('date')) {
+      context.handle(
+        _dateMeta,
+        date.isAcceptableOrUnknown(data['date']!, _dateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_dateMeta);
+    }
+    if (data.containsKey('session')) {
+      context.handle(
+        _sessionMeta,
+        session.isAcceptableOrUnknown(data['session']!, _sessionMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_sessionMeta);
+    }
+    if (data.containsKey('original')) {
+      context.handle(
+        _originalMeta,
+        original.isAcceptableOrUnknown(data['original']!, _originalMeta),
+      );
+    }
+    if (data.containsKey('reason')) {
+      context.handle(
+        _reasonMeta,
+        reason.isAcceptableOrUnknown(data['reason']!, _reasonMeta),
+      );
+    }
+    if (data.containsKey('adapted_at')) {
+      context.handle(
+        _adaptedAtMeta,
+        adaptedAt.isAcceptableOrUnknown(data['adapted_at']!, _adaptedAtMeta),
+      );
+    }
+    if (data.containsKey('general')) {
+      context.handle(
+        _generalMeta,
+        general.isAcceptableOrUnknown(data['general']!, _generalMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_generalMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {date};
+  @override
+  PlanDay map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return PlanDay(
+      date: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}date'],
+      )!,
+      session: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}session'],
+      )!,
+      original: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}original'],
+      ),
+      reason: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}reason'],
+      ),
+      adaptedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}adapted_at'],
+      ),
+      general: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}general'],
+      )!,
+    );
+  }
+
+  @override
+  $PlanDaysTable createAlias(String alias) {
+    return $PlanDaysTable(attachedDatabase, alias);
+  }
+}
+
+class PlanDay extends DataClass implements Insertable<PlanDay> {
+  final String date;
+  final String session;
+  final String? original;
+  final String? reason;
+  final int? adaptedAt;
+  final bool general;
+  const PlanDay({
+    required this.date,
+    required this.session,
+    this.original,
+    this.reason,
+    this.adaptedAt,
+    required this.general,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['date'] = Variable<String>(date);
+    map['session'] = Variable<String>(session);
+    if (!nullToAbsent || original != null) {
+      map['original'] = Variable<String>(original);
+    }
+    if (!nullToAbsent || reason != null) {
+      map['reason'] = Variable<String>(reason);
+    }
+    if (!nullToAbsent || adaptedAt != null) {
+      map['adapted_at'] = Variable<int>(adaptedAt);
+    }
+    map['general'] = Variable<bool>(general);
+    return map;
+  }
+
+  PlanDaysCompanion toCompanion(bool nullToAbsent) {
+    return PlanDaysCompanion(
+      date: Value(date),
+      session: Value(session),
+      original: original == null && nullToAbsent
+          ? const Value.absent()
+          : Value(original),
+      reason: reason == null && nullToAbsent
+          ? const Value.absent()
+          : Value(reason),
+      adaptedAt: adaptedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(adaptedAt),
+      general: Value(general),
+    );
+  }
+
+  factory PlanDay.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return PlanDay(
+      date: serializer.fromJson<String>(json['date']),
+      session: serializer.fromJson<String>(json['session']),
+      original: serializer.fromJson<String?>(json['original']),
+      reason: serializer.fromJson<String?>(json['reason']),
+      adaptedAt: serializer.fromJson<int?>(json['adaptedAt']),
+      general: serializer.fromJson<bool>(json['general']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'date': serializer.toJson<String>(date),
+      'session': serializer.toJson<String>(session),
+      'original': serializer.toJson<String?>(original),
+      'reason': serializer.toJson<String?>(reason),
+      'adaptedAt': serializer.toJson<int?>(adaptedAt),
+      'general': serializer.toJson<bool>(general),
+    };
+  }
+
+  PlanDay copyWith({
+    String? date,
+    String? session,
+    Value<String?> original = const Value.absent(),
+    Value<String?> reason = const Value.absent(),
+    Value<int?> adaptedAt = const Value.absent(),
+    bool? general,
+  }) => PlanDay(
+    date: date ?? this.date,
+    session: session ?? this.session,
+    original: original.present ? original.value : this.original,
+    reason: reason.present ? reason.value : this.reason,
+    adaptedAt: adaptedAt.present ? adaptedAt.value : this.adaptedAt,
+    general: general ?? this.general,
+  );
+  PlanDay copyWithCompanion(PlanDaysCompanion data) {
+    return PlanDay(
+      date: data.date.present ? data.date.value : this.date,
+      session: data.session.present ? data.session.value : this.session,
+      original: data.original.present ? data.original.value : this.original,
+      reason: data.reason.present ? data.reason.value : this.reason,
+      adaptedAt: data.adaptedAt.present ? data.adaptedAt.value : this.adaptedAt,
+      general: data.general.present ? data.general.value : this.general,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PlanDay(')
+          ..write('date: $date, ')
+          ..write('session: $session, ')
+          ..write('original: $original, ')
+          ..write('reason: $reason, ')
+          ..write('adaptedAt: $adaptedAt, ')
+          ..write('general: $general')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(date, session, original, reason, adaptedAt, general);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is PlanDay &&
+          other.date == this.date &&
+          other.session == this.session &&
+          other.original == this.original &&
+          other.reason == this.reason &&
+          other.adaptedAt == this.adaptedAt &&
+          other.general == this.general);
+}
+
+class PlanDaysCompanion extends UpdateCompanion<PlanDay> {
+  final Value<String> date;
+  final Value<String> session;
+  final Value<String?> original;
+  final Value<String?> reason;
+  final Value<int?> adaptedAt;
+  final Value<bool> general;
+  final Value<int> rowid;
+  const PlanDaysCompanion({
+    this.date = const Value.absent(),
+    this.session = const Value.absent(),
+    this.original = const Value.absent(),
+    this.reason = const Value.absent(),
+    this.adaptedAt = const Value.absent(),
+    this.general = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  PlanDaysCompanion.insert({
+    required String date,
+    required String session,
+    this.original = const Value.absent(),
+    this.reason = const Value.absent(),
+    this.adaptedAt = const Value.absent(),
+    required bool general,
+    this.rowid = const Value.absent(),
+  }) : date = Value(date),
+       session = Value(session),
+       general = Value(general);
+  static Insertable<PlanDay> custom({
+    Expression<String>? date,
+    Expression<String>? session,
+    Expression<String>? original,
+    Expression<String>? reason,
+    Expression<int>? adaptedAt,
+    Expression<bool>? general,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (date != null) 'date': date,
+      if (session != null) 'session': session,
+      if (original != null) 'original': original,
+      if (reason != null) 'reason': reason,
+      if (adaptedAt != null) 'adapted_at': adaptedAt,
+      if (general != null) 'general': general,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  PlanDaysCompanion copyWith({
+    Value<String>? date,
+    Value<String>? session,
+    Value<String?>? original,
+    Value<String?>? reason,
+    Value<int?>? adaptedAt,
+    Value<bool>? general,
+    Value<int>? rowid,
+  }) {
+    return PlanDaysCompanion(
+      date: date ?? this.date,
+      session: session ?? this.session,
+      original: original ?? this.original,
+      reason: reason ?? this.reason,
+      adaptedAt: adaptedAt ?? this.adaptedAt,
+      general: general ?? this.general,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (date.present) {
+      map['date'] = Variable<String>(date.value);
+    }
+    if (session.present) {
+      map['session'] = Variable<String>(session.value);
+    }
+    if (original.present) {
+      map['original'] = Variable<String>(original.value);
+    }
+    if (reason.present) {
+      map['reason'] = Variable<String>(reason.value);
+    }
+    if (adaptedAt.present) {
+      map['adapted_at'] = Variable<int>(adaptedAt.value);
+    }
+    if (general.present) {
+      map['general'] = Variable<bool>(general.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PlanDaysCompanion(')
+          ..write('date: $date, ')
+          ..write('session: $session, ')
+          ..write('original: $original, ')
+          ..write('reason: $reason, ')
+          ..write('adaptedAt: $adaptedAt, ')
+          ..write('general: $general, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $SyncLogTable extends SyncLog with TableInfo<$SyncLogTable, SyncLogData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SyncLogTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _tsMeta = const VerificationMeta('ts');
+  @override
+  late final GeneratedColumn<int> ts = GeneratedColumn<int>(
+    'ts',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _summaryMeta = const VerificationMeta(
+    'summary',
+  );
+  @override
+  late final GeneratedColumn<String> summary = GeneratedColumn<String>(
+    'summary',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _resultMeta = const VerificationMeta('result');
+  @override
+  late final GeneratedColumn<String> result = GeneratedColumn<String>(
+    'result',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _durationMsMeta = const VerificationMeta(
+    'durationMs',
+  );
+  @override
+  late final GeneratedColumn<int> durationMs = GeneratedColumn<int>(
+    'duration_ms',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, ts, summary, result, durationMs];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'sync_log';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<SyncLogData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('ts')) {
+      context.handle(_tsMeta, ts.isAcceptableOrUnknown(data['ts']!, _tsMeta));
+    } else if (isInserting) {
+      context.missing(_tsMeta);
+    }
+    if (data.containsKey('summary')) {
+      context.handle(
+        _summaryMeta,
+        summary.isAcceptableOrUnknown(data['summary']!, _summaryMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_summaryMeta);
+    }
+    if (data.containsKey('result')) {
+      context.handle(
+        _resultMeta,
+        result.isAcceptableOrUnknown(data['result']!, _resultMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_resultMeta);
+    }
+    if (data.containsKey('duration_ms')) {
+      context.handle(
+        _durationMsMeta,
+        durationMs.isAcceptableOrUnknown(data['duration_ms']!, _durationMsMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  SyncLogData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return SyncLogData(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      ts: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}ts'],
+      )!,
+      summary: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}summary'],
+      )!,
+      result: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}result'],
+      )!,
+      durationMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}duration_ms'],
+      ),
+    );
+  }
+
+  @override
+  $SyncLogTable createAlias(String alias) {
+    return $SyncLogTable(attachedDatabase, alias);
+  }
+}
+
+class SyncLogData extends DataClass implements Insertable<SyncLogData> {
+  final int id;
+  final int ts;
+  final String summary;
+  final String result;
+  final int? durationMs;
+  const SyncLogData({
+    required this.id,
+    required this.ts,
+    required this.summary,
+    required this.result,
+    this.durationMs,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['ts'] = Variable<int>(ts);
+    map['summary'] = Variable<String>(summary);
+    map['result'] = Variable<String>(result);
+    if (!nullToAbsent || durationMs != null) {
+      map['duration_ms'] = Variable<int>(durationMs);
+    }
+    return map;
+  }
+
+  SyncLogCompanion toCompanion(bool nullToAbsent) {
+    return SyncLogCompanion(
+      id: Value(id),
+      ts: Value(ts),
+      summary: Value(summary),
+      result: Value(result),
+      durationMs: durationMs == null && nullToAbsent
+          ? const Value.absent()
+          : Value(durationMs),
+    );
+  }
+
+  factory SyncLogData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SyncLogData(
+      id: serializer.fromJson<int>(json['id']),
+      ts: serializer.fromJson<int>(json['ts']),
+      summary: serializer.fromJson<String>(json['summary']),
+      result: serializer.fromJson<String>(json['result']),
+      durationMs: serializer.fromJson<int?>(json['durationMs']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'ts': serializer.toJson<int>(ts),
+      'summary': serializer.toJson<String>(summary),
+      'result': serializer.toJson<String>(result),
+      'durationMs': serializer.toJson<int?>(durationMs),
+    };
+  }
+
+  SyncLogData copyWith({
+    int? id,
+    int? ts,
+    String? summary,
+    String? result,
+    Value<int?> durationMs = const Value.absent(),
+  }) => SyncLogData(
+    id: id ?? this.id,
+    ts: ts ?? this.ts,
+    summary: summary ?? this.summary,
+    result: result ?? this.result,
+    durationMs: durationMs.present ? durationMs.value : this.durationMs,
+  );
+  SyncLogData copyWithCompanion(SyncLogCompanion data) {
+    return SyncLogData(
+      id: data.id.present ? data.id.value : this.id,
+      ts: data.ts.present ? data.ts.value : this.ts,
+      summary: data.summary.present ? data.summary.value : this.summary,
+      result: data.result.present ? data.result.value : this.result,
+      durationMs: data.durationMs.present
+          ? data.durationMs.value
+          : this.durationMs,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SyncLogData(')
+          ..write('id: $id, ')
+          ..write('ts: $ts, ')
+          ..write('summary: $summary, ')
+          ..write('result: $result, ')
+          ..write('durationMs: $durationMs')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, ts, summary, result, durationMs);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SyncLogData &&
+          other.id == this.id &&
+          other.ts == this.ts &&
+          other.summary == this.summary &&
+          other.result == this.result &&
+          other.durationMs == this.durationMs);
+}
+
+class SyncLogCompanion extends UpdateCompanion<SyncLogData> {
+  final Value<int> id;
+  final Value<int> ts;
+  final Value<String> summary;
+  final Value<String> result;
+  final Value<int?> durationMs;
+  const SyncLogCompanion({
+    this.id = const Value.absent(),
+    this.ts = const Value.absent(),
+    this.summary = const Value.absent(),
+    this.result = const Value.absent(),
+    this.durationMs = const Value.absent(),
+  });
+  SyncLogCompanion.insert({
+    this.id = const Value.absent(),
+    required int ts,
+    required String summary,
+    required String result,
+    this.durationMs = const Value.absent(),
+  }) : ts = Value(ts),
+       summary = Value(summary),
+       result = Value(result);
+  static Insertable<SyncLogData> custom({
+    Expression<int>? id,
+    Expression<int>? ts,
+    Expression<String>? summary,
+    Expression<String>? result,
+    Expression<int>? durationMs,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (ts != null) 'ts': ts,
+      if (summary != null) 'summary': summary,
+      if (result != null) 'result': result,
+      if (durationMs != null) 'duration_ms': durationMs,
+    });
+  }
+
+  SyncLogCompanion copyWith({
+    Value<int>? id,
+    Value<int>? ts,
+    Value<String>? summary,
+    Value<String>? result,
+    Value<int?>? durationMs,
+  }) {
+    return SyncLogCompanion(
+      id: id ?? this.id,
+      ts: ts ?? this.ts,
+      summary: summary ?? this.summary,
+      result: result ?? this.result,
+      durationMs: durationMs ?? this.durationMs,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (ts.present) {
+      map['ts'] = Variable<int>(ts.value);
+    }
+    if (summary.present) {
+      map['summary'] = Variable<String>(summary.value);
+    }
+    if (result.present) {
+      map['result'] = Variable<String>(result.value);
+    }
+    if (durationMs.present) {
+      map['duration_ms'] = Variable<int>(durationMs.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SyncLogCompanion(')
+          ..write('id: $id, ')
+          ..write('ts: $ts, ')
+          ..write('summary: $summary, ')
+          ..write('result: $result, ')
+          ..write('durationMs: $durationMs')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$TempoDb extends GeneratedDatabase {
   _$TempoDb(QueryExecutor e) : super(e);
   $TempoDbManager get managers => $TempoDbManager(this);
@@ -3195,6 +4719,9 @@ abstract class _$TempoDb extends GeneratedDatabase {
   late final $JournalTable journal = $JournalTable(this);
   late final $SyncStateTable syncState = $SyncStateTable(this);
   late final $SettingsTable settings = $SettingsTable(this);
+  late final $WorkoutsTable workouts = $WorkoutsTable(this);
+  late final $PlanDaysTable planDays = $PlanDaysTable(this);
+  late final $SyncLogTable syncLog = $SyncLogTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -3210,6 +4737,9 @@ abstract class _$TempoDb extends GeneratedDatabase {
     journal,
     syncState,
     settings,
+    workouts,
+    planDays,
+    syncLog,
   ];
 }
 
@@ -4988,6 +6518,761 @@ typedef $$SettingsTableProcessedTableManager =
       Setting,
       PrefetchHooks Function()
     >;
+typedef $$WorkoutsTableCreateCompanionBuilder = WorkoutsCompanion Function({
+  Value<int> id,
+  required int start,
+  required int end,
+  Value<String?> sport,
+  required String title,
+  required String source,
+  Value<bool> confirmed,
+  required double strain,
+  required double trimp,
+  Value<int?> avgHr,
+  Value<int?> maxHr,
+  required String zones,
+  Value<int?> rpe,
+  Value<String?> plan,
+});
+typedef $$WorkoutsTableUpdateCompanionBuilder = WorkoutsCompanion Function({
+  Value<int> id,
+  Value<int> start,
+  Value<int> end,
+  Value<String?> sport,
+  Value<String> title,
+  Value<String> source,
+  Value<bool> confirmed,
+  Value<double> strain,
+  Value<double> trimp,
+  Value<int?> avgHr,
+  Value<int?> maxHr,
+  Value<String> zones,
+  Value<int?> rpe,
+  Value<String?> plan,
+});
+
+class $$WorkoutsTableFilterComposer
+    extends Composer<_$TempoDb, $WorkoutsTable> {
+  $$WorkoutsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get start => $composableBuilder(
+    column: $table.start,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get end => $composableBuilder(
+    column: $table.end,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get sport => $composableBuilder(
+    column: $table.sport,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get source => $composableBuilder(
+    column: $table.source,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get confirmed => $composableBuilder(
+    column: $table.confirmed,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get strain => $composableBuilder(
+    column: $table.strain,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get trimp => $composableBuilder(
+    column: $table.trimp,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get avgHr => $composableBuilder(
+    column: $table.avgHr,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get maxHr => $composableBuilder(
+    column: $table.maxHr,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get zones => $composableBuilder(
+    column: $table.zones,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get rpe => $composableBuilder(
+    column: $table.rpe,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get plan => $composableBuilder(
+    column: $table.plan,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$WorkoutsTableOrderingComposer
+    extends Composer<_$TempoDb, $WorkoutsTable> {
+  $$WorkoutsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get start => $composableBuilder(
+    column: $table.start,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get end => $composableBuilder(
+    column: $table.end,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get sport => $composableBuilder(
+    column: $table.sport,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get source => $composableBuilder(
+    column: $table.source,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get confirmed => $composableBuilder(
+    column: $table.confirmed,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get strain => $composableBuilder(
+    column: $table.strain,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get trimp => $composableBuilder(
+    column: $table.trimp,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get avgHr => $composableBuilder(
+    column: $table.avgHr,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get maxHr => $composableBuilder(
+    column: $table.maxHr,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get zones => $composableBuilder(
+    column: $table.zones,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get rpe => $composableBuilder(
+    column: $table.rpe,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get plan => $composableBuilder(
+    column: $table.plan,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$WorkoutsTableAnnotationComposer
+    extends Composer<_$TempoDb, $WorkoutsTable> {
+  $$WorkoutsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get start =>
+      $composableBuilder(column: $table.start, builder: (column) => column);
+
+  GeneratedColumn<int> get end =>
+      $composableBuilder(column: $table.end, builder: (column) => column);
+
+  GeneratedColumn<String> get sport =>
+      $composableBuilder(column: $table.sport, builder: (column) => column);
+
+  GeneratedColumn<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumn<String> get source =>
+      $composableBuilder(column: $table.source, builder: (column) => column);
+
+  GeneratedColumn<bool> get confirmed =>
+      $composableBuilder(column: $table.confirmed, builder: (column) => column);
+
+  GeneratedColumn<double> get strain =>
+      $composableBuilder(column: $table.strain, builder: (column) => column);
+
+  GeneratedColumn<double> get trimp =>
+      $composableBuilder(column: $table.trimp, builder: (column) => column);
+
+  GeneratedColumn<int> get avgHr =>
+      $composableBuilder(column: $table.avgHr, builder: (column) => column);
+
+  GeneratedColumn<int> get maxHr =>
+      $composableBuilder(column: $table.maxHr, builder: (column) => column);
+
+  GeneratedColumn<String> get zones =>
+      $composableBuilder(column: $table.zones, builder: (column) => column);
+
+  GeneratedColumn<int> get rpe =>
+      $composableBuilder(column: $table.rpe, builder: (column) => column);
+
+  GeneratedColumn<String> get plan =>
+      $composableBuilder(column: $table.plan, builder: (column) => column);
+}
+
+class $$WorkoutsTableTableManager
+    extends
+        RootTableManager<
+          _$TempoDb,
+          $WorkoutsTable,
+          Workout,
+          $$WorkoutsTableFilterComposer,
+          $$WorkoutsTableOrderingComposer,
+          $$WorkoutsTableAnnotationComposer,
+          $$WorkoutsTableCreateCompanionBuilder,
+          $$WorkoutsTableUpdateCompanionBuilder,
+          (Workout, BaseReferences<_$TempoDb, $WorkoutsTable, Workout>),
+          Workout,
+          PrefetchHooks Function()
+        > {
+  $$WorkoutsTableTableManager(_$TempoDb db, $WorkoutsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$WorkoutsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$WorkoutsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$WorkoutsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> start = const Value.absent(),
+                Value<int> end = const Value.absent(),
+                Value<String?> sport = const Value.absent(),
+                Value<String> title = const Value.absent(),
+                Value<String> source = const Value.absent(),
+                Value<bool> confirmed = const Value.absent(),
+                Value<double> strain = const Value.absent(),
+                Value<double> trimp = const Value.absent(),
+                Value<int?> avgHr = const Value.absent(),
+                Value<int?> maxHr = const Value.absent(),
+                Value<String> zones = const Value.absent(),
+                Value<int?> rpe = const Value.absent(),
+                Value<String?> plan = const Value.absent(),
+              }) => WorkoutsCompanion(
+                id: id,
+                start: start,
+                end: end,
+                sport: sport,
+                title: title,
+                source: source,
+                confirmed: confirmed,
+                strain: strain,
+                trimp: trimp,
+                avgHr: avgHr,
+                maxHr: maxHr,
+                zones: zones,
+                rpe: rpe,
+                plan: plan,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int start,
+                required int end,
+                Value<String?> sport = const Value.absent(),
+                required String title,
+                required String source,
+                Value<bool> confirmed = const Value.absent(),
+                required double strain,
+                required double trimp,
+                Value<int?> avgHr = const Value.absent(),
+                Value<int?> maxHr = const Value.absent(),
+                required String zones,
+                Value<int?> rpe = const Value.absent(),
+                Value<String?> plan = const Value.absent(),
+              }) => WorkoutsCompanion.insert(
+                id: id,
+                start: start,
+                end: end,
+                sport: sport,
+                title: title,
+                source: source,
+                confirmed: confirmed,
+                strain: strain,
+                trimp: trimp,
+                avgHr: avgHr,
+                maxHr: maxHr,
+                zones: zones,
+                rpe: rpe,
+                plan: plan,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$WorkoutsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$TempoDb,
+      $WorkoutsTable,
+      Workout,
+      $$WorkoutsTableFilterComposer,
+      $$WorkoutsTableOrderingComposer,
+      $$WorkoutsTableAnnotationComposer,
+      $$WorkoutsTableCreateCompanionBuilder,
+      $$WorkoutsTableUpdateCompanionBuilder,
+      (Workout, BaseReferences<_$TempoDb, $WorkoutsTable, Workout>),
+      Workout,
+      PrefetchHooks Function()
+    >;
+typedef $$PlanDaysTableCreateCompanionBuilder = PlanDaysCompanion Function({
+  required String date,
+  required String session,
+  Value<String?> original,
+  Value<String?> reason,
+  Value<int?> adaptedAt,
+  required bool general,
+  Value<int> rowid,
+});
+typedef $$PlanDaysTableUpdateCompanionBuilder = PlanDaysCompanion Function({
+  Value<String> date,
+  Value<String> session,
+  Value<String?> original,
+  Value<String?> reason,
+  Value<int?> adaptedAt,
+  Value<bool> general,
+  Value<int> rowid,
+});
+
+class $$PlanDaysTableFilterComposer
+    extends Composer<_$TempoDb, $PlanDaysTable> {
+  $$PlanDaysTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get date => $composableBuilder(
+    column: $table.date,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get session => $composableBuilder(
+    column: $table.session,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get original => $composableBuilder(
+    column: $table.original,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get reason => $composableBuilder(
+    column: $table.reason,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get adaptedAt => $composableBuilder(
+    column: $table.adaptedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get general => $composableBuilder(
+    column: $table.general,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$PlanDaysTableOrderingComposer
+    extends Composer<_$TempoDb, $PlanDaysTable> {
+  $$PlanDaysTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get date => $composableBuilder(
+    column: $table.date,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get session => $composableBuilder(
+    column: $table.session,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get original => $composableBuilder(
+    column: $table.original,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get reason => $composableBuilder(
+    column: $table.reason,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get adaptedAt => $composableBuilder(
+    column: $table.adaptedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get general => $composableBuilder(
+    column: $table.general,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$PlanDaysTableAnnotationComposer
+    extends Composer<_$TempoDb, $PlanDaysTable> {
+  $$PlanDaysTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get date =>
+      $composableBuilder(column: $table.date, builder: (column) => column);
+
+  GeneratedColumn<String> get session =>
+      $composableBuilder(column: $table.session, builder: (column) => column);
+
+  GeneratedColumn<String> get original =>
+      $composableBuilder(column: $table.original, builder: (column) => column);
+
+  GeneratedColumn<String> get reason =>
+      $composableBuilder(column: $table.reason, builder: (column) => column);
+
+  GeneratedColumn<int> get adaptedAt =>
+      $composableBuilder(column: $table.adaptedAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get general =>
+      $composableBuilder(column: $table.general, builder: (column) => column);
+}
+
+class $$PlanDaysTableTableManager
+    extends
+        RootTableManager<
+          _$TempoDb,
+          $PlanDaysTable,
+          PlanDay,
+          $$PlanDaysTableFilterComposer,
+          $$PlanDaysTableOrderingComposer,
+          $$PlanDaysTableAnnotationComposer,
+          $$PlanDaysTableCreateCompanionBuilder,
+          $$PlanDaysTableUpdateCompanionBuilder,
+          (PlanDay, BaseReferences<_$TempoDb, $PlanDaysTable, PlanDay>),
+          PlanDay,
+          PrefetchHooks Function()
+        > {
+  $$PlanDaysTableTableManager(_$TempoDb db, $PlanDaysTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$PlanDaysTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$PlanDaysTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$PlanDaysTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> date = const Value.absent(),
+                Value<String> session = const Value.absent(),
+                Value<String?> original = const Value.absent(),
+                Value<String?> reason = const Value.absent(),
+                Value<int?> adaptedAt = const Value.absent(),
+                Value<bool> general = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => PlanDaysCompanion(
+                date: date,
+                session: session,
+                original: original,
+                reason: reason,
+                adaptedAt: adaptedAt,
+                general: general,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String date,
+                required String session,
+                Value<String?> original = const Value.absent(),
+                Value<String?> reason = const Value.absent(),
+                Value<int?> adaptedAt = const Value.absent(),
+                required bool general,
+                Value<int> rowid = const Value.absent(),
+              }) => PlanDaysCompanion.insert(
+                date: date,
+                session: session,
+                original: original,
+                reason: reason,
+                adaptedAt: adaptedAt,
+                general: general,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$PlanDaysTableProcessedTableManager =
+    ProcessedTableManager<
+      _$TempoDb,
+      $PlanDaysTable,
+      PlanDay,
+      $$PlanDaysTableFilterComposer,
+      $$PlanDaysTableOrderingComposer,
+      $$PlanDaysTableAnnotationComposer,
+      $$PlanDaysTableCreateCompanionBuilder,
+      $$PlanDaysTableUpdateCompanionBuilder,
+      (PlanDay, BaseReferences<_$TempoDb, $PlanDaysTable, PlanDay>),
+      PlanDay,
+      PrefetchHooks Function()
+    >;
+typedef $$SyncLogTableCreateCompanionBuilder = SyncLogCompanion Function({
+  Value<int> id,
+  required int ts,
+  required String summary,
+  required String result,
+  Value<int?> durationMs,
+});
+typedef $$SyncLogTableUpdateCompanionBuilder = SyncLogCompanion Function({
+  Value<int> id,
+  Value<int> ts,
+  Value<String> summary,
+  Value<String> result,
+  Value<int?> durationMs,
+});
+
+class $$SyncLogTableFilterComposer extends Composer<_$TempoDb, $SyncLogTable> {
+  $$SyncLogTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get ts => $composableBuilder(
+    column: $table.ts,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get summary => $composableBuilder(
+    column: $table.summary,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get result => $composableBuilder(
+    column: $table.result,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get durationMs => $composableBuilder(
+    column: $table.durationMs,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$SyncLogTableOrderingComposer
+    extends Composer<_$TempoDb, $SyncLogTable> {
+  $$SyncLogTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get ts => $composableBuilder(
+    column: $table.ts,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get summary => $composableBuilder(
+    column: $table.summary,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get result => $composableBuilder(
+    column: $table.result,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get durationMs => $composableBuilder(
+    column: $table.durationMs,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$SyncLogTableAnnotationComposer
+    extends Composer<_$TempoDb, $SyncLogTable> {
+  $$SyncLogTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get ts =>
+      $composableBuilder(column: $table.ts, builder: (column) => column);
+
+  GeneratedColumn<String> get summary =>
+      $composableBuilder(column: $table.summary, builder: (column) => column);
+
+  GeneratedColumn<String> get result =>
+      $composableBuilder(column: $table.result, builder: (column) => column);
+
+  GeneratedColumn<int> get durationMs => $composableBuilder(
+    column: $table.durationMs,
+    builder: (column) => column,
+  );
+}
+
+class $$SyncLogTableTableManager
+    extends
+        RootTableManager<
+          _$TempoDb,
+          $SyncLogTable,
+          SyncLogData,
+          $$SyncLogTableFilterComposer,
+          $$SyncLogTableOrderingComposer,
+          $$SyncLogTableAnnotationComposer,
+          $$SyncLogTableCreateCompanionBuilder,
+          $$SyncLogTableUpdateCompanionBuilder,
+          (SyncLogData, BaseReferences<_$TempoDb, $SyncLogTable, SyncLogData>),
+          SyncLogData,
+          PrefetchHooks Function()
+        > {
+  $$SyncLogTableTableManager(_$TempoDb db, $SyncLogTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SyncLogTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SyncLogTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SyncLogTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> ts = const Value.absent(),
+                Value<String> summary = const Value.absent(),
+                Value<String> result = const Value.absent(),
+                Value<int?> durationMs = const Value.absent(),
+              }) => SyncLogCompanion(
+                id: id,
+                ts: ts,
+                summary: summary,
+                result: result,
+                durationMs: durationMs,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int ts,
+                required String summary,
+                required String result,
+                Value<int?> durationMs = const Value.absent(),
+              }) => SyncLogCompanion.insert(
+                id: id,
+                ts: ts,
+                summary: summary,
+                result: result,
+                durationMs: durationMs,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$SyncLogTableProcessedTableManager =
+    ProcessedTableManager<
+      _$TempoDb,
+      $SyncLogTable,
+      SyncLogData,
+      $$SyncLogTableFilterComposer,
+      $$SyncLogTableOrderingComposer,
+      $$SyncLogTableAnnotationComposer,
+      $$SyncLogTableCreateCompanionBuilder,
+      $$SyncLogTableUpdateCompanionBuilder,
+      (SyncLogData, BaseReferences<_$TempoDb, $SyncLogTable, SyncLogData>),
+      SyncLogData,
+      PrefetchHooks Function()
+    >;
 
 class $TempoDbManager {
   final _$TempoDb _db;
@@ -5012,4 +7297,10 @@ class $TempoDbManager {
       $$SyncStateTableTableManager(_db, _db.syncState);
   $$SettingsTableTableManager get settings =>
       $$SettingsTableTableManager(_db, _db.settings);
+  $$WorkoutsTableTableManager get workouts =>
+      $$WorkoutsTableTableManager(_db, _db.workouts);
+  $$PlanDaysTableTableManager get planDays =>
+      $$PlanDaysTableTableManager(_db, _db.planDays);
+  $$SyncLogTableTableManager get syncLog =>
+      $$SyncLogTableTableManager(_db, _db.syncLog);
 }

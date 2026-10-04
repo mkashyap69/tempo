@@ -35,6 +35,14 @@ abstract final class BandUuids {
   static const chunkedWrite =
       '00000016-0000-3512-2118-0009af100700'; // TODO(verify) auth bytes
   static const chunkedRead = '00000017-0000-3512-2118-0009af100700';
+
+  // Battery: SIG Battery Level, else the Huami battery-info characteristic.
+  static final batteryLevel = _sig('2a19'); // TODO(verify)
+  static const huamiBattery =
+      '00000006-0000-3512-2118-0009af100700'; // TODO(verify) layout
+
+  // SIG Immediate Alert: used to buzz the band before an interval change.
+  static final alertLevel = _sig('2a06'); // TODO(verify)
 }
 
 /// Advertised names we accept in the scan list. TODO(verify) against a scan.

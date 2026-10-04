@@ -4,6 +4,7 @@ import 'package:drift/drift.dart';
 import 'package:scoring/scoring.dart' as sc;
 import 'package:store/store.dart' as st;
 
+import 'profile.dart' show sportLabel;
 import 'stages.dart';
 
 const hrMaxKey = 'hr_max';
@@ -68,6 +69,7 @@ class ScoreService {
       p: p,
     );
     await db.upsertScore(fromScoring(s));
+    await _activities(day, s, minutes);
 
     if (s.sleepStart != null && s.sleepEnd != null) {
       final night = sc.SleepSession(
@@ -90,6 +92,55 @@ class ScoreService {
         ),
       ]);
     }
+  }
+
+  /// Auto-detects workouts on [day] and stores them as unconfirmed 'auto'
+  /// rows. Live sessions and confirmed rows are kept.
+  Future<void> _activities(
+    DateTime day,
+    sc.DailyScore s,
+    List<sc.Minute> all,
+  ) async {
+    final end = day.add(const Duration(days: 1));
+    final mins = [
+      for (final m in all)
+        if (!m.ts.isBefore(day) && m.ts.isBefore(end)) m,
+    ];
+    if (mins.isEmpty) return;
+    final found = sc.detectActivities(mins, hrMax: s.hrMax);
+    final wake = s.sleepEnd ?? day;
+    final rest = s.rhr ?? 60;
+    double trimpTo(DateTime t) => sc.trimp(
+      [
+        for (final m in mins)
+          if (!m.ts.isBefore(wake) && m.ts.isBefore(t)) m.hr,
+      ],
+      hrRest: rest,
+      hrMax: s.hrMax.toDouble(),
+    );
+    final rows = <st.WorkoutsCompanion>[];
+    for (final a in found) {
+      final t0 = trimpTo(a.start), t1 = trimpTo(a.end);
+      final inside = [
+        for (final m in mins)
+          if (!m.ts.isBefore(a.start) && m.ts.isBefore(a.end)) m.hr,
+      ];
+      rows.add(
+        st.WorkoutsCompanion.insert(
+          start: st.toTs(a.start),
+          end: st.toTs(a.end),
+          sport: Value(a.sport?.name),
+          title: sportLabel(a.sport),
+          source: 'auto',
+          strain: sc.strainFromTrimp(t1) - sc.strainFromTrimp(t0),
+          trimp: t1 - t0,
+          avgHr: Value(a.avgHr),
+          maxHr: Value(a.maxHr),
+          zones: jsonEncode(sc.timeInZones(inside, s.hrMax)),
+        ),
+      );
+    }
+    await db.replaceAutoWorkouts(day, end, rows);
   }
 
   Future<void> _baselines(DateTime today) async {

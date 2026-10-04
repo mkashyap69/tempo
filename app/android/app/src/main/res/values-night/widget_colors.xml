@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="widget_surface">#FF121417</color>
+    <color name="widget_text1">#FFF3F2EF</color>
+    <color name="widget_text2">#FFA9ADB4</color>
+    <color name="widget_text3">#FF858A92</color>
+    <color name="widget_track">#FF2A2E35</color>
+    <color name="widget_high">#FF3CCBC0</color>
+    <color name="widget_mid">#FFF0C24B</color>
+    <color name="widget_low">#FFEE4F6C</color>
+    <color name="widget_strain">#FFFFB066</color>
+    <color name="widget_sleep">#FF9AA4FF</color>
+</resources>

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The Tempo mark (tools/brand/make_icons.py has the same geometry). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp" android:height="24dp"
+    android:viewportWidth="48" android:viewportHeight="48">
+    <path android:fillColor="#FFFFFFFF" android:pathData="M8.25,8h0.0a2.75,2.75 0 0 1 2.75,2.75v26.5a2.75,2.75 0 0 1 -2.75,2.75h-0.0a2.75,2.75 0 0 1 -2.75,-2.75v-26.5a2.75,2.75 0 0 1 2.75,-2.75zM18.75,27h0.0a2.75,2.75 0 0 1 2.75,2.75v7.5a2.75,2.75 0 0 1 -2.75,2.75h-0.0a2.75,2.75 0 0 1 -2.75,-2.75v-7.5a2.75,2.75 0 0 1 2.75,-2.75zM29.25,27h0.0a2.75,2.75 0 0 1 2.75,2.75v7.5a2.75,2.75 0 0 1 -2.75,2.75h-0.0a2.75,2.75 0 0 1 -2.75,-2.75v-7.5a2.75,2.75 0 0 1 2.75,-2.75zM39.75,27h0.0a2.75,2.75 0 0 1 2.75,2.75v7.5a2.75,2.75 0 0 1 -2.75,2.75h-0.0a2.75,2.75 0 0 1 -2.75,-2.75v-7.5a2.75,2.75 0 0 1 2.75,-2.75z"/>
+</vector>

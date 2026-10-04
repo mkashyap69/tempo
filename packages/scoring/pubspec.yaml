@@ -1,5 +1,5 @@
 name: scoring
-description: Tempo scoring package (Phase 1+). Placeholder.
+description: Tempo scoring, coaching and insights. Pure Dart.
 publish_to: none
 resolution: workspace
 environment:

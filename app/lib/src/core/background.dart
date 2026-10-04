@@ -5,6 +5,7 @@ import 'package:workmanager/workmanager.dart';
 
 import 'band_link.dart';
 import 'db.dart';
+import 'home_widgets.dart';
 import 'sync_service.dart';
 
 const _syncTask = 'tempo.sync';
@@ -17,6 +18,7 @@ void backgroundDispatcher() {
     final db = openDb();
     try {
       await SyncService(db).run(wait: const Duration(seconds: 2));
+      await afterSync(db);
       return true;
     } on BandBusyException {
       return true; // a foreground sync holds the band; do not stack retries

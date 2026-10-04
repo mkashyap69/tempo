@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:path_provider/path_provider.dart';
@@ -13,6 +14,9 @@ const _tables = [
   'baselines',
   'journal',
   'sync_state',
+  'workouts',
+  'plan_days',
+  'sync_log',
 ];
 
 String _csv(Object? v) {
@@ -49,4 +53,21 @@ Future<void> deleteDatabaseFiles() async {
     final f = File('${docs.path}/tempo.sqlite$suffix');
     if (await f.exists()) await f.delete();
   }
+}
+
+/// One JSON file with every table except settings, for `Export → JSON`.
+Future<File> exportAllJson(TempoDb db) async {
+  final docs = await getApplicationDocumentsDirectory();
+  final stamp = DateTime.now().toIso8601String().replaceAll(':', '-');
+  final out = <String, Object?>{
+    'exported_at': DateTime.now().toIso8601String(),
+  };
+  for (final t in _tables) {
+    out[t] = [
+      for (final r in await db.customSelect('SELECT * FROM $t').get()) r.data,
+    ];
+  }
+  final f = File('${docs.path}/tempo-export-$stamp.json');
+  await f.writeAsString(jsonEncode(out));
+  return f;
 }

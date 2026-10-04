@@ -1,28 +1,197 @@
 import 'dart:convert';
 
 import 'package:band_ble/band_ble.dart';
+import 'package:scoring/scoring.dart';
 import 'package:store/store.dart';
 
-const profileKey = 'profile';
+/// Setting keys. Settings are never secrets; the auth key lives in KeyStore.
+abstract final class Keys {
+  static const profile = 'profile_v2';
+  static const legacyProfile = 'profile';
+  static const onboarded = 'onboarded';
+  static const theme = 'theme'; // system | dark | light
+  static const morningCall = 'morning_call'; // HH:mm or off
+  static const bedtimeNudge = 'bedtime_nudge'; // minutes before, or off
+  static const wakeTime = 'wake_time'; // HH:mm, empty = from your usual
+  static const buzzCues = 'buzz_cues'; // 1 | 0
+  static const firmware = 'firmware';
+  static const battery = 'battery';
+  static const batteryAt = 'battery_at';
+  static const lastSync = 'last_sync';
+  static const lastAttempt = 'last_sync_attempt';
+  static const lastError = 'last_sync_error'; // kind|detail
+  static const carried = 'coach_carried';
+  static const planAdapted = 'plan_adapted';
+  static const reportCardTheme = 'report_card_theme';
+  static const reportExact = 'report_exact';
+  static const rangeHaptic = 'range_haptic_day'; // date of the last one
+}
 
-Future<UserProfile?> loadProfile(TempoDb db) async {
-  final raw = await db.setting(profileKey);
-  if (raw == null) return null;
-  final j = jsonDecode(raw) as Map<String, dynamic>;
-  return UserProfile(
-    birthDate: DateTime.parse(j['birth'] as String),
+/// Everything the user tells Tempo in onboarding and Profile.
+final class Profile {
+  const Profile({
+    this.age = 31,
+    this.heightCm = 176,
+    this.weightKg = 74,
+    this.maxHr,
+    this.metric = true,
+    this.male = true,
+    this.goal = Goal.fitness,
+    this.likes = const {
+      Sport.strength,
+      Sport.running,
+      Sport.cycling,
+      Sport.yoga,
+    },
+    this.days = const {1, 2, 4, 5, 6, 7},
+    this.maxMinutes = 75,
+    this.wornOn = 'Left wrist',
+  });
+
+  final int age, heightCm;
+  final double weightKg;
+
+  /// null = estimated from age.
+  final int? maxHr;
+  final bool metric, male;
+  final Goal goal;
+  final Set<Sport> likes;
+  final Set<int> days;
+  final int maxMinutes;
+  final String wornOn;
+
+  int get effectiveMaxHr => maxHr ?? maxHrFromAge(age);
+  bool get maxHrEstimated => maxHr == null;
+
+  CoachPrefs get prefs =>
+      CoachPrefs(goal: goal, likes: likes, days: days, maxMinutes: maxMinutes);
+
+  UserProfile get band => UserProfile(
+    birthDate: DateTime(DateTime.now().year - age, 1, 1),
+    heightCm: heightCm,
+    weightKg: weightKg,
+    male: male,
+  );
+
+  Profile copyWith({
+    int? age,
+    int? heightCm,
+    double? weightKg,
+    int? Function()? maxHr,
+    bool? metric,
+    bool? male,
+    Goal? goal,
+    Set<Sport>? likes,
+    Set<int>? days,
+    int? maxMinutes,
+    String? wornOn,
+  }) => Profile(
+    age: age ?? this.age,
+    heightCm: heightCm ?? this.heightCm,
+    weightKg: weightKg ?? this.weightKg,
+    maxHr: maxHr == null ? this.maxHr : maxHr(),
+    metric: metric ?? this.metric,
+    male: male ?? this.male,
+    goal: goal ?? this.goal,
+    likes: likes ?? this.likes,
+    days: days ?? this.days,
+    maxMinutes: maxMinutes ?? this.maxMinutes,
+    wornOn: wornOn ?? this.wornOn,
+  );
+
+  Map<String, Object?> toJson() => {
+    'age': age,
+    'height': heightCm,
+    'weight': weightKg,
+    'maxHr': maxHr,
+    'metric': metric,
+    'male': male,
+    'goal': goal.name,
+    'likes': [for (final s in likes) s.name],
+    'days': days.toList()..sort(),
+    'maxMinutes': maxMinutes,
+    'wornOn': wornOn,
+  };
+
+  static Profile fromJson(Map<String, dynamic> j) => Profile(
+    age: j['age'] as int? ?? 31,
+    heightCm: j['height'] as int? ?? 176,
+    weightKg: (j['weight'] as num?)?.toDouble() ?? 74,
+    maxHr: j['maxHr'] as int?,
+    metric: j['metric'] as bool? ?? true,
+    male: j['male'] as bool? ?? true,
+    goal: Goal.values.asNameMap()[j['goal']] ?? Goal.fitness,
+    likes: {
+      for (final s in (j['likes'] as List? ?? const []))
+        if (Sport.values.asNameMap()[s] != null)
+          Sport.values.byName(s as String),
+    },
+    days: {for (final d in (j['days'] as List? ?? const [])) d as int},
+    maxMinutes: j['maxMinutes'] as int? ?? 75,
+    wornOn: j['wornOn'] as String? ?? 'Left wrist',
+  );
+}
+
+Future<Profile?> loadAppProfile(TempoDb db) async {
+  final raw = await db.setting(Keys.profile);
+  if (raw != null) {
+    return Profile.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+  }
+  // Phase 0–4 builds stored only the band profile.
+  final legacy = await db.setting(Keys.legacyProfile);
+  if (legacy == null) return null;
+  final j = jsonDecode(legacy) as Map<String, dynamic>;
+  final birth = DateTime.parse(j['birth'] as String);
+  return Profile(
+    age: DateTime.now().year - birth.year,
     heightCm: j['height'] as int,
     weightKg: (j['weight'] as num).toDouble(),
     male: j['male'] as bool,
   );
 }
 
-Future<void> saveProfile(TempoDb db, UserProfile p) => db.putSetting(
-  profileKey,
-  jsonEncode({
-    'birth': p.birthDate.toIso8601String(),
-    'height': p.heightCm,
-    'weight': p.weightKg,
-    'male': p.male,
-  }),
-);
+/// Saves the profile and keeps the scoring HR max in step with it.
+Future<void> saveAppProfile(TempoDb db, Profile p) async {
+  await db.putSetting(Keys.profile, jsonEncode(p.toJson()));
+  await db.putSetting('hr_max', '${p.effectiveMaxHr}');
+}
+
+/// Band profile for configure(); used by Settings → rewrite.
+Future<UserProfile?> loadProfile(TempoDb db) async =>
+    (await loadAppProfile(db))?.band;
+
+String goalLabel(Goal g) => switch (g) {
+  Goal.fitness => 'Build fitness',
+  Goal.fatLoss => 'Lose fat',
+  Goal.performance => 'Perform at a sport',
+  Goal.wellbeing => 'Feel better',
+};
+
+String goalSub(Goal g) => switch (g) {
+  Goal.fitness => 'More aerobic engine, week on week',
+  Goal.fatLoss => 'Steady daily movement, protected sleep',
+  Goal.performance => 'Peak for sessions and match days',
+  Goal.wellbeing => 'Energy, sleep and less stress first',
+};
+
+String sportLabel(Sport? s) => switch (s) {
+  Sport.strength => 'Strength',
+  Sport.running => 'Running',
+  Sport.cycling => 'Cycling',
+  Sport.walking => 'Walking',
+  Sport.hiit => 'HIIT',
+  Sport.yoga => 'Yoga',
+  Sport.sport => 'Sport',
+  null => 'Workout',
+};
+
+/// Onboarding chip order.
+const sportOrder = [
+  Sport.strength,
+  Sport.running,
+  Sport.cycling,
+  Sport.walking,
+  Sport.hiit,
+  Sport.yoga,
+  Sport.sport,
+];

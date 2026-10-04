@@ -6,6 +6,7 @@ import 'package:store/store.dart';
 
 import 'key_store.dart';
 import 'packet_file_log.dart';
+import 'profile.dart' show Keys;
 
 const deviceIdKey = 'device_id';
 const deviceNameKey = 'device_name';
@@ -44,7 +45,9 @@ class BandLink {
     final band = MiBand.fromId(id, log: log);
     try {
       await band.connect();
-      await band.readFirmware(); // logged on every connect (PLAN.md → Risks)
+      // Logged on every connect (PLAN.md → Risks).
+      final fw = await band.readFirmware();
+      if (fw.isNotEmpty) await db.putSetting(Keys.firmware, fw);
       await band.authenticate(key);
       return BandLink._(band, log, lock);
     } catch (_) {

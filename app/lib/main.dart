@@ -3,10 +3,12 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:home_widget/home_widget.dart';
 
+import 'src/app.dart';
 import 'src/core/background.dart';
-import 'src/ui/home.dart';
-import 'src/ui/theme.dart';
+import 'src/core/home_widgets.dart';
+import 'src/core/notifications.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -14,22 +16,16 @@ Future<void> main() async {
     // iOS state restoration so CoreBluetooth can relaunch us for the band.
     await FlutterBluePlus.setOptions(restoreState: true);
   }
-  try {
-    await scheduleBackgroundSync();
-  } catch (e) {
-    debugPrint('background sync not scheduled: $e');
+  for (final step in [
+    scheduleBackgroundSync,
+    () => HomeWidget.setAppGroupId(widgetAppGroup),
+    TempoNotifications.instance.init,
+  ]) {
+    try {
+      await step();
+    } catch (e) {
+      debugPrint('startup: $e');
+    }
   }
   runApp(const ProviderScope(child: TempoApp()));
-}
-
-class TempoApp extends StatelessWidget {
-  const TempoApp({super.key});
-
-  @override
-  Widget build(BuildContext context) => MaterialApp(
-    title: 'Tempo',
-    theme: tempoTheme(),
-    darkTheme: tempoTheme(),
-    home: const Home(),
-  );
 }

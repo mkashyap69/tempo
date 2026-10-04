@@ -135,6 +135,9 @@ final class ChunkAssembler {
   }
 
   Uint8List take() => _buf.takeBytes();
+
+  /// Payload bytes received so far.
+  int get length => _buf.length;
 }
 
 final class ActivityRecord {

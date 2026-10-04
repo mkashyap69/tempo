@@ -80,26 +80,31 @@ On iOS you need a Mac with Xcode and an Apple developer account (a free account 
 ### Pair the band
 
 1. Force-stop Mi Fitness / Zepp Life.
-2. Open Tempo. The pairing screen appears.
-3. Paste your auth key. It's stored in the phone's secure storage (Android Keystore / iOS Keychain) and nowhere else.
-4. Enter your birth year, height, weight and sex. The band uses these for its own calculations.
-5. Tap **Scan** and pick your band (usually "Mi Smart Band 6").
-6. Tempo connects, authenticates, sets up the band and pulls the **last 7 days** of history. This can take a minute.
+2. Open Tempo. A short onboarding asks for your age, height, weight and max heart rate (estimated from age if you don't know it), your goal, the workouts you like, and the days and minutes you can train.
+3. Allow Bluetooth (and, optionally, notifications for the morning call and bedtime nudge).
+4. Tempo scans for 30 seconds and lists bands by signal strength. Pick yours (check the last characters under Settings › About on the band).
+5. Paste your auth key. Tempo checks it is 32 hex characters before it lets you connect. It's stored in the phone's secure storage (Android Keystore / iOS Keychain) and nowhere else.
+6. Tempo connects, authenticates, turns on the sensors it needs and pulls the **last 7 days** of history. This can take a minute.
 
-During pairing Tempo changes two band settings that matter for score quality: **heart rate every 1 minute** and **HR-assisted sleep detection on**. It also turns on stress monitoring and sets the time.
+During pairing Tempo changes the band settings that matter for score quality: **heart rate every 1 minute**, **HR-assisted sleep detection** and **stress monitoring**, and it sets the time. Pairing errors (band not found, wrong key, band busy with another app) each have their own screen with what to try.
 
 ### Using the app
 
-| Screen | What it shows |
+Five tabs and a start button:
+
+| Tab | What it shows |
 | --- | --- |
-| **Today** | The three dials and a one-line suggestion, e.g. "Recovery 72%, aim for strain 14–18". Tap any dial for details. The sync button pulls new data from the band. |
-| **Strain detail** | Today's heart-rate curve, how strain built up during the day, and time in each heart-rate zone. |
-| **Sleep detail** | Hypnogram (deep / light / REM / awake), hours slept vs hours needed, sleep debt, efficiency and deep-sleep share. |
-| **Recovery detail** | Each input (stress during sleep, resting HR, sleep performance) compared with your 30-day baseline. |
-| **Workout** | Live heart rate about once a second, your current zone and the strain you've gained this session. Keep the screen open. |
-| **Trends** | 7-, 30- and 90-day charts for every score, resting HR and stress. |
-| **Journal** | Each morning, yes/no tags for yesterday: alcohol, late meal, late caffeine, screens in bed, illness, stress. |
-| **Settings** | Band info, sync status, HR max, data export, recompute scores, forget band, delete all data. |
+| **Today** | One coaching line ("Recovery 78% — you're primed… aim for 13–16 strain"), three score meters (Recovery, Strain, Sleep), the strain target, today's suggested workout, cardio load and tonight's bedtime. Pull down to sync. Tap any score for its detail. |
+| **Coach** | Today's readiness, the suggested workout and why, this week's plan against what you did, cardio load and six short Learn cards with your own numbers. |
+| **Trends** | 7 / 30 / 90-day cards for recovery, strain, sleep, resting HR, stress, SpO₂ and steps, plus the day timeline, your baselines, a recovery calendar and data health. |
+| **Journal** | A five-tap morning check-in (alcohol, late meal, late caffeine, stressful day, travel). After 30 check-ins it shows what each one does to your next-morning recovery, with sample size and confidence. |
+| **Profile** | Band status, your details, training preferences, band settings, notifications, export (CSV or JSON), weekly report share card, re-pair, delete all data, theme. |
+
+The **play button** starts a workout: today's suggested session (guided intervals, with a buzz on the band 5 s before each change) or an open session for any sport. You can minimise it and come back. At the end you rate how hard it felt.
+
+Every detail screen explains itself: Recovery breaks down what moved it against your 30-day baseline, Strain shows the day's heart rate, time in zones and how it built up, Sleep shows the hypnogram, need, debt and tonight's bedtime, and so on.
+
+**Home-screen widgets.** Small (Recovery) and medium (Recovery, Strain, Sleep). On Android add them from the launcher's widget list. On iOS the widget extension needs a one-time Xcode step, see [`app/ios/TempoWidget/README.md`](app/ios/TempoWidget/README.md).
 
 **Syncing.** Tempo syncs when you open the app and in the background: every 3 hours on Android, and whenever iOS allows it on iPhone. The band holds several days of data, so a missed sync catches up next time.
 
@@ -111,7 +116,7 @@ During pairing Tempo changes two band settings that matter for score quality: **
 
 All three scores are calculated on your phone from the band's per-minute data. Every constant is a starting point that will be tuned over time.
 
-**Strain (0–21).** For every minute, your heart rate is placed between your resting HR and your HR max (Banister TRIMP). Harder minutes count much more than easy ones. The day's total is squeezed onto a 0–21 scale, so going from 18 to 19 takes far more work than going from 5 to 6. HR max starts at 190 and rises automatically if the band ever records higher; you can also set it in Settings.
+**Strain (0–21).** For every minute, your heart rate is placed between your resting HR and your HR max (Banister TRIMP). Harder minutes count much more than easy ones. The day's total is squeezed onto a 0–21 scale, so going from 18 to 19 takes far more work than going from 5 to 6. HR max starts at 190 and rises automatically if the band ever records higher; you can also set it in Profile.
 
 **Sleep performance (%).** Hours slept ÷ hours needed, capped at 100 %.
 Need = 7.5 h + half of your recent sleep debt (capped at 2 h) + a little extra for yesterday's strain.
@@ -124,7 +129,11 @@ Need = 7.5 h + half of your recent sleep debt (capped at 2 h) + a little extra f
 | Resting heart rate (lowest 5-minute average while asleep) | Lower | 30 % |
 | Sleep performance | Higher | 30 % |
 
-🟢 67–100 · 🟡 34–66 · 🔴 0–33. The colour sets the strain target on the Today screen.
+▲ Primed 67–100 · ■ Steady 34–66 · ▼ Low 0–33. Recovery sets today's strain target (13–16 at 67–79%, higher on greener mornings, 8–12 below 50%); a low morning or an overreaching week turns it into a cap of 8 and makes today a rest day. While calibrating the target is a general 10–14.
+
+**Cardio load.** Your last 7 days of strain-weighted heart rate (TRIMP) against your last 28: below 0.8× is detraining, 0.8–1.0× maintaining, 1.0–1.3× building, above 1.3× overreaching.
+
+**The plan.** Coach builds each week from your goal, the workouts you like and the days and minutes you have, with at most two hard sessions and never two in a row. After the first sync each morning it adapts the next days to your recovery and load and says what changed and why.
 
 The Mi Band 6 doesn't expose raw beat-to-beat (HRV) data, so Recovery uses the band's stress index as a stand-in. It's a reasonable proxy, not a true HRV measurement.
 
@@ -133,15 +142,15 @@ The Mi Band 6 doesn't expose raw beat-to-beat (HRV) data, so Recovery uses the b
 - **No network.** Tempo makes no network calls at runtime. There are no servers, analytics or accounts.
 - **On-device database.** All data lives in a local SQLite database on your phone.
 - **The auth key** is kept only in secure storage. It's never written to logs, the database or exports.
-- **Export.** Settings → *Export all data* writes CSV files to the app's documents folder.
-- **Delete.** Settings → *Delete all data* removes the database. *Forget band and key* removes the pairing.
+- **Export.** Profile → *Export* writes CSV (one file per table) or one JSON file and opens the share sheet.
+- **Delete.** Profile → *Delete all data* removes the database and the key. *Re-pair or change band* removes the pairing and starts over.
 - **Packet logs.** The app writes a log of Bluetooth traffic to its documents folder for debugging. It contains your band's data but never the key.
 
 ### Known limitations
 
 - **Untested on hardware.** See the status note at the top.
 - **One band, one person.** No multi-user support.
-- **Workout tracking needs the screen on.** On Android, leaving the Workout screen may drop the live connection.
+- **Workouts run in the foreground.** You can minimise the workout inside Tempo, but if the phone kills the app (or you lock it for a long time on Android) the live connection drops. There is no foreground service yet.
 - **Background sync on iPhone isn't guaranteed.** iOS decides when it runs. Opening the app always syncs.
 - **Wrist heart rate lags** during intervals and weightlifting, so workout strain may be undercounted.
 - **Firmware updates** can change the band's protocol. Avoid updating the band through Mi Fitness.
@@ -155,7 +164,7 @@ The Mi Band 6 doesn't expose raw beat-to-beat (HRV) data, so Recovery uses the b
 | "No auth variant got a challenge" | Probably a protocol difference on your firmware. Send the packet log (see below). |
 | Sleep dial stays empty | Sleep stage codes may not match your firmware yet. Send the packet log and an export. |
 | Recovery stuck on Calibrating | Normal for the first 14 nights with sleep data. |
-| Scores look wrong after an update | Settings → *Recompute all scores*. |
+| Scores look wrong after an update | Profile → Advanced → *Recompute all scores*. |
 
 **Sending a packet log:** on Android with USB debugging on, run `tools/pull_packets.sh` from the repo. On iOS, use Xcode → Devices → Download Container and take `AppData/Documents/packets/`. Open an issue with the log attached.
 
@@ -178,15 +187,20 @@ Sync service         app/lib/src/core: per-type cursors, WorkManager / BGTask
    │
 Local database  ◄──► Scoring engine     packages/store  ◄──►  packages/scoring
    │
-State + UI           app/lib/src/ui: Riverpod, fl_chart
+State + UI           app/lib/src: Riverpod, CustomPainter charts
 ```
 
 ### Repository layout
 
 ```
 app/                    Flutter app
-  lib/src/core/           sync, scoring service, band link, key store, background, export
-  lib/src/ui/             screens and widgets
+  lib/src/core/           sync, scoring service, coach plan, band link, key store,
+                          background, notifications, home-screen widgets, export
+  lib/src/state/          Riverpod providers, live workout session
+  lib/src/design/         design system: tokens, type, icons, components, charts
+  lib/src/screens/        every screen from the design canvas
+  ios/TempoWidget/        WidgetKit extension sources
+  assets/fonts/           Geist and Geist Mono (OFL)
 packages/
   band_ble/             Huami protocol on flutter_blue_plus (our own implementation)
   store/                Drift schema + DAOs (raw tables append-only)
@@ -194,6 +208,7 @@ packages/
 tools/
   backtest/             CLI: run scoring over an Apple Health export
   pull_packets.sh       copy packet logs off an Android device
+  brand/make_icons.py   renders the mark into app icons and launch images
 docs/
   decisions.md          dated decision log
   testing.md            end-to-end hardware test plan
@@ -294,6 +309,7 @@ The sync connects, authenticates, fetches each data type from its cursor in `syn
 - [`docs/testing.md`](docs/testing.md): step-by-step hardware test plan for Android and iOS.
 - [`docs/decisions.md`](docs/decisions.md): why things are the way they are.
 - [`docs/packets/`](docs/packets/): BLE captures.
+- [`docs/design.md`](docs/design.md): where each board of the design canvas lives in the code.
 
 ---
 

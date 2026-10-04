@@ -170,3 +170,18 @@ final class ChunkedAuthReader {
     _buf.clear();
   }
 }
+
+/// Battery percent from the SIG Battery Level (one byte) or the Huami
+/// battery-info characteristic (level in byte 1). Both TODO(verify).
+int? parseBattery(List<int> bytes, {required bool huami}) {
+  final i = huami ? 1 : 0;
+  if (bytes.length <= i) return null;
+  final v = bytes[i];
+  return v >= 0 && v <= 100 ? v : null;
+}
+
+/// Immediate Alert payloads. TODO(verify) which level the band vibrates on.
+abstract final class AlertCommands {
+  static const mild = [0x01];
+  static const high = [0x02];
+}

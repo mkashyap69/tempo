@@ -1,17 +1,12 @@
-# tempo
+# Tempo app
 
-A new Flutter project.
+The Flutter app. See the repository [README](../README.md) for setup, and
+[`docs/design.md`](../docs/design.md) for where each design board lives in
+`lib/src`.
 
-## Getting Started
-
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+```
+lib/src/core      sync, scoring, coach plan, band link, notifications, widgets
+lib/src/state     Riverpod providers, live workout session
+lib/src/design    tokens, type, icons, components, charts
+lib/src/screens   screens
+```

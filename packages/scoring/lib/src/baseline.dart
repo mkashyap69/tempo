@@ -17,3 +17,12 @@ final class Baseline {
     return Baseline(mean, sqrt(v), xs.length);
   }
 }
+
+/// Linear-interpolated quantile of [values] (q in 0..1); null if empty.
+double? quantile(Iterable<double?> values, double q) {
+  final xs = values.whereType<double>().toList()..sort();
+  if (xs.isEmpty) return null;
+  final pos = (xs.length - 1) * q;
+  final lo = pos.floor(), hi = pos.ceil();
+  return xs[lo] + (xs[hi] - xs[lo]) * (pos - lo);
+}

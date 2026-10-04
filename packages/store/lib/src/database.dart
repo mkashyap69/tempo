@@ -30,13 +30,16 @@ String dateKey(DateTime d) =>
     Journal,
     SyncState,
     Settings,
+    Workouts,
+    PlanDays,
+    SyncLog,
   ],
 )
 class TempoDb extends _$TempoDb {
   TempoDb(super.e);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -51,6 +54,13 @@ class TempoDb extends _$TempoDb {
           'CREATE TRIGGER ${t}_no_delete BEFORE DELETE ON $t '
           "BEGIN SELECT RAISE(ABORT, '$t is append-only'); END",
         );
+      }
+    },
+    onUpgrade: (m, from, to) async {
+      if (from < 2) {
+        await m.createTable(workouts);
+        await m.createTable(planDays);
+        await m.createTable(syncLog);
       }
     },
   );
@@ -208,4 +218,147 @@ class TempoDb extends _$TempoDb {
 
   Future<void> putSetting(String key, String value) => into(settings)
       .insertOnConflictUpdate(SettingsCompanion.insert(key: key, value: value));
+
+  Stream<String?> watchSetting(String key) => (select(
+    settings,
+  )..where((s) => s.key.equals(key))).watchSingleOrNull().map((r) => r?.value);
+
+  Future<void> deleteSetting(String key) =>
+      (delete(settings)..where((s) => s.key.equals(key))).go();
+
+  Stream<int> watchJournalDays() => customSelect(
+    'SELECT COUNT(DISTINCT date) AS n FROM journal',
+    readsFrom: {journal},
+  ).watchSingle().map((r) => r.read<int>('n'));
+
+  Stream<List<JournalData>> watchJournal() => select(journal).watch();
+
+  Stream<List<JournalData>> watchJournalFor(DateTime day) =>
+      (select(journal)..where((j) => j.date.equals(dateKey(day)))).watch();
+
+  Future<List<DailyScore>> scoresBetween(DateTime from, DateTime to) =>
+      (select(dailyScores)
+            ..where((d) => d.date.isBetweenValues(dateKey(from), dateKey(to)))
+            ..orderBy([(d) => OrderingTerm.asc(d.date)]))
+          .get();
+
+  Stream<DailyScore?> watchLatestScore() =>
+      (select(dailyScores)
+            ..orderBy([(d) => OrderingTerm.desc(d.date)])
+            ..limit(1))
+          .watchSingleOrNull();
+
+  Stream<List<SleepSession>> watchSleepSessions() =>
+      select(sleepSessions).watch();
+
+  Future<DateTime?> lastMinute() async {
+    final r = await customSelect('SELECT MAX(ts) AS t FROM minute_samples')
+        .getSingle();
+    final t = r.read<int?>('t');
+    return t == null ? null : fromTs(t);
+  }
+
+  Future<int> minuteCount(DateTime from, DateTime to) async {
+    final r = await customSelect(
+      'SELECT COUNT(*) AS n FROM minute_samples WHERE ts >= ? AND ts < ?',
+      variables: [Variable.withInt(toTs(from)), Variable.withInt(toTs(to))],
+    ).getSingle();
+    return r.read<int>('n');
+  }
+
+  // ---- workouts ------------------------------------------------------------
+
+  Future<int> addWorkout(WorkoutsCompanion w) => into(workouts).insert(w);
+
+  Future<void> updateWorkout(int id, WorkoutsCompanion w) =>
+      (update(workouts)..where((x) => x.id.equals(id))).write(w);
+
+  Future<void> deleteWorkout(int id) =>
+      (delete(workouts)..where((x) => x.id.equals(id))).go();
+
+  Future<Workout?> workout(int id) =>
+      (select(workouts)..where((x) => x.id.equals(id))).getSingleOrNull();
+
+  Stream<Workout?> watchWorkout(int id) =>
+      (select(workouts)..where((x) => x.id.equals(id))).watchSingleOrNull();
+
+  Future<List<Workout>> workoutsBetween(DateTime from, DateTime to) =>
+      (select(workouts)
+            ..where((x) => x.start.isBetweenValues(toTs(from), toTs(to) - 1))
+            ..orderBy([(x) => OrderingTerm.asc(x.start)]))
+          .get();
+
+  Stream<List<Workout>> watchWorkoutsBetween(DateTime from, DateTime to) =>
+      (select(workouts)
+            ..where((x) => x.start.isBetweenValues(toTs(from), toTs(to) - 1))
+            ..orderBy([(x) => OrderingTerm.asc(x.start)]))
+          .watch();
+
+  /// Replaces unconfirmed auto-detected workouts in [from, to) with [rows].
+  /// Live and confirmed ones stay; rows overlapping them are dropped.
+  Future<void> replaceAutoWorkouts(
+    DateTime from,
+    DateTime to,
+    List<WorkoutsCompanion> rows,
+  ) => transaction(() async {
+    await (delete(workouts)..where(
+          (x) =>
+              x.source.equals('auto') &
+              x.confirmed.equals(false) &
+              x.start.isBetweenValues(toTs(from), toTs(to) - 1),
+        ))
+        .go();
+    final kept = await workoutsBetween(
+      from.subtract(const Duration(hours: 6)),
+      to,
+    );
+    for (final r in rows) {
+      final s = r.start.value, e = r.end.value;
+      if (kept.any((k) => k.start < e && s < k.end)) continue;
+      await into(workouts).insert(r);
+    }
+  });
+
+  // ---- plan ----------------------------------------------------------------
+
+  Future<void> putPlanDay(PlanDaysCompanion p) =>
+      into(planDays).insertOnConflictUpdate(p);
+
+  Future<PlanDay?> planDay(DateTime day) => (select(
+    planDays,
+  )..where((p) => p.date.equals(dateKey(day)))).getSingleOrNull();
+
+  Future<List<PlanDay>> planBetween(DateTime from, DateTime to) =>
+      (select(planDays)
+            ..where((p) => p.date.isBetweenValues(dateKey(from), dateKey(to)))
+            ..orderBy([(p) => OrderingTerm.asc(p.date)]))
+          .get();
+
+  Stream<List<PlanDay>> watchPlanBetween(DateTime from, DateTime to) =>
+      (select(planDays)
+            ..where((p) => p.date.isBetweenValues(dateKey(from), dateKey(to)))
+            ..orderBy([(p) => OrderingTerm.asc(p.date)]))
+          .watch();
+
+  // ---- sync log ------------------------------------------------------------
+
+  Future<void> logSync(
+    String summary,
+    String result, {
+    Duration? took,
+    DateTime? at,
+  }) => into(syncLog).insert(
+    SyncLogCompanion.insert(
+      ts: toTs(at ?? DateTime.now()),
+      summary: summary,
+      result: result,
+      durationMs: Value(took?.inMilliseconds),
+    ),
+  );
+
+  Stream<List<SyncLogData>> watchSyncLog({int limit = 20}) =>
+      (select(syncLog)
+            ..orderBy([(l) => OrderingTerm.desc(l.ts)])
+            ..limit(limit))
+          .watch();
 }

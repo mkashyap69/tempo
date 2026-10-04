@@ -18,12 +18,17 @@ dependencies:
   path_provider: ^2.1.6
   drift: ^2.31.0
   drift_flutter: ^0.2.8
-  fl_chart: ^1.2.0
   workmanager: ^0.10.10
   store:
     path: ../packages/store
   scoring:
     path: ../packages/scoring
+  intl: ^0.20.3
+  share_plus: ^13.3.1
+  flutter_local_notifications: ^22.3.1
+  home_widget: ^0.10.0
+  timezone: ^0.11.1
+  flutter_timezone: ^5.1.1
 
 dev_dependencies:
   flutter_test:
@@ -32,3 +37,20 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  fonts:
+    - family: Geist
+      fonts:
+        - asset: assets/fonts/Geist-Light.ttf
+          weight: 300
+        - asset: assets/fonts/Geist-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Geist-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Geist-SemiBold.ttf
+          weight: 600
+    - family: GeistMono
+      fonts:
+        - asset: assets/fonts/GeistMono-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/GeistMono-Medium.ttf
+          weight: 500

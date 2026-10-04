@@ -187,4 +187,18 @@ void main() {
       isNot(contains('hex')),
     );
   });
+
+  test('battery parse: SIG byte 0, Huami byte 1, out of range ignored', () {
+    expect(parseBattery([64], huami: false), 64);
+    expect(parseBattery([0x0f, 82, 0, 0], huami: true), 82);
+    expect(parseBattery([200], huami: false), isNull);
+    expect(parseBattery([], huami: true), isNull);
+  });
+
+  test('chunk assembler reports payload length', () {
+    final a = ChunkAssembler()
+      ..add([0, 1, 2, 3])
+      ..add([1, 4]);
+    expect(a.length, 4);
+  });
 }

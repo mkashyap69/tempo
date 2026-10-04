@@ -25,3 +25,17 @@
 - 2026-10-04 · In that same capture, kind `0xf0` is the sleep block (HR every minute, ~0 steps, including a nap); `0xf9`/`0xfa` sit inside it; `0xf3` never has HR (off wrist). Algo version 2. All-day HR interval is a setting (1/10/30 min) written with the existing `14` command. TODO(verify) the band honors 10 and 30.
 - 2026-10-04 · Rewrite looked dead: the tap started a second connection (`android-2026-10-04T12-47-47`) with no dialog, auth timed out, then modern `82 00 02` got `10 83 07`. Chunked timeout no longer falls through. One band session is an exclusive lock file; the button shows a dialog.
 - 2026-10-04 · Home is a training decision (strain target from recovery color), not a metric dashboard. Friends, weather, and social stay out of v1.
+- 2026-10-04 · UI rebuilt from the Tempo design canvas (claude.ai artifact, 45 boards): dark-first neutrals, five semantic scales, Geist, tick-ladder meters. Tokens live in `app/lib/src/design/tokens.dart` as `TempoColors` / `TempoScales` ThemeExtensions; names follow the canvas (`--rec-high` → `recHigh`).
+- 2026-10-04 · Geist / Geist Mono are bundled as TTFs from the `geist` npm package (OFL, `app/assets/fonts/OFL.txt`). No runtime font fetching.
+- 2026-10-04 · Charts are CustomPainters drawn in the design's 520-unit view box (`design/chart.dart`); fl_chart removed.
+- 2026-10-04 · Schema v2 adds `workouts` (live + auto-detected), `plan_days` (coach plan, with the pre-adaptation session and reason) and `sync_log`. None are raw tables; migration only creates them.
+- 2026-10-04 · HR zones are % of max HR (Z1 50–60 … Z5 90–100), as on the design; max HR defaults to Tanaka 208 − 0.7·age and the profile value doubles as the scoring HR-max floor.
+- 2026-10-04 · Strain target by recovery replaces the v1 colour table in the UI: <50 → 8–12, 50–66 → 10–13, 67–79 → 13–16, 80–89 → 14–17, ≥90 → 15–18; ≤33 or overreaching → cap 8; calibrating → general 10–14. `targetStrain` stays for the backtest.
+- 2026-10-04 · Cardio load = mean daily TRIMP 7 d vs 28 d; status thresholds 0.8 / 1.0 / 1.3; "Learning" under 7 days.
+- 2026-10-04 · Coach plan: ≤ 2 hard sessions a week (1 for fat loss / wellbeing), ≥ 2 days apart, one rest day even with 7 days free. Morning adaptation runs once per day after the first sync with last night in it; ease-off swaps to the Z2 version, rest swaps to rest; a displaced hard session moves ≥ 48 h later onto an easy day, else is held as "carried".
+- 2026-10-04 · Auto-detected activities: ≥ 10 min of ≥ 60 % max HR or ≥ 90 steps/min, gaps ≤ 2 min. Sport guess from cadence and HR only, always shown as "Auto-detected" until confirmed. Re-detection never touches live or confirmed rows.
+- 2026-10-04 · Journal insights unlock at 30 check-ins; a tag needs ≥ 5 nights with and without; |diff| < 3 points = no clear effect.
+- 2026-10-04 · Battery read via SIG 2a19, else Huami 0006 byte 1; band buzz via SIG Immediate Alert 2a06 level 1. Both TODO(verify) until captured.
+- 2026-10-04 · Home-screen widgets via `home_widget`: Android AppWidget providers in Kotlin; iOS WidgetKit sources in `ios/TempoWidget` with the target to be added in Xcode (adding a target by hand-editing pbxproj is too fragile). App group `group.dev.tempo.tempo`.
+- 2026-10-04 · Notifications are local only (flutter_local_notifications): a daily morning call and tonight's bedtime nudge, rescheduled after every sync.
+- 2026-10-04 · The live workout session lives in a Riverpod notifier, not the screen, so it survives minimising; it holds the band lock and the open-time sync skips while it runs.

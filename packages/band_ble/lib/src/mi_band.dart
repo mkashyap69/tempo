@@ -286,18 +286,26 @@ class MiBand {
 
   /// Pairing-time configuration (PLAN.md → BLE layer step 5). Each write is
   /// attempted independently so one unsupported setting doesn't block the rest.
+  /// [onStep] is called before each write with its name ('time', 'user',
+  /// 'hr interval', 'sleep assist', 'stress'), then with `done` per result.
   Future<List<String>> configure(
     UserProfile profile, {
     int hrEveryMinutes = 1,
+    bool sleepAssist = true,
+    bool stress = true,
+    void Function(String name, {required bool done, bool ok})? onStep,
   }) async {
     final failed = <String>[];
     Future<void> step(String name, String uuid, List<int> bytes) async {
+      onStep?.call(name, done: false);
       try {
         if (!has(uuid)) throw BandException('missing $uuid');
         await _write(uuid, bytes);
+        onStep?.call(name, done: true, ok: true);
       } catch (e) {
         _info('configure $name failed: $e');
         failed.add(name);
+        onStep?.call(name, done: true, ok: false);
       }
     }
 
@@ -316,22 +324,39 @@ class MiBand {
       BandUuids.heartRateControlPoint,
       SettingsCommands.hrInterval(hrEveryMinutes),
     );
-    await step(
-      'sleep assist',
-      BandUuids.heartRateControlPoint,
-      SettingsCommands.sleepAssistOn,
-    );
-    await step('stress', BandUuids.config, SettingsCommands.stressMonitoringOn);
+    if (sleepAssist) {
+      await step(
+        'sleep assist',
+        BandUuids.heartRateControlPoint,
+        SettingsCommands.sleepAssistOn,
+      );
+    }
+    if (stress) {
+      await step(
+        'stress',
+        BandUuids.config,
+        SettingsCommands.stressMonitoringOn,
+      );
+    }
     return failed;
   }
 
   /// Fetches [type] records since [since]. Returns raw bytes; parse with the
   /// functions in fetch.dart.
-  Future<FetchResult> fetch(FetchType type, DateTime since) async {
+  /// [onProgress] gets (payload bytes so far, records the band announced).
+  Future<FetchResult> fetch(
+    FetchType type,
+    DateTime since, {
+    void Function(int bytes, int records)? onProgress,
+  }) async {
     final control = await _notifications(BandUuids.fetchControl);
     final data = await _notifications(BandUuids.activityData);
     final asm = ChunkAssembler();
-    final dataSub = data.listen(asm.add);
+    var announced = 0;
+    final dataSub = data.listen((p) {
+      asm.add(p);
+      onProgress?.call(asm.length, announced);
+    });
     try {
       final replyF = control
           .map(FetchStartReply.parse)
@@ -346,6 +371,8 @@ class MiBand {
         return FetchResult(type, null, Uint8List(0), 0, 0);
       }
       _info('fetch ${type.key}: ${reply.count} from ${reply.start}');
+      announced = reply.count;
+      onProgress?.call(0, announced);
       final doneF = control
           .map(parseTransferDone)
           .firstWhere((r) => r != null)
@@ -359,6 +386,45 @@ class MiBand {
     } finally {
       await dataSub.cancel();
     }
+  }
+
+  /// Battery percent, or null if neither characteristic answers.
+  Future<int?> readBattery() async {
+    for (final (uuid, huami) in [
+      (BandUuids.batteryLevel, false),
+      (BandUuids.huamiBattery, true),
+    ]) {
+      final c = _chars[Guid(uuid).str128];
+      if (c == null || !c.properties.read) continue;
+      try {
+        final v = await c.read();
+        log.record(
+          PacketEvent(
+            dir: PacketDir.rx,
+            characteristic: uuid,
+            bytes: v,
+            note: 'read',
+          ),
+        );
+        final pct = parseBattery(v, huami: huami);
+        if (pct != null) return pct;
+      } catch (e) {
+        _info('battery read $uuid failed: $e');
+      }
+    }
+    return null;
+  }
+
+  /// Short vibration on the band. Silently skipped if unsupported.
+  Future<void> buzz({bool strong = false}) async {
+    if (!has(BandUuids.alertLevel)) {
+      _info('buzz: no alert characteristic');
+      return;
+    }
+    await _write(
+      BandUuids.alertLevel,
+      strong ? AlertCommands.high : AlertCommands.mild,
+    );
   }
 
   /// Starts continuous HR measurement; emits BPM about once a second.

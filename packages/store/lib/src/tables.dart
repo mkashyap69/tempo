@@ -98,3 +98,44 @@ class Settings extends Table {
   @override
   Set<Column> get primaryKey => {key};
 }
+
+/// Workouts: sessions recorded live in the app, and activities auto-detected
+/// from minute samples. Derived or user-entered, never raw.
+class Workouts extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get start => integer()();
+  IntColumn get end => integer()();
+  TextColumn get sport =>
+      text().nullable()(); // scoring Sport name; null = unknown
+  TextColumn get title => text()();
+  TextColumn get source => text()(); // 'live' | 'auto'
+  BoolColumn get confirmed => boolean().withDefault(const Constant(false))();
+  RealColumn get strain => real()(); // day strain added by this session
+  RealColumn get trimp => real()();
+  IntColumn get avgHr => integer().nullable()();
+  IntColumn get maxHr => integer().nullable()();
+  TextColumn get zones => text()(); // JSON minutes per zone [z1..z5]
+  IntColumn get rpe => integer().nullable()();
+  TextColumn get plan => text().nullable()(); // JSON scoring Session if guided
+}
+
+/// The coach's plan, one row per day. Rewritten by the morning adaptation.
+class PlanDays extends Table {
+  TextColumn get date => text()();
+  TextColumn get session => text()(); // JSON scoring Session
+  TextColumn get original => text().nullable()(); // JSON before adaptation
+  TextColumn get reason => text().nullable()();
+  IntColumn get adaptedAt => integer().nullable()();
+  BoolColumn get general => boolean()();
+  @override
+  Set<Column> get primaryKey => {date};
+}
+
+/// One line per sync attempt, for Data health.
+class SyncLog extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get ts => integer()();
+  TextColumn get summary => text()();
+  TextColumn get result => text()(); // ok | retried | failed | gap
+  IntColumn get durationMs => integer().nullable()();
+}
