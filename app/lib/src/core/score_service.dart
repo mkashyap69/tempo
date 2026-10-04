@@ -8,6 +8,9 @@ import 'stages.dart';
 
 const hrMaxKey = 'hr_max';
 
+/// Minutes between all-day HR samples. 1, 10 or 30. See [SettingsCommands].
+const hrIntervalKey = 'hr_interval';
+
 /// Derives sleep sessions, daily scores and baselines from raw samples.
 class ScoreService {
   ScoreService(this.db);

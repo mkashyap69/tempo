@@ -27,8 +27,8 @@ class SyncService {
   final TempoDb db;
 
   /// Connects, syncs, disconnects. Used by the background job and Sync now.
-  Future<SyncReport> run() async {
-    final link = await BandLink.open(db);
+  Future<SyncReport> run({Duration wait = const Duration(seconds: 40)}) async {
+    final link = await BandLink.open(db, wait: wait);
     try {
       return await syncWith(link.band);
     } finally {

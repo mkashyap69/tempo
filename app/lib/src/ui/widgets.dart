@@ -134,7 +134,7 @@ class SimpleLine extends StatelessWidget {
             LineChartBarData(
               spots: points,
               color: color,
-              dotData: const FlDotData(show: false),
+              dotData: FlDotData(show: points.length < 2),
               isStepLineChart: step,
               barWidth: 2,
             ),
@@ -180,4 +180,117 @@ class Kv extends StatelessWidget {
       ],
     ),
   );
+}
+
+/// White card from the screenshot. [blob] paints the orange glow.
+class SoftCard extends StatelessWidget {
+  const SoftCard({
+    super.key,
+    required this.child,
+    this.onTap,
+    this.blob = false,
+    this.padding = const EdgeInsets.all(16),
+  });
+  final Widget child;
+  final VoidCallback? onTap;
+  final bool blob;
+  final EdgeInsets padding;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(24),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Stack(
+          children: [
+            if (blob)
+              const Positioned(
+                left: 0,
+                right: 0,
+                bottom: -28,
+                child: Center(child: _Glow()),
+              ),
+            Padding(padding: padding, child: child),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _Glow extends StatelessWidget {
+  const _Glow();
+  @override
+  Widget build(BuildContext context) => Container(
+    width: 110,
+    height: 70,
+    decoration: const BoxDecoration(
+      shape: BoxShape.circle,
+      gradient: RadialGradient(colors: [Color(0xBFFF5A1F), Color(0x00FF5A1F)]),
+    ),
+  );
+}
+
+/// Strain 0–21 with the recovery target band drawn on top.
+class StrainTrack extends StatelessWidget {
+  const StrainTrack({
+    super.key,
+    required this.strain,
+    required this.low,
+    required this.high,
+  });
+  final double strain, low, high;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 12,
+      child: CustomPaint(
+        painter: _TrackPainter(strain.clamp(0, 21), low, high),
+        child: const SizedBox.expand(),
+      ),
+    );
+  }
+}
+
+class _TrackPainter extends CustomPainter {
+  _TrackPainter(this.strain, this.low, this.high);
+  final double strain, low, high;
+
+  @override
+  void paint(Canvas c, Size s) {
+    final track = RRect.fromRectAndRadius(
+      Offset.zero & s,
+      const Radius.circular(6),
+    );
+    c.drawRRect(track, Paint()..color = const Color(0xFFEEEEF3));
+    final fillW = s.width * (strain / 21);
+    if (fillW > 0) {
+      c.save();
+      c.clipRRect(track);
+      c.drawRect(
+        Rect.fromLTWH(0, 0, fillW, s.height),
+        Paint()..color = const Color(0xFFFF5A1F),
+      );
+      c.restore();
+    }
+    final x0 = s.width * (low / 21);
+    final x1 = s.width * (high / 21);
+    c.drawRect(
+      Rect.fromLTRB(x0, 0, x1, s.height),
+      Paint()..color = const Color(0x33FF5A1F),
+    );
+    final tick = Paint()
+      ..color = const Color(0xFF111113)
+      ..strokeWidth = 2;
+    c.drawLine(Offset(x0, 0), Offset(x0, s.height), tick);
+    c.drawLine(Offset(x1, 0), Offset(x1, s.height), tick);
+  }
+
+  @override
+  bool shouldRepaint(_TrackPainter o) =>
+      o.strain != strain || o.low != low || o.high != high;
 }

@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'src/core/background.dart';
 import 'src/ui/home.dart';
+import 'src/ui/theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -27,12 +28,8 @@ class TempoApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) => MaterialApp(
     title: 'Tempo',
-    theme: ThemeData(colorSchemeSeed: Colors.teal, useMaterial3: true),
-    darkTheme: ThemeData(
-      colorSchemeSeed: Colors.teal,
-      useMaterial3: true,
-      brightness: Brightness.dark,
-    ),
+    theme: tempoTheme(),
+    darkTheme: tempoTheme(),
     home: const Home(),
   );
 }

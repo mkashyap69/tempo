@@ -22,6 +22,14 @@ final scoreProvider = StreamProvider.family<st.DailyScore?, DateTime>(
   (ref, day) => ref.watch(dbProvider).watchScore(day),
 );
 
+/// Steps from local midnight to the next midnight.
+final stepsProvider = StreamProvider.family<int, DateTime>((ref, day) {
+  final start = dayOf(day);
+  return ref
+      .watch(dbProvider)
+      .watchSteps(start, start.add(const Duration(days: 1)));
+});
+
 /// Scores for the last [days] days, oldest first.
 final recentScoresProvider = StreamProvider.family<List<st.DailyScore>, int>(
   (ref, days) => ref

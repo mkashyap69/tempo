@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'journal_screen.dart';
+import 'live_workout_screen.dart';
 import 'pairing_screen.dart';
 import 'providers.dart';
 import 'settings_screen.dart';
@@ -58,36 +58,75 @@ class _HomeState extends ConsumerState<Home> with WidgetsBindingObserver {
           WidgetsBinding.instance.addPostFrameCallback((_) => _maybeSync());
         }
         return Scaffold(
-          body: IndexedStack(
-            index: _tab,
-            children: const [
-              TodayScreen(),
-              TrendsScreen(),
-              JournalScreen(),
-              SettingsScreen(),
-            ],
-          ),
-          bottomNavigationBar: NavigationBar(
-            selectedIndex: _tab,
-            onDestinationSelected: (i) => setState(() => _tab = i),
-            destinations: const [
-              NavigationDestination(icon: Icon(Icons.today), label: 'Today'),
-              NavigationDestination(
-                icon: Icon(Icons.show_chart),
-                label: 'Trends',
+          body: Stack(
+            children: [
+              IndexedStack(
+                index: _tab,
+                children: const [
+                  TodayScreen(),
+                  TrendsScreen(),
+                  SettingsScreen(),
+                ],
               ),
-              NavigationDestination(
-                icon: Icon(Icons.edit_note),
-                label: 'Journal',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.settings),
-                label: 'Settings',
+              Positioned(
+                left: 20,
+                right: 20,
+                bottom: 18,
+                child: _Dock(
+                  tab: _tab,
+                  onTab: (i) => setState(() => _tab = i),
+                  onWorkout: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const LiveWorkoutScreen(),
+                    ),
+                  ),
+                ),
               ),
             ],
           ),
         );
       },
+    );
+  }
+}
+
+class _Dock extends StatelessWidget {
+  const _Dock({
+    required this.tab,
+    required this.onTab,
+    required this.onWorkout,
+  });
+  final int tab;
+  final ValueChanged<int> onTab;
+  final VoidCallback onWorkout;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget icon(IconData data, {bool on = false, VoidCallback? tap}) =>
+        IconButton(
+          onPressed: tap,
+          icon: Icon(
+            data,
+            color: on ? const Color(0xFF111113) : const Color(0xFF9C9CA8),
+          ),
+        );
+    return Material(
+      color: Colors.white,
+      elevation: 8,
+      shadowColor: const Color(0x14000000),
+      borderRadius: BorderRadius.circular(36),
+      child: SizedBox(
+        height: 64,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            icon(Icons.home_rounded, on: tab == 0, tap: () => onTab(0)),
+            icon(Icons.favorite_border, tap: onWorkout),
+            icon(Icons.grid_view_rounded, on: tab == 1, tap: () => onTab(1)),
+            icon(Icons.more_horiz, on: tab == 2, tap: () => onTab(2)),
+          ],
+        ),
+      ),
     );
   }
 }

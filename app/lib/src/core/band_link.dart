@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:band_ble/band_ble.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:store/store.dart';
 
 import 'key_store.dart';
@@ -12,30 +15,44 @@ class NotPairedException implements Exception {
   String toString() => 'No band paired yet.';
 }
 
+class BandBusyException implements Exception {
+  @override
+  String toString() => 'The band is already in use. Wait for sync to finish.';
+}
+
 /// A connected, authenticated band plus its packet log for this session.
 class BandLink {
-  BandLink._(this.band, this.log);
+  BandLink._(this.band, this.log, this._lock);
 
   final MiBand band;
   final PacketFileLog log;
+  final File _lock;
 
   /// Connects to the paired band and authenticates.
-  static Future<BandLink> open(TempoDb db, {KeyStore? keys}) async {
+  /// One session at a time: the UI sync and the background job share the radio.
+  static Future<BandLink> open(
+    TempoDb db, {
+    KeyStore? keys,
+    Duration wait = const Duration(seconds: 40),
+  }) async {
     final id = await db.setting(deviceIdKey);
     final key = await (keys ?? KeyStore()).load();
     if (id == null || key == null) throw NotPairedException();
+    final docs = await getApplicationDocumentsDirectory();
+    final lock = await _acquireLock(File('${docs.path}/band.lock'), wait);
     final log = await PacketFileLog.open();
     final band = MiBand.fromId(id, log: log);
     try {
       await band.connect();
       await band.readFirmware(); // logged on every connect (PLAN.md → Risks)
       await band.authenticate(key);
-      return BandLink._(band, log);
+      return BandLink._(band, log, lock);
     } catch (_) {
       try {
         await band.disconnect();
       } catch (_) {}
       await log.close();
+      await _releaseLock(lock);
       rethrow;
     }
   }
@@ -45,6 +62,39 @@ class BandLink {
       await band.disconnect();
     } finally {
       await log.close();
+      await _releaseLock(_lock);
     }
   }
+}
+
+/// Exclusive create. flock() did not keep the background job off the radio.
+Future<File> _acquireLock(File f, Duration wait) async {
+  final deadline = DateTime.now().add(wait);
+  while (true) {
+    try {
+      final created = await f.create(exclusive: true);
+      await created.writeAsString(DateTime.now().toIso8601String());
+      return created;
+    } on FileSystemException {
+      DateTime? modified;
+      try {
+        modified = await f.lastModified();
+      } catch (_) {}
+      if (modified != null &&
+          DateTime.now().difference(modified) > const Duration(minutes: 3)) {
+        try {
+          await f.delete();
+        } catch (_) {}
+        continue;
+      }
+      if (!DateTime.now().isBefore(deadline)) throw BandBusyException();
+      await Future<void>.delayed(const Duration(milliseconds: 400));
+    }
+  }
+}
+
+Future<void> _releaseLock(File f) async {
+  try {
+    if (await f.exists()) await f.delete();
+  } catch (_) {}
 }

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/widgets.dart';
 import 'package:workmanager/workmanager.dart';
 
+import 'band_link.dart';
 import 'db.dart';
 import 'sync_service.dart';
 
@@ -15,8 +16,10 @@ void backgroundDispatcher() {
     WidgetsFlutterBinding.ensureInitialized();
     final db = openDb();
     try {
-      await SyncService(db).run();
+      await SyncService(db).run(wait: const Duration(seconds: 2));
       return true;
+    } on BandBusyException {
+      return true; // a foreground sync holds the band; do not stack retries
     } catch (e) {
       debugPrint('background sync failed: $e');
       return false; // WorkManager retries with backoff

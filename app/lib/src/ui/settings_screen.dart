@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:store/store.dart' as st;
 
+import 'package:band_ble/band_ble.dart';
+
 import '../core/band_link.dart';
 import '../core/export.dart';
 import '../core/key_store.dart';
 import '../core/profile.dart';
 import '../core/score_service.dart';
 import 'format.dart';
+import 'journal_screen.dart';
 import 'providers.dart';
 import 'widgets.dart';
 
@@ -18,10 +21,60 @@ final _syncStateProvider = StreamProvider<List<st.SyncStateData>>(
 final _settingsProvider = FutureProvider<Map<String, String?>>((ref) async {
   final db = ref.watch(dbProvider);
   return {
-    for (final k in [hrMaxKey, deviceIdKey, deviceNameKey, 'last_sync'])
+    for (final k in [
+      hrMaxKey,
+      hrIntervalKey,
+      deviceIdKey,
+      deviceNameKey,
+      'last_sync',
+    ])
       k: await db.setting(k),
   };
 });
+
+/// Blocks the screen until [body] finishes, then shows the message.
+/// A snackbar was easy to miss, so Rewrite looked like a dead button.
+Future<void> _showBandResult(
+  BuildContext context,
+  Future<String> Function() body,
+) async {
+  showDialog<void>(
+    context: context,
+    barrierDismissible: false,
+    builder: (c) => const PopScope(
+      canPop: false,
+      child: AlertDialog(
+        content: Row(
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(width: 16),
+            Expanded(child: Text('Connecting to the band…')),
+          ],
+        ),
+      ),
+    ),
+  );
+  String message;
+  try {
+    message = await body();
+  } catch (e) {
+    message = '$e';
+  }
+  if (!context.mounted) return;
+  Navigator.of(context).pop();
+  await showDialog<void>(
+    context: context,
+    builder: (c) => AlertDialog(
+      content: Text(message),
+      actions: [
+        FilledButton(
+          onPressed: () => Navigator.pop(c),
+          child: const Text('OK'),
+        ),
+      ],
+    ),
+  );
+}
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -58,36 +111,40 @@ class SettingsScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 108),
         children: [
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Journal'),
+            subtitle: const Text('Morning tags'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.of(context)
+                .push(MaterialPageRoute(builder: (_) => const JournalScreen())),
+          ),
           Section('Band', [
             Kv('Name', settings[deviceNameKey] ?? '–'),
             Kv('ID', settings[deviceIdKey] ?? '–'),
             const SizedBox(height: 8),
             OutlinedButton(
-              onPressed: () async {
+              onPressed: () => _showBandResult(context, () async {
+                final profile = await loadProfile(db);
+                if (profile == null) return 'No profile saved. Re-pair.';
+                final every = int.tryParse(settings[hrIntervalKey] ?? '') ?? 1;
+                final link = await BandLink.open(db);
                 try {
-                  final profile = await loadProfile(db);
-                  if (profile == null) {
-                    return toast('No profile saved. Re-pair.');
-                  }
-                  final link = await BandLink.open(db);
-                  try {
-                    final failed = await link.band.configure(profile);
-                    toast(
-                      failed.isEmpty
-                          ? 'Band settings written.'
-                          : 'Failed: ${failed.join(', ')}',
-                    );
-                  } finally {
-                    await link.close();
-                  }
-                } catch (e) {
-                  toast('$e');
+                  final failed = await link.band.configure(
+                    profile,
+                    hrEveryMinutes: every,
+                  );
+                  return failed.isEmpty
+                      ? 'Band settings written.'
+                      : 'Not written: ${failed.join(', ')}';
+                } finally {
+                  await link.close();
                 }
-              },
+              }),
               child: const Text(
-                'Rewrite band settings (time, HR 1 min, sleep assist, stress)',
+                'Rewrite band settings (time, HR interval, sleep assist, stress)',
               ),
             ),
             OutlinedButton(
@@ -124,6 +181,46 @@ class SettingsScreen extends ConsumerWidget {
                   ? null
                   : () => ref.read(syncProvider.notifier).syncNow(),
               child: const Text('Sync now'),
+            ),
+          ]),
+          Section('All-day heart rate', [
+            const Text(
+              'History stores one heart-rate slot per minute. The band fills '
+              'a slot only when it measures. 1 min is the finest that log can '
+              'hold. The Workout button is a separate stream, about one '
+              'reading per second, and does not fill this log.',
+            ),
+            const SizedBox(height: 8),
+            SegmentedButton<int>(
+              segments: [
+                for (final m in SettingsCommands.hrIntervalChoices)
+                  ButtonSegment(value: m, label: Text('$m min')),
+              ],
+              selected: {int.tryParse(settings[hrIntervalKey] ?? '') ?? 1},
+              onSelectionChanged: (s) async {
+                final minutes = s.first;
+                await db.putSetting(hrIntervalKey, '$minutes');
+                ref.invalidate(_settingsProvider);
+                if (!context.mounted) return;
+                await _showBandResult(context, () async {
+                  final profile = await loadProfile(db);
+                  if (profile == null) {
+                    return 'Saved. Re-pair to write it to the band.';
+                  }
+                  final link = await BandLink.open(db);
+                  try {
+                    final failed = await link.band.configure(
+                      profile,
+                      hrEveryMinutes: minutes,
+                    );
+                    return failed.isEmpty
+                        ? 'Measuring every $minutes min.'
+                        : 'Saved. Not written: ${failed.join(', ')}';
+                  } finally {
+                    await link.close();
+                  }
+                });
+              },
             ),
           ]),
           Section('Heart rate max', [
