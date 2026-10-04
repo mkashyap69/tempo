@@ -106,6 +106,13 @@ class TempoDb extends _$TempoDb {
     return t == null ? null : fromTs(t);
   }
 
+  /// Step count in [from, to). Local day bounds, same clock as [dateKey].
+  Stream<int> watchSteps(DateTime from, DateTime to) => customSelect(
+    'SELECT COALESCE(SUM(steps), 0) AS steps FROM minute_samples WHERE ts >= ? AND ts < ?',
+    variables: [Variable.withInt(toTs(from)), Variable.withInt(toTs(to))],
+    readsFrom: {minuteSamples},
+  ).watchSingle().map((r) => r.read<int>('steps'));
+
   // ---- derived -----------------------------------------------------------
 
   Future<void> upsertScore(DailyScoresCompanion row) =>
