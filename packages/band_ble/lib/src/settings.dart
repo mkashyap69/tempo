@@ -53,6 +53,10 @@ abstract final class SettingsCommands {
   }
 
   /// HR control point: all-day HR measurement interval in minutes. TODO(verify)
+  /// The activity log still has one slot per minute; this is how often a
+  /// slot is filled. 1 is the finest. Live workout HR is a separate stream.
+  static const hrIntervalChoices = [1, 10, 30];
+
   static Uint8List hrInterval(int minutes) =>
       Uint8List.fromList([0x14, minutes]);
 

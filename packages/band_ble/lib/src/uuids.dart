@@ -30,6 +30,11 @@ abstract final class BandUuids {
   static const userSettings =
       '00000008-0000-3512-2118-0009af100700'; // TODO(verify)
   static final currentTime = _sig('2a2b'); // TODO(verify)
+
+  // Chunked transfer. Present on the V1.0.6.20 GATT dump (2026-10-04).
+  static const chunkedWrite =
+      '00000016-0000-3512-2118-0009af100700'; // TODO(verify) auth bytes
+  static const chunkedRead = '00000017-0000-3512-2118-0009af100700';
 }
 
 /// Advertised names we accept in the scan list. TODO(verify) against a scan.

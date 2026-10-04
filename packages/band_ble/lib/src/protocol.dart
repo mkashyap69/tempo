@@ -10,6 +10,10 @@ import 'dart:typed_data';
 /// Auth handshake variant. Which one the band speaks depends on firmware;
 /// the spike tries [modern] first and falls back to [legacy].
 enum AuthVariant {
+  /// sect163r2 handshake on the chunked characteristics. A prime-field
+  /// point was rejected with status 0x28. TODO(verify) a successful capture.
+  chunked(requestRandom: [0x04, 0x02, 0x00, 0x02], sendKeyPrefix: [0x05]),
+
   /// Opcodes with the high bit set. TODO(verify)
   modern(requestRandom: [0x82, 0x00, 0x02], sendKeyPrefix: [0x83, 0x00]),
 
@@ -88,3 +92,81 @@ abstract final class HrCommands {
 
 String hex(List<int> bytes) =>
     bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+
+/// Splits [data] into chunked-transfer writes (characteristic 0016).
+/// Default ATT MTU is 23, which is what the band speaks before a request.
+List<Uint8List> chunkedPackets(int handle, List<int> data, {int attMtu = 23}) {
+  final packets = <Uint8List>[];
+  var offset = 0;
+  var count = 0;
+  while (offset < data.length) {
+    final first = count == 0;
+    final header = first ? 11 : 5;
+    final room = attMtu - 3 - header;
+    final n = data.length - offset < room ? data.length - offset : room;
+    final last = offset + n == data.length;
+    final chunk = Uint8List(header + n);
+    chunk[0] = 0x03;
+    chunk[1] = (first ? 0x01 : 0) | (last ? 0x06 : 0);
+    chunk[2] = 0;
+    chunk[3] = handle & 0xff;
+    chunk[4] = count & 0xff;
+    if (first) {
+      final len = data.length;
+      chunk[5] = len & 0xff;
+      chunk[6] = (len >> 8) & 0xff;
+      chunk[7] = (len >> 16) & 0xff;
+      chunk[8] = (len >> 24) & 0xff;
+      chunk[9] = 0x82;
+      chunk[10] = 0x00;
+    }
+    chunk.setRange(header, header + n, data, offset);
+    packets.add(chunk);
+    offset += n;
+    count++;
+  }
+  return packets;
+}
+
+/// Reassembles the band's chunked auth replies on characteristic 0017.
+final class ChunkedAuthReader {
+  final _buf = BytesBuilder(copy: false);
+  int? _expected;
+  var _sawChallenge = false;
+
+  Uint8List get bytes => _buf.toBytes();
+
+  /// `'challenge'` once 16 random + 48 public bytes are in, `'ok'` on
+  /// success, `'fail'` on any other final status, null while incomplete.
+  String? add(List<int> data) {
+    if (data.length < 5 || data[0] != 0x03) return null;
+    final seq = data[4];
+    final marked =
+        data.length >= 14 &&
+        data[9] == 0x82 &&
+        data[10] == 0x00 &&
+        data[11] == 0x10;
+    if (seq == 0 && marked && data[12] == 0x04) {
+      if (data[13] != 0x01) return 'fail';
+      final len = data[5] | (data[6] << 8) | (data[7] << 16) | (data[8] << 24);
+      _expected = len - 3;
+      _buf.clear();
+      if (data.length > 14) _buf.add(data.sublist(14));
+    } else if (seq == 0 && marked && data[12] == 0x05) {
+      return data[13] == 0x01 ? 'ok' : 'fail';
+    } else if (seq > 0) {
+      _buf.add(data.sublist(5));
+    }
+    if (_expected != null && _buf.length >= _expected! && !_sawChallenge) {
+      _sawChallenge = true;
+      return 'challenge';
+    }
+    return null;
+  }
+
+  void reset() {
+    _expected = null;
+    _sawChallenge = false;
+    _buf.clear();
+  }
+}

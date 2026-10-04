@@ -152,12 +152,24 @@ class MiBand {
     AuthKey key, {
     List<AuthVariant> variants = AuthVariant.values,
   }) async {
+    if (variants.contains(AuthVariant.chunked) &&
+        has(BandUuids.chunkedRead) &&
+        has(BandUuids.chunkedWrite)) {
+      _info('auth: trying chunked');
+      if (await _authenticateChunked(key)) return AuthVariant.chunked;
+      // A timed-out chunked handshake must not fall through. Modern `82 00 02`
+      // on this firmware answers `10 83 07` and the band shows "update the app".
+      throw BandException(
+        'Band did not finish auth. Move it closer and try again.',
+      );
+    }
     final responses = (await _notifications(BandUuids.auth))
         .map(AuthResponse.parse)
         .where((r) => r != null)
         .cast<AuthResponse>()
         .asBroadcastStream();
-    for (final variant in variants) {
+    AuthResponse? rejected;
+    for (final variant in variants.where((v) => v != AuthVariant.chunked)) {
       _info('auth: trying ${variant.name}');
       final challengeF = responses
           .firstWhere((r) => r.opcode == variant.requestOpcode)
@@ -189,14 +201,95 @@ class MiBand {
         _info('auth: OK via ${variant.name}');
         return variant;
       }
-      throw BandException('band rejected key ($done). Wrong or stale key?');
+      // Status other than success after a real challenge. Sending the
+      // legacy opcode next makes firmware V1.0.6.20 show "update the app".
+      rejected = done;
+      _info('auth: ${variant.name} rejected key: $done');
+      break;
+    }
+    if (rejected != null) {
+      throw BandException('band rejected key ($rejected). Wrong or stale key?');
     }
     throw BandException('no auth variant got a challenge from the band');
   }
 
+  /// Firmware V1.0.6.x auth on characteristics 0016/0017. TODO(verify).
+  Future<bool> _authenticateChunked(AuthKey key) async {
+    final incoming = await _notifications(BandUuids.chunkedRead);
+    final reader = ChunkedAuthReader();
+    final queued = <String>[];
+    final poke = StreamController<void>.broadcast();
+    final sub = incoming.listen((data) {
+      final step = reader.add(data);
+      if (step == null) return;
+      queued.add(step);
+      poke.add(null);
+    });
+    Future<String> next() async {
+      while (queued.isEmpty) {
+        await poke.stream.first.timeout(const Duration(seconds: 20));
+      }
+      return queued.removeAt(0);
+    }
+
+    try {
+      final ecdh = HuamiEcdh.generate();
+      final hello = Uint8List.fromList([
+        0x04,
+        0x02,
+        0x00,
+        0x02,
+        ...ecdh.publicBytes,
+      ]);
+      for (final packet in chunkedPackets(0, hello)) {
+        await _write(BandUuids.chunkedWrite, packet);
+      }
+      final step = await next();
+      if (step == 'fail') {
+        throw BandException('chunked auth rejected');
+      }
+      if (step != 'challenge') {
+        _info('auth: chunked first reply was $step');
+        return false;
+      }
+      final body = reader.bytes;
+      if (body.length < 64) {
+        _info('auth: chunked challenge is ${body.length}B');
+        return false;
+      }
+      final reply = ecdh.secondCommand(
+        key,
+        Uint8List.sublistView(body, 0, 16),
+        Uint8List.sublistView(body, 16, 64),
+      );
+      reader.reset();
+      final resultF = next();
+      for (final packet in chunkedPackets(1, reply)) {
+        await _write(BandUuids.chunkedWrite, packet);
+      }
+      final result = await resultF;
+      _info('auth: chunked result $result');
+      return result == 'ok';
+    } on BandException {
+      rethrow;
+    } on TimeoutException {
+      _info('auth: chunked timed out');
+      return false;
+    } catch (e) {
+      _info('auth: chunked failed: $e');
+      return false;
+    } finally {
+      await sub.cancel();
+      await poke.close();
+    }
+  }
+
   /// Pairing-time configuration (PLAN.md → BLE layer step 5). Each write is
   /// attempted independently so one unsupported setting doesn't block the rest.
-  Future<List<String>> configure(UserProfile profile) async {
+  Future<List<String>> configure(
+    UserProfile profile, {
+    int hrEveryMinutes = 1,
+  }) async {
     final failed = <String>[];
     Future<void> step(String name, String uuid, List<int> bytes) async {
       try {
@@ -221,7 +314,7 @@ class MiBand {
     await step(
       'hr interval',
       BandUuids.heartRateControlPoint,
-      SettingsCommands.hrInterval(1),
+      SettingsCommands.hrInterval(hrEveryMinutes),
     );
     await step(
       'sleep assist',

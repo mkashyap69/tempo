@@ -1,0 +1,40 @@
+{"ts":"2026-10-03T11:07:06.649877Z","dir":"info","note":"connect 5F:A4:DB:E7:5B:87 \"1EM4HX-Find My\""}
+{"ts":"2026-10-03T11:07:07.921764Z","dir":"info","note":"service 00001800-0000-1000-8000-00805f9b34fb"}
+{"ts":"2026-10-03T11:07:07.922784Z","dir":"info","note":"  char 00002a00-0000-1000-8000-00805f9b34fb [read,write]"}
+{"ts":"2026-10-03T11:07:07.922883Z","dir":"info","note":"  char 00002a01-0000-1000-8000-00805f9b34fb [read,write]"}
+{"ts":"2026-10-03T11:07:07.922931Z","dir":"info","note":"  char 00002aa6-0000-1000-8000-00805f9b34fb [read]"}
+{"ts":"2026-10-03T11:07:07.922973Z","dir":"info","note":"  char 00002bf5-0000-1000-8000-00805f9b34fb [read]"}
+{"ts":"2026-10-03T11:07:07.923014Z","dir":"info","note":"  char 00002a04-0000-1000-8000-00805f9b34fb [read]"}
+{"ts":"2026-10-03T11:07:07.923040Z","dir":"info","note":"service 00001801-0000-1000-8000-00805f9b34fb"}
+{"ts":"2026-10-03T11:07:07.923075Z","dir":"info","note":"  char 00002a05-0000-1000-8000-00805f9b34fb [indicate]"}
+{"ts":"2026-10-03T11:07:07.923224Z","dir":"info","note":"  char 00002b29-0000-1000-8000-00805f9b34fb [read,write]"}
+{"ts":"2026-10-03T11:07:07.923290Z","dir":"info","note":"  char 00002b3a-0000-1000-8000-00805f9b34fb [read]"}
+{"ts":"2026-10-03T11:07:07.923337Z","dir":"info","note":"  char 00002b2a-0000-1000-8000-00805f9b34fb [read]"}
+{"ts":"2026-10-03T11:07:07.923360Z","dir":"info","note":"service 00001804-0000-1000-8000-00805f9b34fb"}
+{"ts":"2026-10-03T11:07:07.923396Z","dir":"info","note":"  char 00002a07-0000-1000-8000-00805f9b34fb [read]"}
+{"ts":"2026-10-03T11:07:07.923417Z","dir":"info","note":"service 0000fd44-0000-1000-8000-00805f9b34fb"}
+{"ts":"2026-10-03T11:07:07.923469Z","dir":"info","note":"  char 4f860001-943b-49ef-bed4-2f730304427a [read,write,indicate]"}
+{"ts":"2026-10-03T11:07:07.923530Z","dir":"info","note":"  char 4f860002-943b-49ef-bed4-2f730304427a [read,write,indicate]"}
+{"ts":"2026-10-03T11:07:07.923596Z","dir":"info","note":"  char 4f860003-943b-49ef-bed4-2f730304427a [read,write,indicate]"}
+{"ts":"2026-10-03T11:07:07.923670Z","dir":"info","note":"  char 4f860004-943b-49ef-bed4-2f730304427a [read,write,indicate]"}
+{"ts":"2026-10-03T11:07:07.923692Z","dir":"info","note":"service 0000be80-0000-1000-8000-00805f9b34fb"}
+{"ts":"2026-10-03T11:07:07.923732Z","dir":"info","note":"  char 0000be81-0000-1000-8000-00805f9b34fb [read,write,writeNoResp]"}
+{"ts":"2026-10-03T11:07:07.923773Z","dir":"info","note":"  char 0000be82-0000-1000-8000-00805f9b34fb [notify]"}
+{"ts":"2026-10-03T11:07:07.923794Z","dir":"info","note":"service 0000b000-0000-1000-8000-00805f9b34fb"}
+{"ts":"2026-10-03T11:07:07.923834Z","dir":"info","note":"  char 0000b001-0000-1000-8000-00805f9b34fb [read,write,writeNoResp]"}
+{"ts":"2026-10-03T11:07:07.923874Z","dir":"info","note":"  char 0000b002-0000-1000-8000-00805f9b34fb [notify]"}
+{"ts":"2026-10-03T11:07:07.923898Z","dir":"info","note":"service 66666666-6666-6666-6666-666666666666"}
+{"ts":"2026-10-03T11:07:07.923979Z","dir":"info","note":"  char 77777777-7777-7777-7777-777777777777 [write,writeNoResp,notify]"}
+{"ts":"2026-10-03T11:07:07.924006Z","dir":"info","note":"service 87290102-3c51-43b1-a1a9-11b9dc38478b"}
+{"ts":"2026-10-03T11:07:07.924097Z","dir":"info","note":"  char 6aa50001-6352-4d57-a7b4-003a416fbb0b [read]"}
+{"ts":"2026-10-03T11:07:07.924194Z","dir":"info","note":"  char 6aa50002-6352-4d57-a7b4-003a416fbb0b [read]"}
+{"ts":"2026-10-03T11:07:07.924340Z","dir":"info","note":"  char 6aa50003-6352-4d57-a7b4-003a416fbb0b [read]"}
+{"ts":"2026-10-03T11:07:07.924487Z","dir":"info","note":"  char 6aa50004-6352-4d57-a7b4-003a416fbb0b [read]"}
+{"ts":"2026-10-03T11:07:07.924630Z","dir":"info","note":"  char 6aa50005-6352-4d57-a7b4-003a416fbb0b [read]"}
+{"ts":"2026-10-03T11:07:07.924764Z","dir":"info","note":"  char 6aa50006-6352-4d57-a7b4-003a416fbb0b [read]"}
+{"ts":"2026-10-03T11:07:07.924905Z","dir":"info","note":"  char 6aa50007-6352-4d57-a7b4-003a416fbb0b [read]"}
+{"ts":"2026-10-03T11:07:07.925053Z","dir":"info","note":"  char 6aa50008-6352-4d57-a7b4-003a416fbb0b [read]"}
+{"ts":"2026-10-03T11:07:07.925210Z","dir":"info","note":"  char 6aa50009-6352-4d57-a7b4-003a416fbb0b [read]"}
+{"ts":"2026-10-03T11:07:07.925374Z","dir":"info","note":"  char 6aa5000a-6352-4d57-a7b4-003a416fbb0b [read]"}
+{"ts":"2026-10-03T11:07:07.925550Z","dir":"info","note":"firmware \"\""}
+{"ts":"2026-10-03T11:07:07.931066Z","dir":"info","note":"disconnect"}

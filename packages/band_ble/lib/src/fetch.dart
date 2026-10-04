@@ -30,8 +30,20 @@ abstract final class FetchCommands {
   /// from the band, so the sync does not send it until verified.
   static final ack = Uint8List.fromList([0x03, 0x09]); // TODO(verify)
 
-  static Uint8List start(FetchType t, DateTime since) =>
-      Uint8List.fromList([startOpcode, t.code, ...encodeBandTime(since)]);
+  /// `01 | type | year u16 LE | month | day | hour | minute | second | tz`.
+  /// [encodeBandTime] has no seconds byte; this inserts it before tz.
+  /// A 7-byte time (tz where the second should be) got `10 01 02` on
+  /// V1.0.6.20. TODO(verify)
+  static Uint8List start(FetchType t, DateTime since) {
+    final time = encodeBandTime(since);
+    return Uint8List.fromList([
+      startOpcode,
+      t.code,
+      ...time.sublist(0, 6),
+      since.toLocal().second,
+      time[6],
+    ]);
+  }
 }
 
 /// `year u16 LE, month, day, hour, minute, tz` where tz is the UTC offset in
@@ -79,8 +91,26 @@ final class FetchStartReply {
     if (d[2] != 0x01 || d.length < 7)
       return const FetchStartReply(false, 0, null);
     final count = d[3] | (d[4] << 8) | (d[5] << 16) | (d[6] << 24);
-    return FetchStartReply(true, count, decodeBandTime(d, 7));
+    return FetchStartReply(true, count, decodeFetchTime(d, 7));
   }
+}
+
+/// Fetch replies use `year u16 LE, month, day, hour, minute, second, tz`.
+/// [decodeBandTime] is the 7-byte form (no seconds). TODO(verify) spo2 still
+/// uses that shorter form.
+DateTime? decodeFetchTime(List<int> b, [int offset = 0]) {
+  if (b.length < offset + 8) return null;
+  final year = b[offset] | (b[offset + 1] << 8);
+  final tz = b[offset + 7].toSigned(8);
+  final utc = DateTime.utc(
+    year,
+    b[offset + 2],
+    b[offset + 3],
+    b[offset + 4],
+    b[offset + 5],
+    b[offset + 6],
+  ).subtract(Duration(minutes: tz * 15));
+  return utc.toLocal();
 }
 
 /// `[0x10, 0x02, status]` once the band has sent everything. TODO(verify)
@@ -114,9 +144,11 @@ final class ActivityRecord {
   final int? hr;
 }
 
-/// Activity: 4 bytes per minute `kind, intensity, steps, hr` with hr 0xff or
-/// 0 meaning no reading. TODO(verify) — newer firmware may use a wider record.
-const activityRecordSize = 4; // TODO(verify)
+/// Activity on V1.0.6.20: 8 bytes per minute. The first four match the older
+/// layout `kind, intensity, steps, hr` (hr 0xff or 0 means no reading).
+/// Bytes 4–7 are still TODO(verify); `android-2026-10-04T12-33-07` is
+/// 13728 bytes / 1716 records.
+const activityRecordSize = 8;
 
 List<ActivityRecord> parseActivity(Uint8List data, DateTime start) {
   final out = <ActivityRecord>[];
@@ -172,7 +204,14 @@ const sleepKinds = <int, String>{
   0x7b: 'deep', // TODO(verify)
   0x79: 'deep', // TODO(verify)
   0x6e: 'rem', // TODO(verify)
+  // android-2026-10-04T12-33-07: 0xf0 runs for hours with HR every minute
+  // and ~0 steps (night and a nap). 0xf9/0xfa sit inside those runs.
+  // Stage split is still TODO(verify); counted as light so the night exists.
+  0xf0: 'light',
+  0xf9: 'light',
+  0xfa: 'light',
 };
 
 /// Codes meaning "not worn". TODO(verify)
-const notWornKinds = {0x73, 0x0f}; // TODO(verify)
+/// 0xf3 in that capture is 245 minutes with no HR sample at all.
+const notWornKinds = {0x73, 0x0f, 0xf3}; // TODO(verify)

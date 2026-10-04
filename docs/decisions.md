@@ -4,6 +4,7 @@
 - 2026-10-03 · BLE: flutter_blue_plus 2.x with `License.nonprofit` (personal, non-commercial use).
 - 2026-10-03 · AES-128 for the auth handshake via `pointycastle` (MIT); tested against the FIPS-197 vector.
 - 2026-10-03 · Auth tries the "modern" (0x82/0x83) variant first, falls back to legacy (0x02/0x03). Revisit once firmware → variant is confirmed from captures.
+- 2026-10-03 · A rejected modern key reply (firmware V1.0.6.20 answered `10 83 07`) still falls through to legacy. Debug loads re-write `BAND_AUTH_KEY` into secure storage.
 - 2026-10-03 · Dev key path: debug builds run with `--dart-define-from-file=../.env` seed secure storage once. This compiles the key into the *debug* binary only; release builds ignore it and take a pasted key. Never distribute a debug build.
 - 2026-10-03 · Packet logs are JSONL written in the app's documents dir and pulled into `docs/packets/` with `tools/pull_packets.sh`. The encrypted auth reply is redacted.
 - 2026-10-03 · Owner overrode the phase gates: Phases 0–4 built back to back, tested on hardware at the end. Every protocol detail stays `TODO(verify)` until captures confirm it.
@@ -16,3 +17,11 @@
 - 2026-10-03 · Background: WorkManager every 3 h on Android; iOS BGAppRefresh (tempo.sync) + bluetooth-central + CoreBluetooth state restoration, plus sync on open/resume.
 - 2026-10-03 · Keychain accessibility = after first unlock (this device only) so background sync can read the key while locked.
 - 2026-10-03 · Workout foreground service on Android deferred; live workout requires the screen to stay open.
+- 2026-10-04 · Band software revision (2a28) is V1.0.6.20; 2a26 is absent. Auth prefixes confirmed in `android-2026-10-03T11-11-09`: `82 00 02` → `10 82 01` + 16B and `02 00` → `10 02 01` + 16B; both encrypted replies returned status `07`. The logged Mi Fitness `authKey` matches `.env`. MAC is `FD:BE:07:41:71:2B`. Legacy opcode `02 00` is what makes this firmware show "update the app", so a rejected modern reply no longer falls through to it.
+- 2026-10-04 · V1.0.6.20 chunked auth on `0016`/`0017` rejected a secp192r1 point with `10 04 28`. The curve is sect163r2 (NIST B-163). A known scalar now matches that public key. TODO(verify) the live handshake.
+- 2026-10-04 · Chunked step 2 in `android-2026-10-04T12-20-26` got no `10 05` reply: the band had already accepted the public key (`10 04 01`), then the phone spent ~13s inverting the field on every point add before sending the session reply. Scalar mul is now 32-bit carryless limbs and Lopez-Dahab (one inverse). TODO(verify) the live `10 05 01`.
+- 2026-10-04 · Live chunked auth succeeded in `android-2026-10-04T12-27-49`: `10 04 01` then `10 05 01` 51ms after the session reply. Fetch start without a seconds byte was answered `10 01 02`.
+- 2026-10-04 · `android-2026-10-04T12-33-07`: fetch start with a seconds byte got `10 01 01`, count 1716, then `10 02 01` and 13728 activity bytes (8 per minute). Reply time is `year, month, day, hour, minute, second, tz`. Stress and spo2 returned count 0. The first parse stored 4-byte slices (3432 rows, clock shifted +5:30); clear the DB before trusting scores.
+- 2026-10-04 · In that same capture, kind `0xf0` is the sleep block (HR every minute, ~0 steps, including a nap); `0xf9`/`0xfa` sit inside it; `0xf3` never has HR (off wrist). Algo version 2. All-day HR interval is a setting (1/10/30 min) written with the existing `14` command. TODO(verify) the band honors 10 and 30.
+- 2026-10-04 · Rewrite looked dead: the tap started a second connection (`android-2026-10-04T12-47-47`) with no dialog, auth timed out, then modern `82 00 02` got `10 83 07`. Chunked timeout no longer falls through. One band session is an exclusive lock file; the button shows a dialog.
+- 2026-10-04 · Home is a training decision (strain target from recovery color), not a metric dashboard. Friends, weather, and social stay out of v1.

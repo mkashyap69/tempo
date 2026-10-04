@@ -32,7 +32,7 @@ void main() {
   group('AuthResponse', () {
     final random = List.generate(16, (i) => 0xa0 + i);
     test('extracts challenge for each variant', () {
-      for (final v in AuthVariant.values) {
+      for (final v in [AuthVariant.modern, AuthVariant.legacy]) {
         final r = AuthResponse.parse([0x10, v.requestOpcode, 0x01, ...random])!;
         expect(r.challengeFor(v), random);
       }
@@ -65,6 +65,110 @@ void main() {
       expect(parseHeartRateMeasurement([0x00]), isNull);
       expect(parseHeartRateMeasurement([0x01, 0x10]), isNull);
     });
+  });
+
+  test('chunked auth packets carry the length on the first write', () {
+    final packets = chunkedPackets(0, [1, 2, 3, 4]);
+    expect(packets, hasLength(1));
+    expect(packets.single, [
+      0x03,
+      0x07,
+      0x00,
+      0x00,
+      0x00,
+      0x04,
+      0x00,
+      0x00,
+      0x00,
+      0x82,
+      0x00,
+      1,
+      2,
+      3,
+      4,
+    ]);
+  });
+
+  test('chunked reader emits the challenge once, then ok', () {
+    final reader = ChunkedAuthReader();
+    final body = List<int>.filled(64, 0x11);
+    final first = [
+      0x03,
+      0x01,
+      0x00,
+      0x00,
+      0x00,
+      67,
+      0,
+      0,
+      0,
+      0x82,
+      0x00,
+      0x10,
+      0x04,
+      0x01,
+      ...body,
+    ];
+    expect(reader.add(first), 'challenge');
+    expect(reader.add(first), isNull);
+    expect(reader.bytes, body);
+    reader.reset();
+    expect(
+      reader.add([
+        0x03,
+        0x06,
+        0,
+        1,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0x82,
+        0x00,
+        0x10,
+        0x05,
+        0x01,
+      ]),
+      'ok',
+    );
+  });
+
+  test('sect163r2 public key matches the B-163 vector', () {
+    final pub = huamiPublicForTest(
+      Uint8List.fromList([
+        0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c,
+        0x0d, 0x0e, 0x0f, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18,
+      ]),
+    );
+    expect(
+      hex(pub),
+      'a1e4ad02c2a44ea24152962c140ea063c69b2e5c07000000'
+      'cd5073a06d67b78a3bc5f519ab85fb9cf5855dc801000000',
+    );
+  });
+
+  test('sect163r2 shared secret matches the B-163 vector', () {
+    final sw = Stopwatch()..start();
+    final shared = huamiSharedForTest(
+      Uint8List.fromList([
+        0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c,
+        0x0d, 0x0e, 0x0f, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18,
+      ]),
+      Uint8List.fromList([
+        0xe7, 0xc1, 0xed, 0xdd, 0x59, 0x69, 0x4a, 0x9a, 0x09, 0xe4, 0x12, 0xdf,
+        0xe6, 0xd5, 0x16, 0xd4, 0x51, 0x18, 0x7b, 0xd2, 0x00, 0x00, 0x00, 0x00,
+        0x88, 0x3d, 0x62, 0xd3, 0x5b, 0x8d, 0xbd, 0x8f, 0x15, 0xee, 0xfb, 0x70,
+        0x61, 0x99, 0xfd, 0x22, 0x8f, 0x30, 0xe1, 0x89, 0x01, 0x00, 0x00, 0x00,
+      ]),
+    );
+    sw.stop();
+    expect(
+      hex(shared),
+      '5dd0ce43e619060186f7983a0a1cb07ad38ca35402000000'
+      '1d1a085428da00d343ca152231dd5b1360c566f905000000',
+    );
+    expect(sw.elapsedMilliseconds, lessThan(800));
   });
 
   test('PacketEvent writes hex and omits redacted bytes', () {

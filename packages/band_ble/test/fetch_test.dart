@@ -17,6 +17,8 @@ void main() {
     );
     expect(c.sublist(0, 2), [0x01, 0x01]);
     expect(c.sublist(2, 8), [0xea, 0x07, 1, 2, 3, 4]);
+    expect(c.length, 10);
+    expect(c[8], 0); // seconds; tz is the last byte
   });
 
   test('start reply', () {
@@ -29,13 +31,25 @@ void main() {
       0x01,
       0,
       0,
-      ...t,
+      ...t.sublist(0, 6),
+      0,
+      t[6],
     ])!;
     expect(r.ok, isTrue);
     expect(r.count, 300);
     expect(r.start, DateTime(2026, 1, 2, 3, 4));
     expect(FetchStartReply.parse([0x10, 0x01, 0x04])!.ok, isFalse);
     expect(FetchStartReply.parse([0x10, 0x02, 0x01]), isNull);
+  });
+
+  test('start reply matches the V1.0.6.20 capture', () {
+    final r = FetchStartReply.parse([
+      0x10, 0x01, 0x01, 0xb4, 0x06, 0x00, 0x00, //
+      0xea, 0x07, 0x0a, 0x03, 0x0d, 0x1b, 0x00, 0x16,
+    ])!;
+    expect(r.count, 1716);
+    // 2026-10-03 13:27 at UTC+5:30.
+    expect(r.start!.toUtc(), DateTime.utc(2026, 10, 3, 7, 57));
   });
 
   test('transfer done', () {
@@ -56,7 +70,11 @@ void main() {
   test('activity records', () {
     final start = DateTime(2026, 1, 1, 23);
     final r = parseActivity(
-      Uint8List.fromList([0x70, 10, 0, 55, 0x01, 80, 12, 0xff, 9]),
+      Uint8List.fromList([
+        0x70, 10, 0, 55, 0, 0, 0, 0, //
+        0x01, 80, 12, 0xff, 0, 0, 0, 0,
+        9,
+      ]),
       start,
     );
     expect(r.length, 2); // trailing partial record dropped
@@ -65,6 +83,18 @@ void main() {
     expect(r[1].ts, start.add(const Duration(minutes: 1)));
     expect(r[1].steps, 12);
     expect(r[1].hr, isNull);
+  });
+
+  test('V1.0.6.20 activity minute is 8 bytes', () {
+    final r = parseActivity(
+      Uint8List.fromList([0x70, 0x21, 0x00, 0x3e, 0x05, 0x00, 0x80, 0x80]),
+      DateTime.utc(2026, 10, 3, 7, 57),
+    );
+    expect(r, hasLength(1));
+    expect(r.single.kind, 0x70);
+    expect(r.single.intensity, 0x21);
+    expect(r.single.steps, 0);
+    expect(r.single.hr, 0x3e);
   });
 
   test('stress skips empty minutes', () {
@@ -83,6 +113,13 @@ void main() {
     );
     expect(s.single.value, 97);
     expect(s.single.ts, t);
+  });
+
+  test('V1.0.6.20 sleep and off-wrist kinds', () {
+    expect(sleepKinds[0xf0], 'light');
+    expect(sleepKinds[0xf9], 'light');
+    expect(sleepKinds[0xfa], 'light');
+    expect(notWornKinds, contains(0xf3));
   });
 
   test('settings payloads', () {
