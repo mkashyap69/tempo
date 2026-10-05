@@ -9,6 +9,7 @@ library;
 import 'dart:math';
 
 import 'load.dart';
+import 'longevity.dart';
 import 'strain.dart';
 
 enum Sport { running, cycling, walking, strength, yoga, hiit, sport }
@@ -430,7 +431,11 @@ final class CoachPrefs {
 /// Seven sessions, Monday first. Unavailable days are rest; with every day
 /// available one still becomes rest. At most [CoachPrefs.hardPerWeek] hard
 /// sessions, never on consecutive days. [general] (calibration) has none.
-List<Session> weekPlan(CoachPrefs p, {bool general = false}) {
+///
+/// [focus] (a Tempo Age lever the user is working on) tilts the week:
+/// active minutes turns up to two short easy sessions into longer Zone 2
+/// ones; strength makes sure there are two strength sessions.
+List<Session> weekPlan(CoachPrefs p, {bool general = false, Lever? focus}) {
   final likes = p.likes.isEmpty ? {Sport.walking} : p.likes;
   final avail = [
     for (var d = 1; d <= 7; d++)
@@ -481,7 +486,50 @@ List<Session> weekPlan(CoachPrefs p, {bool general = false}) {
     if (general && k == 'easy_run') k = 'aerobic_run';
     plan[d - 1] = k;
   }
+  _applyFocus(plan, focus, likes, hard: hard);
   return [for (final k in plan) fitMinutes(sessionTemplate(k), p.maxMinutes)];
+}
+
+void _applyFocus(
+  List<String> plan,
+  Lever? focus,
+  Set<Sport> likes, {
+  required List<int> hard,
+}) {
+  bool free(int i) =>
+      plan[i] != 'rest' &&
+      !hard.contains(i + 1) &&
+      !plan[i].startsWith('long_') &&
+      !plan[i].startsWith('strength');
+  if (focus == Lever.activeMinutes) {
+    final z2 = likes.contains(Sport.running)
+        ? 'aerobic_run'
+        : likes.contains(Sport.cycling)
+        ? 'easy_ride'
+        : 'easy_walk';
+    const longer = {'easy_run': 'long_run', 'easy_ride': 'long_ride'};
+    var changed = 0;
+    for (var i = 0; i < 7 && changed < 2; i++) {
+      if (!free(i)) continue;
+      final k = plan[i];
+      if (const {'easy_walk', 'mobility', 'yoga'}.contains(k) && k != z2) {
+        plan[i] = z2;
+        changed++;
+      } else if (longer.containsKey(k) && changed == 0) {
+        plan[i] = longer[k]!;
+        changed++;
+      }
+    }
+  } else if (focus == Lever.strength) {
+    var n = plan.where((k) => k.startsWith('strength')).length;
+    for (var i = 0; i < 7 && n < 2; i++) {
+      if (!free(i)) continue;
+      // Not the day after another strength day.
+      if (i > 0 && plan[i - 1].startsWith('strength')) continue;
+      plan[i] = n.isEven ? 'strength_full' : 'strength_lower';
+      n++;
+    }
+  }
 }
 
 /// Today's strain range. [cap] true = a ceiling on a rest day, not a target.

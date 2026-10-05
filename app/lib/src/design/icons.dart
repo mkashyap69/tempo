@@ -8,6 +8,8 @@ abstract final class TempoIcons {
   static const today = 'M5 20V6M10 20v-7M15 20v-7M20 20v-7';
   static const coach = 'M6 21V4h11l-2.5 4.5L17 13H6';
   static const trends = 'M3 17l5.5-6 4 3.5L21 6M15 6h6v6';
+  static const longevity =
+      'M6 3h12M6 21h12M7 3v2a5 5 0 0 0 10 0V3M7 21v-2a5 5 0 0 1 10 0v2M12 10v4';
   static const journal =
       'M6 3h12a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zM9 8h6M9 12h6M9 16h3';
   static const profile =

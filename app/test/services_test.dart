@@ -9,11 +9,14 @@ import 'package:tempo/src/core/battery.dart';
 import 'package:tempo/src/core/coach_service.dart';
 import 'package:tempo/src/core/export.dart';
 import 'package:tempo/src/core/home_widgets.dart';
+import 'package:tempo/src/core/longevity_service.dart';
 import 'package:tempo/src/core/pause.dart';
 import 'package:tempo/src/core/profile.dart';
 import 'package:tempo/src/core/score_service.dart';
 import 'package:tempo/src/core/sync_service.dart';
 import 'package:tempo/src/core/today.dart';
+
+import 'support/seed.dart';
 
 void main() {
   late TempoDb db;
@@ -247,5 +250,84 @@ void main() {
     await ScoreService(db).recomputeFrom(today);
     ws = await db.workoutsBetween(today, today.add(const Duration(days: 1)));
     expect(ws.where((w) => w.source == 'band'), isEmpty);
+  });
+
+  group('longevity', () {
+    test('inputs come from the last 30 days of band data', () async {
+      final d = await seededDb(days: 30);
+      final i = await longevityInputs(d);
+      expect(i.daysOfData, greaterThanOrEqualTo(25));
+      expect(i.restingHr, isNotNull);
+      expect(i.vo2max, isNotNull);
+      expect(i.steps, isNotNull);
+      expect(i.sleepHours, isNotNull);
+      expect(i.smoking, isNull);
+      await d.close();
+    });
+
+    test('manual details round-trip and reach the inputs', () async {
+      await saveManualHealth(
+        db,
+        const ManualHealth(
+          smoking: sc.Smoking.former,
+          alcohol: 10,
+          systolic: 128,
+          waist: 90,
+        ),
+      );
+      final i = await longevityInputs(db);
+      expect(i.smoking, sc.Smoking.former);
+      expect(i.alcoholUnits, 10);
+      expect(i.systolic, 128);
+      expect(i.waistCm, 90);
+      expect(i.daysOfData, 0);
+    });
+
+    test('a snapshot is saved with its algo version', () async {
+      final d = await seededDb(days: 30);
+      final t = await updateLongevity(d);
+      final rows = await d.longevitySince(DateTime(2000));
+      expect(rows.last.tempoAge, closeTo(t.age, 1e-9));
+      expect(rows.last.algoVersion, longevityAlgo);
+      expect(decodeContributors(rows.last.contributors), isNotEmpty);
+      await d.close();
+    });
+
+    test('pace adds calendar time back to the delta', () {
+      LongevitySnapshot row(DateTime d, double delta) => LongevitySnapshot(
+        date: dateKey(d),
+        tempoAge: 31 + delta,
+        realAge: 31,
+        calibrating: false,
+        contributors: '[]',
+        algoVersion: longevityAlgo,
+      );
+      // Delta steady: ageing at the calendar's pace.
+      final flat = [
+        for (var m = 0; m < 6; m++) row(DateTime(2026, 1 + m, 1), -2),
+      ];
+      expect(paceFrom(flat), closeTo(1, .01));
+      // Delta falls a year over five months: slower than the calendar.
+      final better = [
+        for (var m = 0; m < 6; m++) row(DateTime(2026, 1 + m, 1), -m / 5),
+      ];
+      expect(paceFrom(better)!, lessThan(1));
+    });
+
+    test('a focus lever reshapes this week’s plan', () async {
+      await saveAppProfile(db, const Profile());
+      final coach = CoachService(db);
+      await setFocus(db, sc.Lever.strength);
+      final f = await loadFocus(db);
+      expect(f!.lever, sc.Lever.strength);
+      expect(f.weeks, 8);
+      final week = await coach.ensureWeek(DateTime.now());
+      final strength = week
+          .where((p) => (jsonDecode(p.session) as Map)['sport'] == 'strength')
+          .length;
+      expect(strength, greaterThanOrEqualTo(2));
+      await setFocus(db, null);
+      expect(await loadFocus(db), isNull);
+    });
   });
 }

@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:scoring/scoring.dart' as sc;
 import 'package:store/store.dart';
 import 'package:tempo/src/core/coach_service.dart';
+import 'package:tempo/src/core/longevity_service.dart';
 import 'package:tempo/src/core/profile.dart';
 import 'package:tempo/src/design/theme.dart';
 import 'package:tempo/src/screens/activity_detail.dart';
@@ -18,6 +19,7 @@ import 'package:tempo/src/screens/insight_detail.dart';
 import 'package:tempo/src/screens/journal.dart';
 import 'package:tempo/src/screens/learn.dart';
 import 'package:tempo/src/screens/live_workout.dart';
+import 'package:tempo/src/screens/longevity.dart';
 import 'package:tempo/src/screens/night_detail.dart';
 import 'package:tempo/src/screens/onboarding.dart';
 import 'package:tempo/src/screens/recovery.dart';
@@ -79,6 +81,7 @@ void main() {
       'Overnight heart rate',
     ),
     'Trends': (() => const TrendsScreen(), 'Sleep performance'),
+    'Longevity': (() => const LongevityScreen(), 'TEMPO AGE'),
     'Day timeline': (() => const DayTimelineScreen(), 'Heart rate'),
     'Activity': (() => const ActivityDetailScreen(id: 1), 'Zones'),
     'Stress': (() => const StressScreen(), 'Through the day'),
@@ -113,6 +116,48 @@ void main() {
       });
     }
   }
+
+  group('Longevity', () {
+    for (final b in Brightness.values) {
+      testWidgets('hero, levers and contributors (${b.name})', (t) async {
+        final db = (await t.runAsync(() async {
+          final d = await seededDb(days: 30);
+          await updateLongevity(d);
+          return d;
+        }))!;
+        await render(t, db, const LongevityScreen(), b: b, h: 3200);
+        expect(find.text('WHAT SHAPES IT'), findsOneWidget);
+        expect(find.text('HEALTH DETAILS'), findsOneWidget);
+        expect(find.text('Trends'), findsOneWidget);
+        await teardown(t, db);
+      });
+    }
+
+    testWidgets('focus card shows the week and progress', (t) async {
+      final db = (await t.runAsync(() async {
+        final d = await seededDb(days: 30);
+        await updateLongevity(d);
+        await setFocus(d, sc.Lever.strength);
+        return d;
+      }))!;
+      await render(t, db, const LongevityScreen(), h: 3200);
+      expect(find.text('YOUR FOCUS'), findsOneWidget);
+      expect(find.text('Week 1 of 8'), findsOneWidget);
+      await teardown(t, db);
+    });
+
+    testWidgets('large text: no overflow', (t) async {
+      final db = (await t.runAsync(() async {
+        final d = await seededDb(days: 30);
+        await updateLongevity(d);
+        return d;
+      }))!;
+      t.platformDispatcher.textScaleFactorTestValue = 1.35;
+      addTearDown(t.platformDispatcher.clearTextScaleFactorTestValue);
+      await render(t, db, const LongevityScreen(), h: 4000);
+      await teardown(t, db);
+    });
+  });
 
   group('Today states', () {
     testWidgets('normal: rings, a plan and the B charts', (t) async {

@@ -23,7 +23,7 @@ import 'screens/settings.dart';
 import 'screens/sleep.dart';
 import 'screens/strain.dart';
 import 'screens/today.dart';
-import 'screens/trends.dart';
+import 'screens/longevity.dart';
 import 'state/live_session.dart';
 import 'state/providers.dart';
 
@@ -168,7 +168,7 @@ class _Tab {
 const _tabs = [
   _Tab('Today', TempoIcons.today, true),
   _Tab('Coach', TempoIcons.coach, true),
-  _Tab('Trends', TempoIcons.trends, false),
+  _Tab('Longevity', TempoIcons.longevity, false),
   _Tab('Journal', TempoIcons.journal, true),
   _Tab('Profile', TempoIcons.profile, false),
 ];
@@ -305,7 +305,7 @@ class _ShellState extends ConsumerState<Shell> with WidgetsBindingObserver {
               children: [
                 TodayScreen(onTab: select),
                 const CoachScreen(),
-                const TrendsScreen(),
+                const LongevityScreen(),
                 const JournalScreen(),
                 const SettingsScreen(),
               ],

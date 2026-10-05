@@ -11,6 +11,7 @@ export 'src/daily.dart';
 export 'src/hrv.dart';
 export 'src/insights.dart';
 export 'src/load.dart';
+export 'src/longevity.dart';
 export 'src/recovery.dart';
 export 'src/resting_hr.dart';
 export 'src/sleep.dart';

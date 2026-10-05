@@ -36,6 +36,8 @@ abstract final class Keys {
   static const bandDismissed = 'band_workouts_dismissed'; // JSON [start ts]
   static const bandConfigured = 'band_configured'; // signature last confirmed
   static const lastCharge = 'last_charge'; // ISO|level, from band 0x0006
+  static const longevityInputs = 'longevity_inputs'; // JSON, ManualHealth
+  static const longevityFocus = 'longevity_focus'; // JSON {lever,start,weeks}
 }
 
 /// Everything the user tells Tempo in onboarding and Profile.

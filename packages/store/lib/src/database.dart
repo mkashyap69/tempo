@@ -37,13 +37,14 @@ String dateKey(DateTime d) =>
     Workouts,
     PlanDays,
     SyncLog,
+    Longevity,
   ],
 )
 class TempoDb extends _$TempoDb {
   TempoDb(super.e);
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -69,6 +70,9 @@ class TempoDb extends _$TempoDb {
       }
       if (from < 5) {
         await m.addColumn(minuteSamples, minuteSamples.aux);
+      }
+      if (from < 7) {
+        await m.createTable(longevity);
       }
       if (from < 6) {
         await m.addColumn(spo2Samples, spo2Samples.quality);
@@ -488,6 +492,21 @@ class TempoDb extends _$TempoDb {
             ..limit(limit))
           .watch();
 
+  // ---- longevity ----------------------------------------------------------
+
+  Future<void> putLongevity(LongevityCompanion row) =>
+      into(longevity).insertOnConflictUpdate(row);
+
+  /// Snapshots oldest first.
+  Future<List<LongevitySnapshot>> longevitySince(DateTime from) =>
+      (select(longevity)
+            ..where((l) => l.date.isBiggerOrEqualValue(dateKey(from)))
+            ..orderBy([(l) => OrderingTerm.asc(l.date)]))
+          .get();
+
+  Stream<List<LongevitySnapshot>> watchLongevity() =>
+      (select(longevity)..orderBy([(l) => OrderingTerm.asc(l.date)])).watch();
+
   // ---- restore -------------------------------------------------------------
 
   /// Tables a JSON export can restore, in insert order.
@@ -501,6 +520,7 @@ class TempoDb extends _$TempoDb {
     'workouts',
     'plan_days',
     'sync_log',
+    'longevity',
   ];
 
   /// Restores rows from an export (`table → rows`). Raw rows already here

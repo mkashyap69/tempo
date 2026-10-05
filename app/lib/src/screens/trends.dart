@@ -240,25 +240,17 @@ class _TrendsState extends ConsumerState<TrendsScreen> {
     final debt = ref.watch(todayProvider).value?.debt;
     return TempoPage(
       gap: 18,
-      bottom: 100,
       children: [
-        SizedBox(
-          height: 44,
-          child: Row(
-            children: [
-              Expanded(
-                child: Text('Trends', style: TempoType.pageTitle.c(c.text1)),
-              ),
-              Transform.translate(
-                offset: const Offset(10, 0),
-                child: TempoIconButton(
-                  TempoIcons.calendar,
-                  label: 'Calendar',
-                  stroke: 1.75,
-                  onTap: () => push(context, const CalendarScreen()),
-                ),
-              ),
-            ],
+        DetailHeader(
+          title: 'Trends',
+          trailing: Transform.translate(
+            offset: const Offset(10, 0),
+            child: TempoIconButton(
+              TempoIcons.calendar,
+              label: 'Calendar',
+              stroke: 1.75,
+              onTap: () => push(context, const CalendarScreen()),
+            ),
           ),
         ),
         TempoSegmented<int>(

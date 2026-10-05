@@ -4,6 +4,7 @@ import 'package:drift/drift.dart';
 import 'package:scoring/scoring.dart' as sc;
 import 'package:store/store.dart' as st;
 
+import 'longevity_service.dart' show loadFocus;
 import 'pause.dart';
 import 'profile.dart';
 
@@ -57,7 +58,14 @@ class CoachService {
       limit: 1,
     );
     final general = latest.isEmpty || latest.first.calibrating;
-    final week = sc.weekPlan(profile.prefs, general: general);
+    final focus = await loadFocus(db);
+    final week = sc.weekPlan(
+      profile.prefs,
+      general: general,
+      focus: focus != null && focus.activeOn(mon.add(const Duration(days: 6)))
+          ? focus.lever
+          : null,
+    );
     final today = dayOf(DateTime.now());
     final have = {for (final e in existing) e.date: e};
     for (var i = 0; i < 7; i++) {

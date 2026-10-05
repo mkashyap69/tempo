@@ -5528,6 +5528,444 @@ class SyncLogCompanion extends UpdateCompanion<SyncLogData> {
   }
 }
 
+class $LongevityTable extends Longevity
+    with TableInfo<$LongevityTable, LongevitySnapshot> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LongevityTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _dateMeta = const VerificationMeta('date');
+  @override
+  late final GeneratedColumn<String> date = GeneratedColumn<String>(
+    'date',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _tempoAgeMeta = const VerificationMeta(
+    'tempoAge',
+  );
+  @override
+  late final GeneratedColumn<double> tempoAge = GeneratedColumn<double>(
+    'tempo_age',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _realAgeMeta = const VerificationMeta(
+    'realAge',
+  );
+  @override
+  late final GeneratedColumn<double> realAge = GeneratedColumn<double>(
+    'real_age',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _calibratingMeta = const VerificationMeta(
+    'calibrating',
+  );
+  @override
+  late final GeneratedColumn<bool> calibrating = GeneratedColumn<bool>(
+    'calibrating',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("calibrating" IN (0, 1))',
+    ),
+  );
+  static const VerificationMeta _contributorsMeta = const VerificationMeta(
+    'contributors',
+  );
+  @override
+  late final GeneratedColumn<String> contributors = GeneratedColumn<String>(
+    'contributors',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _algoVersionMeta = const VerificationMeta(
+    'algoVersion',
+  );
+  @override
+  late final GeneratedColumn<int> algoVersion = GeneratedColumn<int>(
+    'algo_version',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    date,
+    tempoAge,
+    realAge,
+    calibrating,
+    contributors,
+    algoVersion,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'longevity';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<LongevitySnapshot> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('date')) {
+      context.handle(
+        _dateMeta,
+        date.isAcceptableOrUnknown(data['date']!, _dateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_dateMeta);
+    }
+    if (data.containsKey('tempo_age')) {
+      context.handle(
+        _tempoAgeMeta,
+        tempoAge.isAcceptableOrUnknown(data['tempo_age']!, _tempoAgeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_tempoAgeMeta);
+    }
+    if (data.containsKey('real_age')) {
+      context.handle(
+        _realAgeMeta,
+        realAge.isAcceptableOrUnknown(data['real_age']!, _realAgeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_realAgeMeta);
+    }
+    if (data.containsKey('calibrating')) {
+      context.handle(
+        _calibratingMeta,
+        calibrating.isAcceptableOrUnknown(
+          data['calibrating']!,
+          _calibratingMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_calibratingMeta);
+    }
+    if (data.containsKey('contributors')) {
+      context.handle(
+        _contributorsMeta,
+        contributors.isAcceptableOrUnknown(
+          data['contributors']!,
+          _contributorsMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_contributorsMeta);
+    }
+    if (data.containsKey('algo_version')) {
+      context.handle(
+        _algoVersionMeta,
+        algoVersion.isAcceptableOrUnknown(
+          data['algo_version']!,
+          _algoVersionMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_algoVersionMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {date};
+  @override
+  LongevitySnapshot map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LongevitySnapshot(
+      date: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}date'],
+      )!,
+      tempoAge: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}tempo_age'],
+      )!,
+      realAge: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}real_age'],
+      )!,
+      calibrating: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}calibrating'],
+      )!,
+      contributors: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}contributors'],
+      )!,
+      algoVersion: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}algo_version'],
+      )!,
+    );
+  }
+
+  @override
+  $LongevityTable createAlias(String alias) {
+    return $LongevityTable(attachedDatabase, alias);
+  }
+}
+
+class LongevitySnapshot extends DataClass
+    implements Insertable<LongevitySnapshot> {
+  final String date;
+  final double tempoAge;
+  final double realAge;
+  final bool calibrating;
+  final String contributors;
+  final int algoVersion;
+  const LongevitySnapshot({
+    required this.date,
+    required this.tempoAge,
+    required this.realAge,
+    required this.calibrating,
+    required this.contributors,
+    required this.algoVersion,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['date'] = Variable<String>(date);
+    map['tempo_age'] = Variable<double>(tempoAge);
+    map['real_age'] = Variable<double>(realAge);
+    map['calibrating'] = Variable<bool>(calibrating);
+    map['contributors'] = Variable<String>(contributors);
+    map['algo_version'] = Variable<int>(algoVersion);
+    return map;
+  }
+
+  LongevityCompanion toCompanion(bool nullToAbsent) {
+    return LongevityCompanion(
+      date: Value(date),
+      tempoAge: Value(tempoAge),
+      realAge: Value(realAge),
+      calibrating: Value(calibrating),
+      contributors: Value(contributors),
+      algoVersion: Value(algoVersion),
+    );
+  }
+
+  factory LongevitySnapshot.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LongevitySnapshot(
+      date: serializer.fromJson<String>(json['date']),
+      tempoAge: serializer.fromJson<double>(json['tempoAge']),
+      realAge: serializer.fromJson<double>(json['realAge']),
+      calibrating: serializer.fromJson<bool>(json['calibrating']),
+      contributors: serializer.fromJson<String>(json['contributors']),
+      algoVersion: serializer.fromJson<int>(json['algoVersion']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'date': serializer.toJson<String>(date),
+      'tempoAge': serializer.toJson<double>(tempoAge),
+      'realAge': serializer.toJson<double>(realAge),
+      'calibrating': serializer.toJson<bool>(calibrating),
+      'contributors': serializer.toJson<String>(contributors),
+      'algoVersion': serializer.toJson<int>(algoVersion),
+    };
+  }
+
+  LongevitySnapshot copyWith({
+    String? date,
+    double? tempoAge,
+    double? realAge,
+    bool? calibrating,
+    String? contributors,
+    int? algoVersion,
+  }) => LongevitySnapshot(
+    date: date ?? this.date,
+    tempoAge: tempoAge ?? this.tempoAge,
+    realAge: realAge ?? this.realAge,
+    calibrating: calibrating ?? this.calibrating,
+    contributors: contributors ?? this.contributors,
+    algoVersion: algoVersion ?? this.algoVersion,
+  );
+  LongevitySnapshot copyWithCompanion(LongevityCompanion data) {
+    return LongevitySnapshot(
+      date: data.date.present ? data.date.value : this.date,
+      tempoAge: data.tempoAge.present ? data.tempoAge.value : this.tempoAge,
+      realAge: data.realAge.present ? data.realAge.value : this.realAge,
+      calibrating: data.calibrating.present
+          ? data.calibrating.value
+          : this.calibrating,
+      contributors: data.contributors.present
+          ? data.contributors.value
+          : this.contributors,
+      algoVersion: data.algoVersion.present
+          ? data.algoVersion.value
+          : this.algoVersion,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LongevitySnapshot(')
+          ..write('date: $date, ')
+          ..write('tempoAge: $tempoAge, ')
+          ..write('realAge: $realAge, ')
+          ..write('calibrating: $calibrating, ')
+          ..write('contributors: $contributors, ')
+          ..write('algoVersion: $algoVersion')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    date,
+    tempoAge,
+    realAge,
+    calibrating,
+    contributors,
+    algoVersion,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LongevitySnapshot &&
+          other.date == this.date &&
+          other.tempoAge == this.tempoAge &&
+          other.realAge == this.realAge &&
+          other.calibrating == this.calibrating &&
+          other.contributors == this.contributors &&
+          other.algoVersion == this.algoVersion);
+}
+
+class LongevityCompanion extends UpdateCompanion<LongevitySnapshot> {
+  final Value<String> date;
+  final Value<double> tempoAge;
+  final Value<double> realAge;
+  final Value<bool> calibrating;
+  final Value<String> contributors;
+  final Value<int> algoVersion;
+  final Value<int> rowid;
+  const LongevityCompanion({
+    this.date = const Value.absent(),
+    this.tempoAge = const Value.absent(),
+    this.realAge = const Value.absent(),
+    this.calibrating = const Value.absent(),
+    this.contributors = const Value.absent(),
+    this.algoVersion = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  LongevityCompanion.insert({
+    required String date,
+    required double tempoAge,
+    required double realAge,
+    required bool calibrating,
+    required String contributors,
+    required int algoVersion,
+    this.rowid = const Value.absent(),
+  }) : date = Value(date),
+       tempoAge = Value(tempoAge),
+       realAge = Value(realAge),
+       calibrating = Value(calibrating),
+       contributors = Value(contributors),
+       algoVersion = Value(algoVersion);
+  static Insertable<LongevitySnapshot> custom({
+    Expression<String>? date,
+    Expression<double>? tempoAge,
+    Expression<double>? realAge,
+    Expression<bool>? calibrating,
+    Expression<String>? contributors,
+    Expression<int>? algoVersion,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (date != null) 'date': date,
+      if (tempoAge != null) 'tempo_age': tempoAge,
+      if (realAge != null) 'real_age': realAge,
+      if (calibrating != null) 'calibrating': calibrating,
+      if (contributors != null) 'contributors': contributors,
+      if (algoVersion != null) 'algo_version': algoVersion,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  LongevityCompanion copyWith({
+    Value<String>? date,
+    Value<double>? tempoAge,
+    Value<double>? realAge,
+    Value<bool>? calibrating,
+    Value<String>? contributors,
+    Value<int>? algoVersion,
+    Value<int>? rowid,
+  }) {
+    return LongevityCompanion(
+      date: date ?? this.date,
+      tempoAge: tempoAge ?? this.tempoAge,
+      realAge: realAge ?? this.realAge,
+      calibrating: calibrating ?? this.calibrating,
+      contributors: contributors ?? this.contributors,
+      algoVersion: algoVersion ?? this.algoVersion,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (date.present) {
+      map['date'] = Variable<String>(date.value);
+    }
+    if (tempoAge.present) {
+      map['tempo_age'] = Variable<double>(tempoAge.value);
+    }
+    if (realAge.present) {
+      map['real_age'] = Variable<double>(realAge.value);
+    }
+    if (calibrating.present) {
+      map['calibrating'] = Variable<bool>(calibrating.value);
+    }
+    if (contributors.present) {
+      map['contributors'] = Variable<String>(contributors.value);
+    }
+    if (algoVersion.present) {
+      map['algo_version'] = Variable<int>(algoVersion.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LongevityCompanion(')
+          ..write('date: $date, ')
+          ..write('tempoAge: $tempoAge, ')
+          ..write('realAge: $realAge, ')
+          ..write('calibrating: $calibrating, ')
+          ..write('contributors: $contributors, ')
+          ..write('algoVersion: $algoVersion, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$TempoDb extends GeneratedDatabase {
   _$TempoDb(QueryExecutor e) : super(e);
   $TempoDbManager get managers => $TempoDbManager(this);
@@ -5546,6 +5984,7 @@ abstract class _$TempoDb extends GeneratedDatabase {
   late final $WorkoutsTable workouts = $WorkoutsTable(this);
   late final $PlanDaysTable planDays = $PlanDaysTable(this);
   late final $SyncLogTable syncLog = $SyncLogTable(this);
+  late final $LongevityTable longevity = $LongevityTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -5566,6 +6005,7 @@ abstract class _$TempoDb extends GeneratedDatabase {
     workouts,
     planDays,
     syncLog,
+    longevity,
   ];
 }
 
@@ -8539,6 +8979,229 @@ typedef $$SyncLogTableProcessedTableManager =
       SyncLogData,
       PrefetchHooks Function()
     >;
+typedef $$LongevityTableCreateCompanionBuilder = LongevityCompanion Function({
+  required String date,
+  required double tempoAge,
+  required double realAge,
+  required bool calibrating,
+  required String contributors,
+  required int algoVersion,
+  Value<int> rowid,
+});
+typedef $$LongevityTableUpdateCompanionBuilder = LongevityCompanion Function({
+  Value<String> date,
+  Value<double> tempoAge,
+  Value<double> realAge,
+  Value<bool> calibrating,
+  Value<String> contributors,
+  Value<int> algoVersion,
+  Value<int> rowid,
+});
+
+class $$LongevityTableFilterComposer
+    extends Composer<_$TempoDb, $LongevityTable> {
+  $$LongevityTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get date => $composableBuilder(
+    column: $table.date,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get tempoAge => $composableBuilder(
+    column: $table.tempoAge,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get realAge => $composableBuilder(
+    column: $table.realAge,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get calibrating => $composableBuilder(
+    column: $table.calibrating,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get contributors => $composableBuilder(
+    column: $table.contributors,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get algoVersion => $composableBuilder(
+    column: $table.algoVersion,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$LongevityTableOrderingComposer
+    extends Composer<_$TempoDb, $LongevityTable> {
+  $$LongevityTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get date => $composableBuilder(
+    column: $table.date,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get tempoAge => $composableBuilder(
+    column: $table.tempoAge,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get realAge => $composableBuilder(
+    column: $table.realAge,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get calibrating => $composableBuilder(
+    column: $table.calibrating,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get contributors => $composableBuilder(
+    column: $table.contributors,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get algoVersion => $composableBuilder(
+    column: $table.algoVersion,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$LongevityTableAnnotationComposer
+    extends Composer<_$TempoDb, $LongevityTable> {
+  $$LongevityTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get date =>
+      $composableBuilder(column: $table.date, builder: (column) => column);
+
+  GeneratedColumn<double> get tempoAge =>
+      $composableBuilder(column: $table.tempoAge, builder: (column) => column);
+
+  GeneratedColumn<double> get realAge =>
+      $composableBuilder(column: $table.realAge, builder: (column) => column);
+
+  GeneratedColumn<bool> get calibrating => $composableBuilder(
+    column: $table.calibrating,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get contributors => $composableBuilder(
+    column: $table.contributors,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get algoVersion => $composableBuilder(
+    column: $table.algoVersion,
+    builder: (column) => column,
+  );
+}
+
+class $$LongevityTableTableManager
+    extends
+        RootTableManager<
+          _$TempoDb,
+          $LongevityTable,
+          LongevitySnapshot,
+          $$LongevityTableFilterComposer,
+          $$LongevityTableOrderingComposer,
+          $$LongevityTableAnnotationComposer,
+          $$LongevityTableCreateCompanionBuilder,
+          $$LongevityTableUpdateCompanionBuilder,
+          (
+            LongevitySnapshot,
+            BaseReferences<_$TempoDb, $LongevityTable, LongevitySnapshot>,
+          ),
+          LongevitySnapshot,
+          PrefetchHooks Function()
+        > {
+  $$LongevityTableTableManager(_$TempoDb db, $LongevityTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$LongevityTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$LongevityTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$LongevityTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> date = const Value.absent(),
+                Value<double> tempoAge = const Value.absent(),
+                Value<double> realAge = const Value.absent(),
+                Value<bool> calibrating = const Value.absent(),
+                Value<String> contributors = const Value.absent(),
+                Value<int> algoVersion = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => LongevityCompanion(
+                date: date,
+                tempoAge: tempoAge,
+                realAge: realAge,
+                calibrating: calibrating,
+                contributors: contributors,
+                algoVersion: algoVersion,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String date,
+                required double tempoAge,
+                required double realAge,
+                required bool calibrating,
+                required String contributors,
+                required int algoVersion,
+                Value<int> rowid = const Value.absent(),
+              }) => LongevityCompanion.insert(
+                date: date,
+                tempoAge: tempoAge,
+                realAge: realAge,
+                calibrating: calibrating,
+                contributors: contributors,
+                algoVersion: algoVersion,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$LongevityTableProcessedTableManager =
+    ProcessedTableManager<
+      _$TempoDb,
+      $LongevityTable,
+      LongevitySnapshot,
+      $$LongevityTableFilterComposer,
+      $$LongevityTableOrderingComposer,
+      $$LongevityTableAnnotationComposer,
+      $$LongevityTableCreateCompanionBuilder,
+      $$LongevityTableUpdateCompanionBuilder,
+      (
+        LongevitySnapshot,
+        BaseReferences<_$TempoDb, $LongevityTable, LongevitySnapshot>,
+      ),
+      LongevitySnapshot,
+      PrefetchHooks Function()
+    >;
 
 class $TempoDbManager {
   final _$TempoDb _db;
@@ -8573,4 +9236,6 @@ class $TempoDbManager {
       $$PlanDaysTableTableManager(_db, _db.planDays);
   $$SyncLogTableTableManager get syncLog =>
       $$SyncLogTableTableManager(_db, _db.syncLog);
+  $$LongevityTableTableManager get longevity =>
+      $$LongevityTableTableManager(_db, _db.longevity);
 }

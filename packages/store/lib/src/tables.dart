@@ -171,3 +171,17 @@ class SyncLog extends Table {
   TextColumn get result => text()(); // ok | retried | failed | gap
   IntColumn get durationMs => integer().nullable()();
 }
+
+/// Tempo Age snapshots, derived from the 30 days before [date]. Replaced
+/// when recomputed.
+@DataClassName('LongevitySnapshot')
+class Longevity extends Table {
+  TextColumn get date => text()();
+  RealColumn get tempoAge => real()();
+  RealColumn get realAge => real()();
+  BoolColumn get calibrating => boolean()();
+  TextColumn get contributors => text()(); // JSON
+  IntColumn get algoVersion => integer()();
+  @override
+  Set<Column> get primaryKey => {date};
+}

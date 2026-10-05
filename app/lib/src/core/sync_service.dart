@@ -4,6 +4,7 @@ import 'package:store/store.dart';
 
 import 'band_link.dart';
 import 'battery.dart';
+import 'longevity_service.dart' show updateLongevity;
 import 'profile.dart' show Keys, loadAppProfile;
 import 'score_service.dart';
 
@@ -382,6 +383,9 @@ class SyncService {
     if (earliest != null) {
       await scores.recomputeFrom(earliest.subtract(const Duration(days: 1)));
     }
+    try {
+      await updateLongevity(db);
+    } catch (_) {} // Tempo Age is derived; a failure never fails the sync.
     final after = (await db.workoutsBetween(
       DateTime(2000),
       DateTime(2100),
