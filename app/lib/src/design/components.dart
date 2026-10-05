@@ -1168,8 +1168,8 @@ class DetailHeader extends StatelessWidget {
   final VoidCallback? onBack;
   final Widget? center;
   @override
-  Widget build(BuildContext context) => SizedBox(
-    height: 44,
+  Widget build(BuildContext context) => ConstrainedBox(
+    constraints: const BoxConstraints(minHeight: 44),
     child: Row(
       children: [
         Transform.translate(
@@ -1185,12 +1185,20 @@ class DetailHeader extends StatelessWidget {
             child:
                 center ??
                 Column(
+                  mainAxisSize: MainAxisSize.min,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(title, style: TempoType.label.c(context.c.text1)),
+                    Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TempoType.label.c(context.c.text1),
+                    ),
                     if (subtitle != null)
                       Text(
                         subtitle!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: TempoType.caption.c(context.c.text3).tnum,
                       ),
                   ],
