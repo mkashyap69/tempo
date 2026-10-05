@@ -186,8 +186,9 @@ class CoachSettingsScreen extends ConsumerWidget {
                     label: kindName(k),
                     value: st.kinds.contains(k),
                     onChanged: (v) async {
-                      if (v)
+                      if (v) {
                         await TempoNotifications.instance.requestPermission();
+                      }
                       if (k == sc.NudgeKind.brief && v) {
                         if (await db.setting(Keys.morningCall) == 'off') {
                           await db.putSetting(Keys.morningCall, '07:00');

@@ -310,8 +310,9 @@ class CoachService {
   ]) {
     if (s.calibrating || s.recovery == null) return 'Calibrating';
     final r = 'Recovery ${s.recovery!.round()}%';
-    if (flag == sc.RhrFlag.illness)
+    if (flag == sc.RhrFlag.illness) {
       return '$r and night heart rate well above usual';
+    }
     if (flag == sc.RhrFlag.elevated) return '$r but resting HR above usual';
     if (short && s.sleptHours != null) {
       final m = (s.sleptHours! * 60).round();

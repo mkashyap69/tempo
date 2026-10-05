@@ -188,8 +188,9 @@ class CoachNotifier {
   }
 
   static String? _brief(TodayData t) {
-    if (t.calibrating)
+    if (t.calibrating) {
       return 'Still learning your baseline · in by ${fmtHm(t.bedtimeMinute)}';
+    }
     final r = t.recovery;
     if (r == null) return null;
     final why = switch (t.rhrFlag) {
