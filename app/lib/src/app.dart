@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -6,7 +7,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/background_guard.dart';
 import 'core/band_link.dart' show deviceIdKey;
+import 'core/coach_notifier.dart';
 import 'core/home_widgets.dart';
+import 'core/notifications.dart';
 import 'core/profile.dart';
 import 'design/components.dart';
 import 'design/icons.dart';
@@ -23,6 +26,7 @@ import 'screens/settings.dart';
 import 'screens/sleep.dart';
 import 'screens/strain.dart';
 import 'screens/today.dart';
+import 'screens/workouts.dart';
 import 'screens/longevity.dart';
 import 'state/live_session.dart';
 import 'state/providers.dart';
@@ -184,6 +188,7 @@ class Shell extends ConsumerStatefulWidget {
 class _ShellState extends ConsumerState<Shell> with WidgetsBindingObserver {
   int _tab = 0;
   StreamSubscription<Uri?>? _widgetTaps;
+  StreamSubscription<String>? _notifTaps;
 
   @override
   void initState() {
@@ -191,11 +196,32 @@ class _ShellState extends ConsumerState<Shell> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) => _onOpen());
     _widgetTaps = listenWidgetTaps(_openFromWidget);
+    // Coach notifications: buttons change the plan, taps open Coach.
+    final db = ref.read(dbProvider);
+    TempoNotifications.instance.onResponse = (payload, action) =>
+        handleNudgeResponse(db, payload, action);
+    _notifTaps = notificationTaps.stream.listen(_openFromNotification);
+    if (!Platform.environment.containsKey('FLUTTER_TEST')) {
+      TempoNotifications.instance
+          .launchPayload()
+          .then((p) {
+            if (p != null) _openFromNotification('coach');
+          })
+          .catchError((Object _) {});
+    }
+  }
+
+  void _openFromNotification(String target) {
+    if (!mounted) return;
+    Navigator.of(context).popUntil((r) => r.isFirst);
+    select(target == 'workouts' ? 0 : 1);
+    if (target == 'workouts') push(context, const WorkoutsScreen());
   }
 
   @override
   void dispose() {
     _widgetTaps?.cancel();
+    _notifTaps?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -234,7 +260,11 @@ class _ShellState extends ConsumerState<Shell> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState s) {
-    if (s == AppLifecycleState.resumed) _sync();
+    if (s == AppLifecycleState.resumed) {
+      _sync();
+      // Rebuild the pending set even if the sync can't reach the band.
+      unawaited(rescheduleNotifications(ref.read(dbProvider)));
+    }
   }
 
   Future<void> _onOpen() async {

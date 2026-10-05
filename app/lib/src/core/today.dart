@@ -38,7 +38,30 @@ class TodayData {
     this.pause,
     this.baseNeedLearned = false,
     this.smartAlarm,
+    this.intent = sc.Intent.planned,
+    this.plannedMinute,
+    this.status = sc.DayStatus.pending,
+    this.rescue = const sc.Rescue(sc.RescueTier.none),
+    this.rhrFlag = sc.RhrFlag.none,
+    this.shortNight = false,
+    this.pmSlot = 18 * 60,
+    this.amSlot = 7 * 60,
   });
+
+  /// What the user decided for today's session (Tempo Coach).
+  final sc.Intent intent;
+
+  /// Minute of day the session is planned for, or null (any time).
+  final int? plannedMinute;
+
+  /// Done / pending / missed…, derived from today's workouts.
+  final sc.DayStatus status;
+
+  /// What still fits today when the planned slot passed.
+  final sc.Rescue rescue;
+  final sc.RhrFlag rhrFlag;
+  final bool shortNight;
+  final int pmSlot, amSlot;
 
   final DateTime day;
   final st.DailyScore? score;
@@ -145,11 +168,10 @@ Future<TodayData> loadToday(st.TempoDb db, {DateTime? at}) async {
       ? null
       : sc.Session.fromJson(jsonDecode(row.session) as Map<String, dynamic>);
   final sinceHard = await coach.daysSinceHard(day);
-  final state = sc.dayState(
-    recovery: score?.recovery,
-    calibrating: calibrating,
-    load: load.status,
-    daysSinceHard: sinceHard,
+  final (state, rhrFlag, shortNight) = await coach.readinessFor(
+    day,
+    score?.copyWith(calibrating: calibrating),
+    load,
   );
 
   // Sleep need tonight: your base + today's strain + a share of the debt.
@@ -186,6 +208,58 @@ Future<TodayData> loadToday(st.TempoDb db, {DateTime? at}) async {
   ];
   final wake = set ?? (ends.isEmpty ? 7 * 60 : sc.medianClock(ends));
   final lastSyncRaw = await db.setting(Keys.lastSync);
+  // Tempo Coach: when today's session is planned, whether it happened,
+  // and what still fits if its slot passed.
+  final slots = await loadSlots(db);
+  final workouts = await db.workoutsBetween(
+    day,
+    day.add(const Duration(days: 1)),
+  );
+  final intent =
+      sc.Intent.values.asNameMap()[row?.status ?? 'planned'] ??
+      sc.Intent.planned;
+  final planned = plan == null || plan.isRest
+      ? null
+      : row?.plannedMinute ?? slots.minuteFor(plan);
+  final nowT = at ?? DateTime.now();
+  final nowMin = dayOf(nowT) == day
+      ? _clock(nowT)
+      : (nowT.isAfter(day) ? 24 * 60 + 600 : 0);
+  final bedtime = sc.bedtimeMinute(needTonight, wake);
+  final match = plan == null
+      ? const sc.SessionMatch(sc.MatchKind.none, 0)
+      : sc.matchSession(plan, [for (final w in workouts) doneWorkout(w)]);
+  final status = plan == null
+      ? sc.DayStatus.rest
+      : sc.deriveStatus(
+          plan: plan,
+          intent: intent,
+          match: match,
+          now: nowMin,
+          bedtime: bedtime,
+          plannedMinute: planned,
+        );
+  final strains = [
+    for (final d in history.take(28))
+      if (d.strain > 0) d.strain,
+  ];
+  final p75 = sc.quantile(strains, .75);
+  final rescue = plan == null
+      ? const sc.Rescue(sc.RescueTier.none)
+      : sc.replanToday(
+          plan: plan,
+          status: status,
+          now: nowMin,
+          bedtime: bedtime,
+          pmSlot: slots.pm,
+          state: state,
+          strainSoFar: score?.strain ?? 0,
+          targetLo: target.general ? 0 : target.lo,
+          hardFor4h:
+              plan.intensity == sc.Intensity.moderate &&
+              p75 != null &&
+              plan.strainLo >= p75,
+        );
   final rhrBase = sc.Baseline.of(history.take(30).map((d) => d.rhr));
   final stressBase = sc.Baseline.of(history.take(30).map((d) => d.hrvProxy));
   final sleepBase = sc.Baseline.of(history.take(30).map((d) => d.sleepPerf));
@@ -207,15 +281,57 @@ Future<TodayData> loadToday(st.TempoDb db, {DateTime? at}) async {
     baseNeedLearned: needSamples.length >= sleepParams.learnNights,
     wakeMinute: wake,
     wakeFromUsual: set == null,
-    bedtimeMinute: sc.bedtimeMinute(needTonight, wake),
+    bedtimeMinute: bedtime,
     lastSync: lastSyncRaw == null ? null : DateTime.tryParse(lastSyncRaw),
     profile: profile,
-    workouts: await db.workoutsBetween(day, day.add(const Duration(days: 1))),
+    workouts: workouts,
     rhrBase: rhrBase,
     stressBase: stressBase,
     sleepBase: sleepBase,
     daysSinceHard: sinceHard,
     pause: activePause(pauses),
     smartAlarm: parseHm(await db.setting(Keys.smartAlarm)),
+    intent: intent,
+    plannedMinute: planned,
+    status: status,
+    rescue: rescue,
+    rhrFlag: rhrFlag,
+    shortNight: shortNight,
+    pmSlot: slots.pm,
+    amSlot: slots.am,
   );
+}
+
+/// The user's training slots (Tempo Coach). [slot] is am, pm or flex; unset,
+/// it's inferred from when your recorded workouts usually start.
+final class Slots {
+  const Slots(this.slot, this.am, this.pm);
+  final String slot;
+  final int am, pm;
+
+  /// Minute of day a session is planned for, or null when flexible.
+  int? minuteFor(sc.Session s) => switch (slot) {
+    'am' => am,
+    'pm' => pm,
+    _ => null,
+  };
+}
+
+Future<Slots> loadSlots(st.TempoDb db) async {
+  final am = parseHm(await db.setting(Keys.coachSlotAm)) ?? 7 * 60;
+  final pm = parseHm(await db.setting(Keys.coachSlotPm)) ?? 18 * 60;
+  var slot = await db.setting(Keys.coachSlot);
+  if (slot == null || slot.isEmpty) {
+    final now = DateTime.now();
+    final ws = await db.workoutsBetween(
+      now.subtract(const Duration(days: 28)),
+      now,
+    );
+    final starts = [
+      for (final w in ws)
+        if (w.source != 'auto' || w.confirmed) _clock(st.fromTs(w.start)),
+    ];
+    slot = starts.length >= 3 && sc.medianClock(starts) < 12 * 60 ? 'am' : 'pm';
+  }
+  return Slots(slot, am, pm);
 }

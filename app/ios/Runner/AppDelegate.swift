@@ -1,6 +1,8 @@
 import Flutter
 import UIKit
 import workmanager_apple
+// Notification buttons run in a background isolate that needs plugins.
+import flutter_local_notifications
 
 @main
 @objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
@@ -8,6 +10,8 @@ import workmanager_apple
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
+    // Coach notifications in the foreground and their buttons.
+    UNUserNotificationCenter.current().delegate = self as UNUserNotificationCenterDelegate
     // Must match the task name in lib/src/core/background.dart.
     WorkmanagerPlugin.setPluginRegistrantCallback { registry in
       GeneratedPluginRegistrant.register(with: registry)
@@ -18,6 +22,9 @@ import workmanager_apple
   }
 
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
+    FlutterLocalNotificationsPlugin.setPluginRegistrantCallback { registry in
+      GeneratedPluginRegistrant.register(with: registry)
+    }
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
   }
 }

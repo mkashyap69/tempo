@@ -5,11 +5,10 @@ import 'package:flutter/foundation.dart';
 import 'package:home_widget/home_widget.dart';
 import 'package:store/store.dart' as st;
 
-import 'notifications.dart';
-import 'profile.dart';
+import 'coach_notifier.dart';
+import 'format.dart';
 import 'today.dart';
 import 'coach_service.dart';
-import 'format.dart';
 import 'health_export.dart';
 
 /// iOS app group shared with the WidgetKit extension.
@@ -84,17 +83,11 @@ Future<void> afterSync(st.TempoDb db) async {
   }
 }
 
-Future<void> rescheduleNotifications(st.TempoDb db, TodayData t) async {
+/// Rebuilds every pending coach notification from the latest state
+/// (Tempo Coach). [t] is accepted for older call sites and ignored.
+Future<void> rescheduleNotifications(st.TempoDb db, [TodayData? t]) async {
   try {
-    final n = TempoNotifications.instance;
-    final morning = await db.setting(Keys.morningCall) ?? '07:00';
-    await n.scheduleMorningCall(parseHm(morning));
-    final nudge = await db.setting(Keys.bedtimeNudge) ?? '30';
-    final before = int.tryParse(nudge);
-    await n.scheduleBedtime(
-      before == null ? null : (t.bedtimeMinute - before) % 1440,
-      clock12(t.bedtimeMinute),
-    );
+    await CoachNotifier(db).refresh();
   } catch (e) {
     debugPrint('notifications: $e');
   }

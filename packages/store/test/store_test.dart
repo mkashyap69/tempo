@@ -278,4 +278,72 @@ void main() {
       );
     },
   );
+
+  test('plan intent: set, keep on re-plan, nudge log append-only', () async {
+    final d = DateTime(2026, 10, 5);
+    await db.putPlanDay(
+      PlanDaysCompanion.insert(date: dateKey(d), session: '{}', general: false),
+    );
+    expect((await db.planDay(d))!.status, 'planned');
+    await db.setPlanIntent(
+      d,
+      'moved',
+      source: 'user',
+      slot: 'pm',
+      minute: 1080,
+    );
+    var p = (await db.planDay(d))!;
+    expect(p.status, 'moved');
+    expect(p.plannedMinute, 1080);
+    expect(p.statusSource, 'user');
+    // An adaptation that rewrites the session leaves the intent alone.
+    await db.putPlanDay(
+      PlanDaysCompanion.insert(
+        date: dateKey(d),
+        session: '{"x":1}',
+        general: false,
+      ),
+    );
+    p = (await db.planDay(d))!;
+    expect(p.session, '{"x":1}');
+    expect(p.status, 'moved');
+    await db.logNudge(
+      NudgeLogCompanion.insert(
+        ts: 10,
+        day: dateKey(d),
+        kind: 'session',
+        notifId: 110,
+        event: 'scheduled',
+        algoVersion: 'nudge-1',
+      ),
+    );
+    expect((await db.nudgesSince(fromTs(0))).single.kind, 'session');
+    expect(
+      () => db.customStatement('DELETE FROM nudge_log'),
+      throwsA(anything),
+    );
+  });
+
+  test('v7 → v8 keeps plan rows and adds intent defaults', () async {
+    final old = TempoDb(
+      NativeDatabase.memory(
+        setup: (raw) {
+          raw.execute(
+            'CREATE TABLE plan_days (date TEXT NOT NULL PRIMARY KEY, '
+            'session TEXT NOT NULL, original TEXT, reason TEXT, '
+            'adapted_at INTEGER, general INTEGER NOT NULL)',
+          );
+          raw.execute(
+            "INSERT INTO plan_days VALUES ('2026-10-05', '{}', NULL, NULL, NULL, 0)",
+          );
+          raw.execute('PRAGMA user_version = 7');
+        },
+      ),
+    );
+    final p = (await old.planDay(DateTime(2026, 10, 5)))!;
+    expect(p.status, 'planned');
+    expect(p.plannedMinute, isNull);
+    expect(await old.nudgesSince(fromTs(0)), isEmpty);
+    await old.close();
+  });
 }

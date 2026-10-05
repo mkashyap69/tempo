@@ -38,6 +38,16 @@ abstract final class Keys {
   static const lastCharge = 'last_charge'; // ISO|level, from band 0x0006
   static const longevityInputs = 'longevity_inputs'; // JSON, ManualHealth
   static const longevityFocus = 'longevity_focus'; // JSON {lever,start,weeks}
+  // Tempo Coach.
+  static const coachSlot = 'coach_slot'; // am | pm | flex; unset = inferred
+  static const coachSlotAm = 'coach_slot_am'; // HH:mm, default 07:00
+  static const coachSlotPm = 'coach_slot_pm'; // HH:mm, default 18:00
+  static const notifCats = 'notif_cats'; // JSON {kind: 0|1}
+  static const notifCap = 'notif_cap'; // proactive nudges a day, 0–2
+  static const notifPrecise = 'notif_precise'; // 1 = exact alarms (Android)
+  static const notifScheduled = 'notif_scheduled'; // JSON, what's pending
+  static const notifV2 = 'notif_v2_migrated'; // 1 once legacy ids are gone
+  static const realignDismissed = 'coach_realign_dismissed'; // date
 }
 
 /// Everything the user tells Tempo in onboarding and Profile.

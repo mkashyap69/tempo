@@ -75,7 +75,10 @@ final longevityProvider = FutureProvider<LongevityData>((ref) async {
 
 /// Longevity tab: Tempo Age, what moves it, a focus plan, and Trends.
 class LongevityScreen extends ConsumerStatefulWidget {
-  const LongevityScreen({super.key});
+  const LongevityScreen({super.key, this.standalone = false});
+
+  /// Pushed from Coach (back button, no tab padding).
+  final bool standalone;
   @override
   ConsumerState<LongevityScreen> createState() => _LongevityScreenState();
 }
@@ -96,27 +99,34 @@ class _LongevityScreenState extends ConsumerState<LongevityScreen> {
   Widget build(BuildContext context) {
     final c = context.c;
     final d = ref.watch(longevityProvider).value;
+    final info = Transform.translate(
+      offset: const Offset(10, 0),
+      child: InfoButton(
+        label: 'How Tempo Age works',
+        onTap: () => _howItWorks(context),
+      ),
+    );
     return TempoPage(
       gap: 18,
-      bottom: 100,
+      bottom: widget.standalone ? 48 : 100,
       children: [
-        SizedBox(
-          height: 44,
-          child: Row(
-            children: [
-              Expanded(
-                child: Text('Longevity', style: TempoType.pageTitle.c(c.text1)),
-              ),
-              Transform.translate(
-                offset: const Offset(10, 0),
-                child: InfoButton(
-                  label: 'How Tempo Age works',
-                  onTap: () => _howItWorks(context),
+        if (widget.standalone)
+          DetailHeader(title: 'Longevity', trailing: info)
+        else
+          SizedBox(
+            height: 44,
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Longevity',
+                    style: TempoType.pageTitle.c(c.text1),
+                  ),
                 ),
-              ),
-            ],
+                info,
+              ],
+            ),
           ),
-        ),
         if (d == null)
           const SizedBox(height: 400)
         else ...[

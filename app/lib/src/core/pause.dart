@@ -62,8 +62,14 @@ Pause? activePause(List<Pause> ps) => ps.where((p) => p.active).firstOrNull;
 
 bool isPaused(List<Pause> ps, DateTime day) => ps.any((p) => p.covers(day));
 
-/// Starts a pause today (ends any open one first).
-Future<void> startPause(TempoDb db, PauseReason r, {DateTime? on}) async {
+/// Starts a pause today (ends any open one first). With [until], the pause
+/// ends on its own after that day.
+Future<void> startPause(
+  TempoDb db,
+  PauseReason r, {
+  DateTime? on,
+  DateTime? until,
+}) async {
   final day = on ?? DateTime.now();
   final ps = await loadPauses(db);
   final ended = [
@@ -72,7 +78,7 @@ Future<void> startPause(TempoDb db, PauseReason r, {DateTime? on}) async {
           ? Pause(p.from, p.reason, to: day.subtract(const Duration(days: 1)))
           : p,
   ].where((p) => !p.to!.isBefore(p.from)).toList();
-  await _save(db, [...ended, Pause(day, r)]);
+  await _save(db, [...ended, Pause(day, r, to: until)]);
 }
 
 /// Ends the open pause; today is the first normal day again. A pause

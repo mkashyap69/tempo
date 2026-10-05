@@ -28,6 +28,7 @@ import '../design/tokens.dart';
 import '../design/type.dart';
 import '../state/providers.dart';
 import 'band_explorer.dart';
+import 'coach_settings.dart';
 import 'data_health.dart';
 import 'nav.dart';
 import 'onboarding.dart' show AvailabilityEditor, WorkoutsEditor;
@@ -276,7 +277,7 @@ class SettingsScreen extends ConsumerWidget {
     final hrEvery = int.tryParse(info[hrIntervalKey] ?? '') ?? 1;
     final buzz = (info[Keys.buzzCues] ?? '1') == '1';
     final morning = info[Keys.morningCall] ?? '07:00';
-    final nudge = info[Keys.bedtimeNudge] ?? '30';
+    final nudge = info[Keys.bedtimeNudge] ?? '45';
     final sleepAssist = info[Keys.sleepAssist] != '0';
     final stressOn = info[Keys.stressMonitor] != '0';
     final healthOn = info[Keys.healthExport] == '1';
@@ -745,6 +746,11 @@ class SettingsScreen extends ConsumerWidget {
           ),
         ]),
         group('Notifications', [
+          ListRow(
+            'Tempo Coach',
+            value: 'Nudges, slots',
+            onTap: () => push(context, const CoachSettingsScreen()),
+          ),
           ListRow(
             'Morning call',
             value: morning == 'off' ? 'Off' : clock12(parseHm(morning)!),

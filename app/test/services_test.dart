@@ -6,7 +6,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:scoring/scoring.dart' as sc;
 import 'package:store/store.dart';
 import 'package:tempo/src/core/battery.dart';
+import 'package:tempo/src/core/coach_notifier.dart';
 import 'package:tempo/src/core/coach_service.dart';
+import 'package:tempo/src/core/notifications.dart';
 import 'package:tempo/src/core/export.dart';
 import 'package:tempo/src/core/home_widgets.dart';
 import 'package:tempo/src/core/longevity_service.dart';
@@ -16,6 +18,7 @@ import 'package:tempo/src/core/score_service.dart';
 import 'package:tempo/src/core/sync_service.dart';
 import 'package:tempo/src/core/today.dart';
 
+import 'support/fake_sink.dart';
 import 'support/seed.dart';
 
 void main() {
@@ -328,6 +331,183 @@ void main() {
       expect(strength, greaterThanOrEqualTo(2));
       await setFocus(db, null);
       expect(await loadFocus(db), isNull);
+    });
+  });
+
+  group('tempo coach', () {
+    late FakeNotificationSink sink;
+    setUp(() {
+      sink = FakeNotificationSink();
+      notificationSink = sink;
+    });
+    final today = dayOf(DateTime.now());
+    DateTime at(int h, [int m = 0]) =>
+        DateTime(today.year, today.month, today.day, h, m);
+    Future<void> planToday(String key) async {
+      await saveAppProfile(db, const Profile());
+      await CoachService(db).swapToday(sc.sessionTemplate(key), 'test');
+    }
+
+    Future<void> runAt(int h, {int minutes = 35, String sport = 'running'}) =>
+        db.addWorkout(
+          WorkoutsCompanion.insert(
+            start: toTs(at(h)),
+            end: toTs(at(h).add(Duration(minutes: minutes))),
+            sport: Value(sport),
+            title: 'Run',
+            source: 'auto',
+            strain: 6,
+            trimp: 30,
+            zones: '[5,$minutes,0,0,0]',
+          ),
+        );
+
+    test('morning slot passed: missed, with an evening rescue', () async {
+      await planToday('easy_run');
+      await db.putSetting(Keys.coachSlot, 'am');
+      final t = await loadToday(db, at: at(11));
+      expect(t.plannedMinute, 7 * 60);
+      expect(t.status, sc.DayStatus.missedSlot);
+      expect(t.rescue.offered, isTrue);
+      expect(t.rescue.start, 18 * 60);
+    });
+
+    test('a matching workout marks it done, even auto-detected', () async {
+      await planToday('easy_run');
+      await db.putSetting(Keys.coachSlot, 'am');
+      await runAt(7);
+      final t = await loadToday(db, at: at(11));
+      expect(t.status, sc.DayStatus.done);
+      expect(t.rescue.offered, isFalse);
+    });
+
+    test('intent: skip, move, done and undo', () async {
+      await planToday('easy_run');
+      final coach = CoachService(db);
+      await coach.setIntent(today, sc.Intent.skipped);
+      expect((await loadToday(db, at: at(11))).status, sc.DayStatus.skipped);
+      await coach.setIntent(today, sc.Intent.moved, minute: 18 * 60);
+      var t = await loadToday(db, at: at(11));
+      expect(t.status, sc.DayStatus.moved);
+      expect(t.plannedMinute, 18 * 60);
+      await coach.setIntent(today, sc.Intent.done);
+      expect((await loadToday(db, at: at(11))).status, sc.DayStatus.done);
+      await coach.setIntent(today, sc.Intent.planned);
+      t = await loadToday(db, at: at(11));
+      expect(t.intent, sc.Intent.planned);
+    });
+
+    test(
+      'a missed key session yesterday is carried; an easy one drops',
+      () async {
+        await saveAppProfile(db, const Profile());
+        final coach = CoachService(db);
+        final y = today.subtract(const Duration(days: 1));
+        await coach.ensureWeek(y);
+        await db.putPlanDay(
+          PlanDaysCompanion.insert(
+            date: dateKey(y),
+            session: jsonEncode(sc.sessionTemplate('threshold_run').toJson()),
+            general: false,
+          ),
+        );
+        expect((await coach.missedKeyYesterday(today))?.key, 'threshold_run');
+        await db.putPlanDay(
+          PlanDaysCompanion.insert(
+            date: dateKey(y),
+            session: jsonEncode(sc.sessionTemplate('easy_run').toJson()),
+            general: false,
+          ),
+        );
+        expect(await coach.missedKeyYesterday(today), isNull);
+      },
+    );
+
+    test('refresh replaces the pending set and logs changes once', () async {
+      await planToday('easy_run');
+      final n = CoachNotifier(db, sink: sink);
+      final now = at(5);
+      final a = await n.refresh(now: now);
+      expect(a, isNotEmpty);
+      expect(sink.legacyCancelled, 1);
+      expect(sink.pending.keys.toSet(), a.map((x) => x.id).toSet());
+      final logged = (await db.nudgesSince(DateTime(2000))).length;
+      final b = await n.refresh(now: now);
+      expect(b.map((x) => x.id), a.map((x) => x.id));
+      expect((await db.nudgesSince(DateTime(2000))).length, logged);
+      expect(sink.legacyCancelled, 1);
+    });
+
+    test('kinds switched off are not scheduled', () async {
+      await planToday('easy_run');
+      for (final k in sc.NudgeKind.values) {
+        await CoachNotifier.setKind(db, k, false);
+      }
+      expect(await CoachNotifier(db, sink: sink).refresh(now: at(5)), isEmpty);
+    });
+
+    test('buttons: Plan 18:00 moves the session, Skip skips it', () async {
+      await planToday('easy_run');
+      await handleNudgeResponse(
+        db,
+        jsonEncode({'kind': 'missed', 'id': 120, 'start': 18 * 60}),
+        'plan_pm',
+        sink: sink,
+      );
+      var row = (await db.planDay(today))!;
+      expect(row.status, 'moved');
+      expect(row.plannedMinute, 18 * 60);
+      expect(row.statusSource, 'notification');
+      await handleNudgeResponse(
+        db,
+        jsonEncode({'kind': 'session', 'id': 110}),
+        'skip',
+        sink: sink,
+      );
+      row = (await db.planDay(today))!;
+      expect(row.status, 'skipped');
+      final log = await db.nudgesSince(DateTime(2000));
+      expect(log.where((r) => r.event == 'action').map((r) => r.action), [
+        'plan_pm',
+        'skip',
+      ]);
+    });
+
+    test('rating button saves RPE on the detected workout', () async {
+      await saveAppProfile(db, const Profile());
+      await runAt(7);
+      final w = (await db.workoutsBetween(today, at(23))).single;
+      await handleNudgeResponse(
+        db,
+        jsonEncode({'kind': 'rpe', 'id': 150, 'workout': w.start}),
+        'rpe_5',
+        sink: sink,
+      );
+      final after = (await db.workoutsBetween(today, at(23))).single;
+      expect(after.rpe, 5);
+      expect(after.confirmed, isTrue);
+    });
+
+    test('ignore streaks come from posted rows without a response', () {
+      NudgeLogData r(int id, String event, int ts, {String kind = 'lever'}) =>
+          NudgeLogData(
+            id: id,
+            ts: ts,
+            day: '2026-10-05',
+            kind: kind,
+            notifId: 130,
+            fireAt: ts,
+            event: event,
+            payload: '{}',
+            algoVersion: 'nudge-1',
+          );
+      final s = ignoreStreaksFrom([
+        r(1, 'posted', 1000),
+        r(2, 'action', 1100),
+        r(3, 'posted', 90000),
+        r(4, 'posted', 180000),
+      ]);
+      expect(s[sc.NudgeKind.lever], 2);
     });
   });
 }

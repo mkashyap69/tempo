@@ -38,13 +38,14 @@ String dateKey(DateTime d) =>
     PlanDays,
     SyncLog,
     Longevity,
+    NudgeLog,
   ],
 )
 class TempoDb extends _$TempoDb {
   TempoDb(super.e);
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -53,6 +54,7 @@ class TempoDb extends _$TempoDb {
       for (final t in rawTables) {
         await _appendOnly(t);
       }
+      await _appendOnly('nudge_log');
     },
     onUpgrade: (m, from, to) async {
       if (from < 2) {
@@ -73,6 +75,18 @@ class TempoDb extends _$TempoDb {
       }
       if (from < 7) {
         await m.createTable(longevity);
+      }
+      if (from < 8) {
+        if (from >= 2) {
+          await m.addColumn(planDays, planDays.slot);
+          await m.addColumn(planDays, planDays.plannedMinute);
+          await m.addColumn(planDays, planDays.status);
+          await m.addColumn(planDays, planDays.statusSource);
+          await m.addColumn(planDays, planDays.statusAt);
+          await m.addColumn(planDays, planDays.algoVersion);
+        }
+        await m.createTable(nudgeLog);
+        await _appendOnly('nudge_log');
       }
       if (from < 6) {
         await m.addColumn(spo2Samples, spo2Samples.quality);
@@ -191,6 +205,16 @@ class TempoDb extends _$TempoDb {
             ..where((m) => m.ts.isBiggerOrEqualValue(toTs(from)))
             ..orderBy([(m) => OrderingTerm.asc(m.ts)]))
           .get();
+
+  /// Steps in [from, to).
+  Future<int> stepsBetween(DateTime from, DateTime to) async {
+    final r = await customSelect(
+      'SELECT COALESCE(SUM(steps), 0) AS s FROM minute_samples '
+      'WHERE ts >= ? AND ts < ?',
+      variables: [Variable.withInt(toTs(from)), Variable.withInt(toTs(to))],
+    ).getSingle();
+    return r.read<int>('s');
+  }
 
   Future<DateTime?> firstMinute() async {
     final r = await customSelect('SELECT MIN(ts) AS t FROM minute_samples')
@@ -464,6 +488,36 @@ class TempoDb extends _$TempoDb {
             ..orderBy([(p) => OrderingTerm.asc(p.date)]))
           .get();
 
+  /// Records what the user or coach decided for [day] (Tempo Coach).
+  /// [minute] null keeps the planned minute; [session] swaps the session.
+  Future<void> setPlanIntent(
+    DateTime day,
+    String status, {
+    required String source,
+    String? slot,
+    int? minute,
+    String? session,
+  }) => (update(planDays)..where((p) => p.date.equals(dateKey(day)))).write(
+    PlanDaysCompanion(
+      status: Value(status),
+      statusSource: Value(source),
+      statusAt: Value(toTs(DateTime.now())),
+      slot: slot == null ? const Value.absent() : Value(slot),
+      plannedMinute: minute == null ? const Value.absent() : Value(minute),
+      session: session == null ? const Value.absent() : Value(session),
+    ),
+  );
+
+  // ---- nudge log -----------------------------------------------------------
+
+  Future<void> logNudge(NudgeLogCompanion row) => into(nudgeLog).insert(row);
+
+  Future<List<NudgeLogData>> nudgesSince(DateTime from) =>
+      (select(nudgeLog)
+            ..where((n) => n.ts.isBiggerOrEqualValue(toTs(from)))
+            ..orderBy([(n) => OrderingTerm.asc(n.id)]))
+          .get();
+
   Stream<List<PlanDay>> watchPlanBetween(DateTime from, DateTime to) =>
       (select(planDays)
             ..where((p) => p.date.isBetweenValues(dateKey(from), dateKey(to)))
@@ -521,6 +575,7 @@ class TempoDb extends _$TempoDb {
     'plan_days',
     'sync_log',
     'longevity',
+    'nudge_log',
   ];
 
   /// Restores rows from an export (`table → rows`). Raw rows already here
@@ -539,7 +594,7 @@ class TempoDb extends _$TempoDb {
         for (final r in await customSelect('PRAGMA table_info($t)').get())
           r.read<String>('name'),
       };
-      final fresh = t == 'workouts' || t == 'sync_log';
+      final fresh = t == 'workouts' || t == 'sync_log' || t == 'nudge_log';
       final verb = rawTables.contains(t)
           ? 'INSERT OR IGNORE'
           : fresh

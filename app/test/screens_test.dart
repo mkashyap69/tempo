@@ -6,6 +6,7 @@ import 'package:scoring/scoring.dart' as sc;
 import 'package:store/store.dart';
 import 'package:tempo/src/core/coach_service.dart';
 import 'package:tempo/src/core/longevity_service.dart';
+import 'package:tempo/src/core/today.dart';
 import 'package:tempo/src/core/profile.dart';
 import 'package:tempo/src/design/theme.dart';
 import 'package:tempo/src/screens/activity_detail.dart';
@@ -13,6 +14,8 @@ import 'package:tempo/src/screens/baselines.dart';
 import 'package:tempo/src/screens/calendar.dart';
 import 'package:tempo/src/screens/cardio_load.dart';
 import 'package:tempo/src/screens/coach.dart';
+import 'package:tempo/src/screens/coach_parts.dart';
+import 'package:tempo/src/screens/coach_settings.dart';
 import 'package:tempo/src/screens/data_health.dart';
 import 'package:tempo/src/screens/day_timeline.dart';
 import 'package:tempo/src/screens/insight_detail.dart';
@@ -82,6 +85,7 @@ void main() {
     ),
     'Trends': (() => const TrendsScreen(), 'Sleep performance'),
     'Longevity': (() => const LongevityScreen(), 'TEMPO AGE'),
+    'Coach notifications': (() => const CoachSettingsScreen(), 'TRAINING TIME'),
     'Day timeline': (() => const DayTimelineScreen(), 'Heart rate'),
     'Activity': (() => const ActivityDetailScreen(id: 1), 'Zones'),
     'Stress': (() => const StressScreen(), 'Through the day'),
@@ -116,6 +120,55 @@ void main() {
       });
     }
   }
+
+  group('Tempo Coach', () {
+    for (final b in Brightness.values) {
+      testWidgets('missed morning: rescue card (${b.name})', (t) async {
+        final now = DateTime.now();
+        final (db, data) = (await t.runAsync(() async {
+          final d = await seededDb(days: 30);
+          await CoachService(d).swapToday(sc.sessionTemplate('easy_run'), 'x');
+          await d.putSetting(Keys.coachSlot, 'am');
+          final td = await loadToday(
+            d,
+            at: DateTime(now.year, now.month, now.day, 11),
+          );
+          return (d, td);
+        }))!;
+        expect(data.status, anyOf(sc.DayStatus.missedSlot, sc.DayStatus.done));
+        await render(
+          t,
+          db,
+          Scaffold(
+            body: ListView(children: [RescueCard(data), SessionActions(data)]),
+          ),
+          b: b,
+        );
+        if (data.status == sc.DayStatus.missedSlot) {
+          expect(find.text('STILL TIME TODAY'), findsOneWidget);
+          expect(find.text('Plan it'), findsOneWidget);
+        }
+        await teardown(t, db);
+      });
+    }
+
+    testWidgets('Coach shows status, also-today and week glyphs', (t) async {
+      final db = (await t.runAsync(() => seededDb(days: 30)))!;
+      await render(t, db, const CoachScreen(standalone: true), h: 2600);
+      expect(find.text('Tempo Coach'), findsOneWidget);
+      expect(find.text('ALSO TODAY'), findsOneWidget);
+      expect(find.textContaining('In bed by'), findsWidgets);
+      await teardown(t, db);
+    });
+
+    testWidgets('Coach at large text: no overflow', (t) async {
+      final db = (await t.runAsync(() => seededDb(days: 30)))!;
+      t.platformDispatcher.textScaleFactorTestValue = 1.35;
+      addTearDown(t.platformDispatcher.clearTextScaleFactorTestValue);
+      await render(t, db, const CoachScreen(standalone: true), h: 3600);
+      await teardown(t, db);
+    });
+  });
 
   group('Longevity', () {
     for (final b in Brightness.values) {

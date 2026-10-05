@@ -37,6 +37,23 @@ Future<List<double>> dailyTrimp(
 Future<sc.CardioLoad> loadFor(st.TempoDb db, DateTime day) async =>
     sc.cardioLoad(await dailyTrimp(db, day));
 
+/// A stored workout as the session matcher sees it.
+sc.DoneWorkout doneWorkout(st.Workout w) {
+  List<int> zones;
+  try {
+    zones = [for (final z in jsonDecode(w.zones) as List) (z as num).round()];
+  } catch (_) {
+    zones = const [];
+  }
+  return sc.DoneWorkout(
+    start: st.fromTs(w.start),
+    minutes: ((w.end - w.start) / 60).round(),
+    sport: sc.Sport.values.asNameMap()[w.sport],
+    zoneMinutes: zones,
+    strain: w.strain,
+  );
+}
+
 /// Owns the plan in `plan_days`: builds each week from the profile and runs
 /// the morning adaptation once after the first sync of the day.
 class CoachService {
@@ -78,6 +95,10 @@ class CoachService {
           date: st.dateKey(d),
           session: jsonEncode(week[i].toJson()),
           general: general,
+          status: const Value('planned'),
+          plannedMinute: const Value(null),
+          statusSource: const Value(null),
+          algoVersion: const Value('coach-1'),
         ),
       );
     }
@@ -124,6 +145,101 @@ class CoachService {
     return sc.effortTrend(rated);
   }
 
+  /// Records what the user decided for [day] (Tempo Coach intent):
+  /// skipped, moved (with a new minute and optionally a new session),
+  /// done, or back to planned.
+  Future<void> setIntent(
+    DateTime day,
+    sc.Intent intent, {
+    String source = 'user',
+    int? minute,
+    String? slot,
+    sc.Session? session,
+  }) async {
+    await ensureWeek(day);
+    if (session != null) {
+      final row = await db.planDay(day);
+      await db.putPlanDay(
+        st.PlanDaysCompanion.insert(
+          date: st.dateKey(day),
+          session: jsonEncode(session.toJson()),
+          original: Value(row?.original ?? row?.session),
+          reason: Value('· Moved to later today'),
+          adaptedAt: Value(st.toTs(DateTime.now())),
+          general: row?.general ?? false,
+          algoVersion: const Value(sc.coachDayAlgo),
+        ),
+      );
+    }
+    await db.setPlanIntent(
+      day,
+      intent.name,
+      source: source,
+      minute: minute,
+      slot: slot,
+    );
+  }
+
+  /// Swaps today's session (Easier, Rest today) and keeps the original.
+  Future<void> swapToday(sc.Session to, String why) async {
+    final day = dayOf(DateTime.now());
+    await ensureWeek(day);
+    final row = await db.planDay(day);
+    await db.putPlanDay(
+      st.PlanDaysCompanion.insert(
+        date: st.dateKey(day),
+        session: jsonEncode(to.toJson()),
+        original: Value(row?.original ?? row?.session),
+        reason: Value('· $why'),
+        adaptedAt: Value(st.toTs(DateTime.now())),
+        general: row?.general ?? false,
+      ),
+    );
+    await db.setPlanIntent(day, sc.Intent.planned.name, source: 'user');
+  }
+
+  /// Readiness for [day]: the day state from recovery and load, then the
+  /// band's extra signals (resting HR against your baseline, a short night).
+  Future<(sc.DayState, sc.RhrFlag, bool)> readinessFor(
+    DateTime day,
+    st.DailyScore? score,
+    sc.CardioLoad load,
+  ) async {
+    final history = await db.scoresBefore(day, limit: 60);
+    final pauses = await loadPauses(db);
+    final flag = sc.rhrFlag([
+      score?.rhr,
+      for (final d in history)
+        if (!isPaused(pauses, DateTime.parse(d.date))) d.rhr,
+    ]);
+    final short = sc.shortSleep(score?.sleptHours, score?.needHours);
+    final base = sc.dayState(
+      recovery: score?.recovery,
+      calibrating: score?.calibrating ?? true,
+      load: load.status,
+      daysSinceHard: await daysSinceHard(day),
+    );
+    return (sc.readiness(base, rhr: flag, shortNight: short), flag, short);
+  }
+
+  /// Yesterday's key session, if it was missed: carried (never stacked);
+  /// missed easy sessions are dropped.
+  Future<sc.Session?> missedKeyYesterday(DateTime today) async {
+    final y = today.subtract(const Duration(days: 1));
+    final row = await db.planDay(y);
+    if (row == null || row.status == sc.Intent.skipped.name) return null;
+    final s = sc.Session.fromJson(
+      jsonDecode(row.session) as Map<String, dynamic>,
+    );
+    if (!sc.isKeySession(s)) return null;
+    final ws = await db.workoutsBetween(y, today);
+    final m = sc.matchSession(s, [for (final w in ws) doneWorkout(w)]);
+    if (m.kind != sc.MatchKind.none || row.status == sc.Intent.done.name) {
+      return null;
+    }
+    return s;
+  }
+
   /// Morning adaptation (Flow · morning plan adaptation). Runs once per day,
   /// only when today's score has last night in it (fresh and complete).
   /// Looks three days ahead; holds off entirely while paused.
@@ -140,22 +256,17 @@ class CoachService {
         sc.Session.fromJson(jsonDecode(r.session) as Map<String, dynamic>),
     ];
     final load = await loadFor(db, today);
-    final state = sc.dayState(
-      recovery: score.recovery,
-      calibrating: score.calibrating,
-      load: load.status,
-      daysSinceHard: await daysSinceHard(today),
-    );
+    final (state, flag, short) = await readinessFor(today, score, load);
     final carriedRaw = await db.setting(Keys.carried);
     final carried = carriedRaw == null || carriedRaw.isEmpty
-        ? null
+        ? await missedKeyYesterday(today)
         : sc.Session.fromJson(jsonDecode(carriedRaw) as Map<String, dynamic>);
     final profile = await loadAppProfile(db) ?? const Profile();
     final a = sc.adaptWeek(
       week,
       today.weekday - 1,
       state,
-      reason: _reason(score, load),
+      reason: _reason(score, load, flag, short),
       carried: carried,
       available: profile.days,
       effort: await effort(today),
@@ -172,6 +283,7 @@ class CoachService {
           reason: Value('${_glyph(ch.state)} ${ch.reason}'),
           adaptedAt: Value(now),
           general: prev.general,
+          algoVersion: const Value(sc.coachDayAlgo),
         ),
       );
     }
@@ -190,9 +302,21 @@ class CoachService {
     sc.DayState.general => '·',
   };
 
-  static String _reason(st.DailyScore s, sc.CardioLoad load) {
+  static String _reason(
+    st.DailyScore s,
+    sc.CardioLoad load, [
+    sc.RhrFlag flag = sc.RhrFlag.none,
+    bool short = false,
+  ]) {
     if (s.calibrating || s.recovery == null) return 'Calibrating';
     final r = 'Recovery ${s.recovery!.round()}%';
+    if (flag == sc.RhrFlag.illness)
+      return '$r and night heart rate well above usual';
+    if (flag == sc.RhrFlag.elevated) return '$r but resting HR above usual';
+    if (short && s.sleptHours != null) {
+      final m = (s.sleptHours! * 60).round();
+      return '$r after a short night (${m ~/ 60} h ${(m % 60).toString().padLeft(2, '0')} m)';
+    }
     if (load.status == sc.LoadStatus.overreaching) {
       return '$r and load overreaching';
     }

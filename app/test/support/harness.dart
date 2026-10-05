@@ -3,8 +3,11 @@ import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:store/store.dart';
+import 'package:tempo/src/core/notifications.dart';
 import 'package:tempo/src/design/theme.dart';
 import 'package:tempo/src/state/providers.dart';
+
+import 'fake_sink.dart';
 
 /// Sync that never touches the radio.
 class IdleSync extends SyncController {
@@ -22,6 +25,17 @@ Widget harness(
   Brightness b = Brightness.dark,
   SyncStatus sync = const SyncStatus(),
   BluetoothAdapterState adapter = BluetoothAdapterState.on,
+}) {
+  notificationSink = FakeNotificationSink();
+  return _scope(db, child, b: b, sync: sync, adapter: adapter);
+}
+
+Widget _scope(
+  TempoDb db,
+  Widget child, {
+  required Brightness b,
+  required SyncStatus sync,
+  required BluetoothAdapterState adapter,
 }) => ProviderScope(
   overrides: [
     dbProvider.overrideWithValue(db),

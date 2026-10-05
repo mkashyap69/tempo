@@ -16,6 +16,7 @@ import '../design/tokens.dart';
 import '../design/type.dart';
 import '../state/providers.dart';
 import 'cardio_load.dart';
+import 'coach_parts.dart';
 import 'learn.dart';
 import 'nav.dart';
 import 'shared.dart';
@@ -74,6 +75,7 @@ class CoachScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final t = ref.watch(todayProvider).value;
     final w = ref.watch(weekProvider).value;
+    final x = ref.watch(coachExtrasProvider).value;
     if (t == null || w == null) return Scaffold(backgroundColor: context.c.bg);
     final c = context.c, s = context.s;
     final general = t.planRow?.general ?? t.calibrating;
@@ -87,14 +89,17 @@ class CoachScreen extends ConsumerWidget {
       bottom: standalone ? 48 : 100,
       children: [
         if (standalone)
-          const DetailHeader(title: 'Coach')
+          const DetailHeader(title: 'Tempo Coach')
         else
           SizedBox(
             height: 44,
             child: Row(
               children: [
                 Expanded(
-                  child: Text('Coach', style: TempoType.pageTitle.c(c.text1)),
+                  child: Text(
+                    'Tempo Coach',
+                    style: TempoType.pageTitle.c(c.text1),
+                  ),
                 ),
                 TempoBadge(general ? 'General plan' : 'Personal plan'),
               ],
@@ -196,8 +201,18 @@ class CoachScreen extends ConsumerWidget {
             adds: adds,
             overline: 'Suggested workout',
             why: _why(t, general),
+            chip: statusLabel(t),
+            chipColor: statusColor(context, t.status),
+            footer: t.pause == null ? SessionActions(t) : null,
             onTap: () => push(context, const WorkoutDetailScreen()),
           ),
+        if (t.pause == null &&
+            !t.restDay &&
+            t.plan != null &&
+            t.status == sc.DayStatus.missedSlot)
+          RescueCard(t),
+        if (x != null && x.realign && t.pause == null) const RealignCard(),
+        if (x != null) AlsoToday(x),
         TempoCard(
           onTap: () => push(context, const WeeklyPlanScreen()),
           label: 'This week',
@@ -214,6 +229,10 @@ class CoachScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 14),
               WeekBars(week: w, today: todayIdx, height: 64, labels: true),
+              if (x != null) ...[
+                const SizedBox(height: 6),
+                WeekStatusRow(x.week),
+              ],
               const SizedBox(height: 12),
               Hair(),
               const SizedBox(height: 12),
@@ -310,7 +329,11 @@ class CoachScreen extends ConsumerWidget {
                         text: 'This week · ',
                         style: TextStyle(color: c.text3),
                       ),
-                      TextSpan(text: loadAdvice(t.load.status).first),
+                      TextSpan(
+                        text: x != null && x.monotony
+                            ? 'Every day has felt about the same lately — vary it: one harder, one easier.'
+                            : loadAdvice(t.load.status).first,
+                      ),
                     ],
                   ),
                   style: TempoType.bodyS.c(c.text1),
@@ -319,6 +342,7 @@ class CoachScreen extends ConsumerWidget {
             ],
           ),
         ),
+        if (x != null) FocusSummary(x),
         Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -338,7 +362,10 @@ class CoachScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 10),
             SizedBox(
-              height: 120,
+              // Grows with large text so the two lines never clip.
+              height:
+                  120 +
+                  (MediaQuery.textScalerOf(context).scale(14) / 14 - 1) * 40,
               child: ListView(
                 scrollDirection: Axis.horizontal,
                 clipBehavior: Clip.none,
@@ -457,6 +484,23 @@ class CoachScreen extends ConsumerWidget {
         'Waiting for last night.',
         c.text1,
         ' Sync near your band to adapt today’s plan.',
+      );
+    }
+    if (t.rhrFlag == sc.RhrFlag.illness) {
+      return (
+        'Take it easy.',
+        s.recLow,
+        ' Your night heart rate ran well above usual — rest today, and pause the plan if you’re coming down with something.',
+      );
+    }
+    if (r >= 67 && t.state == sc.DayState.easeOff && !t.restDay) {
+      final why = t.rhrFlag == sc.RhrFlag.elevated
+          ? 'resting HR is above your usual'
+          : 'last night was short';
+      return (
+        'Steady.',
+        s.recMid,
+        ' Recovery ${r.round()}%, but $why — keep it aerobic today; intensity can wait a day.',
       );
     }
     if (t.restDay) {

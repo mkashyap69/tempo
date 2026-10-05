@@ -4841,6 +4841,69 @@ class $PlanDaysTable extends PlanDays with TableInfo<$PlanDaysTable, PlanDay> {
       'CHECK ("general" IN (0, 1))',
     ),
   );
+  static const VerificationMeta _slotMeta = const VerificationMeta('slot');
+  @override
+  late final GeneratedColumn<String> slot = GeneratedColumn<String>(
+    'slot',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _plannedMinuteMeta = const VerificationMeta(
+    'plannedMinute',
+  );
+  @override
+  late final GeneratedColumn<int> plannedMinute = GeneratedColumn<int>(
+    'planned_minute',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+    'status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('planned'),
+  );
+  static const VerificationMeta _statusSourceMeta = const VerificationMeta(
+    'statusSource',
+  );
+  @override
+  late final GeneratedColumn<String> statusSource = GeneratedColumn<String>(
+    'status_source',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _statusAtMeta = const VerificationMeta(
+    'statusAt',
+  );
+  @override
+  late final GeneratedColumn<int> statusAt = GeneratedColumn<int>(
+    'status_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _algoVersionMeta = const VerificationMeta(
+    'algoVersion',
+  );
+  @override
+  late final GeneratedColumn<String> algoVersion = GeneratedColumn<String>(
+    'algo_version',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     date,
@@ -4849,6 +4912,12 @@ class $PlanDaysTable extends PlanDays with TableInfo<$PlanDaysTable, PlanDay> {
     reason,
     adaptedAt,
     general,
+    slot,
+    plannedMinute,
+    status,
+    statusSource,
+    statusAt,
+    algoVersion,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -4904,6 +4973,51 @@ class $PlanDaysTable extends PlanDays with TableInfo<$PlanDaysTable, PlanDay> {
     } else if (isInserting) {
       context.missing(_generalMeta);
     }
+    if (data.containsKey('slot')) {
+      context.handle(
+        _slotMeta,
+        slot.isAcceptableOrUnknown(data['slot']!, _slotMeta),
+      );
+    }
+    if (data.containsKey('planned_minute')) {
+      context.handle(
+        _plannedMinuteMeta,
+        plannedMinute.isAcceptableOrUnknown(
+          data['planned_minute']!,
+          _plannedMinuteMeta,
+        ),
+      );
+    }
+    if (data.containsKey('status')) {
+      context.handle(
+        _statusMeta,
+        status.isAcceptableOrUnknown(data['status']!, _statusMeta),
+      );
+    }
+    if (data.containsKey('status_source')) {
+      context.handle(
+        _statusSourceMeta,
+        statusSource.isAcceptableOrUnknown(
+          data['status_source']!,
+          _statusSourceMeta,
+        ),
+      );
+    }
+    if (data.containsKey('status_at')) {
+      context.handle(
+        _statusAtMeta,
+        statusAt.isAcceptableOrUnknown(data['status_at']!, _statusAtMeta),
+      );
+    }
+    if (data.containsKey('algo_version')) {
+      context.handle(
+        _algoVersionMeta,
+        algoVersion.isAcceptableOrUnknown(
+          data['algo_version']!,
+          _algoVersionMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -4937,6 +5051,30 @@ class $PlanDaysTable extends PlanDays with TableInfo<$PlanDaysTable, PlanDay> {
         DriftSqlType.bool,
         data['${effectivePrefix}general'],
       )!,
+      slot: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}slot'],
+      ),
+      plannedMinute: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}planned_minute'],
+      ),
+      status: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}status'],
+      )!,
+      statusSource: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}status_source'],
+      ),
+      statusAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}status_at'],
+      ),
+      algoVersion: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}algo_version'],
+      ),
     );
   }
 
@@ -4953,6 +5091,15 @@ class PlanDay extends DataClass implements Insertable<PlanDay> {
   final String? reason;
   final int? adaptedAt;
   final bool general;
+
+  /// Tempo Coach intent (v8). What the user or coach decided; whether it
+  /// was done is derived from workouts, never stored.
+  final String? slot;
+  final int? plannedMinute;
+  final String status;
+  final String? statusSource;
+  final int? statusAt;
+  final String? algoVersion;
   const PlanDay({
     required this.date,
     required this.session,
@@ -4960,6 +5107,12 @@ class PlanDay extends DataClass implements Insertable<PlanDay> {
     this.reason,
     this.adaptedAt,
     required this.general,
+    this.slot,
+    this.plannedMinute,
+    required this.status,
+    this.statusSource,
+    this.statusAt,
+    this.algoVersion,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -4976,6 +5129,22 @@ class PlanDay extends DataClass implements Insertable<PlanDay> {
       map['adapted_at'] = Variable<int>(adaptedAt);
     }
     map['general'] = Variable<bool>(general);
+    if (!nullToAbsent || slot != null) {
+      map['slot'] = Variable<String>(slot);
+    }
+    if (!nullToAbsent || plannedMinute != null) {
+      map['planned_minute'] = Variable<int>(plannedMinute);
+    }
+    map['status'] = Variable<String>(status);
+    if (!nullToAbsent || statusSource != null) {
+      map['status_source'] = Variable<String>(statusSource);
+    }
+    if (!nullToAbsent || statusAt != null) {
+      map['status_at'] = Variable<int>(statusAt);
+    }
+    if (!nullToAbsent || algoVersion != null) {
+      map['algo_version'] = Variable<String>(algoVersion);
+    }
     return map;
   }
 
@@ -4993,6 +5162,20 @@ class PlanDay extends DataClass implements Insertable<PlanDay> {
           ? const Value.absent()
           : Value(adaptedAt),
       general: Value(general),
+      slot: slot == null && nullToAbsent ? const Value.absent() : Value(slot),
+      plannedMinute: plannedMinute == null && nullToAbsent
+          ? const Value.absent()
+          : Value(plannedMinute),
+      status: Value(status),
+      statusSource: statusSource == null && nullToAbsent
+          ? const Value.absent()
+          : Value(statusSource),
+      statusAt: statusAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(statusAt),
+      algoVersion: algoVersion == null && nullToAbsent
+          ? const Value.absent()
+          : Value(algoVersion),
     );
   }
 
@@ -5008,6 +5191,12 @@ class PlanDay extends DataClass implements Insertable<PlanDay> {
       reason: serializer.fromJson<String?>(json['reason']),
       adaptedAt: serializer.fromJson<int?>(json['adaptedAt']),
       general: serializer.fromJson<bool>(json['general']),
+      slot: serializer.fromJson<String?>(json['slot']),
+      plannedMinute: serializer.fromJson<int?>(json['plannedMinute']),
+      status: serializer.fromJson<String>(json['status']),
+      statusSource: serializer.fromJson<String?>(json['statusSource']),
+      statusAt: serializer.fromJson<int?>(json['statusAt']),
+      algoVersion: serializer.fromJson<String?>(json['algoVersion']),
     );
   }
   @override
@@ -5020,6 +5209,12 @@ class PlanDay extends DataClass implements Insertable<PlanDay> {
       'reason': serializer.toJson<String?>(reason),
       'adaptedAt': serializer.toJson<int?>(adaptedAt),
       'general': serializer.toJson<bool>(general),
+      'slot': serializer.toJson<String?>(slot),
+      'plannedMinute': serializer.toJson<int?>(plannedMinute),
+      'status': serializer.toJson<String>(status),
+      'statusSource': serializer.toJson<String?>(statusSource),
+      'statusAt': serializer.toJson<int?>(statusAt),
+      'algoVersion': serializer.toJson<String?>(algoVersion),
     };
   }
 
@@ -5030,6 +5225,12 @@ class PlanDay extends DataClass implements Insertable<PlanDay> {
     Value<String?> reason = const Value.absent(),
     Value<int?> adaptedAt = const Value.absent(),
     bool? general,
+    Value<String?> slot = const Value.absent(),
+    Value<int?> plannedMinute = const Value.absent(),
+    String? status,
+    Value<String?> statusSource = const Value.absent(),
+    Value<int?> statusAt = const Value.absent(),
+    Value<String?> algoVersion = const Value.absent(),
   }) => PlanDay(
     date: date ?? this.date,
     session: session ?? this.session,
@@ -5037,6 +5238,14 @@ class PlanDay extends DataClass implements Insertable<PlanDay> {
     reason: reason.present ? reason.value : this.reason,
     adaptedAt: adaptedAt.present ? adaptedAt.value : this.adaptedAt,
     general: general ?? this.general,
+    slot: slot.present ? slot.value : this.slot,
+    plannedMinute: plannedMinute.present
+        ? plannedMinute.value
+        : this.plannedMinute,
+    status: status ?? this.status,
+    statusSource: statusSource.present ? statusSource.value : this.statusSource,
+    statusAt: statusAt.present ? statusAt.value : this.statusAt,
+    algoVersion: algoVersion.present ? algoVersion.value : this.algoVersion,
   );
   PlanDay copyWithCompanion(PlanDaysCompanion data) {
     return PlanDay(
@@ -5046,6 +5255,18 @@ class PlanDay extends DataClass implements Insertable<PlanDay> {
       reason: data.reason.present ? data.reason.value : this.reason,
       adaptedAt: data.adaptedAt.present ? data.adaptedAt.value : this.adaptedAt,
       general: data.general.present ? data.general.value : this.general,
+      slot: data.slot.present ? data.slot.value : this.slot,
+      plannedMinute: data.plannedMinute.present
+          ? data.plannedMinute.value
+          : this.plannedMinute,
+      status: data.status.present ? data.status.value : this.status,
+      statusSource: data.statusSource.present
+          ? data.statusSource.value
+          : this.statusSource,
+      statusAt: data.statusAt.present ? data.statusAt.value : this.statusAt,
+      algoVersion: data.algoVersion.present
+          ? data.algoVersion.value
+          : this.algoVersion,
     );
   }
 
@@ -5057,14 +5278,32 @@ class PlanDay extends DataClass implements Insertable<PlanDay> {
           ..write('original: $original, ')
           ..write('reason: $reason, ')
           ..write('adaptedAt: $adaptedAt, ')
-          ..write('general: $general')
+          ..write('general: $general, ')
+          ..write('slot: $slot, ')
+          ..write('plannedMinute: $plannedMinute, ')
+          ..write('status: $status, ')
+          ..write('statusSource: $statusSource, ')
+          ..write('statusAt: $statusAt, ')
+          ..write('algoVersion: $algoVersion')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(date, session, original, reason, adaptedAt, general);
+  int get hashCode => Object.hash(
+    date,
+    session,
+    original,
+    reason,
+    adaptedAt,
+    general,
+    slot,
+    plannedMinute,
+    status,
+    statusSource,
+    statusAt,
+    algoVersion,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -5074,7 +5313,13 @@ class PlanDay extends DataClass implements Insertable<PlanDay> {
           other.original == this.original &&
           other.reason == this.reason &&
           other.adaptedAt == this.adaptedAt &&
-          other.general == this.general);
+          other.general == this.general &&
+          other.slot == this.slot &&
+          other.plannedMinute == this.plannedMinute &&
+          other.status == this.status &&
+          other.statusSource == this.statusSource &&
+          other.statusAt == this.statusAt &&
+          other.algoVersion == this.algoVersion);
 }
 
 class PlanDaysCompanion extends UpdateCompanion<PlanDay> {
@@ -5084,6 +5329,12 @@ class PlanDaysCompanion extends UpdateCompanion<PlanDay> {
   final Value<String?> reason;
   final Value<int?> adaptedAt;
   final Value<bool> general;
+  final Value<String?> slot;
+  final Value<int?> plannedMinute;
+  final Value<String> status;
+  final Value<String?> statusSource;
+  final Value<int?> statusAt;
+  final Value<String?> algoVersion;
   final Value<int> rowid;
   const PlanDaysCompanion({
     this.date = const Value.absent(),
@@ -5092,6 +5343,12 @@ class PlanDaysCompanion extends UpdateCompanion<PlanDay> {
     this.reason = const Value.absent(),
     this.adaptedAt = const Value.absent(),
     this.general = const Value.absent(),
+    this.slot = const Value.absent(),
+    this.plannedMinute = const Value.absent(),
+    this.status = const Value.absent(),
+    this.statusSource = const Value.absent(),
+    this.statusAt = const Value.absent(),
+    this.algoVersion = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   PlanDaysCompanion.insert({
@@ -5101,6 +5358,12 @@ class PlanDaysCompanion extends UpdateCompanion<PlanDay> {
     this.reason = const Value.absent(),
     this.adaptedAt = const Value.absent(),
     required bool general,
+    this.slot = const Value.absent(),
+    this.plannedMinute = const Value.absent(),
+    this.status = const Value.absent(),
+    this.statusSource = const Value.absent(),
+    this.statusAt = const Value.absent(),
+    this.algoVersion = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : date = Value(date),
        session = Value(session),
@@ -5112,6 +5375,12 @@ class PlanDaysCompanion extends UpdateCompanion<PlanDay> {
     Expression<String>? reason,
     Expression<int>? adaptedAt,
     Expression<bool>? general,
+    Expression<String>? slot,
+    Expression<int>? plannedMinute,
+    Expression<String>? status,
+    Expression<String>? statusSource,
+    Expression<int>? statusAt,
+    Expression<String>? algoVersion,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -5121,6 +5390,12 @@ class PlanDaysCompanion extends UpdateCompanion<PlanDay> {
       if (reason != null) 'reason': reason,
       if (adaptedAt != null) 'adapted_at': adaptedAt,
       if (general != null) 'general': general,
+      if (slot != null) 'slot': slot,
+      if (plannedMinute != null) 'planned_minute': plannedMinute,
+      if (status != null) 'status': status,
+      if (statusSource != null) 'status_source': statusSource,
+      if (statusAt != null) 'status_at': statusAt,
+      if (algoVersion != null) 'algo_version': algoVersion,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -5132,6 +5407,12 @@ class PlanDaysCompanion extends UpdateCompanion<PlanDay> {
     Value<String?>? reason,
     Value<int?>? adaptedAt,
     Value<bool>? general,
+    Value<String?>? slot,
+    Value<int?>? plannedMinute,
+    Value<String>? status,
+    Value<String?>? statusSource,
+    Value<int?>? statusAt,
+    Value<String?>? algoVersion,
     Value<int>? rowid,
   }) {
     return PlanDaysCompanion(
@@ -5141,6 +5422,12 @@ class PlanDaysCompanion extends UpdateCompanion<PlanDay> {
       reason: reason ?? this.reason,
       adaptedAt: adaptedAt ?? this.adaptedAt,
       general: general ?? this.general,
+      slot: slot ?? this.slot,
+      plannedMinute: plannedMinute ?? this.plannedMinute,
+      status: status ?? this.status,
+      statusSource: statusSource ?? this.statusSource,
+      statusAt: statusAt ?? this.statusAt,
+      algoVersion: algoVersion ?? this.algoVersion,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -5166,6 +5453,24 @@ class PlanDaysCompanion extends UpdateCompanion<PlanDay> {
     if (general.present) {
       map['general'] = Variable<bool>(general.value);
     }
+    if (slot.present) {
+      map['slot'] = Variable<String>(slot.value);
+    }
+    if (plannedMinute.present) {
+      map['planned_minute'] = Variable<int>(plannedMinute.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (statusSource.present) {
+      map['status_source'] = Variable<String>(statusSource.value);
+    }
+    if (statusAt.present) {
+      map['status_at'] = Variable<int>(statusAt.value);
+    }
+    if (algoVersion.present) {
+      map['algo_version'] = Variable<String>(algoVersion.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -5181,6 +5486,12 @@ class PlanDaysCompanion extends UpdateCompanion<PlanDay> {
           ..write('reason: $reason, ')
           ..write('adaptedAt: $adaptedAt, ')
           ..write('general: $general, ')
+          ..write('slot: $slot, ')
+          ..write('plannedMinute: $plannedMinute, ')
+          ..write('status: $status, ')
+          ..write('statusSource: $statusSource, ')
+          ..write('statusAt: $statusAt, ')
+          ..write('algoVersion: $algoVersion, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -5966,6 +6277,594 @@ class LongevityCompanion extends UpdateCompanion<LongevitySnapshot> {
   }
 }
 
+class $NudgeLogTable extends NudgeLog
+    with TableInfo<$NudgeLogTable, NudgeLogData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $NudgeLogTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _tsMeta = const VerificationMeta('ts');
+  @override
+  late final GeneratedColumn<int> ts = GeneratedColumn<int>(
+    'ts',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _dayMeta = const VerificationMeta('day');
+  @override
+  late final GeneratedColumn<String> day = GeneratedColumn<String>(
+    'day',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _kindMeta = const VerificationMeta('kind');
+  @override
+  late final GeneratedColumn<String> kind = GeneratedColumn<String>(
+    'kind',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _notifIdMeta = const VerificationMeta(
+    'notifId',
+  );
+  @override
+  late final GeneratedColumn<int> notifId = GeneratedColumn<int>(
+    'notif_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _fireAtMeta = const VerificationMeta('fireAt');
+  @override
+  late final GeneratedColumn<int> fireAt = GeneratedColumn<int>(
+    'fire_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _eventMeta = const VerificationMeta('event');
+  @override
+  late final GeneratedColumn<String> event = GeneratedColumn<String>(
+    'event',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _actionMeta = const VerificationMeta('action');
+  @override
+  late final GeneratedColumn<String> action = GeneratedColumn<String>(
+    'action',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _payloadMeta = const VerificationMeta(
+    'payload',
+  );
+  @override
+  late final GeneratedColumn<String> payload = GeneratedColumn<String>(
+    'payload',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('{}'),
+  );
+  static const VerificationMeta _algoVersionMeta = const VerificationMeta(
+    'algoVersion',
+  );
+  @override
+  late final GeneratedColumn<String> algoVersion = GeneratedColumn<String>(
+    'algo_version',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    ts,
+    day,
+    kind,
+    notifId,
+    fireAt,
+    event,
+    action,
+    payload,
+    algoVersion,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'nudge_log';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<NudgeLogData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('ts')) {
+      context.handle(_tsMeta, ts.isAcceptableOrUnknown(data['ts']!, _tsMeta));
+    } else if (isInserting) {
+      context.missing(_tsMeta);
+    }
+    if (data.containsKey('day')) {
+      context.handle(
+        _dayMeta,
+        day.isAcceptableOrUnknown(data['day']!, _dayMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_dayMeta);
+    }
+    if (data.containsKey('kind')) {
+      context.handle(
+        _kindMeta,
+        kind.isAcceptableOrUnknown(data['kind']!, _kindMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_kindMeta);
+    }
+    if (data.containsKey('notif_id')) {
+      context.handle(
+        _notifIdMeta,
+        notifId.isAcceptableOrUnknown(data['notif_id']!, _notifIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_notifIdMeta);
+    }
+    if (data.containsKey('fire_at')) {
+      context.handle(
+        _fireAtMeta,
+        fireAt.isAcceptableOrUnknown(data['fire_at']!, _fireAtMeta),
+      );
+    }
+    if (data.containsKey('event')) {
+      context.handle(
+        _eventMeta,
+        event.isAcceptableOrUnknown(data['event']!, _eventMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_eventMeta);
+    }
+    if (data.containsKey('action')) {
+      context.handle(
+        _actionMeta,
+        action.isAcceptableOrUnknown(data['action']!, _actionMeta),
+      );
+    }
+    if (data.containsKey('payload')) {
+      context.handle(
+        _payloadMeta,
+        payload.isAcceptableOrUnknown(data['payload']!, _payloadMeta),
+      );
+    }
+    if (data.containsKey('algo_version')) {
+      context.handle(
+        _algoVersionMeta,
+        algoVersion.isAcceptableOrUnknown(
+          data['algo_version']!,
+          _algoVersionMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_algoVersionMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  NudgeLogData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return NudgeLogData(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      ts: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}ts'],
+      )!,
+      day: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}day'],
+      )!,
+      kind: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}kind'],
+      )!,
+      notifId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}notif_id'],
+      )!,
+      fireAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}fire_at'],
+      ),
+      event: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}event'],
+      )!,
+      action: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}action'],
+      ),
+      payload: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}payload'],
+      )!,
+      algoVersion: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}algo_version'],
+      )!,
+    );
+  }
+
+  @override
+  $NudgeLogTable createAlias(String alias) {
+    return $NudgeLogTable(attachedDatabase, alias);
+  }
+}
+
+class NudgeLogData extends DataClass implements Insertable<NudgeLogData> {
+  final int id;
+  final int ts;
+  final String day;
+  final String kind;
+  final int notifId;
+  final int? fireAt;
+  final String event;
+  final String? action;
+  final String payload;
+  final String algoVersion;
+  const NudgeLogData({
+    required this.id,
+    required this.ts,
+    required this.day,
+    required this.kind,
+    required this.notifId,
+    this.fireAt,
+    required this.event,
+    this.action,
+    required this.payload,
+    required this.algoVersion,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['ts'] = Variable<int>(ts);
+    map['day'] = Variable<String>(day);
+    map['kind'] = Variable<String>(kind);
+    map['notif_id'] = Variable<int>(notifId);
+    if (!nullToAbsent || fireAt != null) {
+      map['fire_at'] = Variable<int>(fireAt);
+    }
+    map['event'] = Variable<String>(event);
+    if (!nullToAbsent || action != null) {
+      map['action'] = Variable<String>(action);
+    }
+    map['payload'] = Variable<String>(payload);
+    map['algo_version'] = Variable<String>(algoVersion);
+    return map;
+  }
+
+  NudgeLogCompanion toCompanion(bool nullToAbsent) {
+    return NudgeLogCompanion(
+      id: Value(id),
+      ts: Value(ts),
+      day: Value(day),
+      kind: Value(kind),
+      notifId: Value(notifId),
+      fireAt: fireAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(fireAt),
+      event: Value(event),
+      action: action == null && nullToAbsent
+          ? const Value.absent()
+          : Value(action),
+      payload: Value(payload),
+      algoVersion: Value(algoVersion),
+    );
+  }
+
+  factory NudgeLogData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return NudgeLogData(
+      id: serializer.fromJson<int>(json['id']),
+      ts: serializer.fromJson<int>(json['ts']),
+      day: serializer.fromJson<String>(json['day']),
+      kind: serializer.fromJson<String>(json['kind']),
+      notifId: serializer.fromJson<int>(json['notifId']),
+      fireAt: serializer.fromJson<int?>(json['fireAt']),
+      event: serializer.fromJson<String>(json['event']),
+      action: serializer.fromJson<String?>(json['action']),
+      payload: serializer.fromJson<String>(json['payload']),
+      algoVersion: serializer.fromJson<String>(json['algoVersion']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'ts': serializer.toJson<int>(ts),
+      'day': serializer.toJson<String>(day),
+      'kind': serializer.toJson<String>(kind),
+      'notifId': serializer.toJson<int>(notifId),
+      'fireAt': serializer.toJson<int?>(fireAt),
+      'event': serializer.toJson<String>(event),
+      'action': serializer.toJson<String?>(action),
+      'payload': serializer.toJson<String>(payload),
+      'algoVersion': serializer.toJson<String>(algoVersion),
+    };
+  }
+
+  NudgeLogData copyWith({
+    int? id,
+    int? ts,
+    String? day,
+    String? kind,
+    int? notifId,
+    Value<int?> fireAt = const Value.absent(),
+    String? event,
+    Value<String?> action = const Value.absent(),
+    String? payload,
+    String? algoVersion,
+  }) => NudgeLogData(
+    id: id ?? this.id,
+    ts: ts ?? this.ts,
+    day: day ?? this.day,
+    kind: kind ?? this.kind,
+    notifId: notifId ?? this.notifId,
+    fireAt: fireAt.present ? fireAt.value : this.fireAt,
+    event: event ?? this.event,
+    action: action.present ? action.value : this.action,
+    payload: payload ?? this.payload,
+    algoVersion: algoVersion ?? this.algoVersion,
+  );
+  NudgeLogData copyWithCompanion(NudgeLogCompanion data) {
+    return NudgeLogData(
+      id: data.id.present ? data.id.value : this.id,
+      ts: data.ts.present ? data.ts.value : this.ts,
+      day: data.day.present ? data.day.value : this.day,
+      kind: data.kind.present ? data.kind.value : this.kind,
+      notifId: data.notifId.present ? data.notifId.value : this.notifId,
+      fireAt: data.fireAt.present ? data.fireAt.value : this.fireAt,
+      event: data.event.present ? data.event.value : this.event,
+      action: data.action.present ? data.action.value : this.action,
+      payload: data.payload.present ? data.payload.value : this.payload,
+      algoVersion: data.algoVersion.present
+          ? data.algoVersion.value
+          : this.algoVersion,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('NudgeLogData(')
+          ..write('id: $id, ')
+          ..write('ts: $ts, ')
+          ..write('day: $day, ')
+          ..write('kind: $kind, ')
+          ..write('notifId: $notifId, ')
+          ..write('fireAt: $fireAt, ')
+          ..write('event: $event, ')
+          ..write('action: $action, ')
+          ..write('payload: $payload, ')
+          ..write('algoVersion: $algoVersion')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    ts,
+    day,
+    kind,
+    notifId,
+    fireAt,
+    event,
+    action,
+    payload,
+    algoVersion,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is NudgeLogData &&
+          other.id == this.id &&
+          other.ts == this.ts &&
+          other.day == this.day &&
+          other.kind == this.kind &&
+          other.notifId == this.notifId &&
+          other.fireAt == this.fireAt &&
+          other.event == this.event &&
+          other.action == this.action &&
+          other.payload == this.payload &&
+          other.algoVersion == this.algoVersion);
+}
+
+class NudgeLogCompanion extends UpdateCompanion<NudgeLogData> {
+  final Value<int> id;
+  final Value<int> ts;
+  final Value<String> day;
+  final Value<String> kind;
+  final Value<int> notifId;
+  final Value<int?> fireAt;
+  final Value<String> event;
+  final Value<String?> action;
+  final Value<String> payload;
+  final Value<String> algoVersion;
+  const NudgeLogCompanion({
+    this.id = const Value.absent(),
+    this.ts = const Value.absent(),
+    this.day = const Value.absent(),
+    this.kind = const Value.absent(),
+    this.notifId = const Value.absent(),
+    this.fireAt = const Value.absent(),
+    this.event = const Value.absent(),
+    this.action = const Value.absent(),
+    this.payload = const Value.absent(),
+    this.algoVersion = const Value.absent(),
+  });
+  NudgeLogCompanion.insert({
+    this.id = const Value.absent(),
+    required int ts,
+    required String day,
+    required String kind,
+    required int notifId,
+    this.fireAt = const Value.absent(),
+    required String event,
+    this.action = const Value.absent(),
+    this.payload = const Value.absent(),
+    required String algoVersion,
+  }) : ts = Value(ts),
+       day = Value(day),
+       kind = Value(kind),
+       notifId = Value(notifId),
+       event = Value(event),
+       algoVersion = Value(algoVersion);
+  static Insertable<NudgeLogData> custom({
+    Expression<int>? id,
+    Expression<int>? ts,
+    Expression<String>? day,
+    Expression<String>? kind,
+    Expression<int>? notifId,
+    Expression<int>? fireAt,
+    Expression<String>? event,
+    Expression<String>? action,
+    Expression<String>? payload,
+    Expression<String>? algoVersion,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (ts != null) 'ts': ts,
+      if (day != null) 'day': day,
+      if (kind != null) 'kind': kind,
+      if (notifId != null) 'notif_id': notifId,
+      if (fireAt != null) 'fire_at': fireAt,
+      if (event != null) 'event': event,
+      if (action != null) 'action': action,
+      if (payload != null) 'payload': payload,
+      if (algoVersion != null) 'algo_version': algoVersion,
+    });
+  }
+
+  NudgeLogCompanion copyWith({
+    Value<int>? id,
+    Value<int>? ts,
+    Value<String>? day,
+    Value<String>? kind,
+    Value<int>? notifId,
+    Value<int?>? fireAt,
+    Value<String>? event,
+    Value<String?>? action,
+    Value<String>? payload,
+    Value<String>? algoVersion,
+  }) {
+    return NudgeLogCompanion(
+      id: id ?? this.id,
+      ts: ts ?? this.ts,
+      day: day ?? this.day,
+      kind: kind ?? this.kind,
+      notifId: notifId ?? this.notifId,
+      fireAt: fireAt ?? this.fireAt,
+      event: event ?? this.event,
+      action: action ?? this.action,
+      payload: payload ?? this.payload,
+      algoVersion: algoVersion ?? this.algoVersion,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (ts.present) {
+      map['ts'] = Variable<int>(ts.value);
+    }
+    if (day.present) {
+      map['day'] = Variable<String>(day.value);
+    }
+    if (kind.present) {
+      map['kind'] = Variable<String>(kind.value);
+    }
+    if (notifId.present) {
+      map['notif_id'] = Variable<int>(notifId.value);
+    }
+    if (fireAt.present) {
+      map['fire_at'] = Variable<int>(fireAt.value);
+    }
+    if (event.present) {
+      map['event'] = Variable<String>(event.value);
+    }
+    if (action.present) {
+      map['action'] = Variable<String>(action.value);
+    }
+    if (payload.present) {
+      map['payload'] = Variable<String>(payload.value);
+    }
+    if (algoVersion.present) {
+      map['algo_version'] = Variable<String>(algoVersion.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('NudgeLogCompanion(')
+          ..write('id: $id, ')
+          ..write('ts: $ts, ')
+          ..write('day: $day, ')
+          ..write('kind: $kind, ')
+          ..write('notifId: $notifId, ')
+          ..write('fireAt: $fireAt, ')
+          ..write('event: $event, ')
+          ..write('action: $action, ')
+          ..write('payload: $payload, ')
+          ..write('algoVersion: $algoVersion')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$TempoDb extends GeneratedDatabase {
   _$TempoDb(QueryExecutor e) : super(e);
   $TempoDbManager get managers => $TempoDbManager(this);
@@ -5985,6 +6884,7 @@ abstract class _$TempoDb extends GeneratedDatabase {
   late final $PlanDaysTable planDays = $PlanDaysTable(this);
   late final $SyncLogTable syncLog = $SyncLogTable(this);
   late final $LongevityTable longevity = $LongevityTable(this);
+  late final $NudgeLogTable nudgeLog = $NudgeLogTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -6006,6 +6906,7 @@ abstract class _$TempoDb extends GeneratedDatabase {
     planDays,
     syncLog,
     longevity,
+    nudgeLog,
   ];
 }
 
@@ -8588,6 +9489,12 @@ typedef $$PlanDaysTableCreateCompanionBuilder = PlanDaysCompanion Function({
   Value<String?> reason,
   Value<int?> adaptedAt,
   required bool general,
+  Value<String?> slot,
+  Value<int?> plannedMinute,
+  Value<String> status,
+  Value<String?> statusSource,
+  Value<int?> statusAt,
+  Value<String?> algoVersion,
   Value<int> rowid,
 });
 typedef $$PlanDaysTableUpdateCompanionBuilder = PlanDaysCompanion Function({
@@ -8597,6 +9504,12 @@ typedef $$PlanDaysTableUpdateCompanionBuilder = PlanDaysCompanion Function({
   Value<String?> reason,
   Value<int?> adaptedAt,
   Value<bool> general,
+  Value<String?> slot,
+  Value<int?> plannedMinute,
+  Value<String> status,
+  Value<String?> statusSource,
+  Value<int?> statusAt,
+  Value<String?> algoVersion,
   Value<int> rowid,
 });
 
@@ -8636,6 +9549,36 @@ class $$PlanDaysTableFilterComposer
 
   ColumnFilters<bool> get general => $composableBuilder(
     column: $table.general,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get slot => $composableBuilder(
+    column: $table.slot,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get plannedMinute => $composableBuilder(
+    column: $table.plannedMinute,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get statusSource => $composableBuilder(
+    column: $table.statusSource,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get statusAt => $composableBuilder(
+    column: $table.statusAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get algoVersion => $composableBuilder(
+    column: $table.algoVersion,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -8678,6 +9621,36 @@ class $$PlanDaysTableOrderingComposer
     column: $table.general,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get slot => $composableBuilder(
+    column: $table.slot,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get plannedMinute => $composableBuilder(
+    column: $table.plannedMinute,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get statusSource => $composableBuilder(
+    column: $table.statusSource,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get statusAt => $composableBuilder(
+    column: $table.statusAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get algoVersion => $composableBuilder(
+    column: $table.algoVersion,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$PlanDaysTableAnnotationComposer
@@ -8706,6 +9679,30 @@ class $$PlanDaysTableAnnotationComposer
 
   GeneratedColumn<bool> get general =>
       $composableBuilder(column: $table.general, builder: (column) => column);
+
+  GeneratedColumn<String> get slot =>
+      $composableBuilder(column: $table.slot, builder: (column) => column);
+
+  GeneratedColumn<int> get plannedMinute => $composableBuilder(
+    column: $table.plannedMinute,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<String> get statusSource => $composableBuilder(
+    column: $table.statusSource,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get statusAt =>
+      $composableBuilder(column: $table.statusAt, builder: (column) => column);
+
+  GeneratedColumn<String> get algoVersion => $composableBuilder(
+    column: $table.algoVersion,
+    builder: (column) => column,
+  );
 }
 
 class $$PlanDaysTableTableManager
@@ -8742,6 +9739,12 @@ class $$PlanDaysTableTableManager
                 Value<String?> reason = const Value.absent(),
                 Value<int?> adaptedAt = const Value.absent(),
                 Value<bool> general = const Value.absent(),
+                Value<String?> slot = const Value.absent(),
+                Value<int?> plannedMinute = const Value.absent(),
+                Value<String> status = const Value.absent(),
+                Value<String?> statusSource = const Value.absent(),
+                Value<int?> statusAt = const Value.absent(),
+                Value<String?> algoVersion = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => PlanDaysCompanion(
                 date: date,
@@ -8750,6 +9753,12 @@ class $$PlanDaysTableTableManager
                 reason: reason,
                 adaptedAt: adaptedAt,
                 general: general,
+                slot: slot,
+                plannedMinute: plannedMinute,
+                status: status,
+                statusSource: statusSource,
+                statusAt: statusAt,
+                algoVersion: algoVersion,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -8760,6 +9769,12 @@ class $$PlanDaysTableTableManager
                 Value<String?> reason = const Value.absent(),
                 Value<int?> adaptedAt = const Value.absent(),
                 required bool general,
+                Value<String?> slot = const Value.absent(),
+                Value<int?> plannedMinute = const Value.absent(),
+                Value<String> status = const Value.absent(),
+                Value<String?> statusSource = const Value.absent(),
+                Value<int?> statusAt = const Value.absent(),
+                Value<String?> algoVersion = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => PlanDaysCompanion.insert(
                 date: date,
@@ -8768,6 +9783,12 @@ class $$PlanDaysTableTableManager
                 reason: reason,
                 adaptedAt: adaptedAt,
                 general: general,
+                slot: slot,
+                plannedMinute: plannedMinute,
+                status: status,
+                statusSource: statusSource,
+                statusAt: statusAt,
+                algoVersion: algoVersion,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -9202,6 +10223,292 @@ typedef $$LongevityTableProcessedTableManager =
       LongevitySnapshot,
       PrefetchHooks Function()
     >;
+typedef $$NudgeLogTableCreateCompanionBuilder = NudgeLogCompanion Function({
+  Value<int> id,
+  required int ts,
+  required String day,
+  required String kind,
+  required int notifId,
+  Value<int?> fireAt,
+  required String event,
+  Value<String?> action,
+  Value<String> payload,
+  required String algoVersion,
+});
+typedef $$NudgeLogTableUpdateCompanionBuilder = NudgeLogCompanion Function({
+  Value<int> id,
+  Value<int> ts,
+  Value<String> day,
+  Value<String> kind,
+  Value<int> notifId,
+  Value<int?> fireAt,
+  Value<String> event,
+  Value<String?> action,
+  Value<String> payload,
+  Value<String> algoVersion,
+});
+
+class $$NudgeLogTableFilterComposer
+    extends Composer<_$TempoDb, $NudgeLogTable> {
+  $$NudgeLogTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get ts => $composableBuilder(
+    column: $table.ts,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get day => $composableBuilder(
+    column: $table.day,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get notifId => $composableBuilder(
+    column: $table.notifId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get fireAt => $composableBuilder(
+    column: $table.fireAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get event => $composableBuilder(
+    column: $table.event,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get action => $composableBuilder(
+    column: $table.action,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get payload => $composableBuilder(
+    column: $table.payload,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get algoVersion => $composableBuilder(
+    column: $table.algoVersion,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$NudgeLogTableOrderingComposer
+    extends Composer<_$TempoDb, $NudgeLogTable> {
+  $$NudgeLogTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get ts => $composableBuilder(
+    column: $table.ts,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get day => $composableBuilder(
+    column: $table.day,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get notifId => $composableBuilder(
+    column: $table.notifId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get fireAt => $composableBuilder(
+    column: $table.fireAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get event => $composableBuilder(
+    column: $table.event,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get action => $composableBuilder(
+    column: $table.action,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get payload => $composableBuilder(
+    column: $table.payload,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get algoVersion => $composableBuilder(
+    column: $table.algoVersion,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$NudgeLogTableAnnotationComposer
+    extends Composer<_$TempoDb, $NudgeLogTable> {
+  $$NudgeLogTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get ts =>
+      $composableBuilder(column: $table.ts, builder: (column) => column);
+
+  GeneratedColumn<String> get day =>
+      $composableBuilder(column: $table.day, builder: (column) => column);
+
+  GeneratedColumn<String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => column);
+
+  GeneratedColumn<int> get notifId =>
+      $composableBuilder(column: $table.notifId, builder: (column) => column);
+
+  GeneratedColumn<int> get fireAt =>
+      $composableBuilder(column: $table.fireAt, builder: (column) => column);
+
+  GeneratedColumn<String> get event =>
+      $composableBuilder(column: $table.event, builder: (column) => column);
+
+  GeneratedColumn<String> get action =>
+      $composableBuilder(column: $table.action, builder: (column) => column);
+
+  GeneratedColumn<String> get payload =>
+      $composableBuilder(column: $table.payload, builder: (column) => column);
+
+  GeneratedColumn<String> get algoVersion => $composableBuilder(
+    column: $table.algoVersion,
+    builder: (column) => column,
+  );
+}
+
+class $$NudgeLogTableTableManager
+    extends
+        RootTableManager<
+          _$TempoDb,
+          $NudgeLogTable,
+          NudgeLogData,
+          $$NudgeLogTableFilterComposer,
+          $$NudgeLogTableOrderingComposer,
+          $$NudgeLogTableAnnotationComposer,
+          $$NudgeLogTableCreateCompanionBuilder,
+          $$NudgeLogTableUpdateCompanionBuilder,
+          (
+            NudgeLogData,
+            BaseReferences<_$TempoDb, $NudgeLogTable, NudgeLogData>,
+          ),
+          NudgeLogData,
+          PrefetchHooks Function()
+        > {
+  $$NudgeLogTableTableManager(_$TempoDb db, $NudgeLogTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$NudgeLogTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$NudgeLogTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$NudgeLogTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> ts = const Value.absent(),
+                Value<String> day = const Value.absent(),
+                Value<String> kind = const Value.absent(),
+                Value<int> notifId = const Value.absent(),
+                Value<int?> fireAt = const Value.absent(),
+                Value<String> event = const Value.absent(),
+                Value<String?> action = const Value.absent(),
+                Value<String> payload = const Value.absent(),
+                Value<String> algoVersion = const Value.absent(),
+              }) => NudgeLogCompanion(
+                id: id,
+                ts: ts,
+                day: day,
+                kind: kind,
+                notifId: notifId,
+                fireAt: fireAt,
+                event: event,
+                action: action,
+                payload: payload,
+                algoVersion: algoVersion,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int ts,
+                required String day,
+                required String kind,
+                required int notifId,
+                Value<int?> fireAt = const Value.absent(),
+                required String event,
+                Value<String?> action = const Value.absent(),
+                Value<String> payload = const Value.absent(),
+                required String algoVersion,
+              }) => NudgeLogCompanion.insert(
+                id: id,
+                ts: ts,
+                day: day,
+                kind: kind,
+                notifId: notifId,
+                fireAt: fireAt,
+                event: event,
+                action: action,
+                payload: payload,
+                algoVersion: algoVersion,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$NudgeLogTableProcessedTableManager =
+    ProcessedTableManager<
+      _$TempoDb,
+      $NudgeLogTable,
+      NudgeLogData,
+      $$NudgeLogTableFilterComposer,
+      $$NudgeLogTableOrderingComposer,
+      $$NudgeLogTableAnnotationComposer,
+      $$NudgeLogTableCreateCompanionBuilder,
+      $$NudgeLogTableUpdateCompanionBuilder,
+      (NudgeLogData, BaseReferences<_$TempoDb, $NudgeLogTable, NudgeLogData>),
+      NudgeLogData,
+      PrefetchHooks Function()
+    >;
 
 class $TempoDbManager {
   final _$TempoDb _db;
@@ -9238,4 +10545,6 @@ class $TempoDbManager {
       $$SyncLogTableTableManager(_db, _db.syncLog);
   $$LongevityTableTableManager get longevity =>
       $$LongevityTableTableManager(_db, _db.longevity);
+  $$NudgeLogTableTableManager get nudgeLog =>
+      $$NudgeLogTableTableManager(_db, _db.nudgeLog);
 }

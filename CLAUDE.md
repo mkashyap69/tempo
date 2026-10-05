@@ -30,4 +30,4 @@ Personal Whoop-style app for the Mi Band 6, built in Flutter. Full plan: `PLAN.m
 
 ## Current phase
 
-Phase 0 · Spike. The gate: the app authenticates with the band on Android and iOS and shows live HR.
+Tempo Coach C0–C4 built (see PLAN.md → Milestones and `reports/Tempo Coach adaptive plan.md`). Gates now: C1's 7-day status check and C4's 14-day notification field diary on a real phone. C5/C6 deferred.

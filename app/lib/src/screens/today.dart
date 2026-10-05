@@ -12,6 +12,7 @@ import '../design/meter.dart';
 import '../design/tokens.dart';
 import '../design/type.dart';
 import '../state/providers.dart';
+import 'coach_parts.dart' show statusLabel, statusColor;
 import 'nav.dart';
 import 'pairing.dart';
 import 'recovery.dart';
@@ -249,6 +250,8 @@ abstract final class TodayBody {
           general: t.planRow?.general ?? t.calibrating,
           adds: adds,
           overline: 'Suggested for today',
+          chip: t.plan!.isRest ? null : statusLabel(t),
+          chipColor: statusColor(context, t.status),
           onStart: () => openLive(context, ref, plan: t.plan),
           onWhy: () => push(context, const WorkoutDetailScreen()),
         ),
@@ -355,8 +358,16 @@ class WorkoutCard extends StatelessWidget {
     this.onWhy,
     this.onTap,
     this.why,
+    this.chip,
+    this.chipColor,
+    this.footer,
   });
   final sc.Session session;
+
+  /// Status chip (Planned 18:00, Done ✓, …) and actions under the card.
+  final String? chip;
+  final Color? chipColor;
+  final Widget? footer;
   final bool general;
   final double adds;
   final String overline;
@@ -380,6 +391,10 @@ class WorkoutCard extends StatelessWidget {
           Row(
             children: [
               Expanded(child: Overline(overline)),
+              if (chip != null) ...[
+                TempoBadge(chip!, color: chipColor),
+                const SizedBox(width: 6),
+              ],
               TempoBadge(general ? 'General' : 'Personal'),
             ],
           ),
@@ -426,6 +441,7 @@ class WorkoutCard extends StatelessWidget {
               ],
             ),
           ],
+          if (footer != null) ...[const SizedBox(height: 8), footer!],
         ],
       ),
     );

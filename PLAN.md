@@ -174,6 +174,12 @@ Only one app can hold the band, so Mi Fitness must not be running.
 | 2 · Scoring engine | 3–6 (parallel) | Dart package, backtest on Apple Health export | Scores sane over 2020–2026 data |
 | 3 · App UI | 6–9 | Today dials, detail screens, trends, live workout | Full day usable without Mi Fitness |
 | 4 · Background sync + beta | 10–12 | Background jobs, polish, 30 days of daily use | v1: 30 straight days of scores |
+| C0 · Coach groundwork | — | Notification sink seam, decisions logged | Tests pass against a fake sink; device behaviour unchanged |
+| C1 · Completion model | — | Schema v8 (plan intent, `nudge_log`), session matching, status chips | 7 real days of statuses match what was actually done |
+| C2 · Intra-day replanning | — | RHR / short-night overrides, same-day rescue, carry key sessions, realign, WHO floor | Rule tests pass; 60-day replay override rate accepted |
+| C3 · One Coach screen | — | Tempo Coach: session + status, rescue, Also today (focus lever), week glyphs | A week where Coach alone answers "what do I do today?" |
+| C4 · Notifications v2 | — | 8 nudge kinds with buttons, 5 channels, caps, quiet hours, backoff | 14-day field diary: buttons work app-closed, ≥ 90 % within 15 min, no day over cap |
+| C5 / C6 (deferred) | — | Learned nudge timing; band vibration cues | After 4 weeks of C4 in the field |
 
 Phase 0 is the go/no-go. Week counts assume one engineer part-time.
 

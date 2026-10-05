@@ -159,8 +159,34 @@ class PlanDays extends Table {
   TextColumn get reason => text().nullable()();
   IntColumn get adaptedAt => integer().nullable()();
   BoolColumn get general => boolean()();
+
+  /// Tempo Coach intent (v8). What the user or coach decided; whether it
+  /// was done is derived from workouts, never stored.
+  TextColumn get slot => text().nullable()(); // am | pm | null = any
+  IntColumn get plannedMinute => integer().nullable()(); // minute of day
+  TextColumn get status => text().withDefault(
+    const Constant('planned'),
+  )(); // planned|skipped|moved|done
+  TextColumn get statusSource => text().nullable()(); // user|notification|coach
+  IntColumn get statusAt => integer().nullable()();
+  TextColumn get algoVersion => text().nullable()();
   @override
   Set<Column> get primaryKey => {date};
+}
+
+/// Every coach notification decision and response (v8), append-only so
+/// timing and backoff can be audited and tuned.
+class NudgeLog extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get ts => integer()();
+  TextColumn get day => text()(); // yyyy-mm-dd the nudge belongs to
+  TextColumn get kind => text()();
+  IntColumn get notifId => integer()();
+  IntColumn get fireAt => integer().nullable()();
+  TextColumn get event => text()(); // scheduled|cancelled|posted|tapped|action
+  TextColumn get action => text().nullable()();
+  TextColumn get payload => text().withDefault(const Constant('{}'))();
+  TextColumn get algoVersion => text()();
 }
 
 /// One line per sync attempt, for Data health.
