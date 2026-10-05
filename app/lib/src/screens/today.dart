@@ -444,7 +444,15 @@ class RestCard extends StatelessWidget {
       child: Row(
         children: [
           Expanded(child: Text(a, style: TempoType.label.c(c.text1))),
-          Text(b, style: TempoType.bodyS.c(c.text2).tnum),
+          Flexible(
+            child: Text(
+              b,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.right,
+              style: TempoType.bodyS.c(c.text2).tnum,
+            ),
+          ),
         ],
       ),
     );
@@ -590,18 +598,27 @@ Future<void> showWhySheet(BuildContext context, TodayData t) =>
                 padding: const EdgeInsets.only(bottom: 10),
                 child: Row(
                   children: [
-                    Text(
-                      x.name.replaceAll(', overnight', ''),
-                      style: TempoType.bodyS.c(c.text1),
+                    Flexible(
+                      child: Text(
+                        x.name.replaceAll(', overnight', ''),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TempoType.bodyS.c(c.text1),
+                      ),
                     ),
                     if (x.proxy) ...[
                       const SizedBox(width: 6),
                       const TempoBadge('≈ proxy', small: true),
                     ],
-                    const Spacer(),
-                    Text(
-                      '${x.glyph} ${x.verdict.split(' · ').last}',
-                      style: TempoType.bodyS.c(x.color),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        '${x.glyph} ${x.verdict.split(' · ').last}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.right,
+                        style: TempoType.bodyS.c(x.color),
+                      ),
                     ),
                   ],
                 ),
