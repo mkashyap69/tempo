@@ -13,12 +13,12 @@ void main() {
       (ts: a.add(Duration(minutes: 3 * i + 1)), drop: drop),
   ];
 
-  test('rate bands: 0 → 100, 5 → 90, 15 → 70, 30 → 50, 60 → 20', () {
+  test('rate bands: 0 → 100, 5 → 90, 15 → 55, 30 → 35, 65 → 0', () {
     expect(scoreForRate(0), 100);
     expect(scoreForRate(5), 90);
-    expect(scoreForRate(15), 70);
-    expect(scoreForRate(30), 50);
-    expect(scoreForRate(60), 20);
+    expect(scoreForRate(15), 55);
+    expect(scoreForRate(30), 35);
+    expect(scoreForRate(65), 0);
     expect(scoreForRate(10), lessThan(scoreForRate(9)));
   });
 
@@ -48,8 +48,9 @@ void main() {
     expect(n.eventsPerHour, 12);
     expect(n.belowNinety, closeTo(.1, 1e-9));
     expect(n.lowestSpo2, 88);
-    expect(n.score, (76 - 15).round());
-    expect(n.label, 'Disturbed');
+    // 12/h → 65.5; 10 % under 90 → −15; avg 94.3 → −1.4
+    expect(n.score, 49);
+    expect(n.label, 'Poor');
   });
 
   test(

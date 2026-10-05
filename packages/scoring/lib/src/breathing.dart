@@ -52,26 +52,31 @@ final class BreathingNight {
   /// 0–100, higher is calmer breathing.
   final int score;
 
-  String get label => score >= 85
+  /// Good from 90 (Mi Fitness's reference range is 90–100).
+  String get label => score >= 90
       ? 'Good'
       : score >= 70
       ? 'Fair'
-      : 'Disturbed';
+      : 'Poor';
 }
 
-/// Events/hour → 0–100, anchored on the usual ODI bands: under 5 normal
-/// (100–90), 5–15 mild (90–70), 15–30 moderate (70–50), above 30 severe.
+/// Events/hour → 0–100. Under 5/h is the normal band (100–90, Mi
+/// Fitness's "reference range 90–100"); above that it falls 3.5 a dip
+/// through the mild band (5–15 → 90–55), then 15–30 → 55–35, then 1 a
+/// dip to 0. Calibrated on one night where Mi Fitness scored 61 (11.6/h,
+/// avg 94 %); to refine as more nights are compared.
 double scoreForRate(double perHour) {
   final r = max(0.0, perHour);
   if (r <= 5) return 100 - 2 * r;
-  if (r <= 15) return 90 - 2 * (r - 5);
-  if (r <= 30) return 70 - (r - 15) * 4 / 3;
-  return max(0, 50 - (r - 30));
+  if (r <= 15) return 90 - 3.5 * (r - 5);
+  if (r <= 30) return 55 - (r - 15) * 4 / 3;
+  return max(0, 35 - (r - 30));
 }
 
 /// Scores the sleep from [start] to [end] ([sleptHours] asleep). Null
 /// when there are fewer than [BreathingParams.minMinutes] good minutes.
-/// Score = rate score − 1.5 per % of time below 90 %, clamped 0–100.
+/// Score = rate score − 1.5 per % of time below 90 % − 2 per point the
+/// average sits under 95 %, clamped 0–100.
 BreathingNight? breathingNight({
   required DateTime start,
   required DateTime end,
@@ -96,10 +101,13 @@ BreathingNight? breathingNight({
   ].length;
   final rate = n / sleptHours;
   final below = good.where((v) => v < 90).length / good.length;
-  final score = (scoreForRate(rate) - 150 * below).clamp(0, 100).round();
+  final avg = good.reduce((a, b) => a + b) / good.length;
+  final score = (scoreForRate(rate) - 150 * below - 2 * max(0.0, 95 - avg))
+      .clamp(0, 100)
+      .round();
   return BreathingNight(
     minutes: good.length,
-    avgSpo2: good.reduce((a, b) => a + b) / good.length,
+    avgSpo2: avg,
     lowestSpo2: good.reduce(min),
     belowNinety: below,
     events: n,

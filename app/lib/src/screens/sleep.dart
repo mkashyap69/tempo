@@ -648,7 +648,7 @@ class BreathingCard extends StatelessWidget {
         ),
       );
     }
-    final color = b.score >= 85
+    final color = b.score >= 90
         ? s.recHigh
         : b.score >= 70
         ? s.recMid

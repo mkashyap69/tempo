@@ -26,7 +26,8 @@ void main() {
       ]);
     }
   }
-  Uint8List data(int code) => payloads[code]!.take();
+  final cache = <int, Uint8List>{};
+  Uint8List data(int code) => cache[code] ??= payloads[code]!.take();
 
   test('night of 4–5 Oct: band sleep flag, SpO₂ and dips scored', () {
     final act = parseActivity(
@@ -62,6 +63,27 @@ void main() {
     expect(n.events, 115);
     expect(n.avgSpo2, inInclusiveRange(93, 96));
     expect(n.lowestSpo2, inInclusiveRange(80, 90));
-    expect(n.score, inInclusiveRange(55, 85));
+  });
+
+  test('matches Mi Fitness for the same window: 61 (23:40–09:37)', () {
+    // Mi Fitness, same band and night: "Breathing score 61 · Yesterday
+    // 23:40 – Today 09:37 · reference range 90–100".
+    final a = DateTime.utc(2026, 10, 4, 18, 10); // 23:40 +5:30
+    final b = DateTime.utc(2026, 10, 5, 4, 7); // 09:37 +5:30
+    final n = sc.breathingNight(
+      start: a,
+      end: b,
+      sleptHours: b.difference(a).inMinutes / 60,
+      spo2: [
+        for (final m in parseSpo2Minutes(data(0x26)))
+          (ts: m.ts, avg: m.avg, quality: m.quality),
+      ],
+      events: [
+        for (final e in parseOdEvents(data(0x27))) (ts: e.ts, drop: e.drop),
+      ],
+    )!;
+    // ignore: avoid_print
+    print('Mi Fitness window: ${n.score} vs 61');
+    expect(n.score, inInclusiveRange(58, 64));
   });
 }
