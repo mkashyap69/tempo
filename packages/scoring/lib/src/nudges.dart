@@ -7,6 +7,8 @@
 /// stays true even if no sync ran after it was scheduled.
 library;
 
+import 'dart:math';
+
 import 'coach_day.dart';
 
 const nudgeAlgo = 'nudge-1';
@@ -110,6 +112,8 @@ final class NudgeContext {
     this.rpeWorkout,
     this.illness = false,
     this.healthSentToday = false,
+    this.model,
+    this.seed = 0,
   });
 
   final DateTime now;
@@ -151,6 +155,12 @@ final class NudgeContext {
   /// A workout to rate: (id, title).
   final (int, String)? rpeWorkout;
   final bool illness, healthSentToday;
+
+  /// Learned timing (C5); null keeps the fixed defaults.
+  final SlotModel? model;
+
+  /// Seeds the sampler so one day's refreshes agree with each other.
+  final int seed;
 }
 
 /// Caps and spacing.
@@ -236,7 +246,15 @@ List<NudgeSpec> planNudges(NudgeContext c) {
       if (d.status != DayStatus.moved && slowed(NudgeKind.session, o)) {
         continue;
       }
-      final t = at(o, d.plannedMinute! - 15);
+      final lead = c.model == null
+          ? 15
+          : c.model!.pick(
+              NudgeKind.session,
+              sessionLeads,
+              weekend: at(o, 0).weekday >= 6,
+              rng: Random(c.seed * 31 + o),
+            );
+      final t = at(o, d.plannedMinute! - lead);
       if (!future(t)) continue;
       out.add(
         NudgeSpec(
@@ -251,6 +269,7 @@ List<NudgeSpec> planNudges(NudgeContext c) {
             NudgeAction('skip', 'Skip'),
           ],
           requested: o == 0 && d.status == DayStatus.moved,
+          payload: {'choice': lead},
         ),
       );
     }
@@ -316,11 +335,20 @@ List<NudgeSpec> planNudges(NudgeContext c) {
       c.today.status != DayStatus.pending &&
       c.today.status != DayStatus.moved &&
       !slowed(NudgeKind.lever, 0)) {
-    final t = at(0, 15 * 60);
+    final minute = c.model == null
+        ? 15 * 60
+        : c.model!.pick(
+            NudgeKind.lever,
+            leverMinutes,
+            weekend: c.now.weekday >= 6,
+            rng: Random(c.seed * 31 + 7),
+          );
+    final t = at(0, minute);
     if (future(t)) {
       out.add(
         NudgeSpec(
           kind: NudgeKind.lever,
+          payload: {'choice': minute},
           id: nudgeId(NudgeKind.lever, 0),
           fireAt: t,
           title: c.leverLine!,
@@ -496,4 +524,99 @@ Map<NudgeKind, int> ignoreStreaks(
     }
   }
   return out;
+}
+
+// ---- C5: learning when to nudge ---------------------------------------------
+
+const nudgeAlgoLearned = 'nudge-2';
+
+/// Days of log needed before timing is learned.
+const learnAfterDays = 28;
+
+/// Allowed choices: minutes before the slot for the session reminder, and
+/// minute of day for the focus nudge. Brief and wind-down never move.
+const sessionLeads = [15, 30, 45];
+const leverMinutes = [13 * 60, 15 * 60, 17 * 60];
+
+/// One past choice and how it went: 1 = a button within 2 h, 0.5 = a tap
+/// only, 0 = ignored.
+typedef SlotOutcome = ({
+  NudgeKind kind,
+  int choice,
+  bool weekend,
+  double reward,
+});
+
+/// Thompson sampling per (kind × choice × weekday/weekend) with a Beta(2,2)
+/// prior. 15 % of picks explore at random so the model keeps learning.
+final class SlotModel {
+  SlotModel(this._ab);
+  final Map<String, (double, double)> _ab;
+
+  static String _key(NudgeKind k, int choice, bool weekend) =>
+      '${k.name}|$choice|${weekend ? 'we' : 'wd'}';
+
+  static SlotModel fromOutcomes(Iterable<SlotOutcome> outcomes) {
+    final ab = <String, (double, double)>{};
+    for (final o in outcomes) {
+      final k = _key(o.kind, o.choice, o.weekend);
+      final (a, b) = ab[k] ?? (2.0, 2.0);
+      ab[k] = (a + o.reward, b + 1 - o.reward);
+    }
+    return SlotModel(ab);
+  }
+
+  /// Posterior mean for a choice (for display and tests).
+  double mean(NudgeKind k, int choice, {bool weekend = false}) {
+    final (a, b) = _ab[_key(k, choice, weekend)] ?? (2.0, 2.0);
+    return a / (a + b);
+  }
+
+  int pick(
+    NudgeKind k,
+    List<int> choices, {
+    required bool weekend,
+    required Random rng,
+    double explore = .15,
+  }) {
+    if (rng.nextDouble() < explore) return choices[rng.nextInt(choices.length)];
+    var best = choices.first;
+    var bestDraw = -1.0;
+    for (final ch in choices) {
+      final (a, b) = _ab[_key(k, ch, weekend)] ?? (2.0, 2.0);
+      final d = _beta(a, b, rng);
+      if (d > bestDraw) {
+        bestDraw = d;
+        best = ch;
+      }
+    }
+    return best;
+  }
+}
+
+/// Beta(a, b) draw from two gamma draws.
+double _beta(double a, double b, Random r) {
+  final x = _gamma(a, r), y = _gamma(b, r);
+  return x / (x + y);
+}
+
+/// Marsaglia–Tsang gamma sampler (shape ≥ 1; smaller shapes are boosted).
+double _gamma(double shape, Random r) {
+  if (shape < 1) {
+    return _gamma(shape + 1, r) * pow(r.nextDouble(), 1 / shape).toDouble();
+  }
+  final d = shape - 1 / 3, c = 1 / sqrt(9 * d);
+  while (true) {
+    double x, v;
+    do {
+      // Box–Muller normal.
+      final u1 = r.nextDouble(), u2 = r.nextDouble();
+      x = sqrt(-2 * log(u1 == 0 ? 1e-12 : u1)) * cos(2 * pi * u2);
+      v = 1 + c * x;
+    } while (v <= 0);
+    v = v * v * v;
+    final u = r.nextDouble();
+    if (u < 1 - .0331 * x * x * x * x) return d * v;
+    if (log(u) < .5 * x * x + d * (1 - v + log(v))) return d * v;
+  }
 }

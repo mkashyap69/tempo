@@ -26,6 +26,7 @@ import 'screens/settings.dart';
 import 'screens/sleep.dart';
 import 'screens/strain.dart';
 import 'screens/today.dart';
+import 'screens/weekly_review.dart';
 import 'screens/workouts.dart';
 import 'screens/longevity.dart';
 import 'state/live_session.dart';
@@ -203,19 +204,35 @@ class _ShellState extends ConsumerState<Shell> with WidgetsBindingObserver {
     _notifTaps = notificationTaps.stream.listen(_openFromNotification);
     if (!Platform.environment.containsKey('FLUTTER_TEST')) {
       TempoNotifications.instance
-          .launchPayload()
-          .then((p) {
-            if (p != null) _openFromNotification('coach');
+          .launchTarget()
+          .then((t) {
+            if (t != null) _openFromNotification(t);
           })
           .catchError((Object _) {});
     }
   }
 
-  void _openFromNotification(String target) {
+  Future<void> _openFromNotification(String target) async {
     if (!mounted) return;
     Navigator.of(context).popUntil((r) => r.isFirst);
     select(target == 'workouts' ? 0 : 1);
-    if (target == 'workouts') push(context, const WorkoutsScreen());
+    switch (target) {
+      case 'workouts':
+        await push(context, const WorkoutsScreen());
+      case 'review':
+        await push(context, const WeeklyReviewScreen());
+      case 'start':
+        // Today's session as planned now — the evening version if it was
+        // moved or rescued — started guided.
+        final t = await ref.read(todayProvider.future);
+        if (!mounted) return;
+        final plan = t.plan;
+        await openLive(
+          context,
+          ref,
+          plan: plan == null || plan.isRest ? null : plan,
+        );
+    }
   }
 
   @override
@@ -230,6 +247,10 @@ class _ShellState extends ConsumerState<Shell> with WidgetsBindingObserver {
   void _openFromWidget(String target) {
     if (!mounted) return;
     Navigator.of(context).popUntil((r) => r.isFirst);
+    if (target == 'coach' || target == 'start') {
+      _openFromNotification(target);
+      return;
+    }
     select(0);
     final Widget? screen = switch (target) {
       'recovery' => const RecoveryScreen(),

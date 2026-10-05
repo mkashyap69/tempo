@@ -103,6 +103,12 @@
             </intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/tempo_widget_medium_info" />
         </receiver>
+        <receiver android:name=".TempoSessionWidget" android:exported="false" android:label="Tempo · Session">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/tempo_widget_session_info" />
+        </receiver>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

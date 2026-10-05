@@ -238,6 +238,13 @@ class SyncService {
           '${info!.lastChargeAt!.toIso8601String()}|${info.lastChargeLevel ?? ''}',
         );
       }
+      final steps = await band.readRealtimeSteps();
+      if (steps != null) {
+        await db.putSetting(
+          Keys.stepsNow,
+          '${DateTime.now().toIso8601String()}|${steps.steps}',
+        );
+      }
     } catch (_) {}
     await ensureConfigured(band);
     final counts = <String, int>{};

@@ -347,3 +347,36 @@ double? paceOfAging(List<(DateTime, double)> points) {
   // Tempo Age already includes calendar time (real age rises too).
   return den == 0 ? null : num / den;
 }
+
+/// Tempo Age may move at most [perWeek] years per 7 days from the last
+/// snapshot, so one odd week can't swing it; the full change arrives over
+/// the following weeks. [days] since [previous]; null previous = no cap.
+const tempoAgePerWeek = 1.0;
+
+double capChange(
+  double raw,
+  double? previous,
+  int days, {
+  double perWeek = tempoAgePerWeek,
+}) {
+  if (previous == null || days <= 0) return raw;
+  final room = perWeek * days / 7;
+  return raw.clamp(previous - room, previous + room).toDouble();
+}
+
+/// Per-lever change in years between two sets of contributors, biggest
+/// first; changes under 0.1 years are left out. A lever that appears or
+/// disappears counts from 0.
+List<(Lever, double)> contributorChanges(
+  List<Contributor> before,
+  List<Contributor> now,
+) {
+  final b = {for (final c in before) c.lever: c.years};
+  final n = {for (final c in now) c.lever: c.years};
+  final out = <(Lever, double)>[
+    for (final l in {...b.keys, ...n.keys})
+      if (((n[l] ?? 0) - (b[l] ?? 0)).abs() >= .1)
+        (l, (n[l] ?? 0) - (b[l] ?? 0)),
+  ]..sort((x, y) => y.$2.abs().compareTo(x.$2.abs()));
+  return out;
+}

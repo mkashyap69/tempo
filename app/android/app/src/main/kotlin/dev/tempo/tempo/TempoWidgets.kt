@@ -89,3 +89,32 @@ abstract class TempoWidget(
 class TempoSmallWidget : TempoWidget(R.layout.tempo_widget_small, listOf("rec" to 14), "tempo://recovery")
 
 class TempoMediumWidget : TempoWidget(R.layout.tempo_widget_medium, listOf("rec" to 10, "strain" to 10, "sleep" to 10), "tempo://today")
+
+/**
+ * Tempo Coach: today's session, its status (Planned 18:00, Done, Not seen
+ * yet…) and Start, which opens the guided workout. Tap elsewhere: Coach.
+ */
+class TempoSessionWidget : HomeWidgetProvider() {
+    override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray, widgetData: SharedPreferences) {
+        fun c(res: Int) = ContextCompat.getColor(context, res)
+        val updated = widgetData.getString("updated_at", null)?.toLongOrNull()
+        val stale = updated == null || System.currentTimeMillis() - updated > 12 * 60 * 60 * 1000
+        for (id in appWidgetIds) {
+            val views = RemoteViews(context.packageName, R.layout.tempo_widget_session)
+            val rest = widgetData.getString("session_level", "rest") == "rest"
+            views.setTextViewText(R.id.session_title, widgetData.getString("session_title", null) ?: "Open Tempo")
+            views.setTextViewText(R.id.session_detail, if (stale) "Open Tempo to update today’s plan" else widgetData.getString("session_detail", "") ?: "")
+            views.setTextViewText(R.id.session_status, if (stale) "" else widgetData.getString("session_status", "") ?: "")
+            views.setTextColor(R.id.session_status, when (widgetData.getString("session_level", "")) {
+                "done" -> c(R.color.widget_high)
+                "missed" -> c(R.color.widget_low)
+                "late" -> c(R.color.widget_mid)
+                else -> c(R.color.widget_text2)
+            })
+            views.setViewVisibility(R.id.session_start, if (rest || stale) android.view.View.GONE else android.view.View.VISIBLE)
+            views.setOnClickPendingIntent(R.id.widget_root, HomeWidgetLaunchIntent.getActivity(context, MainActivity::class.java, Uri.parse("tempo://coach")))
+            views.setOnClickPendingIntent(R.id.session_start, HomeWidgetLaunchIntent.getActivity(context, MainActivity::class.java, Uri.parse("tempo://start")))
+            appWidgetManager.updateAppWidget(id, views)
+        }
+    }
+}

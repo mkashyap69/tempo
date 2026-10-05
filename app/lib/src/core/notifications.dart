@@ -26,8 +26,24 @@ abstract class NotificationSink {
 /// The sink in use. Overridden in tests.
 NotificationSink notificationSink = TempoNotifications.instance;
 
-/// A notification tap that should open something: 'coach' or 'workouts'.
+/// A notification tap that should open something: 'coach', 'start'
+/// (today's session, guided), 'review' or 'workouts'.
 final notificationTaps = StreamController<String>.broadcast();
+
+/// What a tap or foreground button opens, or null for background buttons.
+String? tapTarget(String? payload, String? actionId) {
+  String? kind;
+  try {
+    kind = (jsonDecode(payload ?? '{}') as Map)['kind'] as String?;
+  } catch (_) {}
+  if (actionId == 'start') return 'start';
+  if (actionId != null && actionId != 'open') return null;
+  return switch (kind) {
+    'rpe' => 'workouts',
+    'weekly' => 'review',
+    _ => 'coach',
+  };
+}
 
 /// Payload carried by every coach notification.
 String nudgePayload(sc.NudgeSpec n) => jsonEncode({
@@ -209,25 +225,18 @@ class TempoNotifications implements NotificationSink {
       : null;
 
   void _foreground(NotificationResponse r) {
-    final action = r.actionId;
-    final payload = r.payload;
-    String? kind;
-    try {
-      kind = (jsonDecode(payload ?? '{}') as Map)['kind'] as String?;
-    } catch (_) {}
-    if (action == null || action == 'open' || action == 'start') {
-      notificationTaps.add(kind == 'rpe' ? 'workouts' : 'coach');
-    }
-    onResponse?.call(payload, action);
+    final target = tapTarget(r.payload, r.actionId);
+    if (target != null) notificationTaps.add(target);
+    onResponse?.call(r.payload, r.actionId);
   }
 
-  /// The notification that launched the app, if any.
-  Future<String?> launchPayload() async {
+  /// Where a notification opened the app from cold start, if it did.
+  Future<String?> launchTarget() async {
     await init();
     final d = await _plugin.getNotificationAppLaunchDetails();
-    return d?.didNotificationLaunchApp == true
-        ? d!.notificationResponse?.payload ?? ''
-        : null;
+    if (d?.didNotificationLaunchApp != true) return null;
+    final r = d!.notificationResponse;
+    return tapTarget(r?.payload, r?.actionId) ?? 'coach';
   }
 
   /// Asks for permission (Android 13+, iOS). Returns whether granted.

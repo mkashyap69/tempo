@@ -47,6 +47,7 @@ abstract final class Keys {
   static const notifPrecise = 'notif_precise'; // 1 = exact alarms (Android)
   static const notifScheduled = 'notif_scheduled'; // JSON, what's pending
   static const notifV2 = 'notif_v2_migrated'; // 1 once legacy ids are gone
+  static const stepsNow = 'steps_now'; // ISO|steps, band's own total
   static const realignDismissed = 'coach_realign_dismissed'; // date
 }
 

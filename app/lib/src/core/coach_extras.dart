@@ -37,11 +37,14 @@ class CoachExtras {
 /// done counts as missed.
 const _endOfDay = 24 * 60 + 600;
 
+/// How a planned day went. Past days are judged at their end; [at] on
+/// the same day judges it as of that moment.
 Future<sc.DayStatus?> statusOf(
   st.TempoDb db,
   st.PlanDay row,
-  DateTime day,
-) async {
+  DateTime day, {
+  DateTime? at,
+}) async {
   final s = sc.Session.fromJson(
     jsonDecode(row.session) as Map<String, dynamic>,
   );
@@ -51,7 +54,7 @@ Future<sc.DayStatus?> statusOf(
     plan: s,
     intent: sc.Intent.values.asNameMap()[row.status] ?? sc.Intent.planned,
     match: sc.matchSession(s, [for (final w in ws) doneWorkout(w)]),
-    now: _endOfDay,
+    now: at != null && dayOf(at) == day ? at.hour * 60 + at.minute : _endOfDay,
     bedtime: 23 * 60,
     plannedMinute: row.plannedMinute,
   );
@@ -133,7 +136,7 @@ Future<CoachExtras> loadCoachExtras(st.TempoDb db, TodayData t) async {
   final progress = focus == null
       ? null
       : await focusProgress(db, focus, t.profile);
-  final steps = await db.stepsBetween(today, DateTime.now());
+  final steps = await stepsToday(db, DateTime.now());
   final plan = t.plan;
   final daysLeft = 7 - todayIdx;
   final actions = sc.leverActions(
@@ -176,3 +179,18 @@ Future<CoachExtras> loadCoachExtras(st.TempoDb db, TodayData t) async {
 }
 
 DateTime parseKey(String k) => DateTime.parse(k);
+
+/// Today's steps: the band's own running total when it was read today
+/// (current to the minute of the last sync), else the synced minutes.
+Future<int> stepsToday(st.TempoDb db, DateTime now) async {
+  final day = DateTime(now.year, now.month, now.day);
+  final synced = await db.stepsBetween(day, now);
+  final raw = await db.setting(Keys.stepsNow);
+  if (raw == null || !raw.contains('|')) return synced;
+  final at = DateTime.tryParse(raw.split('|').first);
+  final n = int.tryParse(raw.split('|').last);
+  if (at == null || n == null || at.isBefore(day) || at.isAfter(now)) {
+    return synced;
+  }
+  return n > synced ? n : synced;
+}

@@ -69,6 +69,39 @@ class _ExplorerState extends ConsumerState<BandExplorerScreen> {
     }
   }
 
+  /// Text alerts aren't confirmed on the Band 6 yet: send one, ask what
+  /// the band showed, and share the log.
+  Future<void> _testAlert() async {
+    if (ref.read(liveSessionProvider) != null) {
+      setState(() => _error = 'Finish the workout first; it holds the band.');
+      return;
+    }
+    setState(() => _running = true);
+    try {
+      final (sent, log) = await testBandAlert(ref.read(dbProvider));
+      if (!mounted) return;
+      final share = await confirmSheet(
+        context,
+        title: sent
+            ? 'Did “Tempo test” show on the band?'
+            : 'Band has no alert service',
+        body: sent
+            ? 'Whatever happened — text, just a buzz, or nothing — share the log so text alerts can be confirmed.'
+            : 'The band didn’t list the alert characteristic. Share the log so this can be checked.',
+        action: 'Share log',
+      );
+      if (share) {
+        await SharePlus.instance.share(
+          ShareParams(files: [XFile(log)], subject: 'Tempo band alert test'),
+        );
+      }
+    } catch (e) {
+      if (mounted) setState(() => _error = 'Couldn’t send: $e');
+    } finally {
+      if (mounted) setState(() => _running = false);
+    }
+  }
+
   Future<void> _share() async {
     final r = _report, f = _file;
     if (r == null || f == null) return;
@@ -168,6 +201,13 @@ class _ExplorerState extends ConsumerState<BandExplorerScreen> {
           TempoButton('Run explorer', expand: true, onTap: _run)
         else
           TempoButton('Share results', expand: true, onTap: _share),
+        if (!_running)
+          TempoButton(
+            'Send a test alert to the band',
+            kind: ButtonKind.secondary,
+            expand: true,
+            onTap: _testAlert,
+          ),
         Text(
           'Results and the raw Bluetooth log stay on this phone until you share them. They contain band data but never your auth key.',
           style: TempoType.caption.c(c.text3),

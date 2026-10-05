@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:scoring/scoring.dart' as sc;
 import 'package:store/store.dart' as st;
 
+import 'coach_extras.dart' show stepsToday;
 import 'coach_service.dart';
 import 'longevity_service.dart';
 import 'notifications.dart';
@@ -24,6 +25,9 @@ class CoachNotifier {
     : sink = sink ?? notificationSink;
   final st.TempoDb db;
   final NotificationSink sink;
+
+  /// nudge-2 once timing is learned (C5), else nudge-1.
+  String _algo = sc.nudgeAlgo;
 
   /// Which kinds are on (Settings → Notifications).
   static Future<Set<sc.NudgeKind>> kinds(st.TempoDb db) async {
@@ -112,7 +116,7 @@ class CoachNotifier {
     String? leverLine;
     var behind = false;
     if (focus != null && focus.lever == sc.Lever.steps && focus.activeOn(day)) {
-      final steps = await db.stepsBetween(day, now);
+      final steps = await stepsToday(db, now);
       final target = sc.leverTarget(
         sc.Lever.steps,
         age: t.profile.age,
@@ -150,7 +154,11 @@ class CoachNotifier {
       break;
     }
 
+    final model = learnedModel(log, now);
+    _algo = model == null ? sc.nudgeAlgo : sc.nudgeAlgoLearned;
     return sc.NudgeContext(
+      model: model,
+      seed: day.year * 1000 + day.month * 40 + day.day,
       now: now,
       wake: t.wakeMinute,
       bedtime: t.bedtimeMinute,
@@ -224,7 +232,14 @@ class CoachNotifier {
       final fire = DateTime.fromMillisecondsSinceEpoch(o['fireAt'] as int);
       final id = o['id'] as int;
       if (!fire.isAfter(now)) {
-        await _log(o['kind'] as String, id, fire, 'posted', ts: fire);
+        await _log(
+          o['kind'] as String,
+          id,
+          fire,
+          'posted',
+          ts: fire,
+          payload: {if (o['choice'] != null) 'choice': o['choice']},
+        );
       } else {
         await sink.cancel(id);
         final n = fresh[id];
@@ -265,6 +280,7 @@ class CoachNotifier {
             'id': n.id,
             'kind': n.kind.name,
             'fireAt': n.fireAt.millisecondsSinceEpoch,
+            if (n.payload['choice'] != null) 'choice': n.payload['choice'],
           },
       ]),
     );
@@ -288,7 +304,7 @@ class CoachNotifier {
       event: event,
       action: Value(action),
       payload: Value(jsonEncode(payload)),
-      algoVersion: sc.nudgeAlgo,
+      algoVersion: _algo,
     ),
   );
 
@@ -306,6 +322,37 @@ class CoachNotifier {
     action: action,
     payload: payload,
   );
+}
+
+/// The timing model (C5), once the log covers [sc.learnAfterDays]. Each
+/// posted session or focus nudge is scored by what followed within 2 h:
+/// a button 1, a tap 0.5, nothing 0.
+sc.SlotModel? learnedModel(List<st.NudgeLogData> log, DateTime now) {
+  if (log.isEmpty) return null;
+  final first = st.fromTs(log.first.ts);
+  if (now.difference(first).inDays < sc.learnAfterDays) return null;
+  final outcomes = <sc.SlotOutcome>[];
+  for (final p in log) {
+    if (p.event != 'posted') continue;
+    final kind = sc.NudgeKind.values.asNameMap()[p.kind];
+    if (kind != sc.NudgeKind.session && kind != sc.NudgeKind.lever) continue;
+    final choice = _payload(p)['choice'];
+    if (choice is! int) continue;
+    final fire = p.fireAt ?? p.ts;
+    var reward = 0.0;
+    for (final r in log) {
+      if (r.kind != p.kind || r.ts < fire || r.ts > fire + 2 * 3600) continue;
+      if (r.event == 'action') reward = 1;
+      if (r.event == 'tapped' && reward < .5) reward = .5;
+    }
+    outcomes.add((
+      kind: kind!,
+      choice: choice,
+      weekend: st.fromTs(fire).weekday >= 6,
+      reward: reward,
+    ));
+  }
+  return sc.SlotModel.fromOutcomes(outcomes);
 }
 
 Map<String, dynamic> _payload(st.NudgeLogData r) {

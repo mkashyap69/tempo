@@ -348,7 +348,9 @@ class WeekRecoveryStrain extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 10),
-              Flexible(child: _Key(colors: [s.strain[2]], text: 'strain')),
+              Flexible(
+                child: _Key(colors: [s.strain[2]], text: 'strain'),
+              ),
             ],
           ),
           const SizedBox(height: 14),

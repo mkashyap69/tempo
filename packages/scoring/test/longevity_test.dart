@@ -237,4 +237,27 @@ void main() {
       expect(idx[1] - idx[0], greaterThan(1));
     });
   });
+
+  test('weekly cap on Tempo Age', () {
+    expect(capChange(30, null, 7), 30);
+    expect(capChange(30, 33, 7), 32);
+    expect(capChange(30, 33, 1), closeTo(33 - 1 / 7, 1e-9));
+    expect(capChange(30, 33, 30), 30); // a month allows 4.3 years
+    expect(capChange(34, 33, 7), 34);
+  });
+
+  test('contributor changes since last week', () {
+    Contributor c(Lever l, double y) =>
+        Contributor(lever: l, value: 0, years: y, target: 0, gain: 0);
+    final ch = contributorChanges(
+      [c(Lever.steps, 1), c(Lever.restingHr, -.5), c(Lever.sleepDuration, .3)],
+      [c(Lever.steps, .2), c(Lever.restingHr, -.55), c(Lever.breathing, .4)],
+    );
+    expect(ch.map((e) => e.$1), [
+      Lever.steps,
+      Lever.breathing,
+      Lever.sleepDuration,
+    ]);
+    expect(ch.first.$2, closeTo(-.8, 1e-9));
+  });
 }

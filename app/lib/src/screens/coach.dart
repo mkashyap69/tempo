@@ -22,6 +22,7 @@ import 'nav.dart';
 import 'shared.dart';
 import 'today.dart' show WorkoutCard;
 import 'weekly_plan.dart';
+import 'weekly_review.dart';
 import 'workout_detail.dart';
 
 /// The current week: plan rows and actual strain per day.
@@ -341,6 +342,15 @@ class CoachScreen extends ConsumerWidget {
               ),
             ],
           ),
+        ),
+        CardList(
+          children: [
+            ListRow(
+              'Your week so far',
+              sub: 'Planned vs done, WHO minimums, focus',
+              onTap: () => push(context, const WeeklyReviewScreen()),
+            ),
+          ],
         ),
         if (x != null) FocusSummary(x),
         Column(

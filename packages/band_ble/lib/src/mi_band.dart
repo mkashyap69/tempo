@@ -534,6 +534,27 @@ class MiBand {
     }
   }
 
+  /// Today's totals from the band (steps, metres, kcal), or null.
+  Future<RealtimeSteps?> readRealtimeSteps() async {
+    final c = _chars[Guid(BandUuids.realtimeSteps).str128];
+    if (c == null || !c.properties.read) return null;
+    try {
+      final v = await c.read();
+      log.record(
+        PacketEvent(
+          dir: PacketDir.rx,
+          characteristic: BandUuids.realtimeSteps,
+          bytes: v,
+          note: 'read',
+        ),
+      );
+      return parseRealtimeSteps(v);
+    } catch (e) {
+      _info('steps read failed: $e');
+      return null;
+    }
+  }
+
   /// Battery percent, or null if neither characteristic answers.
   Future<int?> readBattery() async {
     for (final (uuid, huami) in [
@@ -559,6 +580,17 @@ class MiBand {
       }
     }
     return null;
+  }
+
+  /// A short text alert on the band (New Alert, 0x2A46). Returns false when
+  /// the band doesn't expose it. TODO(verify): display not yet confirmed.
+  Future<bool> sendTextAlert(String text, {int category = 0x00}) async {
+    if (!has(BandUuids.newAlert)) {
+      _info('text alert: no new-alert characteristic');
+      return false;
+    }
+    await _write(BandUuids.newAlert, newAlertBytes(text, category: category));
+    return true;
   }
 
   /// Short vibration on the band. Silently skipped if unsupported.

@@ -298,3 +298,15 @@ Future<(ExplorerReport, File)> exploreBand(
   );
   return (report, f);
 }
+
+/// Sends "Tempo test" to the band as a text alert and returns the packet
+/// log, so the user can say whether it appeared (C6, TODO(verify)).
+Future<(bool, String)> testBandAlert(TempoDb db) async {
+  final link = await BandLink.open(db);
+  try {
+    final sent = await link.band.sendTextAlert('Tempo test');
+    return (sent, link.log.file.path);
+  } finally {
+    await link.close();
+  }
+}

@@ -303,7 +303,7 @@ Future<sc.LongevityInputs> longevityInputs(
 }
 
 /// Version of the Tempo Age method, stored on snapshots.
-const longevityAlgo = 1;
+const longevityAlgo = 2; // 2: weekly change cap
 
 Map<String, Object?> _contributorJson(sc.Contributor c) => {
   'lever': c.lever.name,
@@ -320,7 +320,30 @@ Map<String, Object?> _contributorJson(sc.Contributor c) => {
 Future<sc.TempoAge> updateLongevity(st.TempoDb db) async {
   final today = dayOf(DateTime.now());
   Future<sc.TempoAge> snap(DateTime d) async {
-    final t = sc.tempoAge(await longevityInputs(db, end: d));
+    final raw = sc.tempoAge(await longevityInputs(db, end: d));
+    // At most a year per week from the last settled snapshot.
+    final key = st.dateKey(d);
+    final prev = [
+      for (final r in await db.longevitySince(
+        d.subtract(const Duration(days: 200)),
+      ))
+        if (r.date.compareTo(key) < 0 &&
+            !r.calibrating &&
+            r.algoVersion == longevityAlgo)
+          r,
+    ].lastOrNull;
+    final t = raw.calibrating || prev == null
+        ? raw
+        : sc.TempoAge(
+            realAge: raw.realAge,
+            age: sc.capChange(
+              raw.age,
+              prev.tempoAge,
+              d.difference(parseDateKey(prev.date)).inDays,
+            ),
+            contributors: raw.contributors,
+            calibrating: false,
+          );
     await db.putLongevity(
       st.LongevityCompanion.insert(
         date: st.dateKey(d),

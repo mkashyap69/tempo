@@ -38,6 +38,27 @@ class LongevityData {
   final ManualHealth manual;
   final Profile profile;
 
+  /// The newest settled snapshot at least a week before [latest].
+  st.LongevitySnapshot? get weekAgo {
+    final l = latest;
+    if (l == null || l.calibrating) return null;
+    final cut = DateTime.parse(l.date).subtract(const Duration(days: 7));
+    return history
+        .where((r) => !r.calibrating && !DateTime.parse(r.date).isAfter(cut))
+        .lastOrNull;
+  }
+
+  /// What moved Tempo Age since [weekAgo], biggest first.
+  List<(sc.Lever, double)> get changes {
+    final w = weekAgo;
+    return w == null
+        ? const []
+        : sc.contributorChanges(
+            decodeContributors(w.contributors),
+            contributors,
+          );
+  }
+
   /// The levers with the most to gain, biggest first.
   List<sc.Contributor> get levers => sc.TempoAge(
     realAge: latest?.realAge ?? 0,
@@ -131,6 +152,7 @@ class _LongevityScreenState extends ConsumerState<LongevityScreen> {
           const SizedBox(height: 400)
         else ...[
           _Hero(d),
+          if (d.weekAgo != null) _SinceLastWeek(d),
           if (longevityPoints(d.history).length >= 2) _TrendCard(d),
           if (d.focus != null) _FocusCard(d),
           if (d.levers.isNotEmpty)
@@ -384,6 +406,75 @@ class _AgeScale extends StatelessWidget {
         ink.dot(Offset(x(off), y), 9, tone);
         ink.dot(Offset(x(off), y), 4, ink.c.surface1);
       },
+    );
+  }
+}
+
+// ---- since last week -------------------------------------------------------
+
+class _SinceLastWeek extends StatelessWidget {
+  const _SinceLastWeek(this.d);
+  final LongevityData d;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c;
+    final w = d.weekAgo!, l = d.latest!;
+    final delta = l.tempoAge - w.tempoAge;
+    final days = DateTime.parse(l.date)
+        .difference(DateTime.parse(w.date))
+        .inDays;
+    return TempoCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Overline(
+                  days <= 8 ? 'Since last week' : 'Since $days days ago',
+                ),
+              ),
+              Text(
+                _years(delta),
+                style: TempoType.label.c(_tone(context, delta)).tnum,
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          if (d.changes.isEmpty)
+            Text(
+              'Nothing moved by more than a tenth of a year.',
+              style: TempoType.bodyS.c(c.text2),
+            )
+          else
+            for (final (lever, y) in d.changes.take(4))
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        leverName(lever),
+                        style: TempoType.bodyS.c(c.text1),
+                      ),
+                    ),
+                    Text(
+                      _years(y),
+                      style: TempoType.label.c(_tone(context, y)).tnum,
+                    ),
+                  ],
+                ),
+              ),
+          if (delta.abs() >= sc.tempoAgePerWeek * days / 7 - .01) ...[
+            const SizedBox(height: 8),
+            Text(
+              'Tempo Age moves at most a year a week, so the rest of this change arrives over the next weeks.',
+              style: TempoType.caption.c(c.text3),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }

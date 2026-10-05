@@ -5,6 +5,7 @@
 /// vectors in test/ with golden vectors from the capture.
 library;
 
+import 'dart:convert' show utf8;
 import 'dart:typed_data';
 
 /// Auth handshake variant. Which one the band speaks depends on firmware;
@@ -271,6 +272,21 @@ RealtimeSteps? parseRealtimeSteps(List<int> b) {
 }
 
 /// Immediate Alert payloads. TODO(verify) which level the band vibrates on.
+/// Bluetooth SIG New Alert (0x2A46): category, count of new alerts, then
+/// UTF-8 text. TODO(verify): whether the Band 6 shows the text, and which
+/// category it displays best — unconfirmed until a packet log in
+/// docs/packets/ shows a test alert reaching the band. Text is cut at a
+/// character boundary to fit a 20-byte write (default ATT MTU).
+List<int> newAlertBytes(String text, {int category = 0x00, int maxBytes = 20}) {
+  final out = <int>[category, 0x01];
+  for (final rune in text.runes) {
+    final b = utf8.encode(String.fromCharCode(rune));
+    if (out.length + b.length > maxBytes) break;
+    out.addAll(b);
+  }
+  return out;
+}
+
 abstract final class AlertCommands {
   static const mild = [0x01];
   static const high = [0x02];

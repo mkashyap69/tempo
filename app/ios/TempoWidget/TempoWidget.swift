@@ -164,7 +164,6 @@ struct TempoWidgetView: View {
   }
 }
 
-@main
 struct TempoWidget: Widget {
   var body: some WidgetConfiguration {
     StaticConfiguration(kind: "TempoWidget", provider: Provider()) { entry in
@@ -173,5 +172,100 @@ struct TempoWidget: Widget {
     .configurationDisplayName("Tempo")
     .description("Recovery, strain and sleep at a glance.")
     .supportedFamilies([.systemSmall, .systemMedium])
+  }
+}
+
+// MARK: - Tempo Coach session widget
+
+struct SessionEntry: TimelineEntry {
+  let date: Date
+  let title: String
+  let detail: String
+  let status: String
+  let level: String  // pending | late | done | missed | rest
+  let stale: Bool
+}
+
+struct SessionProvider: TimelineProvider {
+  func placeholder(in context: Context) -> SessionEntry { read(placeholder: true) }
+
+  func getSnapshot(in context: Context, completion: @escaping (SessionEntry) -> Void) {
+    completion(read(placeholder: context.isPreview))
+  }
+
+  func getTimeline(in context: Context, completion: @escaping (Timeline<SessionEntry>) -> Void) {
+    let next = Calendar.current.date(byAdding: .minute, value: 30, to: Date())!
+    completion(Timeline(entries: [read(placeholder: false)], policy: .after(next)))
+  }
+
+  private func read(placeholder: Bool) -> SessionEntry {
+    let d = UserDefaults(suiteName: appGroup)
+    func s(_ k: String, _ fallback: String) -> String { placeholder ? fallback : (d?.string(forKey: k) ?? fallback) }
+    let updated = Double(d?.string(forKey: "updated_at") ?? "") ?? 0
+    let stale = !placeholder && Date().timeIntervalSince1970 - updated / 1000 > 12 * 3600
+    return SessionEntry(
+      date: Date(), title: s("session_title", "Easy run 35′"),
+      detail: stale ? "Open Tempo to update today’s plan" : s("session_detail", "Z1–Z2 · adds ~6 strain"),
+      status: stale ? "" : s("session_status", "Planned 18:00"), level: s("session_level", "pending"),
+      stale: stale)
+  }
+}
+
+struct SessionWidgetView: View {
+  let entry: SessionEntry
+  @Environment(\.colorScheme) var scheme
+  var statusColor: Color {
+    switch entry.level {
+    case "done": return Palette.recHigh
+    case "missed": return Palette.recLow
+    case "late": return Palette.recMid
+    default: return Palette.text2(scheme)
+    }
+  }
+  var body: some View {
+    VStack(alignment: .leading, spacing: 4) {
+      Text("TODAY").font(.system(size: 10, weight: .semibold)).kerning(0.9)
+        .foregroundColor(Palette.text3(scheme))
+      Text(entry.title).font(.system(size: 18, weight: .medium)).lineLimit(1)
+        .foregroundColor(Palette.text1(scheme))
+      Text(entry.detail).font(.system(size: 12)).lineLimit(1)
+        .foregroundColor(Palette.text2(scheme))
+      Spacer(minLength: 0)
+      HStack {
+        Text(entry.status).font(.system(size: 13, weight: .semibold)).lineLimit(1)
+          .foregroundColor(statusColor)
+        Spacer()
+        if entry.level != "rest" && !entry.stale {
+          Link(destination: URL(string: "tempo://start")!) {
+            Text("Start").font(.system(size: 13, weight: .semibold))
+              .padding(.horizontal, 16).padding(.vertical, 7)
+              .background(Capsule().fill(Palette.text1(scheme)))
+              .foregroundColor(Palette.surface(scheme))
+          }
+        }
+      }
+    }
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .widgetURL(URL(string: "tempo://coach"))
+    .containerBackground(for: .widget) { Palette.surface(scheme) }
+  }
+}
+
+struct TempoSessionWidget: Widget {
+  var body: some WidgetConfiguration {
+    StaticConfiguration(kind: "TempoSessionWidget", provider: SessionProvider()) { entry in
+      SessionWidgetView(entry: entry)
+    }
+    .configurationDisplayName("Tempo · Session")
+    .description("Today’s session, its status and Start.")
+    .supportedFamilies([.systemMedium])
+  }
+}
+
+@main
+struct TempoWidgets: WidgetBundle {
+  var body: some Widget {
+    TempoWidget()
+    TempoSessionWidget()
   }
 }

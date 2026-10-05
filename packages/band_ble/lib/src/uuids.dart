@@ -41,6 +41,14 @@ abstract final class BandUuids {
   static const huamiBattery =
       '00000006-0000-3512-2118-0009af100700'; // TODO(verify) layout
 
+  // Today's steps, metres and kcal (read). Confirmed on V1.0.6.20 by the
+  // explorer capture (docs/packets/explorer-2026-10-05T10-34-28.json).
+  static const realtimeSteps = '00000007-0000-3512-2118-0009af100700';
+
+  // SIG Alert Notification service: text alerts on the band (C6).
+  static final alertNotificationService = _sig('1811'); // TODO(verify)
+  static final newAlert = _sig('2a46'); // TODO(verify)
+
   // SIG Immediate Alert: used to buzz the band before an interval change.
   static final alertLevel = _sig('2a06'); // TODO(verify)
 }

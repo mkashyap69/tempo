@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:scoring/scoring.dart';
 import 'package:test/test.dart';
 
@@ -215,5 +217,94 @@ void main() {
     );
     final w = s.firstWhere((n) => n.kind == NudgeKind.weekly);
     expect(w.fireAt.weekday, DateTime.sunday);
+  });
+
+  group('learned timing (C5)', () {
+    test('posterior moves toward what gets answered', () {
+      final m = SlotModel.fromOutcomes([
+        for (var i = 0; i < 10; i++)
+          (kind: NudgeKind.lever, choice: 17 * 60, weekend: false, reward: 1.0),
+        for (var i = 0; i < 10; i++)
+          (kind: NudgeKind.lever, choice: 13 * 60, weekend: false, reward: 0.0),
+      ]);
+      expect(m.mean(NudgeKind.lever, 17 * 60), greaterThan(.8));
+      expect(m.mean(NudgeKind.lever, 13 * 60), lessThan(.2));
+      expect(m.mean(NudgeKind.lever, 15 * 60), .5); // prior
+      var late = 0;
+      for (var s = 0; s < 200; s++) {
+        if (m.pick(
+              NudgeKind.lever,
+              leverMinutes,
+              weekend: false,
+              rng: Random(s),
+            ) ==
+            17 * 60) {
+          late++;
+        }
+      }
+      expect(late, greaterThan(150)); // mostly exploit, some explore
+    });
+
+    test('same seed, same pick; picks stay inside the allowed set', () {
+      final m = SlotModel.fromOutcomes(const []);
+      final a = m.pick(
+        NudgeKind.session,
+        sessionLeads,
+        weekend: true,
+        rng: Random(42),
+      );
+      final b = m.pick(
+        NudgeKind.session,
+        sessionLeads,
+        weekend: true,
+        rng: Random(42),
+      );
+      expect(a, b);
+      for (var s = 0; s < 50; s++) {
+        expect(
+          sessionLeads,
+          contains(
+            m.pick(
+              NudgeKind.session,
+              sessionLeads,
+              weekend: false,
+              rng: Random(s),
+            ),
+          ),
+        );
+      }
+    });
+
+    test('a model shifts the lever nudge and records the choice', () {
+      final m = SlotModel.fromOutcomes([
+        for (var i = 0; i < 40; i++)
+          (kind: NudgeKind.lever, choice: 17 * 60, weekend: false, reward: 1.0),
+        for (var i = 0; i < 40; i++)
+          (kind: NudgeKind.lever, choice: 15 * 60, weekend: false, reward: 0.0),
+        for (var i = 0; i < 40; i++)
+          (kind: NudgeKind.lever, choice: 13 * 60, weekend: false, reward: 0.0),
+      ]);
+      final s = planNudges(
+        NudgeContext(
+          now: t(12),
+          wake: 390,
+          bedtime: 1350,
+          today: const NudgeDay(
+            title: 'Rest',
+            minutes: 0,
+            rest: true,
+            status: DayStatus.rest,
+          ),
+          stepsBehind: true,
+          leverLine: '3k steps so far',
+          syncAgeMinutes: 10,
+          model: m,
+          seed: 3,
+        ),
+      );
+      final l = s.firstWhere((n) => n.kind == NudgeKind.lever);
+      expect(leverMinutes, contains(l.payload['choice']));
+      expect(l.fireAt.hour * 60 + l.fireAt.minute, l.payload['choice']);
+    });
   });
 }

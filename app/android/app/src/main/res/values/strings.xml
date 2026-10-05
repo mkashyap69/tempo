@@ -2,4 +2,5 @@
 <resources>
     <string name="widget_small_desc">Recovery</string>
     <string name="widget_medium_desc">Recovery, strain and sleep</string>
+    <string name="widget_session_desc">Today’s session, its status and Start</string>
 </resources>

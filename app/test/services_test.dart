@@ -17,6 +17,8 @@ import 'package:tempo/src/core/profile.dart';
 import 'package:tempo/src/core/score_service.dart';
 import 'package:tempo/src/core/sync_service.dart';
 import 'package:tempo/src/core/today.dart';
+import 'package:tempo/src/core/coach_extras.dart' show stepsToday;
+import 'package:tempo/src/core/week_review.dart';
 
 import 'support/fake_sink.dart';
 import 'support/seed.dart';
@@ -508,6 +510,136 @@ void main() {
         r(4, 'posted', 180000),
       ]);
       expect(s[sc.NudgeKind.lever], 2);
+    });
+  });
+
+  group('coach extras', () {
+    late FakeNotificationSink sink;
+    setUp(() {
+      sink = FakeNotificationSink();
+      notificationSink = sink;
+    });
+    final today = dayOf(DateTime.now());
+
+    test('steps: the band\'s own total wins when newer and higher', () async {
+      final now = today.add(const Duration(hours: 15));
+      await db.appendMinutes([
+        MinuteSamplesCompanion.insert(
+          ts: Value(toTs(today.add(const Duration(hours: 9)))),
+          steps: 1200,
+          intensity: 0,
+          kind: 1,
+        ),
+      ]);
+      expect(await stepsToday(db, now), 1200);
+      await db.putSetting(
+        Keys.stepsNow,
+        '${today.add(const Duration(hours: 14)).toIso8601String()}|5400',
+      );
+      expect(await stepsToday(db, now), 5400);
+      // Yesterday's reading is ignored.
+      await db.putSetting(
+        Keys.stepsNow,
+        '${today.subtract(const Duration(hours: 2)).toIso8601String()}|9000',
+      );
+      expect(await stepsToday(db, now), 1200);
+    });
+
+    test('timing is learned only after 28 days of log', () async {
+      NudgeLogData r(int id, String ev, DateTime at, {int? choice}) =>
+          NudgeLogData(
+            id: id,
+            ts: toTs(at),
+            day: dateKey(at),
+            kind: 'lever',
+            notifId: 130,
+            fireAt: toTs(at),
+            event: ev,
+            payload: choice == null ? '{}' : '{"choice":$choice}',
+            algoVersion: 'nudge-1',
+          );
+      final now = DateTime(2026, 10, 30, 12);
+      final young = [r(1, 'posted', DateTime(2026, 10, 20, 15), choice: 900)];
+      expect(learnedModel(young, now), isNull);
+      final old = [
+        r(1, 'scheduled', DateTime(2026, 9, 1, 8)),
+        for (var d = 0; d < 10; d++) ...[
+          r(10 + d * 2, 'posted', DateTime(2026, 10, 1 + d, 17), choice: 1020),
+          r(11 + d * 2, 'action', DateTime(2026, 10, 1 + d, 17, 20)),
+        ],
+        for (var d = 0; d < 10; d++)
+          r(40 + d, 'posted', DateTime(2026, 10, 12 + d, 13), choice: 780),
+      ];
+      final m = learnedModel(old, now)!;
+      // Weekday vs weekend buckets both lean the same way here.
+      expect(
+        m.mean(sc.NudgeKind.lever, 1020, weekend: false),
+        greaterThan(m.mean(sc.NudgeKind.lever, 780, weekend: false)),
+      );
+    });
+
+    test('session widget data follows the status', () async {
+      await saveAppProfile(db, const Profile());
+      await CoachService(db).swapToday(sc.sessionTemplate('easy_run'), 'x');
+      await db.putSetting(Keys.coachSlot, 'am');
+      var w = sessionWidgetData(
+        await loadToday(db, at: today.add(const Duration(hours: 6))),
+      );
+      expect(w['session_status'], 'Planned 07:00');
+      expect(w['session_level'], 'pending');
+      w = sessionWidgetData(
+        await loadToday(db, at: today.add(const Duration(hours: 11))),
+      );
+      expect(w['session_level'], 'late');
+      expect(w['session_status'], startsWith('Still time'));
+      await CoachService(db).setIntent(today, sc.Intent.done);
+      w = sessionWidgetData(
+        await loadToday(db, at: today.add(const Duration(hours: 11))),
+      );
+      expect(w['session_level'], 'done');
+    });
+
+    test('afterSync adapts, refreshes widgets and reschedules', () async {
+      final d = await seededDb(days: 20);
+      await afterSync(d);
+      expect(sink.scheduled, isNotEmpty);
+      expect(await d.setting(Keys.notifScheduled), isNotNull);
+      await d.close();
+    });
+
+    test('week review counts done and the WHO minimums', () async {
+      final d = await seededDb(days: 20);
+      final r = await loadWeekReview(d);
+      expect(r.days.length, 7);
+      expect(
+        r.done + r.partial + r.missed,
+        lessThanOrEqualTo(r.planned.length),
+      );
+      expect(r.headline, isNotEmpty);
+      await d.close();
+    });
+
+    test('Tempo Age moves at most a year a week', () async {
+      final d = await seededDb(days: 40);
+      await updateLongevity(d);
+      final rows = await d.longevitySince(DateTime(2000));
+      final todayRow = rows.last;
+      // Plant a settled snapshot 7 days ago, 5 years older.
+      final weekAgo = today.subtract(const Duration(days: 7));
+      await d.putLongevity(
+        LongevityCompanion.insert(
+          date: dateKey(weekAgo),
+          tempoAge: todayRow.tempoAge + 5,
+          realAge: todayRow.realAge,
+          calibrating: false,
+          contributors: '[]',
+          algoVersion: longevityAlgo,
+        ),
+      );
+      final t = await updateLongevity(d);
+      expect(t.calibrating, isFalse);
+      expect(t.age, closeTo(todayRow.tempoAge + 4, 1e-6));
+      await d.close();
     });
   });
 }

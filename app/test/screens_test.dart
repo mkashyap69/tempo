@@ -34,6 +34,7 @@ import 'package:tempo/src/screens/today.dart';
 import 'package:tempo/src/screens/trends.dart';
 import 'package:tempo/src/screens/weekly_plan.dart';
 import 'package:tempo/src/screens/weekly_report.dart';
+import 'package:tempo/src/screens/weekly_review.dart';
 import 'package:tempo/src/screens/workouts.dart';
 import 'package:tempo/src/screens/band_explorer.dart';
 import 'package:tempo/src/screens/workout_detail.dart';
@@ -85,6 +86,7 @@ void main() {
     ),
     'Trends': (() => const TrendsScreen(), 'Sleep performance'),
     'Longevity': (() => const LongevityScreen(), 'TEMPO AGE'),
+    'Weekly review': (() => const WeeklyReviewScreen(), 'Your week'),
     'Coach notifications': (() => const CoachSettingsScreen(), 'TRAINING TIME'),
     'Day timeline': (() => const DayTimelineScreen(), 'Heart rate'),
     'Activity': (() => const ActivityDetailScreen(id: 1), 'Zones'),
@@ -185,6 +187,29 @@ void main() {
         await teardown(t, db);
       });
     }
+
+    testWidgets('since last week card', (t) async {
+      final db = (await t.runAsync(() async {
+        final d = await seededDb(days: 40);
+        await updateLongevity(d);
+        final last = (await d.longevitySince(DateTime(2000))).last;
+        final ago = DateTime.now().subtract(const Duration(days: 7));
+        await d.putLongevity(
+          LongevityCompanion.insert(
+            date: dateKey(ago),
+            tempoAge: last.tempoAge + .8,
+            realAge: last.realAge,
+            calibrating: false,
+            contributors: '[]',
+            algoVersion: longevityAlgo,
+          ),
+        );
+        return d;
+      }))!;
+      await render(t, db, const LongevityScreen(), h: 3600);
+      expect(find.text('SINCE LAST WEEK'), findsOneWidget);
+      await teardown(t, db);
+    });
 
     testWidgets('focus card shows the week and progress', (t) async {
       final db = (await t.runAsync(() async {

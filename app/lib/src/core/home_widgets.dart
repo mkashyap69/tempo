@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:home_widget/home_widget.dart';
+import 'package:scoring/scoring.dart' as sc;
 import 'package:store/store.dart' as st;
 
 import 'coach_notifier.dart';
@@ -13,8 +14,12 @@ import 'health_export.dart';
 
 /// iOS app group shared with the WidgetKit extension.
 const widgetAppGroup = 'group.dev.tempo.tempo';
-const _android = ['TempoSmallWidget', 'TempoMediumWidget'];
-const _ios = 'TempoWidget';
+const _android = [
+  'TempoSmallWidget',
+  'TempoMediumWidget',
+  'TempoSessionWidget',
+];
+const _ios = ['TempoWidget', 'TempoSessionWidget'];
 
 /// Fills are percentages; each widget lights that share of its ticks.
 /// Pushes today's numbers to the home-screen widgets (WidgetKit / Android
@@ -52,6 +57,7 @@ Future<void> updateHomeWidgets(TodayData t) async {
       'sleep_state': t.slept == null ? 'No data' : hmShort(t.slept!),
       'sleep_fill': (t.sleepPerf ?? 0).round(),
       'updated_at': '${(t.lastSync ?? DateTime.now()).millisecondsSinceEpoch}',
+      ...sessionWidgetData(t),
     };
     for (final e in data.entries) {
       await HomeWidget.saveWidgetData(e.key, e.value);
@@ -59,10 +65,55 @@ Future<void> updateHomeWidgets(TodayData t) async {
     for (final a in _android) {
       await HomeWidget.updateWidget(androidName: a);
     }
-    await HomeWidget.updateWidget(iOSName: _ios);
+    for (final i in _ios) {
+      await HomeWidget.updateWidget(iOSName: i);
+    }
   } catch (e) {
     debugPrint('home widgets: $e');
   }
+}
+
+/// Tempo Coach session widget: today's session, its status and whether
+/// Start applies. Levels: pending, late, done, missed, rest.
+Map<String, Object?> sessionWidgetData(TodayData t) {
+  final p = t.plan;
+  if (p == null || p.isRest || t.restDay) {
+    return {
+      'session_title': t.restDay ? 'Rest day' : 'Rest',
+      'session_detail':
+          'Walk if you like · in bed by ${fmtHm(t.bedtimeMinute)}',
+      'session_status': '',
+      'session_level': 'rest',
+    };
+  }
+  final level = switch (t.status) {
+    sc.DayStatus.done || sc.DayStatus.doneEasier => 'done',
+    sc.DayStatus.missedDay || sc.DayStatus.skipped => 'missed',
+    sc.DayStatus.missedSlot || sc.DayStatus.partial => 'late',
+    _ => 'pending',
+  };
+  final status = switch (t.status) {
+    sc.DayStatus.done => 'Done ✓',
+    sc.DayStatus.doneEasier => 'Done, easier',
+    sc.DayStatus.partial => 'Partly done',
+    sc.DayStatus.missedSlot =>
+      t.rescue.offered
+          ? 'Still time · ${fmtHm(t.rescue.start!)}'
+          : 'Not seen yet',
+    sc.DayStatus.missedDay => 'Missed',
+    sc.DayStatus.skipped => 'Skipped',
+    sc.DayStatus.moved || sc.DayStatus.pending =>
+      t.plannedMinute == null
+          ? 'Any time today'
+          : 'Planned ${fmtHm(t.plannedMinute!)}',
+    sc.DayStatus.rest => '',
+  };
+  return {
+    'session_title': '${p.title} ${p.minutes}′',
+    'session_detail': '${p.zones}${p.note.isEmpty ? '' : ' · ${p.note}'}',
+    'session_status': status,
+    'session_level': level,
+  };
 }
 
 /// Runs after every successful sync (foreground or background): adapts the
@@ -98,7 +149,16 @@ Future<void> rescheduleNotifications(st.TempoDb db, [TodayData? t]) async {
 String? widgetTarget(Uri? uri) {
   if (uri == null || uri.scheme != 'tempo') return null;
   final t = uri.host.isNotEmpty ? uri.host : uri.path.replaceAll('/', '');
-  return const {'recovery', 'strain', 'sleep', 'today'}.contains(t) ? t : null;
+  return const {
+        'recovery',
+        'strain',
+        'sleep',
+        'today',
+        'coach',
+        'start',
+      }.contains(t)
+      ? t
+      : null;
 }
 
 /// Widget taps, both the one that launched the app and later ones. Skipped
