@@ -12,14 +12,13 @@ import '../design/meter.dart';
 import '../design/tokens.dart';
 import '../design/type.dart';
 import '../state/providers.dart';
-import 'cardio_load.dart';
 import 'nav.dart';
 import 'pairing.dart';
 import 'recovery.dart';
 import 'shared.dart';
-import 'sleep.dart';
 import 'strain.dart';
 import 'workout_detail.dart';
+import 'today_charts.dart';
 import 'workouts.dart';
 
 class TodayScreen extends ConsumerWidget {
@@ -67,7 +66,7 @@ abstract final class TodayBody {
     required bool paired,
     required bool noPermission,
   }) {
-    final c = context.c, s = context.s;
+    final c = context.c;
     final noData = !paired || noPermission;
     final dim = sync.running || (t.stale && !noData);
     final (lead, leadColor, rest) = coachLine(
@@ -77,7 +76,6 @@ abstract final class TodayBody {
       noPermission: noPermission,
     );
     final adds = planAdds(t);
-    final (stripStatus, stripBody) = strainStatus(t, planAdds: adds);
 
     String syncText;
     if (!paired) {
@@ -166,13 +164,10 @@ abstract final class TodayBody {
       );
     }
 
-    final meters = _meters(context, t, noData: noData, dim: dim);
-    final stack = MediaQuery.textScalerOf(context).scale(1) >= 1.3;
-
     return [
       // Header
-      SizedBox(
-        height: 44,
+      ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 44),
         child: Row(
           children: [
             Expanded(
@@ -242,55 +237,7 @@ abstract final class TodayBody {
           style: TempoType.titleL.c(c.text1),
         ),
       ),
-      if (stack)
-        Column(
-          children: [
-            for (final m in meters)
-              Padding(padding: const EdgeInsets.only(bottom: 10), child: m),
-          ],
-        )
-      else
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            for (final (i, m) in meters.indexed) ...[
-              if (i > 0) const SizedBox(width: 10),
-              Expanded(child: m),
-            ],
-          ],
-        ),
-      if (!noData && !t.firstDay)
-        TempoCard(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          onTap: () => push(context, const StrainScreen()),
-          label: 'Strain target',
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      t.target.cap ? 'Strain cap' : 'Strain target',
-                      style: TempoType.label.c(c.text1),
-                    ),
-                  ),
-                  TempoBadge(stripStatus),
-                ],
-              ),
-              const SizedBox(height: 10),
-              TargetStrip(
-                value: t.strain,
-                max: 21,
-                lo: t.target.lo,
-                hi: t.target.hi,
-                color: s.strain[1],
-              ),
-              const SizedBox(height: 10),
-              Text(stripBody, style: TempoType.bodyS.c(c.text2)),
-            ],
-          ),
-        ),
+      TodayRings(t: t, noData: noData, dim: dim),
       if (!noData && t.restDay)
         RestCard(
           onStart: () =>
@@ -306,6 +253,18 @@ abstract final class TodayBody {
           onWhy: () => push(context, const WorkoutDetailScreen()),
         ),
       if (!noData && t.firstDay) const FirstWeekCard(),
+      if (!noData) ...[
+        WeekRecoveryStrain(t: t),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: ZoneDonutCard(t: t)),
+            const SizedBox(width: 10),
+            Expanded(child: LoadGaugeCard(t: t)),
+          ],
+        ),
+        LastNightStrip(t: t),
+      ],
       if (t.workouts.isNotEmpty)
         Section(
           title: 'Today’s workouts',
@@ -326,71 +285,6 @@ abstract final class TodayBody {
             ],
           ),
         ),
-      if (!noData)
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: TempoCard(
-                padding: const EdgeInsets.all(14),
-                onTap: () => push(context, const CardioLoadScreen()),
-                label: 'Cardio load',
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Overline('Cardio load'),
-                    const SizedBox(height: 6),
-                    Text.rich(
-                      TextSpan(
-                        children: [
-                          TextSpan(
-                            text: '${loadGlyph(t.load.status)} ',
-                            style: const TextStyle(fontSize: 13),
-                          ),
-                          TextSpan(text: loadWord(t.load.status)),
-                        ],
-                      ),
-                      style: TempoType.titleM.c(
-                        loadColor(context, t.load.status),
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      t.firstDay ? 'Needs 7 days of data' : loadSub(t.load),
-                      style: TempoType.caption.c(c.text3),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: TempoCard(
-                padding: const EdgeInsets.all(14),
-                onTap: () => push(context, const SleepScreen()),
-                label: 'Bedtime tonight',
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Overline('Bedtime tonight'),
-                    const SizedBox(height: 6),
-                    Text(
-                      clock12(t.bedtimeMinute),
-                      style: TempoType.titleM.c(c.text1).tnum,
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      t.calibrating || t.firstDay
-                          ? 'General target · personalises night 14'
-                          : 'For ${hmShort(t.needTonight - t.debt * .5)} need${t.debt > 0.05 ? ' + ${hmShort(t.debt * .5)} debt' : ''}',
-                      style: TempoType.caption.c(c.text3),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
     ];
   }
 
@@ -403,154 +297,6 @@ abstract final class TodayBody {
         : d == 1
         ? 'yesterday'
         : dayShort(t);
-  }
-
-  static List<Widget> _meters(
-    BuildContext context,
-    TodayData t, {
-    required bool noData,
-    required bool dim,
-  }) {
-    final c = context.c, s = context.s;
-    final numColor = dim ? c.text2 : c.text1;
-    final r = t.recovery;
-    final Widget rec;
-    if (noData || (r == null && !t.calibrating)) {
-      rec = ScoreMeter(
-        label: 'Recovery',
-        value: 0,
-        decimals: 0,
-        placeholder: '—',
-        state: noData ? 'No data' : 'After tonight',
-        stateColor: c.text3,
-        ticks: 20,
-        filled: 0,
-        fillColor: c.trackOff,
-        caption: '—',
-        numColor: c.text3,
-        dim: dim,
-        onTap: noData ? null : () => push(context, const RecoveryScreen()),
-      );
-    } else if (t.calibrating) {
-      rec = ScoreMeter(
-        label: 'Recovery',
-        value: t.nights.toDouble(),
-        decimals: 0,
-        unit: '/14',
-        state: 'Calibrating',
-        stateColor: c.text2,
-        ticks: 14,
-        filled: t.nights,
-        fillColor: c.text2,
-        caption: '${14 - t.nights} nights to baseline',
-        numColor: numColor,
-        dim: dim,
-        onTap: () => push(context, const RecoveryScreen()),
-      );
-    } else {
-      final rhr = t.rhrDelta, st = t.stressDelta;
-      final cap = [
-        if (rhr != null)
-          'RHR ${rhr.round() == 0
-              ? '±'
-              : rhr > 0
-              ? '+'
-              : '−'}${rhr.abs().round()}',
-        if (st != null)
-          'stress ${st > 1
-              ? '↑'
-              : st < -1
-              ? '↓'
-              : '→'}',
-      ].join(' · ');
-      rec = ScoreMeter(
-        label: 'Recovery',
-        value: r!,
-        decimals: 0,
-        unit: '%',
-        state: recoveryWord(r),
-        glyph: recoveryGlyph(r),
-        stateColor: s.recoveryFor(r),
-        ticks: 20,
-        filled: (r / 5).round(),
-        fillColor: s.recoveryFor(r),
-        caption: cap,
-        numColor: numColor,
-        dim: dim,
-        onTap: () => push(context, const RecoveryScreen()),
-        onSettled: TempoHaptics.light,
-      );
-    }
-    final tg = t.target;
-    final strain = noData
-        ? ScoreMeter(
-            label: 'Strain',
-            value: 0,
-            decimals: 1,
-            placeholder: '—',
-            state: 'No data',
-            stateColor: c.text3,
-            ticks: 21,
-            filled: 0,
-            fillColor: c.trackOff,
-            caption: '—',
-            numColor: c.text3,
-          )
-        : TargetMeter(
-            label: 'Strain',
-            value: t.strain,
-            decimals: 1,
-            unit: '/21',
-            state: 'Live',
-            glyph: '●',
-            stateColor: s.strain[1],
-            ticks: 21,
-            filled: t.strain.floor(),
-            fillColor: s.strain[1],
-            tickColor: (i) => s.strainFor(i.toDouble()),
-            targetRange: (tg.lo.round(), tg.hi.round()),
-            caption: tg.cap
-                ? 'Cap ${tg.hi.round()}'
-                : 'Target ${tg.lo.round()}–${tg.hi.round()}',
-            numColor: numColor,
-            dim: dim,
-            liveGrow: true,
-            onTap: () => push(context, const StrainScreen()),
-          );
-    final sp = t.sleepPerf;
-    final sleep = noData || sp == null
-        ? ScoreMeter(
-            label: 'Sleep',
-            value: 0,
-            decimals: 0,
-            placeholder: '—',
-            state: noData ? 'No data' : 'No data yet',
-            stateColor: c.text3,
-            ticks: 20,
-            filled: 0,
-            fillColor: c.trackOff,
-            caption: noData ? '' : 'Wear band tonight',
-            numColor: c.text3,
-            dim: dim,
-            onTap: noData ? null : () => push(context, const SleepScreen()),
-          )
-        : ScoreMeter(
-            label: 'Sleep',
-            value: sp,
-            decimals: 0,
-            unit: '%',
-            state: hmShort(t.slept!),
-            stateColor: s.sleepChannel,
-            ticks: 20,
-            filled: (sp / 5).round(),
-            fillColor: s.sleepChannel,
-            caption:
-                'Need ${hmShort(t.need!)}${t.calibrating ? ' (est.)' : ''}',
-            numColor: numColor,
-            dim: dim,
-            onTap: () => push(context, const SleepScreen()),
-          );
-    return [rec, strain, sleep];
   }
 }
 

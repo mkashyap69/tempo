@@ -113,14 +113,16 @@ void main() {
   }
 
   group('Today states', () {
-    testWidgets('normal: three meters, a plan and the strain strip', (t) async {
+    testWidgets('normal: rings, a plan and the B charts', (t) async {
       final db = (await t.runAsync(() => seededDb(days: 30)))!;
       await render(t, db, const TodayScreen());
       expect(find.text('RECOVERY'), findsOneWidget);
       expect(find.text('STRAIN'), findsOneWidget);
       expect(find.text('SLEEP'), findsOneWidget);
-      expect(find.textContaining('Strain '), findsWidgets);
-      expect(find.text('BEDTIME TONIGHT'), findsOneWidget);
+      expect(find.text('Last 7 days'), findsOneWidget);
+      expect(find.text('Time in zones'), findsOneWidget);
+      expect(find.text('Cardio load'), findsOneWidget);
+      expect(find.textContaining('Tonight: bed by'), findsOneWidget);
       await teardown(t, db);
     });
 

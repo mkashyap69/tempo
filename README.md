@@ -94,7 +94,7 @@ Five tabs and a start button:
 
 | Tab | What it shows |
 | --- | --- |
-| **Today** | One coaching line ("Recovery 78% — you're primed… aim for 13–16 strain"), three score meters (Recovery, Strain, Sleep), the strain target, today's suggested workout, cardio load and tonight's bedtime. Pull down to sync. Tap any score for its detail. |
+| **Today** | One coaching line ("Recovery 78% — you're primed… aim for 13–16 strain"), three nested rings for Recovery, Strain (with today's target marked) and Sleep, today's suggested workout, a 7-day recovery and strain chart, a time-in-zones donut, a cardio-load gauge, last night's sleep stages with tonight's bedtime, and today's workouts. Pull down to sync. Tap any ring, chart or card for its detail. |
 | **Coach** | Today's readiness, the suggested workout and why, this week's plan against what you did, cardio load and six short Learn cards with your own numbers. |
 | **Trends** | 7 / 30 / 90-day cards for recovery, strain, sleep, resting HR, stress, SpO₂ and steps, plus the day timeline, your baselines, a recovery calendar and data health. |
 | **Journal** | A five-tap morning check-in (alcohol, late meal, late caffeine, stressful day, travel). After 30 check-ins it shows what each one does to your next-morning recovery, with sample size and confidence. |
