@@ -13,7 +13,7 @@ import 'profile.dart' show Keys;
 /// What the explorer needs from a band. [MiBand] provides it; tests fake it.
 abstract interface class ExplorerBand {
   Future<Map<String, List<int>?>> readAllReadable();
-  Future<FetchStartReply?> probeFetch(int code, DateTime since);
+  Future<ProbeOutcome> probeFetch(int code, DateTime since);
   Future<Stream<List<int>>> startLiveHrRaw();
   Future<void> stopLiveHr();
 }
@@ -24,7 +24,7 @@ class _MiBandExplorer implements ExplorerBand {
   @override
   Future<Map<String, List<int>?>> readAllReadable() => band.readAllReadable();
   @override
-  Future<FetchStartReply?> probeFetch(int code, DateTime since) =>
+  Future<ProbeOutcome> probeFetch(int code, DateTime since) =>
       band.probeFetch(code, since);
   @override
   Future<Stream<List<int>>> startLiveHrRaw() => band.startLiveHrRaw();
@@ -36,10 +36,23 @@ enum ExplorerStage { characteristics, history, liveHr }
 
 /// One history type the band answered for.
 final class ProbeResult {
-  const ProbeResult(this.code, {required this.ok, this.count = 0, this.start});
+  const ProbeResult(
+    this.code, {
+    required this.ok,
+    this.count = 0,
+    this.start,
+    this.raw,
+    this.data = const [],
+  });
   final int code;
   final bool ok;
   final int count;
+
+  /// The band's raw start reply (status in byte 2).
+  final List<int>? raw;
+
+  /// Downloaded payload, never acknowledged.
+  final List<int> data;
   final DateTime? start;
 
   /// Name if Tempo already knows this type.
@@ -54,6 +67,12 @@ final class ProbeResult {
     'ok': ok,
     'count': count,
     'start': start?.toIso8601String(),
+    'reply': raw == null ? null : hex(raw!),
+    'bytes': data.length,
+    if (count > 0 && data.isNotEmpty) 'bytesPerRecord': data.length / count,
+    // Known types are decoded elsewhere; keep up to 8 KB of the rest.
+    if (known == null || known == 'stress' || known == 'spo2')
+      'payload': hex(data.take(8192).toList()),
   };
 }
 
@@ -79,6 +98,22 @@ final class ExplorerReport {
   final List<int> bpm;
   final List<int> rrMs;
   final String? packetLog;
+
+  List<int>? _char(String short) => characteristics.entries
+      .where((e) => e.key.startsWith(short))
+      .map((e) => e.value)
+      .firstOrNull;
+
+  /// Decoded 0x0006 (battery, last charge) and 0x0007 (today's totals).
+  HuamiBattery? get battery {
+    final b = _char('00000006');
+    return b == null ? null : parseHuamiBattery(b);
+  }
+
+  RealtimeSteps? get today {
+    final b = _char('00000007');
+    return b == null ? null : parseRealtimeSteps(b);
+  }
 
   int get packetsWithRr =>
       hrPackets.where((p) => p.isNotEmpty && p[0] & 0x10 != 0).length;
@@ -158,11 +193,21 @@ class BandExplorer {
         i / codes.length,
         'Type 0x${code.toRadixString(16).padLeft(2, '0')} · ${probes.where((p) => p.count > 0).length} with data',
       );
-      final r = await band.probeFetch(code, from);
+      final o = await band.probeFetch(code, from);
+      final r = o.reply;
       if (r == null) {
         silent.add(code);
       } else {
-        probes.add(ProbeResult(code, ok: r.ok, count: r.count, start: r.start));
+        probes.add(
+          ProbeResult(
+            code,
+            ok: r.ok,
+            count: r.count,
+            start: r.start,
+            raw: o.raw,
+            data: o.data,
+          ),
+        );
       }
     }
     onProgress?.call(
@@ -248,7 +293,7 @@ Future<(ExplorerReport, File)> exploreBand(
     const JsonEncoder.withIndent('  ').convert(report.toJson()),
   );
   await db.logSync(
-    'Band explorer · ${report.probes.where((p) => p.count > 0).length} history types with data · ${report.hasRr ? 'beat intervals found' : 'no beat intervals'}',
+    'Band explorer v2 · ${report.probes.where((p) => p.count > 0).length} history types with data · ${report.hasRr ? 'beat intervals found' : 'no beat intervals'}',
     'explore',
   );
   return (report, f);

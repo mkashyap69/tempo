@@ -37,6 +37,7 @@ class _Health {
     this.gaps,
     this.batteryDays,
     this.batteryExempt,
+    this.lastCharge,
   );
   final List<(DateTime, List<(int, int)>)> days;
   final List<st.SyncLogData> log;
@@ -47,6 +48,7 @@ class _Health {
   final List<(DateTime, int)> gaps;
   final double? batteryDays;
   final bool batteryExempt;
+  final DateTime? lastCharge;
 }
 
 final _healthProvider = FutureProvider<_Health>((ref) async {
@@ -114,6 +116,9 @@ final _healthProvider = FutureProvider<_Health>((ref) async {
     gaps,
     batteryDaysLeft(await batteryLog(db)),
     await BackgroundGuard.batteryExempt,
+    DateTime.tryParse(
+      (await db.setting(Keys.lastCharge) ?? '').split('|').first,
+    ),
   );
 });
 
@@ -138,7 +143,7 @@ class DataHealthScreen extends ConsumerWidget {
                   h.battery == null ? '—' : '${h.battery}%',
                   sub: h.battery == null
                       ? 'not read yet'
-                      : batteryLeftLabel(h.batteryDays),
+                      : '${batteryLeftLabel(h.batteryDays)}${h.lastCharge == null ? '' : ' · charged ${dm(h.lastCharge!)}'}',
                 ),
               ),
               Expanded(

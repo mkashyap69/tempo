@@ -18,6 +18,15 @@ class BandException implements Exception {
   String toString() => 'BandException: $message';
 }
 
+/// One explorer probe: the band's reply (null if silent), its raw bytes,
+/// and the downloaded payload (empty unless it had data).
+final class ProbeOutcome {
+  const ProbeOutcome(this.reply, this.raw, this.data);
+  final FetchStartReply? reply;
+  final List<int>? raw;
+  final List<int> data;
+}
+
 /// Raw result of one history fetch.
 final class FetchResult {
   const FetchResult(this.type, this.start, this.data, this.expected, this.gaps);
@@ -454,28 +463,73 @@ class MiBand {
     return out;
   }
 
-  /// Asks whether the band has history of data type [code] since [since],
-  /// without transferring or acknowledging anything, so nothing is deleted
-  /// on the band. Null when it doesn't answer within [wait].
-  Future<FetchStartReply?> probeFetch(
+  /// Asks whether the band has history of data type [code] since [since].
+  /// When it does, the data is downloaded but never acknowledged, so
+  /// nothing is deleted on the band; downloading also ends the pending
+  /// fetch, which otherwise makes the band refuse the next start (seen in
+  /// explorer-2026-10-05T10-34-28: every code after 0x01 answered "not ok").
+  Future<ProbeOutcome> probeFetch(
     int code,
     DateTime since, {
     Duration wait = const Duration(seconds: 3),
+    bool drain = true,
   }) async {
     final control = await _notifications(BandUuids.fetchControl);
+    final data = await _notifications(BandUuids.activityData);
+    List<int>? raw;
     final replyF = control
-        .map(FetchStartReply.parse)
-        .firstWhere((r) => r != null)
+        .where((p) => FetchStartReply.parse(p) != null)
+        .first
         .timeout(wait);
     await _write(BandUuids.fetchControl, FetchCommands.startCode(code, since));
+    FetchStartReply? reply;
     try {
-      final r = await replyF;
-      _info(
-        'probe 0x${code.toRadixString(16)}: ok=${r!.ok} count=${r.count} start=${r.start}',
-      );
-      return r;
+      raw = await replyF;
+      reply = FetchStartReply.parse(raw);
     } on TimeoutException {
       _info('probe 0x${code.toRadixString(16)}: no answer');
+      return const ProbeOutcome(null, null, []);
+    }
+    _info(
+      'probe 0x${code.toRadixString(16)}: ok=${reply!.ok} count=${reply.count} start=${reply.start}',
+    );
+    if (!drain || !reply.ok || reply.count == 0) {
+      return ProbeOutcome(reply, raw, const []);
+    }
+    final asm = ChunkAssembler();
+    final sub = data.listen(asm.add);
+    try {
+      final doneF = control
+          .map(parseTransferDone)
+          .firstWhere((r) => r != null)
+          .timeout(const Duration(minutes: 2));
+      await _write(BandUuids.fetchControl, FetchCommands.transfer);
+      await doneF;
+    } catch (e) {
+      _info('probe 0x${code.toRadixString(16)} transfer: $e');
+    } finally {
+      await sub.cancel();
+    }
+    return ProbeOutcome(reply, raw, asm.take());
+  }
+
+  /// Huami battery characteristic, decoded (level, last charge), or null.
+  Future<HuamiBattery?> readBatteryInfo() async {
+    final c = _chars[Guid(BandUuids.huamiBattery).str128];
+    if (c == null || !c.properties.read) return null;
+    try {
+      final v = await c.read();
+      log.record(
+        PacketEvent(
+          dir: PacketDir.rx,
+          characteristic: BandUuids.huamiBattery,
+          bytes: v,
+          note: 'read',
+        ),
+      );
+      return parseHuamiBattery(v);
+    } catch (e) {
+      _info('battery info read failed: $e');
       return null;
     }
   }

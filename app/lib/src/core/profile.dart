@@ -35,6 +35,7 @@ abstract final class Keys {
   static const batteryPrompted = 'battery_opt_prompted'; // 1 once asked
   static const bandDismissed = 'band_workouts_dismissed'; // JSON [start ts]
   static const bandConfigured = 'band_configured'; // signature last confirmed
+  static const lastCharge = 'last_charge'; // ISO|level, from band 0x0006
 }
 
 /// Everything the user tells Tempo in onboarding and Profile.

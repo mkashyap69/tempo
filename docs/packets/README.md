@@ -22,3 +22,8 @@ The auth key is never written. Check a file before committing anyway.
 
 Android: `tools/pull_packets.sh` with the phone on adb (debug build).
 iOS: see the comment at the top of that script.
+
+## Explorer reports
+
+`explorer-<time>.json` files come from the app's Band explorer (Data health → Band explorer): every readable characteristic, the history type survey, and two minutes of raw live heart rate. The band's serial number is redacted before committing.
+

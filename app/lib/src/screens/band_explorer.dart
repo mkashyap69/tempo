@@ -6,6 +6,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../core/band_explorer.dart';
 import '../core/band_link.dart' show BandBusyException;
+import '../core/format.dart';
 import '../design/components.dart';
 import '../design/icons.dart';
 import '../design/tokens.dart';
@@ -256,6 +257,26 @@ class _Results extends StatelessWidget {
             value: '${withData.length}',
           ),
           const Hair(),
+          if (r.battery != null) ...[
+            ListRow(
+              'Battery',
+              chevron: false,
+              value: '${r.battery!.level}%',
+              sub: r.battery!.lastChargeAt == null
+                  ? null
+                  : 'Last charged ${dm(r.battery!.lastChargeAt!)}, ${clockOf(r.battery!.lastChargeAt!)} to ${r.battery!.lastChargeLevel}%',
+            ),
+            const Hair(),
+          ],
+          if (r.today != null) ...[
+            ListRow(
+              'Today on the band',
+              chevron: false,
+              value: '${r.today!.steps} steps',
+              sub: '${r.today!.meters} m · ${r.today!.kcal} kcal',
+            ),
+            const Hair(),
+          ],
           ListRow(
             'Characteristics read',
             chevron: false,

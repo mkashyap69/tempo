@@ -15,17 +15,48 @@ class _FakeBand implements ExplorerBand {
   Future<Map<String, List<int>?>> readAllReadable() async => {
     '00002a28-0000-1000-8000-00805f9b34fb': utf8.encode('V1.0.6.20'),
     '6aa50001-0000-1000-8000-00805f9b34fb': [1, 2, 3],
+    '00000006-0000-3512-2118-0009af100700': [
+      0x0f, 46, 0, 0xb2, 7, 1, 1, 0, 0, 0, 0, //
+      0xea, 7, 10, 4, 23, 6, 51, 0x16, 98,
+    ],
+    '00000007-0000-3512-2118-0009af100700': [
+      0x0c,
+      81,
+      0,
+      0,
+      0,
+      51,
+      0,
+      0,
+      0,
+      6,
+      0,
+      0,
+      0,
+    ],
     '6aa50002-0000-1000-8000-00805f9b34fb': null,
   };
 
   @override
-  Future<FetchStartReply?> probeFetch(int code, DateTime since) async {
+  Future<ProbeOutcome> probeFetch(int code, DateTime since) async {
     probed.add(code);
     return switch (code) {
-      0x01 => FetchStartReply(true, 1716, DateTime(2026, 10, 3, 13, 27)),
-      0x07 => FetchStartReply(true, 12, DateTime(2026, 10, 4)),
-      0x14 => const FetchStartReply(true, 0, null),
-      _ => null,
+      0x01 => ProbeOutcome(
+        FetchStartReply(true, 1716, DateTime(2026, 10, 3, 13, 27)),
+        const [0x10, 0x01, 0x01],
+        List.filled(1716 * 8, 0),
+      ),
+      0x07 => ProbeOutcome(
+        FetchStartReply(true, 12, DateTime(2026, 10, 4)),
+        const [0x10, 0x01, 0x01],
+        List.filled(48, 7),
+      ),
+      0x14 => const ProbeOutcome(FetchStartReply(true, 0, null), [
+        0x10,
+        0x01,
+        0x01,
+      ], []),
+      _ => const ProbeOutcome(null, null, []),
     };
   }
 
@@ -60,8 +91,16 @@ void main() {
     expect(r.probes.first.known, 'activity');
     expect(band.stopped, isTrue);
     expect(r.hasRr, isFalse);
+    expect(r.battery!.level, 46);
+    expect(r.battery!.lastChargeLevel, 98);
+    expect(r.today!.steps, 81);
     final j = r.toJson();
-    expect((j['characteristics'] as Map).length, 3);
+    expect((j['characteristics'] as Map).length, 5);
+    final hist = (j['history'] as List).cast<Map<String, Object?>>();
+    expect(hist[0]['bytesPerRecord'], 8);
+    expect(hist[0].containsKey('payload'), isFalse); // activity: known
+    expect(hist[1]['payload'], '07' * 48); // 0x07: new, kept
+    expect(hist[1]['reply'], '100101');
     expect((j['history'] as List).first, containsPair('code', '0x01'));
     expect(j['silentCodes'], ['0x5']);
   });

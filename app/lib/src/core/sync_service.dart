@@ -224,6 +224,13 @@ class SyncService {
     try {
       final pct = await band.readBattery();
       if (pct != null) await recordBattery(db, pct);
+      final info = await band.readBatteryInfo();
+      if (info?.lastChargeAt != null) {
+        await db.putSetting(
+          Keys.lastCharge,
+          '${info!.lastChargeAt!.toIso8601String()}|${info.lastChargeLevel ?? ''}',
+        );
+      }
     } catch (_) {}
     await ensureConfigured(band);
     final counts = <String, int>{};

@@ -210,6 +210,66 @@ int? parseBattery(List<int> bytes, {required bool huami}) {
   return v >= 0 && v <= 100 ? v : null;
 }
 
+/// Huami battery characteristic (0x0006), 20 bytes on V1.0.6.20
+/// (docs/packets/explorer-2026-10-05T10-34-28.json):
+/// `?, level, charging, time(8), time(8), last charge level`, each time
+/// `year u16 LE, month, day, hour, minute, second, tz quarter-hours`.
+/// The first time is 1970 here (unset); the second reads 2026-10-04
+/// 23:06:51 with level 98 — taken as the last charge. Meaning of the two
+/// times is TODO(verify) against a capture right after charging.
+final class HuamiBattery {
+  const HuamiBattery({
+    required this.level,
+    required this.charging,
+    this.lastChargeAt,
+    this.lastChargeLevel,
+  });
+  final int level;
+  final bool charging;
+  final DateTime? lastChargeAt;
+  final int? lastChargeLevel;
+}
+
+DateTime? _time8(List<int> b, int o) {
+  if (b.length < o + 8) return null;
+  final year = b[o] | (b[o + 1] << 8);
+  if (year < 2000) return null;
+  final tz = b[o + 7].toSigned(8);
+  return DateTime.utc(
+    year,
+    b[o + 2],
+    b[o + 3],
+    b[o + 4],
+    b[o + 5],
+    b[o + 6],
+  ).subtract(Duration(minutes: tz * 15)).toLocal();
+}
+
+HuamiBattery? parseHuamiBattery(List<int> b) {
+  if (b.length < 3 || b[1] > 100) return null;
+  return HuamiBattery(
+    level: b[1],
+    charging: b[2] != 0,
+    lastChargeAt: _time8(b, 11),
+    lastChargeLevel: b.length >= 20 && b[19] <= 100 ? b[19] : null,
+  );
+}
+
+/// Realtime activity (0x0007): `0x0c, steps u32, meters u32, kcal u32`,
+/// today's totals. Steps match the history; meters and kcal are
+/// TODO(verify) (51 m and 6 kcal for 81 steps in the explorer read).
+final class RealtimeSteps {
+  const RealtimeSteps(this.steps, this.meters, this.kcal);
+  final int steps, meters, kcal;
+}
+
+RealtimeSteps? parseRealtimeSteps(List<int> b) {
+  if (b.length < 13 || b[0] != 0x0c) return null;
+  int u32(int o) =>
+      b[o] | (b[o + 1] << 8) | (b[o + 2] << 16) | (b[o + 3] << 24);
+  return RealtimeSteps(u32(1), u32(5), u32(9));
+}
+
 /// Immediate Alert payloads. TODO(verify) which level the band vibrates on.
 abstract final class AlertCommands {
   static const mild = [0x01];
