@@ -34,6 +34,7 @@ abstract final class Keys {
   static const pauses = 'pauses'; // JSON, see pause.dart
   static const batteryPrompted = 'battery_opt_prompted'; // 1 once asked
   static const bandDismissed = 'band_workouts_dismissed'; // JSON [start ts]
+  static const bandConfigured = 'band_configured'; // signature last confirmed
 }
 
 /// Everything the user tells Tempo in onboarding and Profile.

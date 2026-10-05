@@ -60,29 +60,24 @@ Future<TempoDb> seededDb({
     final bed = DateTime(eve.year, eve.month, eve.day, 23, r.nextInt(30));
     final sleepMin = 400 + r.nextInt(70) - (d % 9 == 3 ? 90 : 0);
     final rest = 48 + r.nextInt(6) + (d % 9 == 3 ? 6 : 0);
-    // Stage cycle: light → deep → light → REM, ~90 min.
+    // V1.0.6.20 nights: every sleeping minute is 0xf0 with HR each minute;
+    // stages come from the HR pattern (light → deep → light → REM, ~90 min).
     for (var m = 0; m < sleepMin; m++) {
       final c = m % 90;
-      final kind = m > 30 && r.nextInt(120) == 0
-          ? 0x01
+      final awake = m > 30 && r.nextInt(120) == 0;
+      final hr = awake
+          ? rest + 16 + r.nextInt(4)
           : c < 20
-          ? 0x70
+          ? rest + 3 + r.nextInt(3)
           : c < 45 && m < 300
-          ? 0x7b
+          ? rest - 2 + r.nextInt(2)
           : c < 70
-          ? 0x70
-          : 0x6e;
+          ? rest + 3 + r.nextInt(3)
+          : rest + 6 + r.nextInt(8);
       add(
         bed.add(Duration(minutes: m)),
-        kind: kind,
-        hr:
-            rest +
-            (kind == 0x6e
-                ? 6
-                : kind == 0x7b
-                ? -2
-                : 2) +
-            r.nextInt(3),
+        kind: awake ? 0x01 : 0xf0,
+        hr: hr,
       );
       if (m % 5 == 0) {
         stress.add(

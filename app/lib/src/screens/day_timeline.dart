@@ -146,9 +146,9 @@ class _DayTimelineState extends ConsumerState<DayTimelineScreen> {
               final actW = hrLeft - actLeft - 8;
               // Stages per minute.
               final sleep = <Widget>[];
-              for (final m in d.minutes) {
-                final stg = stageForKind(m.kind);
-                if (!stg.asleep && stg != sc.Stage.wake) continue;
+              final decoded = decodeMinutes(d.minutes).minutes;
+              for (final (i, m) in d.minutes.indexed) {
+                final stg = decoded[i].stage;
                 if (!stg.asleep) continue;
                 final (wd, col) = switch (stg) {
                   sc.Stage.rem => (16.0, s.sleepRem),
@@ -168,10 +168,10 @@ class _DayTimelineState extends ConsumerState<DayTimelineScreen> {
               }
               // Naps: daytime sleep the scorer counts against debt.
               final naps = [
-                for (final n in sc.detectSessions([
-                  for (final m in d.minutes)
-                    sc.Minute(st.fromTs(m.ts), stage: stageForKind(m.kind)),
-                ], const sc.SleepParams(minSessionMinutes: 20)))
+                for (final n in sc.detectSessions(
+                  decoded,
+                  const sc.SleepParams(minSessionMinutes: 20),
+                ))
                   if (n.start.hour >= 10 &&
                       n.start.hour < 21 &&
                       n.asleep.inMinutes < 180)

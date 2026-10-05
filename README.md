@@ -169,7 +169,9 @@ The Mi Band 6 doesn't expose raw beat-to-beat (HRV) data, so Recovery uses the b
 | Band doesn't appear in Scan | Force-stop Mi Fitness / Zepp Life, toggle Bluetooth, keep the band close. On Android allow the "Nearby devices" permission. |
 | "Band rejected key" | The key is wrong or stale (the band was reset). Extract it again. |
 | "No auth variant got a challenge" | Probably a protocol difference on your firmware. Send the packet log (see below). |
-| Sleep dial stays empty | Sleep stage codes may not match your firmware yet. Send the packet log and an export. |
+| Sleep times look shifted or doubled | Builds from before 5 Oct stored some minutes 5 h 30 m late. Data health → *Re-download band history* replaces them with a fresh copy from the band. |
+| No sleep stages | Stages are estimated from heart rate, which needs HR every minute. Tempo sets that on the next sync; the night after will have stages. |
+| Sleep dial stays empty | Send the packet log and an export. |
 | Recovery stuck on Calibrating | Normal for the first 14 nights with sleep data. |
 | Scores look wrong after an update | Profile → Advanced → *Recompute all scores*. |
 

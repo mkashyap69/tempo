@@ -47,6 +47,15 @@ class $MinuteSamplesTable extends MinuteSamples
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _auxMeta = const VerificationMeta('aux');
+  @override
+  late final GeneratedColumn<int> aux = GeneratedColumn<int>(
+    'aux',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _hrMeta = const VerificationMeta('hr');
   @override
   late final GeneratedColumn<int> hr = GeneratedColumn<int>(
@@ -57,7 +66,7 @@ class $MinuteSamplesTable extends MinuteSamples
     requiredDuringInsert: false,
   );
   @override
-  List<GeneratedColumn> get $columns => [ts, steps, intensity, kind, hr];
+  List<GeneratedColumn> get $columns => [ts, steps, intensity, kind, aux, hr];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -97,6 +106,12 @@ class $MinuteSamplesTable extends MinuteSamples
     } else if (isInserting) {
       context.missing(_kindMeta);
     }
+    if (data.containsKey('aux')) {
+      context.handle(
+        _auxMeta,
+        aux.isAcceptableOrUnknown(data['aux']!, _auxMeta),
+      );
+    }
     if (data.containsKey('hr')) {
       context.handle(_hrMeta, hr.isAcceptableOrUnknown(data['hr']!, _hrMeta));
     }
@@ -125,6 +140,10 @@ class $MinuteSamplesTable extends MinuteSamples
         DriftSqlType.int,
         data['${effectivePrefix}kind'],
       )!,
+      aux: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}aux'],
+      ),
       hr: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}hr'],
@@ -143,12 +162,14 @@ class MinuteSample extends DataClass implements Insertable<MinuteSample> {
   final int steps;
   final int intensity;
   final int kind;
+  final int? aux;
   final int? hr;
   const MinuteSample({
     required this.ts,
     required this.steps,
     required this.intensity,
     required this.kind,
+    this.aux,
     this.hr,
   });
   @override
@@ -158,6 +179,9 @@ class MinuteSample extends DataClass implements Insertable<MinuteSample> {
     map['steps'] = Variable<int>(steps);
     map['intensity'] = Variable<int>(intensity);
     map['kind'] = Variable<int>(kind);
+    if (!nullToAbsent || aux != null) {
+      map['aux'] = Variable<int>(aux);
+    }
     if (!nullToAbsent || hr != null) {
       map['hr'] = Variable<int>(hr);
     }
@@ -170,6 +194,7 @@ class MinuteSample extends DataClass implements Insertable<MinuteSample> {
       steps: Value(steps),
       intensity: Value(intensity),
       kind: Value(kind),
+      aux: aux == null && nullToAbsent ? const Value.absent() : Value(aux),
       hr: hr == null && nullToAbsent ? const Value.absent() : Value(hr),
     );
   }
@@ -184,6 +209,7 @@ class MinuteSample extends DataClass implements Insertable<MinuteSample> {
       steps: serializer.fromJson<int>(json['steps']),
       intensity: serializer.fromJson<int>(json['intensity']),
       kind: serializer.fromJson<int>(json['kind']),
+      aux: serializer.fromJson<int?>(json['aux']),
       hr: serializer.fromJson<int?>(json['hr']),
     );
   }
@@ -195,6 +221,7 @@ class MinuteSample extends DataClass implements Insertable<MinuteSample> {
       'steps': serializer.toJson<int>(steps),
       'intensity': serializer.toJson<int>(intensity),
       'kind': serializer.toJson<int>(kind),
+      'aux': serializer.toJson<int?>(aux),
       'hr': serializer.toJson<int?>(hr),
     };
   }
@@ -204,12 +231,14 @@ class MinuteSample extends DataClass implements Insertable<MinuteSample> {
     int? steps,
     int? intensity,
     int? kind,
+    Value<int?> aux = const Value.absent(),
     Value<int?> hr = const Value.absent(),
   }) => MinuteSample(
     ts: ts ?? this.ts,
     steps: steps ?? this.steps,
     intensity: intensity ?? this.intensity,
     kind: kind ?? this.kind,
+    aux: aux.present ? aux.value : this.aux,
     hr: hr.present ? hr.value : this.hr,
   );
   MinuteSample copyWithCompanion(MinuteSamplesCompanion data) {
@@ -218,6 +247,7 @@ class MinuteSample extends DataClass implements Insertable<MinuteSample> {
       steps: data.steps.present ? data.steps.value : this.steps,
       intensity: data.intensity.present ? data.intensity.value : this.intensity,
       kind: data.kind.present ? data.kind.value : this.kind,
+      aux: data.aux.present ? data.aux.value : this.aux,
       hr: data.hr.present ? data.hr.value : this.hr,
     );
   }
@@ -229,13 +259,14 @@ class MinuteSample extends DataClass implements Insertable<MinuteSample> {
           ..write('steps: $steps, ')
           ..write('intensity: $intensity, ')
           ..write('kind: $kind, ')
+          ..write('aux: $aux, ')
           ..write('hr: $hr')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(ts, steps, intensity, kind, hr);
+  int get hashCode => Object.hash(ts, steps, intensity, kind, aux, hr);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -244,6 +275,7 @@ class MinuteSample extends DataClass implements Insertable<MinuteSample> {
           other.steps == this.steps &&
           other.intensity == this.intensity &&
           other.kind == this.kind &&
+          other.aux == this.aux &&
           other.hr == this.hr);
 }
 
@@ -252,12 +284,14 @@ class MinuteSamplesCompanion extends UpdateCompanion<MinuteSample> {
   final Value<int> steps;
   final Value<int> intensity;
   final Value<int> kind;
+  final Value<int?> aux;
   final Value<int?> hr;
   const MinuteSamplesCompanion({
     this.ts = const Value.absent(),
     this.steps = const Value.absent(),
     this.intensity = const Value.absent(),
     this.kind = const Value.absent(),
+    this.aux = const Value.absent(),
     this.hr = const Value.absent(),
   });
   MinuteSamplesCompanion.insert({
@@ -265,6 +299,7 @@ class MinuteSamplesCompanion extends UpdateCompanion<MinuteSample> {
     required int steps,
     required int intensity,
     required int kind,
+    this.aux = const Value.absent(),
     this.hr = const Value.absent(),
   }) : steps = Value(steps),
        intensity = Value(intensity),
@@ -274,6 +309,7 @@ class MinuteSamplesCompanion extends UpdateCompanion<MinuteSample> {
     Expression<int>? steps,
     Expression<int>? intensity,
     Expression<int>? kind,
+    Expression<int>? aux,
     Expression<int>? hr,
   }) {
     return RawValuesInsertable({
@@ -281,6 +317,7 @@ class MinuteSamplesCompanion extends UpdateCompanion<MinuteSample> {
       if (steps != null) 'steps': steps,
       if (intensity != null) 'intensity': intensity,
       if (kind != null) 'kind': kind,
+      if (aux != null) 'aux': aux,
       if (hr != null) 'hr': hr,
     });
   }
@@ -290,6 +327,7 @@ class MinuteSamplesCompanion extends UpdateCompanion<MinuteSample> {
     Value<int>? steps,
     Value<int>? intensity,
     Value<int>? kind,
+    Value<int?>? aux,
     Value<int?>? hr,
   }) {
     return MinuteSamplesCompanion(
@@ -297,6 +335,7 @@ class MinuteSamplesCompanion extends UpdateCompanion<MinuteSample> {
       steps: steps ?? this.steps,
       intensity: intensity ?? this.intensity,
       kind: kind ?? this.kind,
+      aux: aux ?? this.aux,
       hr: hr ?? this.hr,
     );
   }
@@ -316,6 +355,9 @@ class MinuteSamplesCompanion extends UpdateCompanion<MinuteSample> {
     if (kind.present) {
       map['kind'] = Variable<int>(kind.value);
     }
+    if (aux.present) {
+      map['aux'] = Variable<int>(aux.value);
+    }
     if (hr.present) {
       map['hr'] = Variable<int>(hr.value);
     }
@@ -329,6 +371,7 @@ class MinuteSamplesCompanion extends UpdateCompanion<MinuteSample> {
           ..write('steps: $steps, ')
           ..write('intensity: $intensity, ')
           ..write('kind: $kind, ')
+          ..write('aux: $aux, ')
           ..write('hr: $hr')
           ..write(')'))
         .toString();
@@ -5185,6 +5228,7 @@ typedef $$MinuteSamplesTableCreateCompanionBuilder =
       required int steps,
       required int intensity,
       required int kind,
+      Value<int?> aux,
       Value<int?> hr,
     });
 typedef $$MinuteSamplesTableUpdateCompanionBuilder =
@@ -5193,6 +5237,7 @@ typedef $$MinuteSamplesTableUpdateCompanionBuilder =
       Value<int> steps,
       Value<int> intensity,
       Value<int> kind,
+      Value<int?> aux,
       Value<int?> hr,
     });
 
@@ -5222,6 +5267,11 @@ class $$MinuteSamplesTableFilterComposer
 
   ColumnFilters<int> get kind => $composableBuilder(
     column: $table.kind,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get aux => $composableBuilder(
+    column: $table.aux,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5260,6 +5310,11 @@ class $$MinuteSamplesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get aux => $composableBuilder(
+    column: $table.aux,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get hr => $composableBuilder(
     column: $table.hr,
     builder: (column) => ColumnOrderings(column),
@@ -5286,6 +5341,9 @@ class $$MinuteSamplesTableAnnotationComposer
 
   GeneratedColumn<int> get kind =>
       $composableBuilder(column: $table.kind, builder: (column) => column);
+
+  GeneratedColumn<int> get aux =>
+      $composableBuilder(column: $table.aux, builder: (column) => column);
 
   GeneratedColumn<int> get hr =>
       $composableBuilder(column: $table.hr, builder: (column) => column);
@@ -5326,12 +5384,14 @@ class $$MinuteSamplesTableTableManager
                 Value<int> steps = const Value.absent(),
                 Value<int> intensity = const Value.absent(),
                 Value<int> kind = const Value.absent(),
+                Value<int?> aux = const Value.absent(),
                 Value<int?> hr = const Value.absent(),
               }) => MinuteSamplesCompanion(
                 ts: ts,
                 steps: steps,
                 intensity: intensity,
                 kind: kind,
+                aux: aux,
                 hr: hr,
               ),
           createCompanionCallback:
@@ -5340,12 +5400,14 @@ class $$MinuteSamplesTableTableManager
                 required int steps,
                 required int intensity,
                 required int kind,
+                Value<int?> aux = const Value.absent(),
                 Value<int?> hr = const Value.absent(),
               }) => MinuteSamplesCompanion.insert(
                 ts: ts,
                 steps: steps,
                 intensity: intensity,
                 kind: kind,
+                aux: aux,
                 hr: hr,
               ),
           withReferenceMapper: (p0) => p0

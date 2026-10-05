@@ -4,7 +4,7 @@ import 'package:store/store.dart';
 
 import 'band_link.dart';
 import 'battery.dart';
-import 'profile.dart' show Keys;
+import 'profile.dart' show Keys, loadAppProfile;
 import 'score_service.dart';
 
 /// Types synced into the DB. PAI is trends-only and has no table yet.
@@ -101,6 +101,105 @@ class SyncService {
     }
   }
 
+  /// Re-downloads everything the band still holds and replaces what is
+  /// stored from that point on. Fixes rows an older build saved at the
+  /// wrong time (the 2026-10-04 builds read fetch times as UTC, putting
+  /// minutes 5 h 30 m late in India). Fetches first, so nothing the band
+  /// no longer has is ever deleted. Returns a message for the user.
+  Future<String> redownload() async {
+    final link = await BandLink.open(db);
+    try {
+      final band = link.band;
+      final r = await band.fetch(
+        FetchType.activity,
+        DateTime.now().subtract(const Duration(days: 30)),
+      );
+      final start = r.start;
+      if (start == null || r.data.isEmpty) {
+        return 'The band has no history to re-download.';
+      }
+      final recs = parseActivity(r.data, start);
+      final removed = await db.clearRawHistoryFrom(start);
+      await db.appendMinutes([
+        for (final a in recs)
+          MinuteSamplesCompanion.insert(
+            ts: Value(toTs(a.ts)),
+            steps: a.steps,
+            intensity: a.intensity,
+            kind: a.kind,
+            hr: Value(a.hr),
+            aux: Value(a.aux),
+          ),
+      ]);
+      if (recs.isNotEmpty) {
+        await db.setCursor(
+          band.id,
+          FetchType.activity.key,
+          recs.last.ts.add(const Duration(minutes: 1)),
+        );
+      }
+      await syncWith(band); // stress, SpO₂, workouts; rescoring
+      await ScoreService(db)
+          .recomputeFrom(start.subtract(const Duration(days: 1)));
+      final h = recs.length ~/ 60;
+      await db.logSync(
+        'Re-downloaded ${h}h ${recs.length % 60}m from the band (replaced $removed min)',
+        'repair',
+      );
+      return 'Re-downloaded $h hours of history from ${start.day}/${start.month}. Scores updated.';
+    } finally {
+      await link.close();
+    }
+  }
+
+  /// Writes HR interval, sleep assist, stress and wrist (plus time and
+  /// profile) whenever they differ from what this band last confirmed.
+  /// Without it a band paired elsewhere keeps HR every 30 min and
+  /// motion-only sleep detection: late sleep onsets and no stages
+  /// (capture android-2026-10-04T12-33-07 has no settings write at all).
+  Future<void> ensureConfigured(MiBand band) async {
+    final profile = await loadAppProfile(db);
+    if (profile == null) return;
+    final every = int.tryParse(await db.setting(hrIntervalKey) ?? '') ?? 1;
+    final sleepAssist = await db.setting(Keys.sleepAssist) != '0';
+    final stress = await db.setting(Keys.stressMonitor) != '0';
+    final want = [
+      band.id,
+      every,
+      sleepAssist,
+      stress,
+      profile.wornLeft,
+      profile.age,
+      profile.heightCm,
+      profile.weightKg,
+      profile.male,
+    ].join('|');
+    if (await db.setting(Keys.bandConfigured) == want) return;
+    try {
+      final failed = await band.configure(
+        profile.band,
+        hrEveryMinutes: every,
+        sleepAssist: sleepAssist,
+        stress: stress,
+        wornLeft: profile.wornLeft,
+      );
+      if (failed.isEmpty) {
+        await db.putSetting(Keys.bandConfigured, want);
+        await db.logSync(
+          'Band settings written · HR every ${every == 1 ? 'minute' : '$every min'}${sleepAssist ? ' · sleep assist' : ''}${stress ? ' · stress' : ''}',
+          'settings',
+        );
+      } else {
+        await db.logSync(
+          'Band settings not confirmed: ${failed.join(', ')}',
+          'settings',
+        );
+      }
+    } catch (_) {
+      // Retried on the next sync.
+    }
+  }
+
   /// "Band memory was full · 3h 20m not recovered".
   static String gapSummary(int minutes) {
     final h = minutes ~/ 60, m = minutes % 60;
@@ -126,6 +225,7 @@ class SyncService {
       final pct = await band.readBattery();
       if (pct != null) await recordBattery(db, pct);
     } catch (_) {}
+    await ensureConfigured(band);
     final counts = <String, int>{};
     DateTime? earliest;
     var gap = 0;
@@ -160,6 +260,7 @@ class SyncService {
                 intensity: a.intensity,
                 kind: a.kind,
                 hr: Value(a.hr),
+                aux: Value(a.aux),
               ),
           ]);
           counts[type.key] = recs.length;

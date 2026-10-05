@@ -20,8 +20,8 @@ void main() {
           ts: Value(toTs(bed.add(Duration(minutes: i)))),
           steps: 0,
           intensity: 0,
-          kind: 0x70, // light sleep (TODO(verify) in band_ble)
-          hr: const Value(50),
+          kind: 0xf0, // band sleep flag (V1.0.6.20)
+          hr: Value(50 + i % 3),
         ),
       for (var i = 0; i < 60; i++)
         MinuteSamplesCompanion.insert(
@@ -37,7 +37,7 @@ void main() {
 
     final s = (await db.scoreFor(day))!;
     expect(s.sleptHours, 8);
-    expect(s.rhr, 50);
+    expect(s.rhr, closeTo(51, 1));
     expect(s.strain, greaterThan(0));
     expect(s.algoVersion, sc.algoVersion);
     expect(await db.sleepEndingAt(s.sleepEnd!), isNotNull);

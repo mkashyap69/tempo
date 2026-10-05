@@ -115,11 +115,17 @@ void main() {
     expect(s.single.ts, t);
   });
 
-  test('V1.0.6.20 sleep and off-wrist kinds', () {
-    expect(sleepKinds[0xf0], 'light');
-    expect(sleepKinds[0xf9], 'light');
-    expect(sleepKinds[0xfa], 'light');
-    expect(notWornKinds, contains(0xf3));
+  test('V1.0.6.20 kind bit field', () {
+    for (final k in [0xf0, 0xd0, 0xd9, 0xdb, 0xf9, 0xfa]) {
+      expect(kindAsleep(k), isTrue, reason: k.toRadixString(16));
+    }
+    for (final k in [0x50, 0x5a, 0x60, 0x70, 0x7a, 0x10, 0x01, 0xf3]) {
+      expect(kindAsleep(k), isFalse, reason: k.toRadixString(16));
+    }
+    for (final k in [0x73, 0xf3, 0x53, 0x03]) {
+      expect(kindNotWorn(k), isTrue);
+    }
+    expect(kindNotWorn(0xf0), isFalse);
   });
 
   test('settings payloads', () {

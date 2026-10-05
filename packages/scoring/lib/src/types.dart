@@ -2,7 +2,9 @@
 /// 2: activity kind 0xf0 counts as sleep (V1.0.6.20 capture).
 /// 3: TRIMP floor at 30% of HR reserve, k 40; learned base sleep need;
 ///    naps count against debt; strength sessions use sRPE.
-const algoVersion = 3;
+/// 4: sleep from the band's sleep flag (V1.0.6.20 bit field), stages
+///    estimated from HR and motion (sleep_stages.dart).
+const algoVersion = 4;
 
 enum Stage { wake, light, deep, rem, unknown }
 
@@ -13,7 +15,13 @@ extension StageX on Stage {
 
 /// One minute of band data, already decoded from raw codes.
 final class Minute {
-  const Minute(this.ts, {this.hr, this.steps = 0, this.stage = Stage.unknown});
+  const Minute(
+    this.ts, {
+    this.hr,
+    this.steps = 0,
+    this.stage = Stage.unknown,
+    this.motion = 0,
+  });
 
   /// Start of the minute.
   final DateTime ts;
@@ -22,4 +30,10 @@ final class Minute {
   final int? hr;
   final int steps;
   final Stage stage;
+
+  /// The band's per-minute movement intensity (0 = perfectly still).
+  final int motion;
+
+  Minute withStage(Stage s) =>
+      Minute(ts, hr: hr, steps: steps, stage: s, motion: motion);
 }

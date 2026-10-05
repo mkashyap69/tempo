@@ -54,15 +54,7 @@ class ScoreService {
     final from = day.subtract(const Duration(hours: 12));
     final to = day.add(const Duration(hours: 36));
     final raw = await db.minutesBetween(from, to);
-    final minutes = [
-      for (final m in raw)
-        sc.Minute(
-          st.fromTs(m.ts),
-          hr: m.hr,
-          steps: m.steps,
-          stage: stageForKind(m.kind),
-        ),
-    ];
+    final minutes = decodeMinutes(raw).minutes;
     final stress = [
       for (final s in await db.stressBetween(from, to))
         sc.StressReading(st.fromTs(s.ts), s.value),

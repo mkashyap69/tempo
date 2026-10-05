@@ -84,7 +84,7 @@ class HealthExport {
         final start = fromTs(s.start), end = fromTs(s.end);
         if (!end.isAfter(since)) continue;
         await _write(types[1], start, end);
-        final mins = await db.minutesBetween(start, end);
+        final mins = decodeMinutes(await db.minutesBetween(start, end)).minutes;
         // One record per run of the same stage.
         DateTime? runStart;
         sc.Stage? stage;
@@ -94,8 +94,8 @@ class HealthExport {
         }
 
         for (final m in mins) {
-          final st = stageForKind(m.kind);
-          final ts = fromTs(m.ts);
+          final st = m.stage;
+          final ts = m.ts;
           if (st != stage) {
             await close(ts);
             runStart = ts;
