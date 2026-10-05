@@ -825,8 +825,19 @@ class $Spo2SamplesTable extends Spo2Samples
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _qualityMeta = const VerificationMeta(
+    'quality',
+  );
   @override
-  List<GeneratedColumn> get $columns => [ts, value];
+  late final GeneratedColumn<int> quality = GeneratedColumn<int>(
+    'quality',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [ts, value, quality];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -850,6 +861,12 @@ class $Spo2SamplesTable extends Spo2Samples
     } else if (isInserting) {
       context.missing(_valueMeta);
     }
+    if (data.containsKey('quality')) {
+      context.handle(
+        _qualityMeta,
+        quality.isAcceptableOrUnknown(data['quality']!, _qualityMeta),
+      );
+    }
     return context;
   }
 
@@ -867,6 +884,10 @@ class $Spo2SamplesTable extends Spo2Samples
         DriftSqlType.int,
         data['${effectivePrefix}value'],
       )!,
+      quality: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}quality'],
+      ),
     );
   }
 
@@ -879,17 +900,27 @@ class $Spo2SamplesTable extends Spo2Samples
 class Spo2Sample extends DataClass implements Insertable<Spo2Sample> {
   final int ts;
   final int value;
-  const Spo2Sample({required this.ts, required this.value});
+  final int? quality;
+  const Spo2Sample({required this.ts, required this.value, this.quality});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['ts'] = Variable<int>(ts);
     map['value'] = Variable<int>(value);
+    if (!nullToAbsent || quality != null) {
+      map['quality'] = Variable<int>(quality);
+    }
     return map;
   }
 
   Spo2SamplesCompanion toCompanion(bool nullToAbsent) {
-    return Spo2SamplesCompanion(ts: Value(ts), value: Value(value));
+    return Spo2SamplesCompanion(
+      ts: Value(ts),
+      value: Value(value),
+      quality: quality == null && nullToAbsent
+          ? const Value.absent()
+          : Value(quality),
+    );
   }
 
   factory Spo2Sample.fromJson(
@@ -900,6 +931,7 @@ class Spo2Sample extends DataClass implements Insertable<Spo2Sample> {
     return Spo2Sample(
       ts: serializer.fromJson<int>(json['ts']),
       value: serializer.fromJson<int>(json['value']),
+      quality: serializer.fromJson<int?>(json['quality']),
     );
   }
   @override
@@ -908,15 +940,24 @@ class Spo2Sample extends DataClass implements Insertable<Spo2Sample> {
     return <String, dynamic>{
       'ts': serializer.toJson<int>(ts),
       'value': serializer.toJson<int>(value),
+      'quality': serializer.toJson<int?>(quality),
     };
   }
 
-  Spo2Sample copyWith({int? ts, int? value}) =>
-      Spo2Sample(ts: ts ?? this.ts, value: value ?? this.value);
+  Spo2Sample copyWith({
+    int? ts,
+    int? value,
+    Value<int?> quality = const Value.absent(),
+  }) => Spo2Sample(
+    ts: ts ?? this.ts,
+    value: value ?? this.value,
+    quality: quality.present ? quality.value : this.quality,
+  );
   Spo2Sample copyWithCompanion(Spo2SamplesCompanion data) {
     return Spo2Sample(
       ts: data.ts.present ? data.ts.value : this.ts,
       value: data.value.present ? data.value.value : this.value,
+      quality: data.quality.present ? data.quality.value : this.quality,
     );
   }
 
@@ -924,42 +965,59 @@ class Spo2Sample extends DataClass implements Insertable<Spo2Sample> {
   String toString() {
     return (StringBuffer('Spo2Sample(')
           ..write('ts: $ts, ')
-          ..write('value: $value')
+          ..write('value: $value, ')
+          ..write('quality: $quality')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(ts, value);
+  int get hashCode => Object.hash(ts, value, quality);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      (other is Spo2Sample && other.ts == this.ts && other.value == this.value);
+      (other is Spo2Sample &&
+          other.ts == this.ts &&
+          other.value == this.value &&
+          other.quality == this.quality);
 }
 
 class Spo2SamplesCompanion extends UpdateCompanion<Spo2Sample> {
   final Value<int> ts;
   final Value<int> value;
+  final Value<int?> quality;
   const Spo2SamplesCompanion({
     this.ts = const Value.absent(),
     this.value = const Value.absent(),
+    this.quality = const Value.absent(),
   });
   Spo2SamplesCompanion.insert({
     this.ts = const Value.absent(),
     required int value,
+    this.quality = const Value.absent(),
   }) : value = Value(value);
   static Insertable<Spo2Sample> custom({
     Expression<int>? ts,
     Expression<int>? value,
+    Expression<int>? quality,
   }) {
     return RawValuesInsertable({
       if (ts != null) 'ts': ts,
       if (value != null) 'value': value,
+      if (quality != null) 'quality': quality,
     });
   }
 
-  Spo2SamplesCompanion copyWith({Value<int>? ts, Value<int>? value}) {
-    return Spo2SamplesCompanion(ts: ts ?? this.ts, value: value ?? this.value);
+  Spo2SamplesCompanion copyWith({
+    Value<int>? ts,
+    Value<int>? value,
+    Value<int?>? quality,
+  }) {
+    return Spo2SamplesCompanion(
+      ts: ts ?? this.ts,
+      value: value ?? this.value,
+      quality: quality ?? this.quality,
+    );
   }
 
   @override
@@ -971,6 +1029,9 @@ class Spo2SamplesCompanion extends UpdateCompanion<Spo2Sample> {
     if (value.present) {
       map['value'] = Variable<int>(value.value);
     }
+    if (quality.present) {
+      map['quality'] = Variable<int>(quality.value);
+    }
     return map;
   }
 
@@ -978,7 +1039,8 @@ class Spo2SamplesCompanion extends UpdateCompanion<Spo2Sample> {
   String toString() {
     return (StringBuffer('Spo2SamplesCompanion(')
           ..write('ts: $ts, ')
-          ..write('value: $value')
+          ..write('value: $value, ')
+          ..write('quality: $quality')
           ..write(')'))
         .toString();
   }
@@ -1318,6 +1380,289 @@ class BandWorkoutsCompanion extends UpdateCompanion<BandWorkoutRow> {
           ..write('kind: $kind, ')
           ..write('raw: $raw, ')
           ..write('fetchedAt: $fetchedAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $OdEventsTable extends OdEvents
+    with TableInfo<$OdEventsTable, OdEventRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $OdEventsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _tsMeta = const VerificationMeta('ts');
+  @override
+  late final GeneratedColumn<int> ts = GeneratedColumn<int>(
+    'ts',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _dropMeta = const VerificationMeta('drop');
+  @override
+  late final GeneratedColumn<int> drop = GeneratedColumn<int>(
+    'drop',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _spo2Meta = const VerificationMeta('spo2');
+  @override
+  late final GeneratedColumn<String> spo2 = GeneratedColumn<String>(
+    'spo2',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _hrMeta = const VerificationMeta('hr');
+  @override
+  late final GeneratedColumn<String> hr = GeneratedColumn<String>(
+    'hr',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [ts, drop, spo2, hr];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'od_events';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<OdEventRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('ts')) {
+      context.handle(_tsMeta, ts.isAcceptableOrUnknown(data['ts']!, _tsMeta));
+    }
+    if (data.containsKey('drop')) {
+      context.handle(
+        _dropMeta,
+        drop.isAcceptableOrUnknown(data['drop']!, _dropMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_dropMeta);
+    }
+    if (data.containsKey('spo2')) {
+      context.handle(
+        _spo2Meta,
+        spo2.isAcceptableOrUnknown(data['spo2']!, _spo2Meta),
+      );
+    } else if (isInserting) {
+      context.missing(_spo2Meta);
+    }
+    if (data.containsKey('hr')) {
+      context.handle(_hrMeta, hr.isAcceptableOrUnknown(data['hr']!, _hrMeta));
+    } else if (isInserting) {
+      context.missing(_hrMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {ts};
+  @override
+  OdEventRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return OdEventRow(
+      ts: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}ts'],
+      )!,
+      drop: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}drop'],
+      )!,
+      spo2: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}spo2'],
+      )!,
+      hr: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}hr'],
+      )!,
+    );
+  }
+
+  @override
+  $OdEventsTable createAlias(String alias) {
+    return $OdEventsTable(attachedDatabase, alias);
+  }
+}
+
+class OdEventRow extends DataClass implements Insertable<OdEventRow> {
+  final int ts;
+  final int drop;
+  final String spo2;
+  final String hr;
+  const OdEventRow({
+    required this.ts,
+    required this.drop,
+    required this.spo2,
+    required this.hr,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['ts'] = Variable<int>(ts);
+    map['drop'] = Variable<int>(drop);
+    map['spo2'] = Variable<String>(spo2);
+    map['hr'] = Variable<String>(hr);
+    return map;
+  }
+
+  OdEventsCompanion toCompanion(bool nullToAbsent) {
+    return OdEventsCompanion(
+      ts: Value(ts),
+      drop: Value(drop),
+      spo2: Value(spo2),
+      hr: Value(hr),
+    );
+  }
+
+  factory OdEventRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return OdEventRow(
+      ts: serializer.fromJson<int>(json['ts']),
+      drop: serializer.fromJson<int>(json['drop']),
+      spo2: serializer.fromJson<String>(json['spo2']),
+      hr: serializer.fromJson<String>(json['hr']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'ts': serializer.toJson<int>(ts),
+      'drop': serializer.toJson<int>(drop),
+      'spo2': serializer.toJson<String>(spo2),
+      'hr': serializer.toJson<String>(hr),
+    };
+  }
+
+  OdEventRow copyWith({int? ts, int? drop, String? spo2, String? hr}) =>
+      OdEventRow(
+        ts: ts ?? this.ts,
+        drop: drop ?? this.drop,
+        spo2: spo2 ?? this.spo2,
+        hr: hr ?? this.hr,
+      );
+  OdEventRow copyWithCompanion(OdEventsCompanion data) {
+    return OdEventRow(
+      ts: data.ts.present ? data.ts.value : this.ts,
+      drop: data.drop.present ? data.drop.value : this.drop,
+      spo2: data.spo2.present ? data.spo2.value : this.spo2,
+      hr: data.hr.present ? data.hr.value : this.hr,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('OdEventRow(')
+          ..write('ts: $ts, ')
+          ..write('drop: $drop, ')
+          ..write('spo2: $spo2, ')
+          ..write('hr: $hr')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(ts, drop, spo2, hr);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is OdEventRow &&
+          other.ts == this.ts &&
+          other.drop == this.drop &&
+          other.spo2 == this.spo2 &&
+          other.hr == this.hr);
+}
+
+class OdEventsCompanion extends UpdateCompanion<OdEventRow> {
+  final Value<int> ts;
+  final Value<int> drop;
+  final Value<String> spo2;
+  final Value<String> hr;
+  const OdEventsCompanion({
+    this.ts = const Value.absent(),
+    this.drop = const Value.absent(),
+    this.spo2 = const Value.absent(),
+    this.hr = const Value.absent(),
+  });
+  OdEventsCompanion.insert({
+    this.ts = const Value.absent(),
+    required int drop,
+    required String spo2,
+    required String hr,
+  }) : drop = Value(drop),
+       spo2 = Value(spo2),
+       hr = Value(hr);
+  static Insertable<OdEventRow> custom({
+    Expression<int>? ts,
+    Expression<int>? drop,
+    Expression<String>? spo2,
+    Expression<String>? hr,
+  }) {
+    return RawValuesInsertable({
+      if (ts != null) 'ts': ts,
+      if (drop != null) 'drop': drop,
+      if (spo2 != null) 'spo2': spo2,
+      if (hr != null) 'hr': hr,
+    });
+  }
+
+  OdEventsCompanion copyWith({
+    Value<int>? ts,
+    Value<int>? drop,
+    Value<String>? spo2,
+    Value<String>? hr,
+  }) {
+    return OdEventsCompanion(
+      ts: ts ?? this.ts,
+      drop: drop ?? this.drop,
+      spo2: spo2 ?? this.spo2,
+      hr: hr ?? this.hr,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (ts.present) {
+      map['ts'] = Variable<int>(ts.value);
+    }
+    if (drop.present) {
+      map['drop'] = Variable<int>(drop.value);
+    }
+    if (spo2.present) {
+      map['spo2'] = Variable<String>(spo2.value);
+    }
+    if (hr.present) {
+      map['hr'] = Variable<String>(hr.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('OdEventsCompanion(')
+          ..write('ts: $ts, ')
+          ..write('drop: $drop, ')
+          ..write('spo2: $spo2, ')
+          ..write('hr: $hr')
           ..write(')'))
         .toString();
   }
@@ -5191,6 +5536,7 @@ abstract class _$TempoDb extends GeneratedDatabase {
   late final $StressSamplesTable stressSamples = $StressSamplesTable(this);
   late final $Spo2SamplesTable spo2Samples = $Spo2SamplesTable(this);
   late final $BandWorkoutsTable bandWorkouts = $BandWorkoutsTable(this);
+  late final $OdEventsTable odEvents = $OdEventsTable(this);
   late final $SleepSessionsTable sleepSessions = $SleepSessionsTable(this);
   late final $DailyScoresTable dailyScores = $DailyScoresTable(this);
   late final $BaselinesTable baselines = $BaselinesTable(this);
@@ -5210,6 +5556,7 @@ abstract class _$TempoDb extends GeneratedDatabase {
     stressSamples,
     spo2Samples,
     bandWorkouts,
+    odEvents,
     sleepSessions,
     dailyScores,
     baselines,
@@ -5695,9 +6042,17 @@ typedef $$StressSamplesTableProcessedTableManager =
       PrefetchHooks Function()
     >;
 typedef $$Spo2SamplesTableCreateCompanionBuilder =
-    Spo2SamplesCompanion Function({Value<int> ts, required int value});
+    Spo2SamplesCompanion Function({
+      Value<int> ts,
+      required int value,
+      Value<int?> quality,
+    });
 typedef $$Spo2SamplesTableUpdateCompanionBuilder =
-    Spo2SamplesCompanion Function({Value<int> ts, Value<int> value});
+    Spo2SamplesCompanion Function({
+      Value<int> ts,
+      Value<int> value,
+      Value<int?> quality,
+    });
 
 class $$Spo2SamplesTableFilterComposer
     extends Composer<_$TempoDb, $Spo2SamplesTable> {
@@ -5715,6 +6070,11 @@ class $$Spo2SamplesTableFilterComposer
 
   ColumnFilters<int> get value => $composableBuilder(
     column: $table.value,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get quality => $composableBuilder(
+    column: $table.quality,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -5737,6 +6097,11 @@ class $$Spo2SamplesTableOrderingComposer
     column: $table.value,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<int> get quality => $composableBuilder(
+    column: $table.quality,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$Spo2SamplesTableAnnotationComposer
@@ -5753,6 +6118,9 @@ class $$Spo2SamplesTableAnnotationComposer
 
   GeneratedColumn<int> get value =>
       $composableBuilder(column: $table.value, builder: (column) => column);
+
+  GeneratedColumn<int> get quality =>
+      $composableBuilder(column: $table.quality, builder: (column) => column);
 }
 
 class $$Spo2SamplesTableTableManager
@@ -5787,11 +6155,18 @@ class $$Spo2SamplesTableTableManager
           updateCompanionCallback: ({
             Value<int> ts = const Value.absent(),
             Value<int> value = const Value.absent(),
-          }) => Spo2SamplesCompanion(ts: ts, value: value),
-          createCompanionCallback: ({
-            Value<int> ts = const Value.absent(),
-            required int value,
-          }) => Spo2SamplesCompanion.insert(ts: ts, value: value),
+            Value<int?> quality = const Value.absent(),
+          }) => Spo2SamplesCompanion(ts: ts, value: value, quality: quality),
+          createCompanionCallback:
+              ({
+                Value<int> ts = const Value.absent(),
+                required int value,
+                Value<int?> quality = const Value.absent(),
+              }) => Spo2SamplesCompanion.insert(
+                ts: ts,
+                value: value,
+                quality: quality,
+              ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
               .toList(),
@@ -6006,6 +6381,167 @@ typedef $$BandWorkoutsTableProcessedTableManager =
         BaseReferences<_$TempoDb, $BandWorkoutsTable, BandWorkoutRow>,
       ),
       BandWorkoutRow,
+      PrefetchHooks Function()
+    >;
+typedef $$OdEventsTableCreateCompanionBuilder = OdEventsCompanion Function({
+  Value<int> ts,
+  required int drop,
+  required String spo2,
+  required String hr,
+});
+typedef $$OdEventsTableUpdateCompanionBuilder = OdEventsCompanion Function({
+  Value<int> ts,
+  Value<int> drop,
+  Value<String> spo2,
+  Value<String> hr,
+});
+
+class $$OdEventsTableFilterComposer
+    extends Composer<_$TempoDb, $OdEventsTable> {
+  $$OdEventsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get ts => $composableBuilder(
+    column: $table.ts,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get drop => $composableBuilder(
+    column: $table.drop,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get spo2 => $composableBuilder(
+    column: $table.spo2,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get hr => $composableBuilder(
+    column: $table.hr,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$OdEventsTableOrderingComposer
+    extends Composer<_$TempoDb, $OdEventsTable> {
+  $$OdEventsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get ts => $composableBuilder(
+    column: $table.ts,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get drop => $composableBuilder(
+    column: $table.drop,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get spo2 => $composableBuilder(
+    column: $table.spo2,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get hr => $composableBuilder(
+    column: $table.hr,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$OdEventsTableAnnotationComposer
+    extends Composer<_$TempoDb, $OdEventsTable> {
+  $$OdEventsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get ts =>
+      $composableBuilder(column: $table.ts, builder: (column) => column);
+
+  GeneratedColumn<int> get drop =>
+      $composableBuilder(column: $table.drop, builder: (column) => column);
+
+  GeneratedColumn<String> get spo2 =>
+      $composableBuilder(column: $table.spo2, builder: (column) => column);
+
+  GeneratedColumn<String> get hr =>
+      $composableBuilder(column: $table.hr, builder: (column) => column);
+}
+
+class $$OdEventsTableTableManager
+    extends
+        RootTableManager<
+          _$TempoDb,
+          $OdEventsTable,
+          OdEventRow,
+          $$OdEventsTableFilterComposer,
+          $$OdEventsTableOrderingComposer,
+          $$OdEventsTableAnnotationComposer,
+          $$OdEventsTableCreateCompanionBuilder,
+          $$OdEventsTableUpdateCompanionBuilder,
+          (OdEventRow, BaseReferences<_$TempoDb, $OdEventsTable, OdEventRow>),
+          OdEventRow,
+          PrefetchHooks Function()
+        > {
+  $$OdEventsTableTableManager(_$TempoDb db, $OdEventsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$OdEventsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$OdEventsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$OdEventsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<int> ts = const Value.absent(),
+            Value<int> drop = const Value.absent(),
+            Value<String> spo2 = const Value.absent(),
+            Value<String> hr = const Value.absent(),
+          }) => OdEventsCompanion(ts: ts, drop: drop, spo2: spo2, hr: hr),
+          createCompanionCallback:
+              ({
+                Value<int> ts = const Value.absent(),
+                required int drop,
+                required String spo2,
+                required String hr,
+              }) => OdEventsCompanion.insert(
+                ts: ts,
+                drop: drop,
+                spo2: spo2,
+                hr: hr,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$OdEventsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$TempoDb,
+      $OdEventsTable,
+      OdEventRow,
+      $$OdEventsTableFilterComposer,
+      $$OdEventsTableOrderingComposer,
+      $$OdEventsTableAnnotationComposer,
+      $$OdEventsTableCreateCompanionBuilder,
+      $$OdEventsTableUpdateCompanionBuilder,
+      (OdEventRow, BaseReferences<_$TempoDb, $OdEventsTable, OdEventRow>),
+      OdEventRow,
       PrefetchHooks Function()
     >;
 typedef $$SleepSessionsTableCreateCompanionBuilder =
@@ -8017,6 +8553,8 @@ class $TempoDbManager {
       $$Spo2SamplesTableTableManager(_db, _db.spo2Samples);
   $$BandWorkoutsTableTableManager get bandWorkouts =>
       $$BandWorkoutsTableTableManager(_db, _db.bandWorkouts);
+  $$OdEventsTableTableManager get odEvents =>
+      $$OdEventsTableTableManager(_db, _db.odEvents);
   $$SleepSessionsTableTableManager get sleepSessions =>
       $$SleepSessionsTableTableManager(_db, _db.sleepSessions);
   $$DailyScoresTableTableManager get dailyScores =>

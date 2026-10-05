@@ -8,7 +8,13 @@ import 'profile.dart' show Keys, loadAppProfile;
 import 'score_service.dart';
 
 /// Types synced into the DB. PAI is trends-only and has no table yet.
-const syncedTypes = [FetchType.activity, FetchType.stress, FetchType.spo2];
+const syncedTypes = [
+  FetchType.activity,
+  FetchType.stress,
+  FetchType.spo2,
+  FetchType.spo2Minutes,
+  FetchType.odEvents,
+];
 
 /// How far back the very first sync reaches.
 const firstSyncWindow = Duration(days: 7);
@@ -295,14 +301,44 @@ class SyncService {
           ]);
           counts[type.key] = recs.length;
           if (recs.isNotEmpty) last = recs.last.ts;
+        case FetchType.spo2Minutes:
+          final recs = parseSpo2Minutes(r.data);
+          await db.appendSpo2([
+            for (final s in recs)
+              if (s.avg > 0)
+                Spo2SamplesCompanion.insert(
+                  ts: Value(toTs(s.ts)),
+                  value: s.avg,
+                  quality: Value(s.quality),
+                ),
+          ]);
+          counts[type.key] = recs.length;
+          if (recs.isNotEmpty) last = recs.last.ts;
+        case FetchType.odEvents:
+          final recs = parseOdEvents(r.data);
+          await db.appendOdEvents([
+            for (final e in recs)
+              OdEventsCompanion.insert(
+                ts: Value(toTs(e.ts)),
+                drop: e.drop,
+                spo2: hex(e.spo2),
+                hr: hex(e.hr),
+              ),
+          ]);
+          counts[type.key] = recs.length;
+          if (recs.isNotEmpty) last = recs.last.ts;
         case FetchType.pai || FetchType.workouts:
           break; // workouts: fetched one summary at a time below
       }
       if (last != null) {
+        // Per-minute types resume at the next minute; event types (SpO₂,
+        // desaturations: seconds apart) right after the last record.
+        final perMinute =
+            type == FetchType.activity || type == FetchType.stress;
         await db.setCursor(
           band.id,
           type.key,
-          last.add(const Duration(minutes: 1)),
+          last.add(Duration(seconds: perMinute ? 60 : 1)),
         );
         if (earliest == null || start.isBefore(earliest)) earliest = start;
       }

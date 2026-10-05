@@ -1,0 +1,1820 @@
+# Excerpt of history type 0x07 (band debug log) from ios-2026-10-05T10-48-50: lines used to confirm 0x13, 0x26, 0x27.
+[75834082] [OSA STORE] type:2 w_addr:0x3ae4c
+[75834102] [OSA STORE] type=2 w_addr=0x3ae4c,tsize=485, time:1791162200
+[75834102] In store_od_event time=1791162085,descend=9
+[75853320] g_result.CurAveSpoPerMin 95
+[75853326] [TIME]2026-10-5 6:33:58 week 1
+[75853331] [STRESS SYNC] allday stress:255 time:1791162180
+[75853338] [OSA STORE] type:1 w_addr:0x10632
+[75853338] [OSA STORE] type=1 w_addr=0x10632,tsize=30, time:1791162238
+[75884270] g_result.CurAveSpoPerMin 95
+[75884276] [TIME]2026-10-5 6:34:58 week 1
+[75884281] [STRESS SYNC] allday stress:255 time:1791162240
+[75884333] [OSA STORE] type:1 w_addr:0x10650
+[75884333] [OSA STORE] type=1 w_addr=0x10650,tsize=30, time:1791162298
+[75914891] g_result.CurAveSpoPerMin 94
+[75914903] [TIME]2026-10-5 6:35:58 week 1
+[75914908] [STRESS SYNC] allday stress:255 time:1791162300
+[75914915] [OSA STORE] type:1 w_addr:0x1066e
+[75914915] [OSA STORE] type=1 w_addr=0x1066e,tsize=30, time:1791162358
+[75945551] g_result.CurAveSpoPerMin 95
+[75945561] [TIME]2026-10-5 6:36:58 week 1
+[75945566] [STRESS SYNC] allday stress:255 time:1791162360
+[75945573] [OSA STORE] type:1 w_addr:0x1068c
+[75945573] [OSA STORE] type=1 w_addr=0x1068c,tsize=30, time:1791162418
+[75956936] [OSA STORE] type:2 w_addr:0x3b031
+[75956937] [OSA STORE] type=2 w_addr=0x3b031,tsize=485, time:1791162440
+[75956937] In store_od_event time=1791162115,descend=4
+[75956940] [OSA STORE] type:2 w_addr:0x3b216
+[75956940] [OSA STORE] type=2 w_addr=0x3b216,tsize=485, time:1791162440
+[75956941] In store_od_event time=1791162124,descend=4
+[75956947] [OSA STORE] type:2 w_addr:0x3b3fb
+[75956948] [OSA STORE] type=2 w_addr=0x3b3fb,tsize=485, time:1791162440
+[75956948] In store_od_event time=1791162165,descend=4
+[75956951] [OSA STORE] type:2 w_addr:0x3b5e0
+[75956952] [OSA STORE] type=2 w_addr=0x3b5e0,tsize=485, time:1791162440
+[75956952] In store_od_event time=1791162201,descend=10
+[75956954] [OSA STORE] type:2 w_addr:0x3b7c5
+[75956955] [OSA STORE] type=2 w_addr=0x3b7c5,tsize=485, time:1791162440
+[75956955] In store_od_event time=1791162260,descend=7
+[75976511] g_result.CurAveSpoPerMin 96
+[75976517] [TIME]2026-10-5 6:37:58 week 1
+[75976522] [STRESS SYNC] allday stress:255 time:1791162420
+[75976529] [OSA STORE] type:1 w_addr:0x106aa
+[75976529] [OSA STORE] type=1 w_addr=0x106aa,tsize=30, time:1791162478
+[76007078] g_result.CurAveSpoPerMin 94
+[76007084] [TIME]2026-10-5 6:38:58 week 1
+[76007089] [STRESS SYNC] allday stress:255 time:1791162480
+[76007096] [OSA STORE] type:1 w_addr:0x106c8
+[76007096] [OSA STORE] type=1 w_addr=0x106c8,tsize=30, time:1791162538
+[76037691] g_result.CurAveSpoPerMin 94
+[76037697] [TIME]2026-10-5 6:39:58 week 1
+[76037702] [STRESS SYNC] allday stress:255 time:1791162540
+[76037709] [OSA STORE] type:1 w_addr:0x106e6
+[76037714] [OSA STORE] type=1 w_addr=0x106e6,tsize=30, time:1791162598
+[76068653] g_result.CurAveSpoPerMin 96
+[76068705] [TIME]2026-10-5 6:40:58 week 1
+[76068710] [STRESS SYNC] allday stress:255 time:1791162600
+[76068717] [OSA STORE] type:1 w_addr:0x10704
+[76068717] [OSA STORE] type=1 w_addr=0x10704,tsize=30, time:1791162658
+[76071445] [OSA STORE] type:2 w_addr:0x3b9aa
+[76071445] [OSA STORE] type=2 w_addr=0x3b9aa,tsize=485, time:1791162664
+[76071446] In store_od_event time=1791162298,descend=6
+[76071448] [OSA STORE] type:2 w_addr:0x3bb8f
+[76071449] [OSA STORE] type=2 w_addr=0x3bb8f,tsize=485, time:1791162664
+[76071449] In store_od_event time=1791162414,descend=6
+[76071451] [OSA STORE] type:2 w_addr:0x3bd74
+[76071452] [OSA STORE] type=2 w_addr=0x3bd74,tsize=485, time:1791162664
+[76071452] In store_od_event time=1791162450,descend=8
+[76071455] [OSA STORE] type:2 w_addr:0x3bf59
+[76071476] [OSA STORE] type=2 w_addr=0x3bf59,tsize=485, time:1791162664
+[76071476] In store_od_event time=1791162490,descend=4
+[76099269] g_result.CurAveSpoPerMin 96
+[76099280] [TIME]2026-10-5 6:41:58 week 1
+[76099285] [STRESS SYNC] allday stress:255 time:1791162660
+[76099334] [OSA STORE] type:1 w_addr:0x10722
+[76099334] [OSA STORE] type=1 w_addr=0x10722,tsize=30, time:1791162718
+[76127762] [OSA STORE] type:2 w_addr:0x3c13e
+[76127763] [OSA STORE] type=2 w_addr=0x3c13e,tsize=485, time:1791162774
+[76127763] In store_od_event time=1791162552,descend=4
+[76127765] [OSA STORE] type:2 w_addr:0x3c323
+[76127766] [OSA STORE] type=2 w_addr=0x3c323,tsize=485, time:1791162774
+[76127766] In store_od_event time=1791162596,descend=4
+[76129882] g_result.CurAveSpoPerMin 95
+[76129889] [TIME]2026-10-5 6:42:58 week 1
+[76129894] [STRESS SYNC] allday stress:8 time:1791162720
+[76129901] [OSA STORE] type:1 w_addr:0x10740
+[76129901] [OSA STORE] type=1 w_addr=0x10740,tsize=30, time:1791162778
+[76160670] g_result.CurAveSpoPerMin 93
+[76160677] [TIME]2026-10-5 6:43:58 week 1
+[76160682] [STRESS SYNC] allday stress:255 time:1791162780
+[76160693] [OSA STORE] type:1 w_addr:0x1075e
+[76160694] [OSA STORE] type=1 w_addr=0x1075e,tsize=30, time:1791162838
+[76191491] g_result.CurAveSpoPerMin 91
+[76191499] [TIME]2026-10-5 6:44:58 week 1
+[76191504] [STRESS SYNC] allday stress:255 time:1791162840
+[76191511] [OSA STORE] type:1 w_addr:0x1077c
+[76191512] [OSA STORE] type=1 w_addr=0x1077c,tsize=30, time:1791162898
+[76222176] g_result.CurAveSpoPerMin 89
+[76222227] [TIME]2026-10-5 6:45:58 week 1
+[76222230] [STRESS SYNC] allday stress:255 time:1791162900
+[76222237] [OSA STORE] type:1 w_addr:0x1079a
+[76222237] [OSA STORE] type=1 w_addr=0x1079a,tsize=30, time:1791162958
+[76252683] g_result.CurAveSpoPerMin 90
+[76252689] [TIME]2026-10-5 6:46:58 week 1
+[76252691] [STRESS SYNC] allday stress:255 time:1791162960
+[76252698] [OSA STORE] type:1 w_addr:0x107b8
+[76252698] [OSA STORE] type=1 w_addr=0x107b8,tsize=30, time:1791163018
+[76283641] g_result.CurAveSpoPerMin 91
+[76283642] [TIME]2026-10-5 6:47:58 week 1
+[76283689] [STRESS SYNC] allday stress:1 time:1791163020
+[76283696] [OSA STORE] type:1 w_addr:0x107d6
+[76283696] [OSA STORE] type=1 w_addr=0x107d6,tsize=30, time:1791163078
+[76314252] g_result.CurAveSpoPerMin 91
+[76314254] [TIME]2026-10-5 6:48:58 week 1
+[76314256] [STRESS SYNC] allday stress:255 time:1791163080
+[76314263] [OSA STORE] type:1 w_addr:0x107f4
+[76314263] [OSA STORE] type=1 w_addr=0x107f4,tsize=30, time:1791163138
+[76344860] g_result.CurAveSpoPerMin 94
+[76344862] [TIME]2026-10-5 6:49:58 week 1
+[76344865] [STRESS SYNC] allday stress:255 time:1791163140
+[76344872] [OSA STORE] type:1 w_addr:0x10812
+[76344872] [OSA STORE] type=1 w_addr=0x10812,tsize=30, time:1791163198
+[76375821] g_result.CurAveSpoPerMin 95
+[76375822] [TIME]2026-10-5 6:50:58 week 1
+[76375825] [STRESS SYNC] allday stress:255 time:1791163200
+[76375832] [OSA STORE] type:1 w_addr:0x10830
+[76375832] [OSA STORE] type=1 w_addr=0x10830,tsize=30, time:1791163258
+[76406439] g_result.CurAveSpoPerMin 97
+[76406444] [TIME]2026-10-5 6:51:58 week 1
+[76406452] [STRESS SYNC] allday stress:255 time:1791163260
+[76406458] [OSA STORE] type:1 w_addr:0x1084e
+[76406459] [OSA STORE] type=1 w_addr=0x1084e,tsize=30, time:1791163318
+[76437088] g_result.CurAveSpoPerMin 97
+[76437090] [TIME]2026-10-5 6:52:58 week 1
+[76437093] [STRESS SYNC] allday stress:255 time:1791163320
+[76437099] [OSA STORE] type:1 w_addr:0x1086c
+[76437100] [OSA STORE] type=1 w_addr=0x1086c,tsize=30, time:1791163378
+[76468013] g_result.CurAveSpoPerMin 98
+[76468015] [TIME]2026-10-5 6:53:58 week 1
+[76468018] [STRESS SYNC] allday stress:255 time:1791163380
+[76468025] [OSA STORE] type:1 w_addr:0x1088a
+[76468025] [OSA STORE] type=1 w_addr=0x1088a,tsize=30, time:1791163438
+[76498666] g_result.CurAveSpoPerMin 98
+[76498667] [TIME]2026-10-5 6:54:58 week 1
+[76498670] [STRESS SYNC] allday stress:255 time:1791163440
+[76498677] [OSA STORE] type:1 w_addr:0x108a8
+[76498677] [OSA STORE] type=1 w_addr=0x108a8,tsize=30, time:1791163498
+[76529231] g_result.CurAveSpoPerMin 97
+[76529273] [TIME]2026-10-5 6:55:58 week 1
+[76529276] [STRESS SYNC] allday stress:255 time:1791163500
+[76529283] [OSA STORE] type:1 w_addr:0x108c6
+[76529283] [OSA STORE] type=1 w_addr=0x108c6,tsize=30, time:1791163558
+[76559853] g_result.CurAveSpoPerMin 98
+[76559859] [TIME]2026-10-5 6:56:58 week 1
+[76559862] [STRESS SYNC] allday stress:255 time:1791163560
+[76559869] [OSA STORE] type:1 w_addr:0x108e4
+[76559869] [OSA STORE] type=1 w_addr=0x108e4,tsize=30, time:1791163618
+[76590842] g_result.CurAveSpoPerMin 97
+[76590844] [TIME]2026-10-5 6:57:58 week 1
+[76590847] [STRESS SYNC] allday stress:255 time:1791163620
+[76590854] [OSA STORE] type:1 w_addr:0x10902
+[76590854] [OSA STORE] type=1 w_addr=0x10902,tsize=30, time:1791163678
+[76621416] g_result.CurAveSpoPerMin 97
+[76621418] [TIME]2026-10-5 6:58:58 week 1
+[76621421] [STRESS SYNC] allday stress:255 time:1791163680
+[76621428] [OSA STORE] type:1 w_addr:0x10920
+[76621428] [OSA STORE] type=1 w_addr=0x10920,tsize=30, time:1791163738
+[76652074] g_result.CurAveSpoPerMin 97
+[76652077] [TIME]2026-10-5 6:59:58 week 1
+[76652080] [STRESS SYNC] allday stress:255 time:1791163740
+[76652087] [OSA STORE] type:1 w_addr:0x1093e
+[76652092] [OSA STORE] type=1 w_addr=0x1093e,tsize=30, time:1791163798
+[76664714] [OSA STORE] type:2 w_addr:0x3c508
+[76664714] [OSA STORE] type=2 w_addr=0x3c508,tsize=485, time:1791163822
+[76664715] In store_od_event time=1791162687,descend=4
+[76682820] g_result.CurAveSpoPerMin 97
+[76682872] [TIME]2026-10-5 7:0:58 week 1
+[76682875] [STRESS SYNC] allday stress:255 time:1791163800
+[76682882] [OSA STORE] type:1 w_addr:0x1095c
+[76682882] [OSA STORE] type=1 w_addr=0x1095c,tsize=30, time:1791163858
+[76713836] g_result.CurAveSpoPerMin 97
+[76713843] [TIME]2026-10-5 7:1:58 week 1
+[76713846] [STRESS SYNC] allday stress:255 time:1791163860
+[76713853] [OSA STORE] type:1 w_addr:0x1097a
+[76713853] [OSA STORE] type=1 w_addr=0x1097a,tsize=30, time:1791163918
+[76744259] g_result.CurAveSpoPerMin 97
+[76744261] [TIME]2026-10-5 7:2:58 week 1
+[76744264] [STRESS SYNC] allday stress:255 time:1791163920
+[76744271] [OSA STORE] type:1 w_addr:0x10998
+[76744271] [OSA STORE] type=1 w_addr=0x10998,tsize=30, time:1791163978
+[76775249] g_result.CurAveSpoPerMin 98
+[76775252] [TIME]2026-10-5 7:3:58 week 1
+[76775255] [STRESS SYNC] allday stress:255 time:1791163980
+[76775262] [OSA STORE] type:1 w_addr:0x109b6
+[76775262] [OSA STORE] type=1 w_addr=0x109b6,tsize=30, time:1791164038
+[76787586] [OSA STORE] type:2 w_addr:0x3c6ed
+[76787587] [OSA STORE] type=2 w_addr=0x3c6ed,tsize=485, time:1791164062
+[76787587] In store_od_event time=1791163494,descend=4
+[76787589] [OSA STORE] type:2 w_addr:0x3c8d2
+[76787590] [OSA STORE] type=2 w_addr=0x3c8d2,tsize=485, time:1791164062
+[76787590] In store_od_event time=1791163756,descend=4
+[76805706] g_result.CurAveSpoPerMin 98
+[76805709] [TIME]2026-10-5 7:4:58 week 1
+[76805712] [STRESS SYNC] allday stress:255 time:1791164040
+[76805720] [OSA STORE] type:1 w_addr:0x109d4
+[76805720] [OSA STORE] type=1 w_addr=0x109d4,tsize=30, time:1791164098
+[76836720] g_result.CurAveSpoPerMin 98
+[76836722] [TIME]2026-10-5 7:5:58 week 1
+[76836726] [STRESS SYNC] allday stress:255 time:1791164100
+[76836733] [OSA STORE] type:1 w_addr:0x109f2
+[76836733] [OSA STORE] type=1 w_addr=0x109f2,tsize=30, time:1791164158
+[76843014] [OSA STORE] type:2 w_addr:0x3cab7
+[76843015] [OSA STORE] type=2 w_addr=0x3cab7,tsize=485, time:1791164171
+[76843015] In store_od_event time=1791163822,descend=4
+[76867163] g_result.CurAveSpoPerMin 99
+[76867169] [TIME]2026-10-5 7:6:58 week 1
+[76867173] [STRESS SYNC] allday stress:255 time:1791164160
+[76867180] [OSA STORE] type:1 w_addr:0x10a10
+[76867180] [OSA STORE] type=1 w_addr=0x10a10,tsize=30, time:1791164218
+[76897865] g_result.CurAveSpoPerMin 97
+[76897910] [TIME]2026-10-5 7:7:58 week 1
+[76897913] [STRESS SYNC] allday stress:1 time:1791164220
+[76897920] [OSA STORE] type:1 w_addr:0x10a2e
+[76897920] [OSA STORE] type=1 w_addr=0x10a2e,tsize=30, time:1791164278
+[76928602] g_result.CurAveSpoPerMin 96
+[76928604] [TIME]2026-10-5 7:8:58 week 1
+[76928608] [STRESS SYNC] allday stress:255 time:1791164280
+[76928615] [OSA STORE] type:1 w_addr:0x10a4c
+[76928615] [OSA STORE] type=1 w_addr=0x10a4c,tsize=30, time:1791164338
+[76959307] g_result.CurAveSpoPerMin 98
+[76959309] [TIME]2026-10-5 7:9:58 week 1
+[76959313] [STRESS SYNC] allday stress:255 time:1791164340
+[76959320] [OSA STORE] type:1 w_addr:0x10a6a
+[76959320] [OSA STORE] type=1 w_addr=0x10a6a,tsize=30, time:1791164398
+[76990038] g_result.CurAveSpoPerMin 94
+[76990040] [TIME]2026-10-5 7:10:58 week 1
+[76990044] [STRESS SYNC] allday stress:255 time:1791164400
+[76990096] [OSA STORE] type:1 w_addr:0x10a88
+[76990096] [OSA STORE] type=1 w_addr=0x10a88,tsize=30, time:1791164458
+[77020749] g_result.CurAveSpoPerMin 99
+[77020756] [TIME]2026-10-5 7:11:58 week 1
+[77020760] [STRESS SYNC] allday stress:255 time:1791164460
+[77020767] [OSA STORE] type:1 w_addr:0x10aa6
+[77020767] [OSA STORE] type=1 w_addr=0x10aa6,tsize=30, time:1791164518
+[77051529] g_result.CurAveSpoPerMin 95
+[77051532] [TIME]2026-10-5 7:12:58 week 1
+[77051536] [STRESS SYNC] allday stress:4 time:1791164520
+[77051543] [OSA STORE] type:1 w_addr:0x10ac4
+[77051543] [OSA STORE] type=1 w_addr=0x10ac4,tsize=30, time:1791164578
+[77082186] g_result.CurAveSpoPerMin 93
+[77082189] [TIME]2026-10-5 7:13:58 week 1
+[77082234] [STRESS SYNC] allday stress:255 time:1791164580
+[77082241] [OSA STORE] type:1 w_addr:0x10ae2
+[77082241] [OSA STORE] type=1 w_addr=0x10ae2,tsize=30, time:1791164638
+[77112921] g_result.CurAveSpoPerMin 99
+[77112924] [TIME]2026-10-5 7:14:58 week 1
+[77112927] [STRESS SYNC] allday stress:255 time:1791164640
+[77112938] [OSA STORE] type:1 w_addr:0x10b00
+[77112938] [OSA STORE] type=1 w_addr=0x10b00,tsize=30, time:1791164698
+[77143838] g_result.CurAveSpoPerMin 0
+[77143841] [TIME]2026-10-5 7:15:58 week 1
+[77143845] [STRESS SYNC] allday stress:255 time:1791164700
+[77174716] g_result.CurAveSpoPerMin 0
+[77174723] [TIME]2026-10-5 7:16:58 week 1
+[77174768] [STRESS SYNC] allday stress:255 time:1791164760
+[77205267] g_result.CurAveSpoPerMin 100
+[77205270] [TIME]2026-10-5 7:17:58 week 1
+[77205274] [STRESS SYNC] allday stress:5 time:1791164820
+[77205281] [OSA STORE] type:1 w_addr:0x10b1e
+[77205281] [OSA STORE] type=1 w_addr=0x10b1e,tsize=30, time:1791164878
+[77236189] g_result.CurAveSpoPerMin 99
+[77236193] [TIME]2026-10-5 7:18:59 week 1
+[77236197] [STRESS SYNC] allday stress:255 time:1791164880
+[77236204] [OSA STORE] type:1 w_addr:0x10b3c
+[77236204] [OSA STORE] type=1 w_addr=0x10b3c,tsize=30, time:1791164939
+[77266685] g_result.CurAveSpoPerMin 98
+[77266688] [TIME]2026-10-5 7:19:58 week 1
+[77266692] [STRESS SYNC] allday stress:255 time:1791164940
+[77266742] [OSA STORE] type:1 w_addr:0x10b5a
+[77266742] [OSA STORE] type=1 w_addr=0x10b5a,tsize=30, time:1791164998
+[77297549] g_result.CurAveSpoPerMin 0
+[77297557] [TIME]2026-10-5 7:20:58 week 1
+[77297561] [STRESS SYNC] allday stress:255 time:1791165000
+[77327986] g_result.CurAveSpoPerMin 0
+[77327995] [TIME]2026-10-5 7:21:58 week 1
+[77327998] [STRESS SYNC] allday stress:255 time:1791165060
+[77358670] g_result.CurAveSpoPerMin 95
+[77358674] [TIME]2026-10-5 7:22:58 week 1
+[77358678] [STRESS SYNC] allday stress:2 time:1791165120
+[77358684] [OSA STORE] type:1 w_addr:0x10b78
+[77358685] [OSA STORE] type=1 w_addr=0x10b78,tsize=30, time:1791165178
+[77389385] g_result.CurAveSpoPerMin 99
+[77389388] [TIME]2026-10-5 7:23:58 week 1
+[77389397] [STRESS SYNC] allday stress:255 time:1791165180
+[77389404] [OSA STORE] type:1 w_addr:0x10b96
+[77389404] [OSA STORE] type=1 w_addr=0x10b96,tsize=30, time:1791165238
+[77420152] g_result.CurAveSpoPerMin 0
+[77420155] [TIME]2026-10-5 7:24:58 week 1
+[77420159] [STRESS SYNC] allday stress:255 time:1791165240
+[77450826] g_result.CurAveSpoPerMin 94
+[77450829] [TIME]2026-10-5 7:25:58 week 1
+[77450833] [STRESS SYNC] allday stress:255 time:1791165300
+[77450840] [OSA STORE] type:1 w_addr:0x10bb4
+[77450841] [OSA STORE] type=1 w_addr=0x10bb4,tsize=30, time:1791165358
+[77481548] g_result.CurAveSpoPerMin 97
+[77481560] [TIME]2026-10-5 7:26:58 week 1
+[77481564] [STRESS SYNC] allday stress:255 time:1791165360
+[77481571] [OSA STORE] type:1 w_addr:0x10bd2
+[77481571] [OSA STORE] type=1 w_addr=0x10bd2,tsize=30, time:1791165418
+[77512309] g_result.CurAveSpoPerMin 0
+[77512314] [TIME]2026-10-5 7:27:58 week 1
+[77512318] [STRESS SYNC] allday stress:255 time:1791165420
+[77542985] g_result.CurAveSpoPerMin 95
+[77542989] [TIME]2026-10-5 7:28:58 week 1
+[77542993] [STRESS SYNC] allday stress:255 time:1791165480
+[77543000] [OSA STORE] type:1 w_addr:0x10bf0
+[77543000] [OSA STORE] type=1 w_addr=0x10bf0,tsize=30, time:1791165538
+[77573705] g_result.CurAveSpoPerMin 94
+[77573714] [TIME]2026-10-5 7:29:58 week 1
+[77573719] [STRESS SYNC] allday stress:255 time:1791165540
+[77573727] [OSA STORE] type:1 w_addr:0x10c0e
+[77573727] [OSA STORE] type=1 w_addr=0x10c0e,tsize=30, time:1791165598
+[77604468] g_result.CurAveSpoPerMin 94
+[77604472] [TIME]2026-10-5 7:30:58 week 1
+[77604477] [STRESS SYNC] allday stress:255 time:1791165600
+[77604483] [OSA STORE] type:1 w_addr:0x10c2c
+[77604484] [OSA STORE] type=1 w_addr=0x10c2c,tsize=30, time:1791165658
+[77635152] g_result.CurAveSpoPerMin 94
+[77635161] [TIME]2026-10-5 7:31:58 week 1
+[77635165] [STRESS SYNC] allday stress:255 time:1791165660
+[77635175] [OSA STORE] type:1 w_addr:0x10c4a
+[77635175] [OSA STORE] type=1 w_addr=0x10c4a,tsize=30, time:1791165718
+[77665865] g_result.CurAveSpoPerMin 98
+[77665869] [TIME]2026-10-5 7:32:58 week 1
+[77665878] [STRESS SYNC] allday stress:255 time:1791165720
+[77665885] [OSA STORE] type:1 w_addr:0x10c68
+[77665885] [OSA STORE] type=1 w_addr=0x10c68,tsize=30, time:1791165778
+[77696642] g_result.CurAveSpoPerMin 0
+[77696647] [TIME]2026-10-5 7:33:58 week 1
+[77696651] [STRESS SYNC] allday stress:255 time:1791165780
+[77727311] g_result.CurAveSpoPerMin 93
+[77727315] [TIME]2026-10-5 7:34:58 week 1
+[77727319] [STRESS SYNC] allday stress:255 time:1791165840
+[77727326] [OSA STORE] type:1 w_addr:0x10c86
+[77727326] [OSA STORE] type=1 w_addr=0x10c86,tsize=30, time:1791165898
+[77758039] g_result.CurAveSpoPerMin 95
+[77758044] [TIME]2026-10-5 7:35:58 week 1
+[77758049] [STRESS SYNC] allday stress:255 time:1791165900
+[77758055] [OSA STORE] type:1 w_addr:0x10ca4
+[77758056] [OSA STORE] type=1 w_addr=0x10ca4,tsize=30, time:1791165958
+[77788746] g_result.CurAveSpoPerMin 93
+[77788802] [TIME]2026-10-5 7:36:58 week 1
+[77788806] [STRESS SYNC] allday stress:255 time:1791165960
+[77788813] [OSA STORE] type:1 w_addr:0x10cc2
+[77788813] [OSA STORE] type=1 w_addr=0x10cc2,tsize=30, time:1791166018
+[77819484] g_result.CurAveSpoPerMin 93
+[77819489] [TIME]2026-10-5 7:37:58 week 1
+[77819493] [STRESS SYNC] allday stress:255 time:1791166020
+[77819500] [OSA STORE] type:1 w_addr:0x10ce0
+[77819500] [OSA STORE] type=1 w_addr=0x10ce0,tsize=30, time:1791166078
+[77850186] g_result.CurAveSpoPerMin 0
+[77850191] [TIME]2026-10-5 7:38:58 week 1
+[77850195] [STRESS SYNC] allday stress:255 time:1791166080
+[77880905] g_result.CurAveSpoPerMin 94
+[77880910] [TIME]2026-10-5 7:39:58 week 1
+[77880915] [STRESS SYNC] allday stress:255 time:1791166140
+[77880962] [OSA STORE] type:1 w_addr:0x10cfe
+[77880962] [OSA STORE] type=1 w_addr=0x10cfe,tsize=30, time:1791166198
+[77911625] g_result.CurAveSpoPerMin 95
+[77911634] [TIME]2026-10-5 7:40:58 week 1
+[77911639] [STRESS SYNC] allday stress:255 time:1791166200
+[77911646] [OSA STORE] type:1 w_addr:0x10d1c
+[77911646] [OSA STORE] type=1 w_addr=0x10d1c,tsize=30, time:1791166258
+[77942390] g_result.CurAveSpoPerMin 96
+[77942399] [TIME]2026-10-5 7:41:58 week 1
+[77942404] [STRESS SYNC] allday stress:255 time:1791166260
+[77942410] [OSA STORE] type:1 w_addr:0x10d3a
+[77942411] [OSA STORE] type=1 w_addr=0x10d3a,tsize=30, time:1791166318
+[77973066] g_result.CurAveSpoPerMin 0
+[77973071] [TIME]2026-10-5 7:42:58 week 1
+[77973076] [STRESS SYNC] allday stress:255 time:1791166320
+[78003786] g_result.CurAveSpoPerMin 0
+[78003796] [TIME]2026-10-5 7:43:58 week 1
+[78003800] [STRESS SYNC] allday stress:255 time:1791166380
+[78034556] g_result.CurAveSpoPerMin 94
+[78034562] [TIME]2026-10-5 7:44:58 week 1
+[78034566] [STRESS SYNC] allday stress:255 time:1791166440
+[78034573] [OSA STORE] type:1 w_addr:0x10d58
+[78034573] [OSA STORE] type=1 w_addr=0x10d58,tsize=30, time:1791166498
+[78065230] g_result.CurAveSpoPerMin 97
+[78065235] [TIME]2026-10-5 7:45:58 week 1
+[78065240] [STRESS SYNC] allday stress:255 time:1791166500
+[78065246] [OSA STORE] type:1 w_addr:0x10d76
+[78065247] [OSA STORE] type=1 w_addr=0x10d76,tsize=30, time:1791166558
+[78095945] g_result.CurAveSpoPerMin 95
+[78095955] [TIME]2026-10-5 7:46:58 week 1
+[78095960] [STRESS SYNC] allday stress:255 time:1791166560
+[78095966] [OSA STORE] type:1 w_addr:0x10d94
+[78095972] [OSA STORE] type=1 w_addr=0x10d94,tsize=30, time:1791166618
+[78126711] g_result.CurAveSpoPerMin 97
+[78126717] [TIME]2026-10-5 7:47:58 week 1
+[78126721] [STRESS SYNC] allday stress:1 time:1791166620
+[78126728] [OSA STORE] type:1 w_addr:0x10db2
+[78126728] [OSA STORE] type=1 w_addr=0x10db2,tsize=30, time:1791166678
+[78157389] g_result.CurAveSpoPerMin 0
+[78157395] [TIME]2026-10-5 7:48:58 week 1
+[78157402] [STRESS SYNC] allday stress:255 time:1791166680
+[78188105] g_result.CurAveSpoPerMin 0
+[78188111] [TIME]2026-10-5 7:49:58 week 1
+[78188116] [STRESS SYNC] allday stress:255 time:1791166740
+[78218827] g_result.CurAveSpoPerMin 99
+[78218882] [TIME]2026-10-5 7:50:58 week 1
+[78218887] [STRESS SYNC] allday stress:255 time:1791166800
+[78218894] [OSA STORE] type:1 w_addr:0x10dd0
+[78218894] [OSA STORE] type=1 w_addr=0x10dd0,tsize=30, time:1791166858
+[78249550] g_result.CurAveSpoPerMin 95
+[78249560] [TIME]2026-10-5 7:51:58 week 1
+[78249565] [STRESS SYNC] allday stress:255 time:1791166860
+[78249572] [OSA STORE] type:1 w_addr:0x10dee
+[78249572] [OSA STORE] type=1 w_addr=0x10dee,tsize=30, time:1791166918
+[78280279] g_result.CurAveSpoPerMin 95
+[78280285] [TIME]2026-10-5 7:52:58 week 1
+[78280290] [STRESS SYNC] allday stress:1 time:1791166920
+[78280297] [OSA STORE] type:1 w_addr:0x10e0c
+[78280297] [OSA STORE] type=1 w_addr=0x10e0c,tsize=30, time:1791166978
+[78310986] g_result.CurAveSpoPerMin 94
+[78310992] [TIME]2026-10-5 7:53:58 week 1
+[78310997] [STRESS SYNC] allday stress:255 time:1791166980
+[78311008] [OSA STORE] type:1 w_addr:0x10e2a
+[78311008] [OSA STORE] type=1 w_addr=0x10e2a,tsize=30, time:1791167038
+[78341764] g_result.CurAveSpoPerMin 96
+[78341770] [TIME]2026-10-5 7:54:58 week 1
+[78341775] [STRESS SYNC] allday stress:255 time:1791167040
+[78341782] [OSA STORE] type:1 w_addr:0x10e48
+[78341782] [OSA STORE] type=1 w_addr=0x10e48,tsize=30, time:1791167098
+[78372425] g_result.CurAveSpoPerMin 95
+[78372431] [TIME]2026-10-5 7:55:58 week 1
+[78372436] [STRESS SYNC] allday stress:255 time:1791167100
+[78372443] [OSA STORE] type:1 w_addr:0x10e66
+[78372443] [OSA STORE] type=1 w_addr=0x10e66,tsize=30, time:1791167158
+[78403158] g_result.CurAveSpoPerMin 95
+[78403172] [TIME]2026-10-5 7:56:58 week 1
+[78403177] [STRESS SYNC] allday stress:255 time:1791167160
+[78403185] [OSA STORE] type:1 w_addr:0x10e84
+[78403185] [OSA STORE] type=1 w_addr=0x10e84,tsize=30, time:1791167218
+[78433907] g_result.CurAveSpoPerMin 95
+[78433913] [TIME]2026-10-5 7:57:58 week 1
+[78433918] [STRESS SYNC] allday stress:8 time:1791167220
+[78433925] [OSA STORE] type:1 w_addr:0x10ea2
+[78433926] [OSA STORE] type=1 w_addr=0x10ea2,tsize=30, time:1791167278
+[78464585] g_result.CurAveSpoPerMin 95
+[78464591] [TIME]2026-10-5 7:58:58 week 1
+[78464597] [STRESS SYNC] allday stress:255 time:1791167280
+[78464604] [OSA STORE] type:1 w_addr:0x10ec0
+[78464604] [OSA STORE] type=1 w_addr=0x10ec0,tsize=30, time:1791167338
+[78495342] g_result.CurAveSpoPerMin 96
+[78495348] [TIME]2026-10-5 7:59:58 week 1
+[78495354] [STRESS SYNC] allday stress:255 time:1791167340
+[78495364] [OSA STORE] type:1 w_addr:0x10ede
+[78495365] [OSA STORE] type=1 w_addr=0x10ede,tsize=30, time:1791167398
+[78526026] g_result.CurAveSpoPerMin 97
+[78526079] [TIME]2026-10-5 8:0:58 week 1
+[78526085] [STRESS SYNC] allday stress:255 time:1791167400
+[78526092] [OSA STORE] type:1 w_addr:0x10efc
+[78526092] [OSA STORE] type=1 w_addr=0x10efc,tsize=30, time:1791167458
+[78556750] g_result.CurAveSpoPerMin 97
+[78556761] [TIME]2026-10-5 8:1:58 week 1
+[78556766] [STRESS SYNC] allday stress:255 time:1791167460
+[78556773] [OSA STORE] type:1 w_addr:0x10f1a
+[78556773] [OSA STORE] type=1 w_addr=0x10f1a,tsize=30, time:1791167518
+[78587465] g_result.CurAveSpoPerMin 96
+[78587471] [TIME]2026-10-5 8:2:58 week 1
+[78587476] [STRESS SYNC] allday stress:255 time:1791167520
+[78587483] [OSA STORE] type:1 w_addr:0x10f38
+[78587483] [OSA STORE] type=1 w_addr=0x10f38,tsize=30, time:1791167578
+[78618184] g_result.CurAveSpoPerMin 96
+[78618231] [TIME]2026-10-5 8:3:58 week 1
+[78618236] [STRESS SYNC] allday stress:255 time:1791167580
+[78618245] [OSA STORE] type:1 w_addr:0x10f56
+[78618245] [OSA STORE] type=1 w_addr=0x10f56,tsize=30, time:1791167638
+[78648910] g_result.CurAveSpoPerMin 94
+[78648916] [TIME]2026-10-5 8:4:58 week 1
+[78648922] [STRESS SYNC] allday stress:255 time:1791167640
+[78648929] [OSA STORE] type:1 w_addr:0x10f74
+[78648929] [OSA STORE] type=1 w_addr=0x10f74,tsize=30, time:1791167698
+[78679670] g_result.CurAveSpoPerMin 95
+[78679677] [TIME]2026-10-5 8:5:58 week 1
+[78679717] [STRESS SYNC] allday stress:255 time:1791167700
+[78679761] [OSA STORE] type:1 w_addr:0x10f92
+[78679762] [OSA STORE] type=1 w_addr=0x10f92,tsize=30, time:1791167758
+[78710345] g_result.CurAveSpoPerMin 94
+[78710355] [TIME]2026-10-5 8:6:58 week 1
+[78710441] [STRESS SYNC] allday stress:255 time:1791167760
+[78710448] [OSA STORE] type:1 w_addr:0x10fb0
+[78710497] [OSA STORE] type=1 w_addr=0x10fb0,tsize=30, time:1791167818
+[78713702] [OSA STORE] type:2 w_addr:0x3cc9c
+[78713703] [OSA STORE] type=2 w_addr=0x3cc9c,tsize=485, time:1791167824
+[78713703] In store_od_event time=1791164224,descend=7
+[78713706] [OSA STORE] type:2 w_addr:0x3ce81
+[78713726] [OSA STORE] type=2 w_addr=0x3ce81,tsize=485, time:1791167824
+[78713726] In store_od_event time=1791167656,descend=4
+[78741068] g_result.CurAveSpoPerMin 95
+[78741075] [TIME]2026-10-5 8:7:58 week 1
+[78741080] [STRESS SYNC] allday stress:3 time:1791167820
+[78741088] [OSA STORE] type:1 w_addr:0x10fce
+[78741089] [OSA STORE] type=1 w_addr=0x10fce,tsize=30, time:1791167878
+[78771786] g_result.CurAveSpoPerMin 96
+[78771792] [TIME]2026-10-5 8:8:58 week 1
+[78771797] [STRESS SYNC] allday stress:255 time:1791167880
+[78771804] [OSA STORE] type:1 w_addr:0x10fec
+[78771824] [OSA STORE] type=1 w_addr=0x10fec,tsize=30, time:1791167938
+[78802560] g_result.CurAveSpoPerMin 95
+[78802566] [TIME]2026-10-5 8:9:58 week 1
+[78802572] [STRESS SYNC] allday stress:255 time:1791167940
+[78802578] [OSA STORE] type:1 w_addr:0x1100a
+[78802578] [OSA STORE] type=1 w_addr=0x1100a,tsize=30, time:1791167998
+[78820314] [OSA STORE] type:2 w_addr:0x3d066
+[78820315] [OSA STORE] type=2 w_addr=0x3d066,tsize=485, time:1791168033
+[78820315] In store_od_event time=1791167689,descend=4
+[78833228] g_result.CurAveSpoPerMin 95
+[78833280] [TIME]2026-10-5 8:10:58 week 1
+[78833283] [STRESS SYNC] allday stress:255 time:1791168000
+[78833330] [OSA STORE] type:1 w_addr:0x11028
+[78833330] [OSA STORE] type=1 w_addr=0x11028,tsize=30, time:1791168058
+[78863948] g_result.CurAveSpoPerMin 95
+[78863952] [TIME]2026-10-5 8:11:58 week 1
+[78863956] [STRESS SYNC] allday stress:255 time:1791168060
+[78863963] [OSA STORE] type:1 w_addr:0x11046
+[78863963] [OSA STORE] type=1 w_addr=0x11046,tsize=30, time:1791168118
+[78894708] g_result.CurAveSpoPerMin 95
+[78894710] [TIME]2026-10-5 8:12:58 week 1
+[78894712] [STRESS SYNC] allday stress:1 time:1791168120
+[78894719] [OSA STORE] type:1 w_addr:0x11064
+[78894719] [OSA STORE] type=1 w_addr=0x11064,tsize=30, time:1791168178
+[78925386] g_result.CurAveSpoPerMin 95
+[78925387] [TIME]2026-10-5 8:13:58 week 1
+[78925389] [STRESS SYNC] allday stress:255 time:1791168180
+[78925439] [OSA STORE] type:1 w_addr:0x11082
+[78925439] [OSA STORE] type=1 w_addr=0x11082,tsize=30, time:1791168238
+[78943218] [OSA STORE] type:2 w_addr:0x3d24b
+[78943219] [OSA STORE] type=2 w_addr=0x3d24b,tsize=485, time:1791168273
+[78943219] In store_od_event time=1791167728,descend=5
+[78943221] [OSA STORE] type:2 w_addr:0x3d430
+[78943222] [OSA STORE] type=2 w_addr=0x3d430,tsize=485, time:1791168273
+[78943222] In store_od_event time=1791167959,descend=4
+[78943225] [OSA STORE] type:2 w_addr:0x3d615
+[78943226] [OSA STORE] type=2 w_addr=0x3d615,tsize=485, time:1791168273
+[78943226] In store_od_event time=1791168061,descend=4
+[78943228] [OSA STORE] type:2 w_addr:0x3d7fa
+[78943229] [OSA STORE] type=2 w_addr=0x3d7fa,tsize=485, time:1791168273
+[78943229] In store_od_event time=1791168108,descend=4
+[78956109] g_result.CurAveSpoPerMin 96
+[78956110] [TIME]2026-10-5 8:14:58 week 1
+[78956113] [STRESS SYNC] allday stress:255 time:1791168240
+[78956119] [OSA STORE] type:1 w_addr:0x110a0
+[78956120] [OSA STORE] type=1 w_addr=0x110a0,tsize=30, time:1791168298
+[78986824] g_result.CurAveSpoPerMin 95
+[78986826] [TIME]2026-10-5 8:15:58 week 1
+[78986828] [STRESS SYNC] allday stress:255 time:1791168300
+[78986835] [OSA STORE] type:1 w_addr:0x110be
+[78986835] [OSA STORE] type=1 w_addr=0x110be,tsize=30, time:1791168358
+[79017545] g_result.CurAveSpoPerMin 95
+[79017600] [TIME]2026-10-5 8:16:58 week 1
+[79017603] [STRESS SYNC] allday stress:255 time:1791168360
+[79017610] [OSA STORE] type:1 w_addr:0x110dc
+[79017610] [OSA STORE] type=1 w_addr=0x110dc,tsize=30, time:1791168418
+[79048269] g_result.CurAveSpoPerMin 96
+[79048271] [TIME]2026-10-5 8:17:58 week 1
+[79048274] [STRESS SYNC] allday stress:3 time:1791168420
+[79048282] [OSA STORE] type:1 w_addr:0x110fa
+[79048282] [OSA STORE] type=1 w_addr=0x110fa,tsize=30, time:1791168478
+[79066052] [OSA STORE] type:2 w_addr:0x3d9df
+[79066052] [OSA STORE] type=2 w_addr=0x3d9df,tsize=485, time:1791168512
+[79066053] In store_od_event time=1791168177,descend=4
+[79066096] [OSA STORE] type:2 w_addr:0x3dbc4
+[79066097] [OSA STORE] type=2 w_addr=0x3dbc4,tsize=485, time:1791168513
+[79066097] In store_od_event time=1791168187,descend=4
+[79078987] g_result.CurAveSpoPerMin 96
+[79078988] [TIME]2026-10-5 8:18:58 week 1
+[79078991] [STRESS SYNC] allday stress:255 time:1791168480
+[79079002] [OSA STORE] type:1 w_addr:0x11118
+[79079002] [OSA STORE] type=1 w_addr=0x11118,tsize=30, time:1791168538
+[79109753] g_result.CurAveSpoPerMin 94
+[79109754] [TIME]2026-10-5 8:19:58 week 1
+[79109757] [STRESS SYNC] allday stress:255 time:1791168540
+[79109764] [OSA STORE] type:1 w_addr:0x11136
+[79109764] [OSA STORE] type=1 w_addr=0x11136,tsize=30, time:1791168598
+[79140430] g_result.CurAveSpoPerMin 96
+[79140432] [TIME]2026-10-5 8:20:58 week 1
+[79140434] [STRESS SYNC] allday stress:255 time:1791168600
+[79140441] [OSA STORE] type:1 w_addr:0x11154
+[79140441] [OSA STORE] type=1 w_addr=0x11154,tsize=30, time:1791168658
+[79171157] g_result.CurAveSpoPerMin 95
+[79171163] [TIME]2026-10-5 8:21:58 week 1
+[79171166] [STRESS SYNC] allday stress:255 time:1791168660
+[79171173] [OSA STORE] type:1 w_addr:0x11172
+[79171177] [OSA STORE] type=1 w_addr=0x11172,tsize=30, time:1791168718
+[79196858] [OSA STORE] type:2 w_addr:0x3dda9
+[79196859] [OSA STORE] type=2 w_addr=0x3dda9,tsize=485, time:1791168768
+[79196859] In store_od_event time=1791168418,descend=4
+[79196861] [OSA STORE] type:2 w_addr:0x3df8e
+[79196883] [OSA STORE] type=2 w_addr=0x3df8e,tsize=485, time:1791168768
+[79196883] In store_od_event time=1791168465,descend=9
+[79196885] [OSA STORE] type:2 w_addr:0x3e173
+[79196886] [OSA STORE] type=2 w_addr=0x3e173,tsize=485, time:1791168768
+[79196886] In store_od_event time=1791168577,descend=4
+[79201908] g_result.CurAveSpoPerMin 95
+[79201910] [TIME]2026-10-5 8:22:58 week 1
+[79201913] [STRESS SYNC] allday stress:5 time:1791168720
+[79201919] [OSA STORE] type:1 w_addr:0x11190
+[79201920] [OSA STORE] type=1 w_addr=0x11190,tsize=30, time:1791168778
+[79232596] g_result.CurAveSpoPerMin 93
+[79232598] [TIME]2026-10-5 8:23:58 week 1
+[79232601] [STRESS SYNC] allday stress:255 time:1791168780
+[79232608] [OSA STORE] type:1 w_addr:0x111ae
+[79232608] [OSA STORE] type=1 w_addr=0x111ae,tsize=30, time:1791168838
+[79237659] [OSA STORE] type:2 w_addr:0x3e358
+[79237660] [OSA STORE] type=2 w_addr=0x3e358,tsize=485, time:1791168848
+[79237660] In store_od_event time=1791168620,descend=4
+[79263308] g_result.CurAveSpoPerMin 96
+[79263310] [TIME]2026-10-5 8:24:58 week 1
+[79263313] [STRESS SYNC] allday stress:255 time:1791168840
+[79263320] [OSA STORE] type:1 w_addr:0x111cc
+[79263320] [OSA STORE] type=1 w_addr=0x111cc,tsize=30, time:1791168898
+[79294038] g_result.CurAveSpoPerMin 97
+[79294040] [TIME]2026-10-5 8:25:58 week 1
+[79294043] [STRESS SYNC] allday stress:255 time:1791168900
+[79294050] [OSA STORE] type:1 w_addr:0x111ea
+[79294050] [OSA STORE] type=1 w_addr=0x111ea,tsize=30, time:1791168958
+[79324751] g_result.CurAveSpoPerMin 96
+[79324905] [TIME]2026-10-5 8:26:58 week 1
+[79324909] [STRESS SYNC] allday stress:255 time:1791168960
+[79324916] [OSA STORE] type:1 w_addr:0x11208
+[79324917] [OSA STORE] type=1 w_addr=0x11208,tsize=30, time:1791169018
+[79355510] g_result.CurAveSpoPerMin 97
+[79355512] [TIME]2026-10-5 8:27:58 week 1
+[79355515] [STRESS SYNC] allday stress:255 time:1791169020
+[79355525] [OSA STORE] type:1 w_addr:0x11226
+[79355525] [OSA STORE] type=1 w_addr=0x11226,tsize=30, time:1791169078
+[79386184] g_result.CurAveSpoPerMin 96
+[79386187] [TIME]2026-10-5 8:28:58 week 1
+[79386190] [STRESS SYNC] allday stress:255 time:1791169080
+[79386197] [OSA STORE] type:1 w_addr:0x11244
+[79386197] [OSA STORE] type=1 w_addr=0x11244,tsize=30, time:1791169138
+[79416905] g_result.CurAveSpoPerMin 95
+[79416912] [TIME]2026-10-5 8:29:58 week 1
+[79416915] [STRESS SYNC] allday stress:255 time:1791169140
+[79416922] [OSA STORE] type:1 w_addr:0x11262
+[79416922] [OSA STORE] type=1 w_addr=0x11262,tsize=30, time:1791169198
+[79447672] g_result.CurAveSpoPerMin 96
+[79447675] [TIME]2026-10-5 8:30:58 week 1
+[79447678] [STRESS SYNC] allday stress:255 time:1791169200
+[79447686] [OSA STORE] type:1 w_addr:0x11280
+[79447686] [OSA STORE] type=1 w_addr=0x11280,tsize=30, time:1791169258
+[79472763] [OSA STORE] type:2 w_addr:0x3e53d
+[79472763] [OSA STORE] type=2 w_addr=0x3e53d,tsize=485, time:1791169307
+[79472764] In store_od_event time=1791168734,descend=5
+[79472766] [OSA STORE] type:2 w_addr:0x3e722
+[79472767] [OSA STORE] type=2 w_addr=0x3e722,tsize=485, time:1791169307
+[79472767] In store_od_event time=1791169029,descend=6
+[79472769] [OSA STORE] type:2 w_addr:0x3e907
+[79472770] [OSA STORE] type=2 w_addr=0x3e907,tsize=485, time:1791169307
+[79472770] In store_od_event time=1791169107,descend=4
+[79472773] [OSA STORE] type:2 w_addr:0x3eaec
+[79472774] [OSA STORE] type=2 w_addr=0x3eaec,tsize=485, time:1791169307
+[79472774] In store_od_event time=1791169127,descend=7
+[79478345] g_result.CurAveSpoPerMin 95
+[79478393] [TIME]2026-10-5 8:31:58 week 1
+[79478396] [STRESS SYNC] allday stress:255 time:1791169260
+[79478403] [OSA STORE] type:1 w_addr:0x1129e
+[79478403] [OSA STORE] type=1 w_addr=0x1129e,tsize=30, time:1791169318
+[79509069] g_result.CurAveSpoPerMin 95
+[79509071] [TIME]2026-10-5 8:32:58 week 1
+[79509075] [STRESS SYNC] allday stress:255 time:1791169320
+[79509082] [OSA STORE] type:1 w_addr:0x112bc
+[79509082] [OSA STORE] type=1 w_addr=0x112bc,tsize=30, time:1791169378
+[79539785] g_result.CurAveSpoPerMin 97
+[79539787] [TIME]2026-10-5 8:33:58 week 1
+[79539791] [STRESS SYNC] allday stress:255 time:1791169380
+[79539797] [OSA STORE] type:1 w_addr:0x112da
+[79539798] [OSA STORE] type=1 w_addr=0x112da,tsize=30, time:1791169438
+[79570506] g_result.CurAveSpoPerMin 97
+[79570508] [TIME]2026-10-5 8:34:58 week 1
+[79570555] [STRESS SYNC] allday stress:255 time:1791169440
+[79570563] [OSA STORE] type:1 w_addr:0x112f8
+[79570563] [OSA STORE] type=1 w_addr=0x112f8,tsize=30, time:1791169498
+[79595626] [OSA STORE] type:2 w_addr:0x3ecd1
+[79595627] [OSA STORE] type=2 w_addr=0x3ecd1,tsize=485, time:1791169547
+[79595627] In store_od_event time=1791169161,descend=4
+[79595630] [OSA STORE] type:2 w_addr:0x3eeb6
+[79595655] [OSA STORE] type=2 w_addr=0x3eeb6,tsize=485, time:1791169547
+[79595655] In store_od_event time=1791169322,descend=11
+[79595657] [OSA STORE] type:2 w_addr:0x3f09b
+[79595658] [OSA STORE] type=2 w_addr=0x3f09b,tsize=485, time:1791169547
+[79595658] In store_od_event time=1791169398,descend=4
+[79601231] g_result.CurAveSpoPerMin 99
+[79601234] [TIME]2026-10-5 8:35:58 week 1
+[79601237] [STRESS SYNC] allday stress:255 time:1791169500
+[79601244] [OSA STORE] type:1 w_addr:0x11316
+[79601244] [OSA STORE] type=1 w_addr=0x11316,tsize=30, time:1791169558
+[79631946] g_result.CurAveSpoPerMin 98
+[79631953] [TIME]2026-10-5 8:36:58 week 1
+[79631956] [STRESS SYNC] allday stress:255 time:1791169560
+[79631967] [OSA STORE] type:1 w_addr:0x11334
+[79631967] [OSA STORE] type=1 w_addr=0x11334,tsize=30, time:1791169618
+[79662707] g_result.CurAveSpoPerMin 99
+[79662710] [TIME]2026-10-5 8:37:58 week 1
+[79662714] [STRESS SYNC] allday stress:255 time:1791169620
+[79662720] [OSA STORE] type:1 w_addr:0x11352
+[79662720] [OSA STORE] type=1 w_addr=0x11352,tsize=30, time:1791169678
+[79693389] g_result.CurAveSpoPerMin 99
+[79693392] [TIME]2026-10-5 8:38:58 week 1
+[79693396] [STRESS SYNC] allday stress:255 time:1791169680
+[79693404] [OSA STORE] type:1 w_addr:0x11370
+[79693404] [OSA STORE] type=1 w_addr=0x11370,tsize=30, time:1791169738
+[79718810] [OSA STORE] type:2 w_addr:0x3f280
+[79718811] [OSA STORE] type=2 w_addr=0x3f280,tsize=485, time:1791169787
+[79718811] In store_od_event time=1791169426,descend=8
+[79718813] [OSA STORE] type:2 w_addr:0x3f465
+[79718814] [OSA STORE] type=2 w_addr=0x3f465,tsize=485, time:1791169787
+[79718814] In store_od_event time=1791169584,descend=4
+[79724106] g_result.CurAveSpoPerMin 99
+[79724110] [TIME]2026-10-5 8:39:58 week 1
+[79724117] [STRESS SYNC] allday stress:255 time:1791169740
+[79724124] [OSA STORE] type:1 w_addr:0x1138e
+[79724124] [OSA STORE] type=1 w_addr=0x1138e,tsize=30, time:1791169798
+[79754870] g_result.CurAveSpoPerMin 98
+[79754873] [TIME]2026-10-5 8:40:58 week 1
+[79754877] [STRESS SYNC] allday stress:255 time:1791169800
+[79754883] [OSA STORE] type:1 w_addr:0x113ac
+[79754884] [OSA STORE] type=1 w_addr=0x113ac,tsize=30, time:1791169858
+[79763575] [OSA STORE] type:2 w_addr:0x3f64a
+[79763576] [OSA STORE] type=2 w_addr=0x3f64a,tsize=485, time:1791169875
+[79763576] In store_od_event time=1791169675,descend=4
+[79785590] g_result.CurAveSpoPerMin 99
+[79785598] [TIME]2026-10-5 8:41:58 week 1
+[79785601] [STRESS SYNC] allday stress:255 time:1791169860
+[79785608] [OSA STORE] type:1 w_addr:0x113ca
+[79785608] [OSA STORE] type=1 w_addr=0x113ca,tsize=30, time:1791169918
+[79816277] g_result.CurAveSpoPerMin 98
+[79816280] [TIME]2026-10-5 8:42:58 week 1
+[79816284] [STRESS SYNC] allday stress:8 time:1791169920
+[79816291] [OSA STORE] type:1 w_addr:0x113e8
+[79816291] [OSA STORE] type=1 w_addr=0x113e8,tsize=30, time:1791169978
+[79846986] g_result.CurAveSpoPerMin 93
+[79846989] [TIME]2026-10-5 8:43:58 week 1
+[79846997] [STRESS SYNC] allday stress:255 time:1791169980
+[79847004] [OSA STORE] type:1 w_addr:0x11406
+[79847004] [OSA STORE] type=1 w_addr=0x11406,tsize=30, time:1791170038
+[79877760] g_result.CurAveSpoPerMin 94
+[79877763] [TIME]2026-10-5 8:44:58 week 1
+[79877767] [STRESS SYNC] allday stress:255 time:1791170040
+[79877773] [OSA STORE] type:1 w_addr:0x11424
+[79877773] [OSA STORE] type=1 w_addr=0x11424,tsize=30, time:1791170098
+[79908426] g_result.CurAveSpoPerMin 98
+[79908430] [TIME]2026-10-5 8:45:58 week 1
+[79908433] [STRESS SYNC] allday stress:255 time:1791170100
+[79908440] [OSA STORE] type:1 w_addr:0x11442
+[79908440] [OSA STORE] type=1 w_addr=0x11442,tsize=30, time:1791170158
+[79939156] g_result.CurAveSpoPerMin 99
+[79939168] [TIME]2026-10-5 8:46:58 week 1
+[79939172] [STRESS SYNC] allday stress:255 time:1791170160
+[79939178] [OSA STORE] type:1 w_addr:0x11460
+[79939179] [OSA STORE] type=1 w_addr=0x11460,tsize=30, time:1791170218
+[79969907] g_result.CurAveSpoPerMin 99
+[79969911] [TIME]2026-10-5 8:47:58 week 1
+[79969915] [STRESS SYNC] allday stress:1 time:1791170220
+[79969921] [OSA STORE] type:1 w_addr:0x1147e
+[79969922] [OSA STORE] type=1 w_addr=0x1147e,tsize=30, time:1791170278
+[80000589] g_result.CurAveSpoPerMin 98
+[80000593] [TIME]2026-10-5 8:48:58 week 1
+[80000596] [STRESS SYNC] allday stress:255 time:1791170280
+[80000603] [OSA STORE] type:1 w_addr:0x1149c
+[80000603] [OSA STORE] type=1 w_addr=0x1149c,tsize=30, time:1791170338
+[80031305] g_result.CurAveSpoPerMin 98
+[80031308] [TIME]2026-10-5 8:49:58 week 1
+[80031316] [STRESS SYNC] allday stress:255 time:1791170340
+[80031323] [OSA STORE] type:1 w_addr:0x114ba
+[80031323] [OSA STORE] type=1 w_addr=0x114ba,tsize=30, time:1791170398
+[80062063] g_result.CurAveSpoPerMin 98
+[80062067] [TIME]2026-10-5 8:50:58 week 1
+[80062071] [STRESS SYNC] allday stress:255 time:1791170400
+[80062078] [OSA STORE] type:1 w_addr:0x114d8
+[80062078] [OSA STORE] type=1 w_addr=0x114d8,tsize=30, time:1791170458
+[80092749] g_result.CurAveSpoPerMin 98
+[80092757] [TIME]2026-10-5 8:51:58 week 1
+[80092761] [STRESS SYNC] allday stress:255 time:1791170460
+[80092768] [OSA STORE] type:1 w_addr:0x114f6
+[80092768] [OSA STORE] type=1 w_addr=0x114f6,tsize=30, time:1791170518
+[80123466] g_result.CurAveSpoPerMin 99
+[80123470] [TIME]2026-10-5 8:52:58 week 1
+[80123474] [STRESS SYNC] allday stress:255 time:1791170520
+[80123481] [OSA STORE] type:1 w_addr:0x11514
+[80123481] [OSA STORE] type=1 w_addr=0x11514,tsize=30, time:1791170578
+[80154186] g_result.CurAveSpoPerMin 98
+[80154232] [TIME]2026-10-5 8:53:58 week 1
+[80154237] [STRESS SYNC] allday stress:255 time:1791170580
+[80154245] [OSA STORE] type:1 w_addr:0x11532
+[80154245] [OSA STORE] type=1 w_addr=0x11532,tsize=30, time:1791170638
+[80184908] g_result.CurAveSpoPerMin 99
+[80184913] [TIME]2026-10-5 8:54:58 week 1
+[80184916] [STRESS SYNC] allday stress:255 time:1791170640
+[80184923] [OSA STORE] type:1 w_addr:0x11550
+[80184923] [OSA STORE] type=1 w_addr=0x11550,tsize=30, time:1791170698
+[80215625] g_result.CurAveSpoPerMin 98
+[80215633] [TIME]2026-10-5 8:55:58 week 1
+[80215637] [STRESS SYNC] allday stress:255 time:1791170700
+[80215644] [OSA STORE] type:1 w_addr:0x1156e
+[80215644] [OSA STORE] type=1 w_addr=0x1156e,tsize=30, time:1791170758
+[80246395] g_result.CurAveSpoPerMin 97
+[80246403] [TIME]2026-10-5 8:56:58 week 1
+[80246407] [STRESS SYNC] allday stress:255 time:1791170760
+[80246417] [OSA STORE] type:1 w_addr:0x1158c
+[80246417] [OSA STORE] type=1 w_addr=0x1158c,tsize=30, time:1791170818
+[80277180] g_result.CurAveSpoPerMin 97
+[80277184] [TIME]2026-10-5 8:57:58 week 1
+[80277188] [STRESS SYNC] allday stress:255 time:1791170820
+[80277195] [OSA STORE] type:1 w_addr:0x115aa
+[80277195] [OSA STORE] type=1 w_addr=0x115aa,tsize=30, time:1791170878
+[80307785] g_result.CurAveSpoPerMin 97
+[80307794] [TIME]2026-10-5 8:58:58 week 1
+[80307799] [STRESS SYNC] allday stress:255 time:1791170880
+[80307805] [OSA STORE] type:1 w_addr:0x115c8
+[80307805] [OSA STORE] type=1 w_addr=0x115c8,tsize=30, time:1791170938
+[80338591] g_result.CurAveSpoPerMin 97
+[80338595] [TIME]2026-10-5 8:59:58 week 1
+[80338599] [STRESS SYNC] allday stress:255 time:1791170940
+[80338606] [OSA STORE] type:1 w_addr:0x115e6
+[80338606] [OSA STORE] type=1 w_addr=0x115e6,tsize=30, time:1791170998
+[80369231] g_result.CurAveSpoPerMin 97
+[80369235] [TIME]2026-10-5 9:0:58 week 1
+[80369239] [STRESS SYNC] allday stress:255 time:1791171000
+[80369246] [OSA STORE] type:1 w_addr:0x11604
+[80369246] [OSA STORE] type=1 w_addr=0x11604,tsize=30, time:1791171058
+[80399965] g_result.CurAveSpoPerMin 97
+[80399974] [TIME]2026-10-5 9:1:58 week 1
+[80399982] [STRESS SYNC] allday stress:255 time:1791171060
+[80399989] [OSA STORE] type:1 w_addr:0x11622
+[80399989] [OSA STORE] type=1 w_addr=0x11622,tsize=30, time:1791171118
+[80430711] g_result.CurAveSpoPerMin 97
+[80430716] [TIME]2026-10-5 9:2:58 week 1
+[80430720] [STRESS SYNC] allday stress:2 time:1791171120
+[80430727] [OSA STORE] type:1 w_addr:0x11640
+[80430727] [OSA STORE] type=1 w_addr=0x11640,tsize=30, time:1791171178
+[80461402] g_result.CurAveSpoPerMin 98
+[80461406] [TIME]2026-10-5 9:3:58 week 1
+[80461411] [STRESS SYNC] allday stress:255 time:1791171180
+[80461418] [OSA STORE] type:1 w_addr:0x1165e
+[80461418] [OSA STORE] type=1 w_addr=0x1165e,tsize=30, time:1791171238
+[80492106] g_result.CurAveSpoPerMin 97
+[80492111] [TIME]2026-10-5 9:4:58 week 1
+[80492115] [STRESS SYNC] allday stress:255 time:1791171240
+[80492122] [OSA STORE] type:1 w_addr:0x1167c
+[80492126] [OSA STORE] type=1 w_addr=0x1167c,tsize=30, time:1791171298
+[80522839] g_result.CurAveSpoPerMin 97
+[80522886] [TIME]2026-10-5 9:5:58 week 1
+[80522890] [STRESS SYNC] allday stress:255 time:1791171300
+[80522897] [OSA STORE] type:1 w_addr:0x1169a
+[80522897] [OSA STORE] type=1 w_addr=0x1169a,tsize=30, time:1791171358
+[80553549] g_result.CurAveSpoPerMin 97
+[80553559] [TIME]2026-10-5 9:6:58 week 1
+[80553563] [STRESS SYNC] allday stress:255 time:1791171360
+[80553570] [OSA STORE] type:1 w_addr:0x116b8
+[80553570] [OSA STORE] type=1 w_addr=0x116b8,tsize=30, time:1791171418
+[80584266] g_result.CurAveSpoPerMin 98
+[80584271] [TIME]2026-10-5 9:7:58 week 1
+[80584276] [STRESS SYNC] allday stress:1 time:1791171420
+[80584282] [OSA STORE] type:1 w_addr:0x116d6
+[80584283] [OSA STORE] type=1 w_addr=0x116d6,tsize=30, time:1791171478
+[80614986] g_result.CurAveSpoPerMin 98
+[80614991] [TIME]2026-10-5 9:8:58 week 1
+[80615039] [STRESS SYNC] allday stress:255 time:1791171480
+[80615049] [OSA STORE] type:1 w_addr:0x116f4
+[80615049] [OSA STORE] type=1 w_addr=0x116f4,tsize=30, time:1791171538
+[80645710] g_result.CurAveSpoPerMin 98
+[80645716] [TIME]2026-10-5 9:9:58 week 1
+[80645720] [STRESS SYNC] allday stress:255 time:1791171540
+[80645727] [OSA STORE] type:1 w_addr:0x11712
+[80645727] [OSA STORE] type=1 w_addr=0x11712,tsize=30, time:1791171598
+[80676476] g_result.CurAveSpoPerMin 98
+[80676482] [TIME]2026-10-5 9:10:58 week 1
+[80676486] [STRESS SYNC] allday stress:255 time:1791171600
+[80676494] [OSA STORE] type:1 w_addr:0x11730
+[80676494] [OSA STORE] type=1 w_addr=0x11730,tsize=30, time:1791171658
+[80707147] g_result.CurAveSpoPerMin 97
+[80707156] [TIME]2026-10-5 9:11:58 week 1
+[80707161] [STRESS SYNC] allday stress:255 time:1791171660
+[80707167] [OSA STORE] type:1 w_addr:0x1174e
+[80707209] [OSA STORE] type=1 w_addr=0x1174e,tsize=30, time:1791171718
+[80737865] g_result.CurAveSpoPerMin 98
+[80737875] [TIME]2026-10-5 9:12:58 week 1
+[80737880] [STRESS SYNC] allday stress:4 time:1791171720
+[80737887] [OSA STORE] type:1 w_addr:0x1176c
+[80737887] [OSA STORE] type=1 w_addr=0x1176c,tsize=30, time:1791171778
+[80768628] g_result.CurAveSpoPerMin 97
+[80768633] [TIME]2026-10-5 9:13:58 week 1
+[80768638] [STRESS SYNC] allday stress:255 time:1791171780
+[80768644] [OSA STORE] type:1 w_addr:0x1178a
+[80768645] [OSA STORE] type=1 w_addr=0x1178a,tsize=30, time:1791171838
+[80799306] g_result.CurAveSpoPerMin 97
+[80799311] [TIME]2026-10-5 9:14:58 week 1
+[80799316] [STRESS SYNC] allday stress:255 time:1791171840
+[80799324] [OSA STORE] type:1 w_addr:0x117a8
+[80799324] [OSA STORE] type=1 w_addr=0x117a8,tsize=30, time:1791171898
+[80830026] g_result.CurAveSpoPerMin 97
+[80830031] [TIME]2026-10-5 9:15:58 week 1
+[80830040] [STRESS SYNC] allday stress:255 time:1791171900
+[80830047] [OSA STORE] type:1 w_addr:0x117c6
+[80830047] [OSA STORE] type=1 w_addr=0x117c6,tsize=30, time:1791171958
+[80860788] g_result.CurAveSpoPerMin 97
+[80860798] [TIME]2026-10-5 9:16:58 week 1
+[80860803] [STRESS SYNC] allday stress:255 time:1791171960
+[80860809] [OSA STORE] type:1 w_addr:0x117e4
+[80860809] [OSA STORE] type=1 w_addr=0x117e4,tsize=30, time:1791172018
+[80891466] g_result.CurAveSpoPerMin 97
+[80891472] [TIME]2026-10-5 9:17:58 week 1
+[80891476] [STRESS SYNC] allday stress:2 time:1791172020
+[80891483] [OSA STORE] type:1 w_addr:0x11802
+[80891483] [OSA STORE] type=1 w_addr=0x11802,tsize=30, time:1791172078
+[80922205] g_result.CurAveSpoPerMin 97
+[80922211] [TIME]2026-10-5 9:18:58 week 1
+[80922216] [STRESS SYNC] allday stress:255 time:1791172080
+[80922226] [OSA STORE] type:1 w_addr:0x11820
+[80922227] [OSA STORE] type=1 w_addr=0x11820,tsize=30, time:1791172138
+[80952950] g_result.CurAveSpoPerMin 97
+[80952956] [TIME]2026-10-5 9:19:58 week 1
+[80952960] [STRESS SYNC] allday stress:255 time:1791172140
+[80952967] [OSA STORE] type:1 w_addr:0x1183e
+[80952967] [OSA STORE] type=1 w_addr=0x1183e,tsize=30, time:1791172198
+[80983642] g_result.CurAveSpoPerMin 97
+[80983648] [TIME]2026-10-5 9:20:58 week 1
+[80983653] [STRESS SYNC] allday stress:255 time:1791172200
+[80983659] [OSA STORE] type:1 w_addr:0x1185c
+[80983659] [OSA STORE] type=1 w_addr=0x1185c,tsize=30, time:1791172258
+[81014346] g_result.CurAveSpoPerMin 97
+[81014356] [TIME]2026-10-5 9:21:58 week 1
+[81014361] [STRESS SYNC] allday stress:255 time:1791172260
+[81014368] [OSA STORE] type:1 w_addr:0x1187a
+[81014372] [OSA STORE] type=1 w_addr=0x1187a,tsize=30, time:1791172318
+[81045078] g_result.CurAveSpoPerMin 97
+[81045126] [TIME]2026-10-5 9:22:58 week 1
+[81045131] [STRESS SYNC] allday stress:1 time:1791172320
+[81045138] [OSA STORE] type:1 w_addr:0x11898
+[81045138] [OSA STORE] type=1 w_addr=0x11898,tsize=30, time:1791172378
+[81075790] g_result.CurAveSpoPerMin 97
+[81075796] [TIME]2026-10-5 9:23:58 week 1
+[81075801] [STRESS SYNC] allday stress:255 time:1791172380
+[81075807] [OSA STORE] type:1 w_addr:0x118b6
+[81075808] [OSA STORE] type=1 w_addr=0x118b6,tsize=30, time:1791172438
+[81106505] g_result.CurAveSpoPerMin 97
+[81106512] [TIME]2026-10-5 9:24:58 week 1
+[81106517] [STRESS SYNC] allday stress:255 time:1791172440
+[81106523] [OSA STORE] type:1 w_addr:0x118d4
+[81106523] [OSA STORE] type=1 w_addr=0x118d4,tsize=30, time:1791172498
+[81137265] g_result.CurAveSpoPerMin 97
+[81137271] [TIME]2026-10-5 9:25:58 week 1
+[81137276] [STRESS SYNC] allday stress:255 time:1791172500
+[81137282] [OSA STORE] type:1 w_addr:0x118f2
+[81137283] [OSA STORE] type=1 w_addr=0x118f2,tsize=30, time:1791172558
+[81167950] g_result.CurAveSpoPerMin 97
+[81167961] [TIME]2026-10-5 9:26:58 week 1
+[81167966] [STRESS SYNC] allday stress:255 time:1791172560
+[81167973] [OSA STORE] type:1 w_addr:0x11910
+[81167973] [OSA STORE] type=1 w_addr=0x11910,tsize=30, time:1791172618
+[81198667] g_result.CurAveSpoPerMin 97
+[81198673] [TIME]2026-10-5 9:27:58 week 1
+[81198678] [STRESS SYNC] allday stress:255 time:1791172620
+[81198685] [OSA STORE] type:1 w_addr:0x1192e
+[81198689] [OSA STORE] type=1 w_addr=0x1192e,tsize=30, time:1791172678
+[81229387] g_result.CurAveSpoPerMin 97
+[81229432] [TIME]2026-10-5 9:28:58 week 1
+[81229437] [STRESS SYNC] allday stress:255 time:1791172680
+[81229444] [OSA STORE] type:1 w_addr:0x1194c
+[81229444] [OSA STORE] type=1 w_addr=0x1194c,tsize=30, time:1791172738
+[81260104] g_result.CurAveSpoPerMin 97
+[81260111] [TIME]2026-10-5 9:29:58 week 1
+[81260116] [STRESS SYNC] allday stress:255 time:1791172740
+[81260123] [OSA STORE] type:1 w_addr:0x1196a
+[81260123] [OSA STORE] type=1 w_addr=0x1196a,tsize=30, time:1791172798
+[81290827] g_result.CurAveSpoPerMin 0
+[81290837] [TIME]2026-10-5 9:30:58 week 1
+[81290842] [STRESS SYNC] allday stress:255 time:1791172800
+[81321587] g_result.CurAveSpoPerMin 0
+[81321598] [TIME]2026-10-5 9:31:58 week 1
+[81321603] [STRESS SYNC] allday stress:255 time:1791172860
+[81352265] g_result.CurAveSpoPerMin 0
+[81352272] [TIME]2026-10-5 9:32:58 week 1
+[81352277] [STRESS SYNC] allday stress:255 time:1791172920
+[81383025] g_result.CurAveSpoPerMin 0
+[81383032] [TIME]2026-10-5 9:33:58 week 1
+[81383037] [STRESS SYNC] allday stress:255 time:1791172980
+[81413743] g_result.CurAveSpoPerMin 0
+[81413750] [TIME]2026-10-5 9:34:58 week 1
+[81413755] [STRESS SYNC] allday stress:255 time:1791173040
+[81444422] g_result.CurAveSpoPerMin 0
+[81444472] [TIME]2026-10-5 9:35:58 week 1
+[81444472] [STRESS SYNC] allday stress:255 time:1791173100
+[81475150] g_result.CurAveSpoPerMin 0
+[81475156] [TIME]2026-10-5 9:36:58 week 1
+[81475158] [STRESS SYNC] allday stress:255 time:1791173160
+[81505913] g_result.CurAveSpoPerMin 0
+[81505914] [TIME]2026-10-5 9:37:58 week 1
+[81505917] [STRESS SYNC] allday stress:16 time:1791173220
+[81536585] g_result.CurAveSpoPerMin 0
+[81536587] [TIME]2026-10-5 9:38:58 week 1
+[81536589] [STRESS SYNC] allday stress:255 time:1791173280
+[81567348] g_result.CurAveSpoPerMin 99
+[81567350] [TIME]2026-10-5 9:39:58 week 1
+[81567352] [STRESS SYNC] allday stress:255 time:1791173340
+[81567360] [OSA STORE] type:1 w_addr:0x11988
+[81567360] [OSA STORE] type=1 w_addr=0x11988,tsize=30, time:1791173398
+[81598025] g_result.CurAveSpoPerMin 0
+[81598027] [TIME]2026-10-5 9:40:58 week 1
+[81598072] [STRESS SYNC] allday stress:255 time:1791173400
+[81628744] g_result.CurAveSpoPerMin 0
+[81628793] [TIME]2026-10-5 9:41:58 week 1
+[81628797] [STRESS SYNC] allday stress:255 time:1791173460
+[81659512] g_result.CurAveSpoPerMin 0
+[81659513] [TIME]2026-10-5 9:42:58 week 1
+[81659516] [STRESS SYNC] allday stress:255 time:1791173520
+[81690190] g_result.CurAveSpoPerMin 100
+[81690191] [TIME]2026-10-5 9:43:58 week 1
+[81690194] [STRESS SYNC] allday stress:255 time:1791173580
+[81690201] [OSA STORE] type:1 w_addr:0x119a6
+[81690201] [OSA STORE] type=1 w_addr=0x119a6,tsize=30, time:1791173638
+[81720915] g_result.CurAveSpoPerMin 0
+[81720917] [TIME]2026-10-5 9:44:58 week 1
+[81720925] [STRESS SYNC] allday stress:255 time:1791173640
+[81751621] [TIME]2026-10-5 9:45:58 week 1
+[81751623] [STRESS SYNC] allday stress:255 time:1791173700
+[81782339] [TIME]2026-10-5 9:46:58 week 1
+[81782342] [STRESS SYNC] allday stress:255 time:1791173760
+[81813098] [TIME]2026-10-5 9:47:58 week 1
+[81813101] [STRESS SYNC] allday stress:255 time:1791173820
+[81843780] [TIME]2026-10-5 9:48:58 week 1
+[81843787] [STRESS SYNC] allday stress:255 time:1791173880
+[81874497] [TIME]2026-10-5 9:49:58 week 1
+[81874500] [STRESS SYNC] allday stress:255 time:1791173940
+[81905218] [TIME]2026-10-5 9:50:58 week 1
+[81905221] [STRESS SYNC] allday stress:255 time:1791174000
+[81935942] [TIME]2026-10-5 9:51:58 week 1
+[81935945] [STRESS SYNC] allday stress:255 time:1791174060
+[81966658] [TIME]2026-10-5 9:52:58 week 1
+[81966661] [STRESS SYNC] allday stress:255 time:1791174120
+[81997379] [TIME]2026-10-5 9:53:58 week 1
+[81997382] [STRESS SYNC] allday stress:255 time:1791174180
+[82028102] [TIME]2026-10-5 9:54:58 week 1
+[82028105] [STRESS SYNC] allday stress:255 time:1791174240
+[82058860] [TIME]2026-10-5 9:55:58 week 1
+[82058863] [STRESS SYNC] allday stress:255 time:1791174300
+[82089538] [TIME]2026-10-5 9:56:58 week 1
+[82089542] [STRESS SYNC] allday stress:255 time:1791174360
+[82120258] [TIME]2026-10-5 9:57:58 week 1
+[82120262] [STRESS SYNC] allday stress:255 time:1791174420
+[82150978] [TIME]2026-10-5 9:58:58 week 1
+[82151021] [STRESS SYNC] allday stress:255 time:1791174480
+[82181736] [TIME]2026-10-5 9:59:58 week 1
+[82181739] [STRESS SYNC] allday stress:255 time:1791174540
+[82212419] [TIME]2026-10-5 10:0:58 week 1
+[82212422] [STRESS SYNC] allday stress:255 time:1791174600
+[82243179] [TIME]2026-10-5 10:1:58 week 1
+[82243183] [STRESS SYNC] allday stress:255 time:1791174660
+[82273859] [TIME]2026-10-5 10:2:58 week 1
+[82273863] [STRESS SYNC] allday stress:255 time:1791174720
+[82304578] [TIME]2026-10-5 10:3:58 week 1
+[82304581] [STRESS SYNC] allday stress:255 time:1791174780
+[82335336] [TIME]2026-10-5 10:4:58 week 1
+[82335339] [STRESS SYNC] allday stress:255 time:1791174840
+[82366019] [TIME]2026-10-5 10:5:58 week 1
+[82366022] [STRESS SYNC] allday stress:255 time:1791174900
+[82396738] [TIME]2026-10-5 10:6:58 week 1
+[82396742] [STRESS SYNC] allday stress:255 time:1791174960
+[82427498] [TIME]2026-10-5 10:7:58 week 1
+[82427501] [STRESS SYNC] allday stress:255 time:1791175020
+[82458179] [TIME]2026-10-5 10:8:58 week 1
+[82458183] [STRESS SYNC] allday stress:255 time:1791175080
+[82488901] [TIME]2026-10-5 10:9:58 week 1
+[82488905] [STRESS SYNC] allday stress:255 time:1791175140
+[82519659] [TIME]2026-10-5 10:10:58 week 1
+[82519662] [STRESS SYNC] allday stress:255 time:1791175200
+[82550339] [TIME]2026-10-5 10:11:58 week 1
+[82550342] [STRESS SYNC] allday stress:255 time:1791175260
+[82581059] [TIME]2026-10-5 10:12:58 week 1
+[82581063] [STRESS SYNC] allday stress:255 time:1791175320
+[82611821] [TIME]2026-10-5 10:13:58 week 1
+[82611825] [STRESS SYNC] allday stress:255 time:1791175380
+[82642499] [TIME]2026-10-5 10:14:58 week 1
+[82642503] [STRESS SYNC] allday stress:255 time:1791175440
+[82673219] [TIME]2026-10-5 10:15:58 week 1
+[82673223] [STRESS SYNC] allday stress:255 time:1791175500
+[82703981] [TIME]2026-10-5 10:16:58 week 1
+[82703985] [STRESS SYNC] allday stress:255 time:1791175560
+[82734660] [TIME]2026-10-5 10:17:58 week 1
+[82734664] [STRESS SYNC] allday stress:255 time:1791175620
+[82765381] [TIME]2026-10-5 10:18:58 week 1
+[82765385] [STRESS SYNC] allday stress:255 time:1791175680
+[82796143] [TIME]2026-10-5 10:19:58 week 1
+[82796147] [STRESS SYNC] allday stress:255 time:1791175740
+[82826820] [TIME]2026-10-5 10:20:58 week 1
+[82826824] [STRESS SYNC] allday stress:255 time:1791175800
+[82857540] [TIME]2026-10-5 10:21:58 week 1
+[82857545] [STRESS SYNC] allday stress:255 time:1791175860
+[82888300] [TIME]2026-10-5 10:22:58 week 1
+[82888304] [STRESS SYNC] allday stress:255 time:1791175920
+[82918980] [TIME]2026-10-5 10:23:58 week 1
+[82918984] [STRESS SYNC] allday stress:255 time:1791175980
+[82949699] [TIME]2026-10-5 10:24:58 week 1
+[82949704] [STRESS SYNC] allday stress:255 time:1791176040
+[82980421] [TIME]2026-10-5 10:25:58 week 1
+[82980425] [STRESS SYNC] allday stress:255 time:1791176100
+[83011145] [TIME]2026-10-5 10:26:58 week 1
+[83011150] [STRESS SYNC] allday stress:255 time:1791176160
+[83041861] [TIME]2026-10-5 10:27:58 week 1
+[83041865] [STRESS SYNC] allday stress:255 time:1791176220
+[83072580] [TIME]2026-10-5 10:28:58 week 1
+[83072584] [STRESS SYNC] allday stress:255 time:1791176280
+[83103305] [TIME]2026-10-5 10:29:58 week 1
+[83103309] [STRESS SYNC] allday stress:255 time:1791176340
+[83134021] [TIME]2026-10-5 10:30:58 week 1
+[83134026] [STRESS SYNC] allday stress:255 time:1791176400
+[83164740] [TIME]2026-10-5 10:31:58 week 1
+[83164745] [STRESS SYNC] allday stress:255 time:1791176460
+[83195460] [TIME]2026-10-5 10:32:58 week 1
+[83195464] [STRESS SYNC] allday stress:255 time:1791176520
+[83226182] [TIME]2026-10-5 10:33:58 week 1
+[83226234] [STRESS SYNC] allday stress:255 time:1791176580
+[83256902] [TIME]2026-10-5 10:34:58 week 1
+[83256907] [STRESS SYNC] allday stress:255 time:1791176640
+[83287622] [TIME]2026-10-5 10:35:58 week 1
+[83287626] [STRESS SYNC] allday stress:255 time:1791176700
+[83318340] [TIME]2026-10-5 10:36:58 week 1
+[83318345] [STRESS SYNC] allday stress:255 time:1791176760
+[83349065] [TIME]2026-10-5 10:37:58 week 1
+[83349070] [STRESS SYNC] allday stress:255 time:1791176820
+[83379781] [TIME]2026-10-5 10:38:58 week 1
+[83379786] [STRESS SYNC] allday stress:255 time:1791176880
+[83410501] [TIME]2026-10-5 10:39:58 week 1
+[83410505] [STRESS SYNC] allday stress:255 time:1791176940
+[83441225] [TIME]2026-10-5 10:40:58 week 1
+[83441230] [STRESS SYNC] allday stress:255 time:1791177000
+[83471942] [TIME]2026-10-5 10:41:58 week 1
+[83471946] [STRESS SYNC] allday stress:255 time:1791177060
+[83502662] [TIME]2026-10-5 10:42:58 week 1
+[83502666] [STRESS SYNC] allday stress:255 time:1791177120
+[83533387] [TIME]2026-10-5 10:43:58 week 1
+[83533391] [STRESS SYNC] allday stress:255 time:1791177180
+[83564102] [TIME]2026-10-5 10:44:58 week 1
+[83564107] [STRESS SYNC] allday stress:255 time:1791177240
+[83594821] [TIME]2026-10-5 10:45:58 week 1
+[83594826] [STRESS SYNC] allday stress:255 time:1791177300
+[83625589] [TIME]2026-10-5 10:46:58 week 1
+[83625594] [STRESS SYNC] allday stress:255 time:1791177360
+[83656265] [TIME]2026-10-5 10:47:58 week 1
+[83656270] [STRESS SYNC] allday stress:255 time:1791177420
+[83686988] [TIME]2026-10-5 10:48:58 week 1
+[83686998] [STRESS SYNC] allday stress:255 time:1791177480
+[83717705] [TIME]2026-10-5 10:49:58 week 1
+[83717716] [STRESS SYNC] allday stress:255 time:1791177540
+[83748426] [TIME]2026-10-5 10:50:58 week 1
+[83748432] [STRESS SYNC] allday stress:255 time:1791177600
+[83779154] [TIME]2026-10-5 10:51:58 week 1
+[83779160] [STRESS SYNC] allday stress:255 time:1791177660
+[83809866] [TIME]2026-10-5 10:52:58 week 1
+[83809872] [STRESS SYNC] allday stress:36 time:1791177720
+[83840625] [TIME]2026-10-5 10:53:58 week 1
+[83840631] [STRESS SYNC] allday stress:255 time:1791177780
+[83871305] [TIME]2026-10-5 10:54:58 week 1
+[83871311] [STRESS SYNC] allday stress:255 time:1791177840
+[83902030] [TIME]2026-10-5 10:55:58 week 1
+[83902036] [STRESS SYNC] allday stress:255 time:1791177900
+[83932747] [TIME]2026-10-5 10:56:58 week 1
+[83932753] [STRESS SYNC] allday stress:255 time:1791177960
+[83963505] [TIME]2026-10-5 10:57:58 week 1
+[83963511] [STRESS SYNC] allday stress:44 time:1791178020
+[83994187] [TIME]2026-10-5 10:58:58 week 1
+[83994233] [STRESS SYNC] allday stress:255 time:1791178080
+[84024949] [TIME]2026-10-5 10:59:58 week 1
+[84024955] [STRESS SYNC] allday stress:255 time:1791178140
+[84055684] [TIME]2026-10-5 11:0:58 week 1
+[84055687] [STRESS SYNC] allday stress:255 time:1791178200
+[84086351] [TIME]2026-10-5 11:1:58 week 1
+[84086354] [STRESS SYNC] allday stress:255 time:1791178260
+[84117105] [TIME]2026-10-5 11:2:58 week 1
+[84117108] [STRESS SYNC] allday stress:255 time:1791178320
+[84147787] [TIME]2026-10-5 11:3:58 week 1
+[84147833] [STRESS SYNC] allday stress:255 time:1791178380
+[84178511] [TIME]2026-10-5 11:4:58 week 1
+[84178514] [STRESS SYNC] allday stress:255 time:1791178440
+[84209231] [TIME]2026-10-5 11:5:58 week 1
+[84209234] [STRESS SYNC] allday stress:255 time:1791178500
+[84239955] [TIME]2026-10-5 11:6:58 week 1
+[84239958] [STRESS SYNC] allday stress:255 time:1791178560
+[84270661] [TIME]2026-10-5 11:7:58 week 1
+[84270663] [STRESS SYNC] allday stress:255 time:1791178620
+[84301424] [TIME]2026-10-5 11:8:58 week 1
+[84301427] [STRESS SYNC] allday stress:255 time:1791178680
+[84332102] [TIME]2026-10-5 11:9:58 week 1
+[84332105] [STRESS SYNC] allday stress:255 time:1791178740
+[84362825] [TIME]2026-10-5 11:10:58 week 1
+[84362828] [STRESS SYNC] allday stress:255 time:1791178800
+[84393548] [TIME]2026-10-5 11:11:58 week 1
+[84393551] [STRESS SYNC] allday stress:255 time:1791178860
+[84424261] [TIME]2026-10-5 11:12:58 week 1
+[84424264] [STRESS SYNC] allday stress:35 time:1791178920
+[84454980] [TIME]2026-10-5 11:13:58 week 1
+[84454983] [STRESS SYNC] allday stress:255 time:1791178980
+[84485701] [TIME]2026-10-5 11:14:58 week 1
+[84485704] [STRESS SYNC] allday stress:255 time:1791179040
+[84516423] [TIME]2026-10-5 11:15:58 week 1
+[84516426] [STRESS SYNC] allday stress:255 time:1791179100
+[84547145] [TIME]2026-10-5 11:16:58 week 1
+[84547148] [STRESS SYNC] allday stress:255 time:1791179160
+[84577867] [TIME]2026-10-5 11:17:58 week 1
+[84577870] [STRESS SYNC] allday stress:255 time:1791179220
+[84608583] [TIME]2026-10-5 11:18:58 week 1
+[84608586] [STRESS SYNC] allday stress:255 time:1791179280
+[84639343] [TIME]2026-10-5 11:19:58 week 1
+[84639346] [STRESS SYNC] allday stress:255 time:1791179340
+[84670022] [TIME]2026-10-5 11:20:58 week 1
+[84670025] [STRESS SYNC] allday stress:255 time:1791179400
+[84700745] [TIME]2026-10-5 11:21:58 week 1
+[84700754] [STRESS SYNC] allday stress:255 time:1791179460
+[84731500] [TIME]2026-10-5 11:22:58 week 1
+[84731503] [STRESS SYNC] allday stress:26 time:1791179520
+[84762182] [TIME]2026-10-5 11:23:58 week 1
+[84762185] [STRESS SYNC] allday stress:255 time:1791179580
+[84792907] [TIME]2026-10-5 11:24:58 week 1
+[84792910] [STRESS SYNC] allday stress:255 time:1791179640
+[84823622] [TIME]2026-10-5 11:25:58 week 1
+[84823626] [STRESS SYNC] allday stress:255 time:1791179700
+[84854385] [TIME]2026-10-5 11:26:58 week 1
+[84854389] [STRESS SYNC] allday stress:255 time:1791179760
+[84885061] [TIME]2026-10-5 11:27:58 week 1
+[84885065] [STRESS SYNC] allday stress:255 time:1791179820
+[84915785] [TIME]2026-10-5 11:28:58 week 1
+[84915789] [STRESS SYNC] allday stress:255 time:1791179880
+[84946502] [TIME]2026-10-5 11:29:58 week 1
+[84946506] [STRESS SYNC] allday stress:255 time:1791179940
+[84977261] [TIME]2026-10-5 11:30:58 week 1
+[84977265] [STRESS SYNC] allday stress:255 time:1791180000
+[85007949] [TIME]2026-10-5 11:31:58 week 1
+[85007952] [STRESS SYNC] allday stress:255 time:1791180060
+[85038661] [TIME]2026-10-5 11:32:58 week 1
+[85038665] [STRESS SYNC] allday stress:31 time:1791180120
+[85069383] [TIME]2026-10-5 11:33:58 week 1
+[85069387] [STRESS SYNC] allday stress:255 time:1791180180
+[85100109] [TIME]2026-10-5 11:34:58 week 1
+[85100113] [STRESS SYNC] allday stress:255 time:1791180240
+[85112853] [STRESS SYNC]len:2135 start_addr:df279 start_time:1791052200
+[85112922] [STRESS SYNC]len:0 start_addr:0 start_time:1791180300
+[85131015] [TIME]2026-10-5 11:35:58 week 1
+[85131019] [STRESS SYNC] allday stress:255 time:1791180300
+[85161738] [TIME]2026-10-5 11:36:58 week 1
+[85161742] [STRESS SYNC] allday stress:255 time:1791180360
+[85192455] [TIME]2026-10-5 11:37:58 week 1
+[85192459] [STRESS SYNC] allday stress:255 time:1791180420
+[85223178] [TIME]2026-10-5 11:38:58 week 1
+[85223182] [STRESS SYNC] allday stress:255 time:1791180480
+[85253895] [TIME]2026-10-5 11:39:58 week 1
+[85253899] [STRESS SYNC] allday stress:255 time:1791180540
+[85284614] [TIME]2026-10-5 11:40:58 week 1
+[85284618] [STRESS SYNC] allday stress:255 time:1791180600
+[85315337] [TIME]2026-10-5 11:41:58 week 1
+[85315341] [STRESS SYNC] allday stress:255 time:1791180660
+[85346054] [TIME]2026-10-5 11:42:58 week 1
+[85346063] [STRESS SYNC] allday stress:255 time:1791180720
+[85376812] [TIME]2026-10-5 11:43:58 week 1
+[85376816] [STRESS SYNC] allday stress:255 time:1791180780
+[85407540] [TIME]2026-10-5 11:44:58 week 1
+[85407544] [STRESS SYNC] allday stress:255 time:1791180840
+[85438216] [TIME]2026-10-5 11:45:58 week 1
+[85438220] [STRESS SYNC] allday stress:255 time:1791180900
+[85468937] [TIME]2026-10-5 11:46:58 week 1
+[85468942] [STRESS SYNC] allday stress:255 time:1791180960
+[85499655] [TIME]2026-10-5 11:47:58 week 1
+[85499660] [STRESS SYNC] allday stress:255 time:1791181020
+[85530375] [TIME]2026-10-5 11:48:58 week 1
+[85530379] [STRESS SYNC] allday stress:255 time:1791181080
+[85561094] [TIME]2026-10-5 11:49:58 week 1
+[85561138] [STRESS SYNC] allday stress:255 time:1791181140
+[85591815] [TIME]2026-10-5 11:50:58 week 1
+[85591819] [STRESS SYNC] allday stress:255 time:1791181200
+[85622538] [TIME]2026-10-5 11:51:58 week 1
+[85622542] [STRESS SYNC] allday stress:255 time:1791181260
+[85653255] [TIME]2026-10-5 11:52:58 week 1
+[85653260] [STRESS SYNC] allday stress:29 time:1791181320
+[85683978] [TIME]2026-10-5 11:53:58 week 1
+[85683982] [STRESS SYNC] allday stress:255 time:1791181380
+[85714692] [TIME]2026-10-5 11:54:58 week 1
+[85714696] [STRESS SYNC] allday stress:255 time:1791181440
+[85745415] [TIME]2026-10-5 11:55:58 week 1
+[85745420] [STRESS SYNC] allday stress:255 time:1791181500
+[85776139] [TIME]2026-10-5 11:56:58 week 1
+[85776143] [STRESS SYNC] allday stress:255 time:1791181560
+[85806893] [TIME]2026-10-5 11:57:58 week 1
+[85806898] [STRESS SYNC] allday stress:255 time:1791181620
+[85837573] [TIME]2026-10-5 11:58:58 week 1
+[85837578] [STRESS SYNC] allday stress:255 time:1791181680
+[85868335] [TIME]2026-10-5 11:59:58 week 1
+[85868340] [STRESS SYNC] allday stress:255 time:1791181740
+[85899018] [TIME]2026-10-5 12:0:58 week 1
+[85899023] [STRESS SYNC] allday stress:255 time:1791181800
+[85929741] [TIME]2026-10-5 12:1:58 week 1
+[85929746] [STRESS SYNC] allday stress:255 time:1791181860
+[85960454] [TIME]2026-10-5 12:2:58 week 1
+[85960460] [STRESS SYNC] allday stress:27 time:1791181920
+[85991211] [TIME]2026-10-5 12:3:58 week 1
+[85991217] [STRESS SYNC] allday stress:255 time:1791181980
+[86021894] [TIME]2026-10-5 12:4:58 week 1
+[86021899] [STRESS SYNC] allday stress:255 time:1791182040
+[86052655] [TIME]2026-10-5 12:5:58 week 1
+[86052660] [STRESS SYNC] allday stress:255 time:1791182100
+[86083373] [TIME]2026-10-5 12:6:58 week 1
+[86083379] [STRESS SYNC] allday stress:255 time:1791182160
+[86114092] [TIME]2026-10-5 12:7:58 week 1
+[86114098] [STRESS SYNC] allday stress:255 time:1791182220
+[86144773] [TIME]2026-10-5 12:8:58 week 1
+[86144779] [STRESS SYNC] allday stress:255 time:1791182280
+[86175495] [TIME]2026-10-5 12:9:58 week 1
+[86175501] [STRESS SYNC] allday stress:255 time:1791182340
+[86206220] [TIME]2026-10-5 12:10:58 week 1
+[86206225] [STRESS SYNC] allday stress:255 time:1791182400
+[86236942] [TIME]2026-10-5 12:11:58 week 1
+[86236947] [STRESS SYNC] allday stress:255 time:1791182460
+[86267653] [TIME]2026-10-5 12:12:58 week 1
+[86267659] [STRESS SYNC] allday stress:255 time:1791182520
+[86298412] [TIME]2026-10-5 12:13:58 week 1
+[86298418] [STRESS SYNC] allday stress:255 time:1791182580
+[86329094] [TIME]2026-10-5 12:14:58 week 1
+[86329100] [STRESS SYNC] allday stress:255 time:1791182640
+[86359818] [TIME]2026-10-5 12:15:58 week 1
+[86359824] [STRESS SYNC] allday stress:255 time:1791182700
+[86390537] [TIME]2026-10-5 12:16:58 week 1
+[86390543] [STRESS SYNC] allday stress:255 time:1791182760
+[86421298] [TIME]2026-10-5 12:17:58 week 1
+[86421304] [STRESS SYNC] allday stress:27 time:1791182820
+[86452010] [TIME]2026-10-5 12:18:58 week 1
+[86452016] [STRESS SYNC] allday stress:255 time:1791182880
+[86482695] [TIME]2026-10-5 12:19:58 week 1
+[86482701] [STRESS SYNC] allday stress:255 time:1791182940
+[86513416] [TIME]2026-10-5 12:20:58 week 1
+[86513422] [STRESS SYNC] allday stress:255 time:1791183000
+[86544141] [TIME]2026-10-5 12:21:58 week 1
+[86544181] [STRESS SYNC] allday stress:255 time:1791183060
+[86574855] [TIME]2026-10-5 12:22:58 week 1
+[86574861] [STRESS SYNC] allday stress:255 time:1791183120
+[86605574] [TIME]2026-10-5 12:23:58 week 1
+[86605580] [STRESS SYNC] allday stress:255 time:1791183180
+[86636333] [TIME]2026-10-5 12:24:58 week 1
+[86636338] [STRESS SYNC] allday stress:255 time:1791183240
+[86667068] [TIME]2026-10-5 12:25:58 week 1
+[86667070] [STRESS SYNC] allday stress:255 time:1791183300
+[86697770] [TIME]2026-10-5 12:26:58 week 1
+[86697772] [STRESS SYNC] allday stress:255 time:1791183360
+[86728453] [TIME]2026-10-5 12:27:58 week 1
+[86728456] [STRESS SYNC] allday stress:34 time:1791183420
+[86759173] [TIME]2026-10-5 12:28:58 week 1
+[86759175] [STRESS SYNC] allday stress:255 time:1791183480
+[86789893] [TIME]2026-10-5 12:29:58 week 1
+[86789895] [STRESS SYNC] allday stress:255 time:1791183540
+[86820614] [TIME]2026-10-5 12:30:58 week 1
+[86820617] [STRESS SYNC] allday stress:255 time:1791183600
+[86851336] [TIME]2026-10-5 12:31:58 week 1
+[86851339] [STRESS SYNC] allday stress:255 time:1791183660
+[86882049] [TIME]2026-10-5 12:32:58 week 1
+[86882052] [STRESS SYNC] allday stress:255 time:1791183720
+[86912769] [TIME]2026-10-5 12:33:58 week 1
+[86912772] [STRESS SYNC] allday stress:255 time:1791183780
+[86943533] [TIME]2026-10-5 12:34:58 week 1
+[86943536] [STRESS SYNC] allday stress:255 time:1791183840
+[86974211] [TIME]2026-10-5 12:35:58 week 1
+[86974215] [STRESS SYNC] allday stress:255 time:1791183900
+[87004938] [TIME]2026-10-5 12:36:58 week 1
+[87004941] [STRESS SYNC] allday stress:255 time:1791183960
+[87035651] [TIME]2026-10-5 12:37:58 week 1
+[87035658] [STRESS SYNC] allday stress:255 time:1791184020
+[87066369] [TIME]2026-10-5 12:38:58 week 1
+[87066372] [STRESS SYNC] allday stress:255 time:1791184080
+[87097135] [TIME]2026-10-5 12:39:58 week 1
+[87097138] [STRESS SYNC] allday stress:255 time:1791184140
+[87127814] [TIME]2026-10-5 12:40:58 week 1
+[87127817] [STRESS SYNC] allday stress:255 time:1791184200
+[87158537] [TIME]2026-10-5 12:41:58 week 1
+[87158540] [STRESS SYNC] allday stress:255 time:1791184260
+[87189250] [TIME]2026-10-5 12:42:58 week 1
+[87189253] [STRESS SYNC] allday stress:255 time:1791184320
+[87220010] [TIME]2026-10-5 12:43:58 week 1
+[87220013] [STRESS SYNC] allday stress:255 time:1791184380
+[87250693] [TIME]2026-10-5 12:44:58 week 1
+[87250696] [STRESS SYNC] allday stress:255 time:1791184440
+[87281412] [TIME]2026-10-5 12:45:58 week 1
+[87281415] [STRESS SYNC] allday stress:255 time:1791184500
+[87312172] [TIME]2026-10-5 12:46:58 week 1
+[87312175] [STRESS SYNC] allday stress:255 time:1791184560
+[87342851] [TIME]2026-10-5 12:47:58 week 1
+[87342854] [STRESS SYNC] allday stress:255 time:1791184620
+[87373571] [TIME]2026-10-5 12:48:58 week 1
+[87373574] [STRESS SYNC] allday stress:255 time:1791184680
+[87404295] [TIME]2026-10-5 12:49:58 week 1
+[87404298] [STRESS SYNC] allday stress:255 time:1791184740
+[87435010] [TIME]2026-10-5 12:50:58 week 1
+[87435014] [STRESS SYNC] allday stress:255 time:1791184800
+[87465772] [TIME]2026-10-5 12:51:58 week 1
+[87465775] [STRESS SYNC] allday stress:255 time:1791184860
+[87496451] [TIME]2026-10-5 12:52:58 week 1
+[87496455] [STRESS SYNC] allday stress:29 time:1791184920
+[87527176] [TIME]2026-10-5 12:53:58 week 1
+[87527179] [STRESS SYNC] allday stress:255 time:1791184980
+[87557892] [TIME]2026-10-5 12:54:58 week 1
+[87557896] [STRESS SYNC] allday stress:255 time:1791185040
+[87588611] [TIME]2026-10-5 12:55:58 week 1
+[87588619] [STRESS SYNC] allday stress:255 time:1791185100
+[87619375] [TIME]2026-10-5 12:56:58 week 1
+[87619378] [STRESS SYNC] allday stress:255 time:1791185160
+[87650051] [TIME]2026-10-5 12:57:58 week 1
+[87650060] [STRESS SYNC] allday stress:255 time:1791185220
+[87680772] [TIME]2026-10-5 12:58:58 week 1
+[87680776] [STRESS SYNC] allday stress:255 time:1791185280
+[87711528] [TIME]2026-10-5 12:59:58 week 1
+[87711572] [STRESS SYNC] allday stress:255 time:1791185340
+[87742213] [TIME]2026-10-5 13:0:58 week 1
+[87742216] [STRESS SYNC] allday stress:255 time:1791185400
+[87772939] [TIME]2026-10-5 13:1:58 week 1
+[87772943] [STRESS SYNC] allday stress:255 time:1791185460
+[87803653] [TIME]2026-10-5 13:2:58 week 1
+[87803656] [STRESS SYNC] allday stress:32 time:1791185520
+[87834411] [TIME]2026-10-5 13:3:58 week 1
+[87834414] [STRESS SYNC] allday stress:255 time:1791185580
+[87865133] [TIME]2026-10-5 13:4:58 week 1
+[87865137] [STRESS SYNC] allday stress:255 time:1791185640
+[87895813] [TIME]2026-10-5 13:5:58 week 1
+[87895817] [STRESS SYNC] allday stress:255 time:1791185700
+[87926575] [TIME]2026-10-5 13:6:58 week 1
+[87926579] [STRESS SYNC] allday stress:255 time:1791185760
+[87957252] [TIME]2026-10-5 13:7:58 week 1
+[87957256] [STRESS SYNC] allday stress:24 time:1791185820
+[87987977] [TIME]2026-10-5 13:8:58 week 1
+[87987981] [STRESS SYNC] allday stress:255 time:1791185880
+[88018692] [TIME]2026-10-5 13:9:58 week 1
+[88018696] [STRESS SYNC] allday stress:255 time:1791185940
+[88049414] [TIME]2026-10-5 13:10:58 week 1
+[88049418] [STRESS SYNC] allday stress:255 time:1791186000
+[88080141] [TIME]2026-10-5 13:11:58 week 1
+[88080145] [STRESS SYNC] allday stress:255 time:1791186060
+[88110857] [TIME]2026-10-5 13:12:58 week 1
+[88110861] [STRESS SYNC] allday stress:255 time:1791186120
+[88141578] [TIME]2026-10-5 13:13:58 week 1
+[88141582] [STRESS SYNC] allday stress:255 time:1791186180
+[88172297] [TIME]2026-10-5 13:14:58 week 1
+[88172301] [STRESS SYNC] allday stress:255 time:1791186240
+[88203013] [TIME]2026-10-5 13:15:58 week 1
+[88203017] [STRESS SYNC] allday stress:255 time:1791186300
+[88233773] [TIME]2026-10-5 13:16:58 week 1
+[88233777] [STRESS SYNC] allday stress:255 time:1791186360
+[88264458] [TIME]2026-10-5 13:17:58 week 1
+[88264462] [STRESS SYNC] allday stress:255 time:1791186420
+[88295178] [TIME]2026-10-5 13:18:58 week 1
+[88295182] [STRESS SYNC] allday stress:255 time:1791186480
+[88325898] [TIME]2026-10-5 13:19:58 week 1
+[88325903] [STRESS SYNC] allday stress:255 time:1791186540
+[88356612] [TIME]2026-10-5 13:20:58 week 1
+[88356655] [STRESS SYNC] allday stress:255 time:1791186600
+[88387340] [TIME]2026-10-5 13:21:58 week 1
+[88387345] [STRESS SYNC] allday stress:255 time:1791186660
+[88418056] [TIME]2026-10-5 13:22:58 week 1
+[88418060] [STRESS SYNC] allday stress:255 time:1791186720
+[88448773] [TIME]2026-10-5 13:23:58 week 1
+[88448777] [STRESS SYNC] allday stress:255 time:1791186780
+[88479492] [TIME]2026-10-5 13:24:58 week 1
+[88479534] [STRESS SYNC] allday stress:255 time:1791186840
+[88510214] [TIME]2026-10-5 13:25:58 week 1
+[88510218] [STRESS SYNC] allday stress:255 time:1791186900
+[88540941] [TIME]2026-10-5 13:26:58 week 1
+[88540946] [STRESS SYNC] allday stress:255 time:1791186960
+[88571654] [TIME]2026-10-5 13:27:58 week 1
+[88571659] [STRESS SYNC] allday stress:22 time:1791187020
+[88602411] [TIME]2026-10-5 13:28:58 week 1
+[88602423] [STRESS SYNC] allday stress:255 time:1791187080
+[88633098] [TIME]2026-10-5 13:29:58 week 1
+[88633103] [STRESS SYNC] allday stress:255 time:1791187140
+[88663814] [TIME]2026-10-5 13:30:58 week 1
+[88663819] [STRESS SYNC] allday stress:255 time:1791187200
+[88694575] [TIME]2026-10-5 13:31:58 week 1
+[88694580] [STRESS SYNC] allday stress:255 time:1791187260
+[88725254] [TIME]2026-10-5 13:32:58 week 1
+[88725259] [STRESS SYNC] allday stress:255 time:1791187320
+[88755973] [TIME]2026-10-5 13:33:58 week 1
+[88755979] [STRESS SYNC] allday stress:255 time:1791187380
+[88786734] [TIME]2026-10-5 13:34:58 week 1
+[88786740] [STRESS SYNC] allday stress:255 time:1791187440
+[88817416] [TIME]2026-10-5 13:35:58 week 1
+[88817422] [STRESS SYNC] allday stress:255 time:1791187500
+[88848138] [TIME]2026-10-5 13:36:58 week 1
+[88848144] [STRESS SYNC] allday stress:255 time:1791187560
+[88878891] [TIME]2026-10-5 13:37:58 week 1
+[88878896] [STRESS SYNC] allday stress:255 time:1791187620
+[88909609] [TIME]2026-10-5 13:38:58 week 1
+[88909615] [STRESS SYNC] allday stress:255 time:1791187680
+[88940330] [TIME]2026-10-5 13:39:58 week 1
+[88940336] [STRESS SYNC] allday stress:255 time:1791187740
+[88971009] [TIME]2026-10-5 13:40:58 week 1
+[88971015] [STRESS SYNC] allday stress:255 time:1791187800
+[89001736] [TIME]2026-10-5 13:41:58 week 1
+[89001742] [STRESS SYNC] allday stress:255 time:1791187860
+[89032450] [TIME]2026-10-5 13:42:58 week 1
+[89032456] [STRESS SYNC] allday stress:255 time:1791187920
+[89063170] [TIME]2026-10-5 13:43:58 week 1
+[89063175] [STRESS SYNC] allday stress:255 time:1791187980
+[89093890] [TIME]2026-10-5 13:44:58 week 1
+[89093896] [STRESS SYNC] allday stress:255 time:1791188040
+[89124610] [TIME]2026-10-5 13:45:58 week 1
+[89124616] [STRESS SYNC] allday stress:255 time:1791188100
+[89155331] [TIME]2026-10-5 13:46:58 week 1
+[89155337] [STRESS SYNC] allday stress:255 time:1791188160
+[89186054] [TIME]2026-10-5 13:47:58 week 1
+[89186060] [STRESS SYNC] allday stress:31 time:1791188220
+[89216774] [TIME]2026-10-5 13:48:58 week 1
+[89216780] [STRESS SYNC] allday stress:255 time:1791188280
+[89247494] [TIME]2026-10-5 13:49:58 week 1
+[89247500] [STRESS SYNC] allday stress:255 time:1791188340
+[89278262] [TIME]2026-10-5 13:50:58 week 1
+[89278264] [STRESS SYNC] allday stress:255 time:1791188400
+[89308925] [TIME]2026-10-5 13:51:58 week 1
+[89308935] [STRESS SYNC] allday stress:255 time:1791188460
+[89339649] [TIME]2026-10-5 13:52:58 week 1
+[89339652] [STRESS SYNC] allday stress:255 time:1791188520
+[89370370] [TIME]2026-10-5 13:53:58 week 1
+[89370372] [STRESS SYNC] allday stress:255 time:1791188580
+[89401119] [TIME]2026-10-5 13:54:58 week 1
+[89401122] [STRESS SYNC] allday stress:255 time:1791188640
+[89431845] [TIME]2026-10-5 13:55:58 week 1
+[89431847] [STRESS SYNC] allday stress:255 time:1791188700
+[89462528] [TIME]2026-10-5 13:56:58 week 1
+[89462531] [STRESS SYNC] allday stress:255 time:1791188760
+[89493245] [TIME]2026-10-5 13:57:58 week 1
+[89493248] [STRESS SYNC] allday stress:255 time:1791188820
+[89523964] [TIME]2026-10-5 13:58:58 week 1
+[89523967] [STRESS SYNC] allday stress:255 time:1791188880
+[89554749] [TIME]2026-10-5 13:59:58 week 1
+[89554795] [STRESS SYNC] allday stress:255 time:1791188940
+[89585410] [TIME]2026-10-5 14:0:58 week 1
+[89585413] [STRESS SYNC] allday stress:255 time:1791189000
+[89616129] [TIME]2026-10-5 14:1:58 week 1
+[89616132] [STRESS SYNC] allday stress:255 time:1791189060
+[89646850] [TIME]2026-10-5 14:2:58 week 1
+[89646853] [STRESS SYNC] allday stress:255 time:1791189120
+[89677568] [TIME]2026-10-5 14:3:58 week 1
+[89677571] [STRESS SYNC] allday stress:255 time:1791189180
+[89708327] [TIME]2026-10-5 14:4:58 week 1
+[89708330] [STRESS SYNC] allday stress:255 time:1791189240
+[89739053] [TIME]2026-10-5 14:5:58 week 1
+[89739057] [STRESS SYNC] allday stress:255 time:1791189300
+[89769728] [TIME]2026-10-5 14:6:58 week 1
+[89769731] [STRESS SYNC] allday stress:255 time:1791189360
+[89800449] [TIME]2026-10-5 14:7:58 week 1
+[89800452] [STRESS SYNC] allday stress:255 time:1791189420
+[89831170] [TIME]2026-10-5 14:8:58 week 1
+[89831173] [STRESS SYNC] allday stress:255 time:1791189480
+[89861885] [TIME]2026-10-5 14:9:58 week 1
+[89861889] [STRESS SYNC] allday stress:255 time:1791189540
+[89892607] [TIME]2026-10-5 14:10:58 week 1
+[89892610] [STRESS SYNC] allday stress:255 time:1791189600
+[89923335] [TIME]2026-10-5 14:11:58 week 1
+[89923339] [STRESS SYNC] allday stress:255 time:1791189660
+[89954045] [TIME]2026-10-5 14:12:58 week 1
+[89954048] [STRESS SYNC] allday stress:255 time:1791189720
+[89984815] [TIME]2026-10-5 14:13:58 week 1
+[89984825] [STRESS SYNC] allday stress:255 time:1791189780
+[90015526] [TIME]2026-10-5 14:14:58 week 1
+[90015529] [STRESS SYNC] allday stress:255 time:1791189840
+[90046245] [TIME]2026-10-5 14:15:58 week 1
+[90046254] [STRESS SYNC] allday stress:255 time:1791189900
+[90076932] [TIME]2026-10-5 14:16:58 week 1
+[90076941] [STRESS SYNC] allday stress:255 time:1791189960
+[90107646] [TIME]2026-10-5 14:17:58 week 1
+[90107650] [STRESS SYNC] allday stress:255 time:1791190020
+[90138411] [TIME]2026-10-5 14:18:58 week 1
+[90138414] [STRESS SYNC] allday stress:255 time:1791190080
+[90169129] [TIME]2026-10-5 14:19:58 week 1
+[90169132] [STRESS SYNC] allday stress:255 time:1791190140
+[90199806] [TIME]2026-10-5 14:20:58 week 1
+[90199810] [STRESS SYNC] allday stress:255 time:1791190200
+[90230534] [TIME]2026-10-5 14:21:58 week 1
+[90230538] [STRESS SYNC] allday stress:255 time:1791190260
+[90261252] [TIME]2026-10-5 14:22:58 week 1
+[90261255] [STRESS SYNC] allday stress:255 time:1791190320
+[90291968] [TIME]2026-10-5 14:23:58 week 1
+[90291972] [STRESS SYNC] allday stress:255 time:1791190380
+[90322727] [TIME]2026-10-5 14:24:58 week 1
+[90322731] [STRESS SYNC] allday stress:255 time:1791190440
+[90353406] [TIME]2026-10-5 14:25:58 week 1
+[90353410] [STRESS SYNC] allday stress:255 time:1791190500
+[90384286] [TIME]2026-10-5 14:26:58 week 1
+[90384293] [STRESS SYNC] allday stress:255 time:1791190560
+[90414848] [TIME]2026-10-5 14:27:58 week 1
+[90414852] [STRESS SYNC] allday stress:255 time:1791190620
+[90445572] [TIME]2026-10-5 14:28:58 week 1
+[90445576] [STRESS SYNC] allday stress:255 time:1791190680
+[90476326] [TIME]2026-10-5 14:29:58 week 1
+[90476330] [STRESS SYNC] allday stress:255 time:1791190740
+[90507007] [TIME]2026-10-5 14:30:58 week 1
+[90507011] [STRESS SYNC] allday stress:255 time:1791190800
+[90537751] [TIME]2026-10-5 14:31:58 week 1
+[90537760] [STRESS SYNC] allday stress:255 time:1791190860
+[90568447] [TIME]2026-10-5 14:32:58 week 1
+[90568457] [STRESS SYNC] allday stress:255 time:1791190920
+[90599167] [TIME]2026-10-5 14:33:58 week 1
+[90599171] [STRESS SYNC] allday stress:255 time:1791190980
+[90629887] [TIME]2026-10-5 14:34:58 week 1
+[90629891] [STRESS SYNC] allday stress:255 time:1791191040
+[90660656] [TIME]2026-10-5 14:35:58 week 1
+[90660660] [STRESS SYNC] allday stress:255 time:1791191100
+[90691331] [TIME]2026-10-5 14:36:58 week 1
+[90691335] [STRESS SYNC] allday stress:255 time:1791191160
+[90722050] [TIME]2026-10-5 14:37:58 week 1
+[90722055] [STRESS SYNC] allday stress:255 time:1791191220
+[90752767] [TIME]2026-10-5 14:38:58 week 1
+[90752771] [STRESS SYNC] allday stress:255 time:1791191280
+[90783528] [TIME]2026-10-5 14:39:58 week 1
+[90783532] [STRESS SYNC] allday stress:255 time:1791191340
+[90814244] [TIME]2026-10-5 14:40:58 week 1
+[90814248] [STRESS SYNC] allday stress:255 time:1791191400
+[90844930] [TIME]2026-10-5 14:41:58 week 1
+[90844934] [STRESS SYNC] allday stress:255 time:1791191460
+[90875648] [TIME]2026-10-5 14:42:58 week 1
+[90875652] [STRESS SYNC] allday stress:255 time:1791191520
+[90906372] [TIME]2026-10-5 14:43:58 week 1
+[90906376] [STRESS SYNC] allday stress:255 time:1791191580
+[90937093] [TIME]2026-10-5 14:44:58 week 1
+[90937097] [STRESS SYNC] allday stress:255 time:1791191640
+[90967809] [TIME]2026-10-5 14:45:58 week 1
+[90967814] [STRESS SYNC] allday stress:255 time:1791191700
+[90998536] [TIME]2026-10-5 14:46:58 week 1
+[90998540] [STRESS SYNC] allday stress:255 time:1791191760
+[91029253] [TIME]2026-10-5 14:47:58 week 1
+[91029257] [STRESS SYNC] allday stress:255 time:1791191820
+[91059968] [TIME]2026-10-5 14:48:58 week 1
+[91059973] [STRESS SYNC] allday stress:255 time:1791191880
+[91090728] [TIME]2026-10-5 14:49:58 week 1
+[91090733] [STRESS SYNC] allday stress:255 time:1791191940
+[91121408] [TIME]2026-10-5 14:50:58 week 1
+[91121413] [STRESS SYNC] allday stress:255 time:1791192000
+[91152131] [TIME]2026-10-5 14:51:58 week 1
+[91152136] [STRESS SYNC] allday stress:255 time:1791192060
+[91182854] [TIME]2026-10-5 14:52:58 week 1
+[91182860] [STRESS SYNC] allday stress:255 time:1791192120
+[91213569] [TIME]2026-10-5 14:53:58 week 1
+[91213575] [STRESS SYNC] allday stress:255 time:1791192180
+[91244288] [TIME]2026-10-5 14:54:58 week 1
+[91244293] [STRESS SYNC] allday stress:255 time:1791192240
+[91275050] [TIME]2026-10-5 14:55:58 week 1
+[91275055] [STRESS SYNC] allday stress:255 time:1791192300
+[91305736] [TIME]2026-10-5 14:56:58 week 1
+[91305741] [STRESS SYNC] allday stress:255 time:1791192360
+[91336643] [TIME]2026-10-5 14:57:58 week 1
+[91336649] [STRESS SYNC] allday stress:255 time:1791192420
+[91367363] [TIME]2026-10-5 14:58:58 week 1
+[91367368] [STRESS SYNC] allday stress:255 time:1791192480
+[91398160] [TIME]2026-10-5 14:59:58 week 1
+[91398165] [STRESS SYNC] allday stress:255 time:1791192540
+[91428802] [TIME]2026-10-5 15:0:58 week 1
+[91428808] [STRESS SYNC] allday stress:255 time:1791192600
+[91459527] [TIME]2026-10-5 15:1:58 week 1
+[91459532] [STRESS SYNC] allday stress:255 time:1791192660
+[91490248] [TIME]2026-10-5 15:2:58 week 1
+[91490253] [STRESS SYNC] allday stress:255 time:1791192720
+[91520968] [TIME]2026-10-5 15:3:58 week 1
+[91520974] [STRESS SYNC] allday stress:255 time:1791192780
+[91551684] [TIME]2026-10-5 15:4:58 week 1
+[91551690] [STRESS SYNC] allday stress:255 time:1791192840
+[91582404] [TIME]2026-10-5 15:5:58 week 1
+[91582410] [STRESS SYNC] allday stress:255 time:1791192900
+[91613172] [TIME]2026-10-5 15:6:58 week 1
+[91613178] [STRESS SYNC] allday stress:255 time:1791192960
+[91643843] [TIME]2026-10-5 15:7:58 week 1
+[91643849] [STRESS SYNC] allday stress:255 time:1791193020
+[91674563] [TIME]2026-10-5 15:8:58 week 1
+[91674568] [STRESS SYNC] allday stress:255 time:1791193080
+[91705283] [TIME]2026-10-5 15:9:58 week 1
+[91705289] [STRESS SYNC] allday stress:255 time:1791193140
+[91736010] [TIME]2026-10-5 15:10:58 week 1
+[91736016] [STRESS SYNC] allday stress:255 time:1791193200
+[91766727] [TIME]2026-10-5 15:11:58 week 1
+[91766733] [STRESS SYNC] allday stress:255 time:1791193260
+[91797487] [TIME]2026-10-5 15:12:58 week 1
+[91797493] [STRESS SYNC] allday stress:33 time:1791193320
+[91828163] [TIME]2026-10-5 15:13:58 week 1
+[91828169] [STRESS SYNC] allday stress:255 time:1791193380
+[91858928] [TIME]2026-10-5 15:14:58 week 1
+[91858933] [STRESS SYNC] allday stress:255 time:1791193440
+[91889652] [TIME]2026-10-5 15:15:58 week 1
+[91889705] [STRESS SYNC] allday stress:255 time:1791193500
+[91920321] [TIME]2026-10-5 15:16:58 week 1
+[91920364] [STRESS SYNC] allday stress:255 time:1791193560
+[91951085] [TIME]2026-10-5 15:17:58 week 1
+[91951088] [STRESS SYNC] allday stress:255 time:1791193620
+[91981800] [TIME]2026-10-5 15:18:58 week 1
+[91981803] [STRESS SYNC] allday stress:255 time:1791193680
+[92012479] [TIME]2026-10-5 15:19:58 week 1
+[92012482] [STRESS SYNC] allday stress:255 time:1791193740
+[92043200] [TIME]2026-10-5 15:20:58 week 1
+[92043203] [STRESS SYNC] allday stress:255 time:1791193800
+[92073920] [TIME]2026-10-5 15:21:58 week 1
+[92073927] [STRESS SYNC] allday stress:255 time:1791193860
+[92104678] [TIME]2026-10-5 15:22:58 week 1
+[92104681] [STRESS SYNC] allday stress:31 time:1791193920
+[92135359] [TIME]2026-10-5 15:23:58 week 1
+[92135362] [STRESS SYNC] allday stress:255 time:1791193980
+[92166082] [TIME]2026-10-5 15:24:58 week 1
+[92166085] [STRESS SYNC] allday stress:255 time:1791194040
+[92196798] [TIME]2026-10-5 15:25:58 week 1
+[92196801] [STRESS SYNC] allday stress:255 time:1791194100
+[92227563] [TIME]2026-10-5 15:26:58 week 1
+[92227566] [STRESS SYNC] allday stress:255 time:1791194160
+[92258239] [TIME]2026-10-5 15:27:58 week 1
+[92258291] [STRESS SYNC] allday stress:34 time:1791194220
+[92289003] [TIME]2026-10-5 15:28:58 week 1
+[92289006] [STRESS SYNC] allday stress:255 time:1791194280
+[92319723] [TIME]2026-10-5 15:29:58 week 1
+[92319726] [STRESS SYNC] allday stress:255 time:1791194340
+[92350437] [TIME]2026-10-5 15:30:58 week 1
+[92350441] [STRESS SYNC] allday stress:255 time:1791194400
+[92381122] [TIME]2026-10-5 15:31:58 week 1
+[92381125] [STRESS SYNC] allday stress:255 time:1791194460
+[92411844] [TIME]2026-10-5 15:32:58 week 1
+[92411848] [STRESS SYNC] allday stress:42 time:1791194520
+[92442563] [TIME]2026-10-5 15:33:58 week 1
+[92442566] [STRESS SYNC] allday stress:255 time:1791194580
+[92473279] [TIME]2026-10-5 15:34:58 week 1
+[92473282] [STRESS SYNC] allday stress:255 time:1791194640
+[92504041] [TIME]2026-10-5 15:35:58 week 1
+[92504045] [STRESS SYNC] allday stress:255 time:1791194700
+[92534722] [TIME]2026-10-5 15:36:58 week 1
+[92534726] [STRESS SYNC] allday stress:255 time:1791194760
+[92565441] [TIME]2026-10-5 15:37:58 week 1
+[92565444] [STRESS SYNC] allday stress:255 time:1791194820
+[92596164] [TIME]2026-10-5 15:38:58 week 1
+[92596167] [STRESS SYNC] allday stress:255 time:1791194880
+[92626884] [TIME]2026-10-5 15:39:58 week 1
+[92626888] [STRESS SYNC] allday stress:255 time:1791194940
+[92657604] [TIME]2026-10-5 15:40:58 week 1
+[92657608] [STRESS SYNC] allday stress:255 time:1791195000
+[92688322] [TIME]2026-10-5 15:41:58 week 1
+[92688326] [STRESS SYNC] allday stress:255 time:1791195060
+[92719088] [TIME]2026-10-5 15:42:58 week 1
+[92719092] [STRESS SYNC] allday stress:32 time:1791195120
+[92749759] [TIME]2026-10-5 15:43:58 week 1
+[92749763] [STRESS SYNC] allday stress:255 time:1791195180
+[92780521] [TIME]2026-10-5 15:44:58 week 1
+[92780525] [STRESS SYNC] allday stress:255 time:1791195240
+[92811246] [TIME]2026-10-5 15:45:58 week 1
+[92811250] [STRESS SYNC] allday stress:255 time:1791195300
+[92841923] [TIME]2026-10-5 15:46:58 week 1
+[92841927] [STRESS SYNC] allday stress:255 time:1791195360
+[92872644] [TIME]2026-10-5 15:47:58 week 1
+[92872648] [STRESS SYNC] allday stress:255 time:1791195420
+[92903361] [TIME]2026-10-5 15:48:58 week 1
+[92903365] [STRESS SYNC] allday stress:255 time:1791195480
+[92934081] [TIME]2026-10-5 15:49:58 week 1
+[92934085] [STRESS SYNC] allday stress:255 time:1791195540
+[92964804] [TIME]2026-10-5 15:50:58 week 1
+[92964808] [STRESS SYNC] allday stress:255 time:1791195600
+[92995523] [TIME]2026-10-5 15:51:58 week 1
+[92995527] [STRESS SYNC] allday stress:255 time:1791195660
+[93026241] [TIME]2026-10-5 15:52:58 week 1
+[93026245] [STRESS SYNC] allday stress:255 time:1791195720
+[93056962] [TIME]2026-10-5 15:53:58 week 1
+[93056966] [STRESS SYNC] allday stress:255 time:1791195780
+[93087686] [TIME]2026-10-5 15:54:58 week 1
+[93087690] [STRESS SYNC] allday stress:255 time:1791195840
+[93118400] [TIME]2026-10-5 15:55:58 week 1
+[93118401] [STRESS SYNC] allday stress:255 time:1791195900
+[93149127] [TIME]2026-10-5 15:56:58 week 1
+[93149131] [STRESS SYNC] allday stress:255 time:1791195960
+[93179839] [TIME]2026-10-5 15:57:58 week 1
+[93179844] [STRESS SYNC] allday stress:43 time:1791196020
+[93210604] [TIME]2026-10-5 15:58:58 week 1
+[93210608] [STRESS SYNC] allday stress:255 time:1791196080
+[93241317] [TIME]2026-10-5 15:59:58 week 1
+[93241361] [STRESS SYNC] allday stress:255 time:1791196140
+[93272000] [TIME]2026-10-5 16:0:58 week 1
+[93272005] [STRESS SYNC] allday stress:255 time:1791196200
+[93302728] [TIME]2026-10-5 16:1:58 week 1
+[93302732] [STRESS SYNC] allday stress:255 time:1791196260
+[93333480] [TIME]2026-10-5 16:2:58 week 1
+[93333485] [STRESS SYNC] allday stress:255 time:1791196320
+[93364165] [TIME]2026-10-5 16:3:58 week 1
+[93364169] [STRESS SYNC] allday stress:255 time:1791196380
+[93394881] [TIME]2026-10-5 16:4:58 week 1
+[93394885] [STRESS SYNC] allday stress:255 time:1791196440
+[93425602] [TIME]2026-10-5 16:5:58 week 1
+[93425607] [STRESS SYNC] allday stress:255 time:1791196500
+[93456324] [TIME]2026-10-5 16:6:58 week 1
+[93456329] [STRESS SYNC] allday stress:255 time:1791196560
+[93487044] [TIME]2026-10-5 16:7:58 week 1
+[93487054] [STRESS SYNC] allday stress:255 time:1791196620
+[93517760] [TIME]2026-10-5 16:8:58 week 1
+[93517765] [STRESS SYNC] allday stress:255 time:1791196680
+[93548481] [TIME]2026-10-5 16:9:58 week 1
+[93548491] [STRESS SYNC] allday stress:255 time:1791196740
+[93579203] [TIME]2026-10-5 16:10:58 week 1
+[93579208] [STRESS SYNC] allday stress:255 time:1791196800
+[93609926] [TIME]2026-10-5 16:11:58 week 1
+[93609930] [STRESS SYNC] allday stress:255 time:1791196860
+[93640639] [TIME]2026-10-5 16:12:58 week 1
+[93640643] [STRESS SYNC] allday stress:255 time:1791196920
+[93668521] [STRESS SYNC]len:973 start_addr:df819 start_time:1791138600
+[93668705] [STRESS SYNC]len:0 start_addr:0 start_time:1791196980
+[93671347] [TIME]2026-10-5 16:13:58 week 1
+[93671352] [STRESS SYNC] allday stress:255 time:1791196980
+[93702068] [TIME]2026-10-5 16:14:58 week 1
+[93702073] [STRESS SYNC] allday stress:255 time:1791197040
+[93732788] [TIME]2026-10-5 16:15:58 week 1
+[93732793] [STRESS SYNC] allday stress:255 time:1791197100
+[93763507] [TIME]2026-10-5 16:16:58 week 1
+[93763513] [STRESS SYNC] allday stress:255 time:1791197160
+[93794227] [TIME]2026-10-5 16:17:58 week 1
+[93794236] [STRESS SYNC] allday stress:255 time:1791197220
+[93824956] [TIME]2026-10-5 16:18:58 week 1
+[93824961] [STRESS SYNC] allday stress:255 time:1791197280

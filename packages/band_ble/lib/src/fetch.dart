@@ -10,8 +10,18 @@ import 'dart:typed_data';
 /// Data types the band can stream. Codes are TODO(verify).
 enum FetchType {
   activity(0x01, 'activity'),
-  stress(0x14, 'stress'), // TODO(verify)
-  spo2(0x25, 'spo2'), // TODO(verify)
+
+  /// All-day stress, one byte per minute. 0x13 on V1.0.6.20: it matched
+  /// the band's own "[STRESS SYNC]" debug lines 586/586 in
+  /// ios-2026-10-05T10-48-50 (0x14, the older code, is always empty).
+  stress(0x13, 'stress'),
+  spo2(0x25, 'spo2'), // TODO(verify): always empty so far
+  /// Per-minute SpO₂ (sleep breathing store), see [parseSpo2Minutes].
+  spo2Minutes(0x26, 'spo2_minutes'),
+
+  /// Oxygen-desaturation events with 4 min of SpO₂ and HR, see
+  /// [parseOdEvents].
+  odEvents(0x27, 'od_events'),
   pai(0x0d, 'pai'), // TODO(verify)
   /// Workouts started on the band (Workout app). One summary per fetch;
   /// the reply's start time is that workout's start. TODO(verify)
@@ -204,11 +214,76 @@ final class ValueRecord {
   final int value;
 }
 
-/// Stress: one byte per minute, 0xff/0 = none. TODO(verify)
+/// Stress: one byte per minute from the fetch start, 1–100; 0 and
+/// anything above 100 (0xff mostly, 0xfe seen once) mean no reading.
 List<ValueRecord> parseStress(Uint8List data, DateTime start) => [
   for (var i = 0; i < data.length; i++)
-    if (data[i] != 0xff && data[i] != 0)
+    if (data[i] > 0 && data[i] <= 100)
       ValueRecord(start.add(Duration(minutes: i)), data[i]),
+];
+
+DateTime _unix(Uint8List b, int o) => DateTime.fromMillisecondsSinceEpoch(
+  (b[o] | (b[o + 1] << 8) | (b[o + 2] << 16) | (b[o + 3] << 24)) * 1000,
+);
+
+/// One minute of the sleep-breathing SpO₂ store (type 0x26).
+final class Spo2Minute {
+  const Spo2Minute(this.ts, this.avg, this.quality, this.samples);
+
+  /// End of the minute.
+  final DateTime ts;
+
+  /// Average SpO₂ %, 0 = none. Equals the firmware's "CurAveSpoPerMin"
+  /// in 167/184 minutes of the debug log (the rest it logs as 0).
+  final int avg;
+
+  /// 0–64; 64 in clean minutes. Read as a confidence. TODO(verify) scale.
+  final int quality;
+
+  /// Twelve 5-second readings, 0 = none.
+  final List<int> samples;
+}
+
+/// Type 0x26: version byte 0x02, then 30-byte records:
+/// `ts u32 LE (Unix s), avg, quality, 12 × SpO₂, 12 more bytes (TODO(verify))`.
+/// Golden: ios-2026-10-05T10-48-50 (766 records).
+List<Spo2Minute> parseSpo2Minutes(Uint8List data) => [
+  if (data.isNotEmpty && data[0] == 0x02)
+    for (var i = 1; i + 30 <= data.length; i += 30)
+      Spo2Minute(
+        _unix(data, i),
+        data[i + 4],
+        data[i + 5],
+        data.sublist(i + 6, i + 18),
+      ),
+];
+
+/// One oxygen-desaturation event (type 0x27).
+final class OdEvent {
+  const OdEvent(this.ts, this.drop, this.spo2, this.hr);
+  final DateTime ts;
+
+  /// Size of the drop in SpO₂ points (the debug log's "descend").
+  final int drop;
+
+  /// 240 one-second SpO₂ and heart-rate readings around the event,
+  /// 0 = none.
+  final List<int> spo2, hr;
+}
+
+/// Type 0x27: version byte 0x02, then 485-byte records:
+/// `ts u32 LE, drop, 240 × SpO₂, 240 × HR`. Timestamps and drops equal
+/// the debug log's "store_od_event time=…,descend=…" lines.
+/// Golden: ios-2026-10-05T10-48-50 (131 events).
+List<OdEvent> parseOdEvents(Uint8List data) => [
+  if (data.isNotEmpty && data[0] == 0x02)
+    for (var i = 1; i + 485 <= data.length; i += 485)
+      OdEvent(
+        _unix(data, i),
+        data[i + 4],
+        data.sublist(i + 5, i + 245),
+        data.sublist(i + 245, i + 485),
+      ),
 ];
 
 /// SpO2: records of `time(7 bytes), value` per measurement. TODO(verify)

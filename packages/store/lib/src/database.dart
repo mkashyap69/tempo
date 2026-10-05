@@ -12,6 +12,7 @@ const rawTables = [
   'stress_samples',
   'spo2_samples',
   'band_workouts',
+  'od_events',
 ];
 
 int toTs(DateTime t) => t.millisecondsSinceEpoch ~/ 1000;
@@ -26,6 +27,7 @@ String dateKey(DateTime d) =>
     StressSamples,
     Spo2Samples,
     BandWorkouts,
+    OdEvents,
     SleepSessions,
     DailyScores,
     Baselines,
@@ -41,7 +43,7 @@ class TempoDb extends _$TempoDb {
   TempoDb(super.e);
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -67,6 +69,11 @@ class TempoDb extends _$TempoDb {
       }
       if (from < 5) {
         await m.addColumn(minuteSamples, minuteSamples.aux);
+      }
+      if (from < 6) {
+        await m.addColumn(spo2Samples, spo2Samples.quality);
+        await m.createTable(odEvents);
+        await _appendOnly('od_events');
       }
     },
   );
@@ -141,6 +148,16 @@ class TempoDb extends _$TempoDb {
   Future<void> appendSpo2(List<Spo2SamplesCompanion> rows) => batch(
     (b) => b.insertAll(spo2Samples, rows, mode: InsertMode.insertOrIgnore),
   );
+
+  Future<void> appendOdEvents(List<OdEventsCompanion> rows) => batch(
+    (b) => b.insertAll(odEvents, rows, mode: InsertMode.insertOrIgnore),
+  );
+
+  Future<List<OdEventRow>> odEventsBetween(DateTime from, DateTime to) =>
+      (select(odEvents)
+            ..where((e) => e.ts.isBetweenValues(toTs(from), toTs(to) - 1))
+            ..orderBy([(e) => OrderingTerm.asc(e.ts)]))
+          .get();
 
   Future<void> appendHrLive(int ts, int bpm) => into(hrLive).insert(
     HrLiveCompanion.insert(ts: Value(ts), bpm: bpm),

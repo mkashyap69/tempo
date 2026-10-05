@@ -35,6 +35,20 @@ class StressSamples extends Table {
 class Spo2Samples extends Table {
   IntColumn get ts => integer()();
   IntColumn get value => integer()();
+  // 0–64 band confidence for per-minute SpO₂ (type 0x26); null for older
+  // rows and spot checks.
+  IntColumn get quality => integer().nullable()();
+  @override
+  Set<Column> get primaryKey => {ts};
+}
+
+/// Oxygen-desaturation events from the band (type 0x27). Append-only.
+@DataClassName('OdEventRow')
+class OdEvents extends Table {
+  IntColumn get ts => integer()();
+  IntColumn get drop => integer()(); // SpO₂ points
+  TextColumn get spo2 => text()(); // 240 × 1 s, hex
+  TextColumn get hr => text()(); // 240 × 1 s, hex
   @override
   Set<Column> get primaryKey => {ts};
 }

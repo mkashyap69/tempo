@@ -41,6 +41,7 @@ Future<TempoDb> seededDb({
   final minutes = <MinuteSamplesCompanion>[];
   final stress = <StressSamplesCompanion>[];
   final spo2 = <Spo2SamplesCompanion>[];
+  final od = <OdEventsCompanion>[];
   void add(DateTime t, {required int kind, int? hr, int steps = 0}) {
     if (t.isAfter(end)) return;
     minutes.add(
@@ -87,11 +88,22 @@ Future<TempoDb> seededDb({
           ),
         );
       }
-      if (m % 50 == 7) {
-        spo2.add(
-          Spo2SamplesCompanion.insert(
+      // Overnight SpO₂ each minute (type 0x26) and a desaturation (0x27)
+      // about every 40 minutes.
+      spo2.add(
+        Spo2SamplesCompanion.insert(
+          ts: Value(toTs(bed.add(Duration(minutes: m)))),
+          value: 95 + r.nextInt(3) - (m % 40 == 5 ? 4 : 0),
+          quality: const Value(64),
+        ),
+      );
+      if (m % 40 == 5) {
+        od.add(
+          OdEventsCompanion.insert(
             ts: Value(toTs(bed.add(Duration(minutes: m)))),
-            value: 95 + r.nextInt(3),
+            drop: 4 + r.nextInt(3),
+            spo2: '',
+            hr: '',
           ),
         );
       }
@@ -140,6 +152,7 @@ Future<TempoDb> seededDb({
   await db.appendMinutes(minutes);
   await db.appendStress(stress);
   await db.appendSpo2(spo2);
+  await db.appendOdEvents(od);
   // A ride recorded with the band's Workout app two days ago.
   final ride = DateTime(today.year, today.month, today.day - 2, 18);
   if (days >= 2) {

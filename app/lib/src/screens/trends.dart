@@ -62,7 +62,10 @@ Future<TrendSeries> loadSeries(
     if (s?.sleepStart == null) return null;
     final v = [
       for (final x in spo2)
-        if (x.ts >= s!.sleepStart! && x.ts < s.sleepEnd! && x.value > 0)
+        if (x.ts >= s!.sleepStart! &&
+            x.ts < s.sleepEnd! &&
+            x.value > 0 &&
+            (x.quality == null || x.quality! >= 40))
           x.value,
     ];
     return v.isEmpty ? null : v.reduce((a, b) => a + b) / v.length;

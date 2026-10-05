@@ -41,8 +41,12 @@ class Night {
     required this.bedtimes,
     required this.hrBand,
     this.staged = true,
+    this.breathing,
   });
   final DateTime morning;
+
+  /// Sleep SpO₂ and desaturations, scored; null without enough SpO₂.
+  final sc.BreathingNight? breathing;
 
   /// False when the band sampled HR too rarely to estimate stages.
   final bool staged;
@@ -105,6 +109,11 @@ final nightProvider = FutureProvider.family<Night, DateTime>((
     morning.add(const Duration(days: 1)),
     limit: 30,
   );
+  // Low-confidence SpO₂ minutes (band quality < 40 of 64) are left out.
+  final spo2 = [
+    for (final x in await db.spo2Between(a, b))
+      if (x.quality == null || x.quality! >= 40) x,
+  ];
   final typical = <sc.Stage, double>{};
   var n = 0;
   final sessions = await db.watchSleepSessions().first;
@@ -133,7 +142,20 @@ final nightProvider = FutureProvider.family<Night, DateTime>((
     morning: morning,
     minutes: mins,
     latency: sc.sleepLatency(before),
-    spo2: await db.spo2Between(a, b),
+    spo2: spo2,
+    breathing: sc.breathingNight(
+      start: a,
+      end: b,
+      sleptHours: mins.where((m) => m.stage.asleep).length / 60,
+      spo2: [
+        for (final x in spo2)
+          (ts: st.fromTs(x.ts), avg: x.value, quality: x.quality),
+      ],
+      events: [
+        for (final e in await db.odEventsBetween(a, b))
+          (ts: st.fromTs(e.ts), drop: e.drop),
+      ],
+    ),
     typical: typical,
     bedtimes: [
       for (final p in past.take(7))
@@ -366,6 +388,7 @@ class SleepScreen extends ConsumerWidget {
               ),
             ],
           ),
+          BreathingCard(breathing: night.breathing),
         ],
         TempoCard(
           color: s.tintSleep,
@@ -599,6 +622,97 @@ Future<void> pickSmartAlarm(
     context,
     () => writeSmartAlarm(ref.read(dbProvider), picked == off ? null : picked),
   );
+}
+
+/// Sleep breathing from the band's overnight SpO₂ (type 0x26) and
+/// desaturation events (0x27).
+class BreathingCard extends StatelessWidget {
+  const BreathingCard({super.key, required this.breathing});
+  final sc.BreathingNight? breathing;
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c, s = context.s;
+    final b = breathing;
+    if (b == null) {
+      return TempoCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('Breathing', style: TempoType.label.c(c.text1)),
+            const SizedBox(height: 6),
+            Text(
+              'No overnight SpO₂ for this night. Turn on sleep breathing monitoring for the band in Mi Fitness and Tempo picks it up from the next night.',
+              style: TempoType.bodyS.c(c.text2),
+            ),
+          ],
+        ),
+      );
+    }
+    final color = b.score >= 85
+        ? s.recHigh
+        : b.score >= 70
+        ? s.recMid
+        : s.recLow;
+    Widget stat(String k, String v) => Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(k, style: TempoType.caption.c(c.text3)),
+          const SizedBox(height: 2),
+          Text(v, style: TempoType.label.c(c.text1).tnum),
+        ],
+      ),
+    );
+    return TempoCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text('Breathing', style: TempoType.label.c(c.text1)),
+              ),
+              Text(b.label, style: TempoType.label.c(color)),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text.rich(
+            TextSpan(
+              children: [
+                TextSpan(text: '${b.score}'),
+                TextSpan(text: ' / 100', style: TempoType.bodyS.c(c.text3)),
+              ],
+            ),
+            style: TempoType.scoreS.c(c.text1),
+          ),
+          const SizedBox(height: 10),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(3),
+            child: LinearProgressIndicator(
+              minHeight: 6,
+              value: b.score / 100,
+              color: color,
+              backgroundColor: c.trackOff,
+            ),
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              stat('Dips', '${b.eventsPerHour.toStringAsFixed(1)}/h'),
+              stat('Avg SpO₂', '${b.avgSpo2.round()}%'),
+              stat('Lowest', '${b.lowestSpo2}%'),
+              stat('Under 90%', '${(b.belowNinety * 100).round()}%'),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'From the band’s overnight SpO₂: ${b.events} oxygen dips of 3 points or more. A wellness signal, not a sleep-apnea test; talk to a doctor if you snore loudly or wake unrefreshed.',
+            style: TempoType.caption.c(c.text3),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _StatTile extends StatelessWidget {

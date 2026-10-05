@@ -5,6 +5,7 @@ library;
 
 export 'src/activity.dart';
 export 'src/baseline.dart';
+export 'src/breathing.dart';
 export 'src/coach.dart';
 export 'src/daily.dart';
 export 'src/hrv.dart';
