@@ -427,6 +427,59 @@ class MiBand {
     return out;
   }
 
+  /// Reads every readable characteristic once, for the Band explorer.
+  /// Values land in the packet log; unreadable ones map to null. The auth
+  /// characteristic is skipped.
+  Future<Map<String, List<int>?>> readAllReadable() async {
+    final out = <String, List<int>?>{};
+    final skip = {Guid(BandUuids.auth).str128};
+    for (final e in _chars.entries) {
+      if (!e.value.properties.read || skip.contains(e.key)) continue;
+      try {
+        final v = await e.value.read().timeout(const Duration(seconds: 4));
+        log.record(
+          PacketEvent(
+            dir: PacketDir.rx,
+            characteristic: e.key,
+            bytes: v,
+            note: 'read',
+          ),
+        );
+        out[e.key] = v;
+      } catch (err) {
+        _info('read ${e.key} failed: $err');
+        out[e.key] = null;
+      }
+    }
+    return out;
+  }
+
+  /// Asks whether the band has history of data type [code] since [since],
+  /// without transferring or acknowledging anything, so nothing is deleted
+  /// on the band. Null when it doesn't answer within [wait].
+  Future<FetchStartReply?> probeFetch(
+    int code,
+    DateTime since, {
+    Duration wait = const Duration(seconds: 3),
+  }) async {
+    final control = await _notifications(BandUuids.fetchControl);
+    final replyF = control
+        .map(FetchStartReply.parse)
+        .firstWhere((r) => r != null)
+        .timeout(wait);
+    await _write(BandUuids.fetchControl, FetchCommands.startCode(code, since));
+    try {
+      final r = await replyF;
+      _info(
+        'probe 0x${code.toRadixString(16)}: ok=${r!.ok} count=${r.count} start=${r.start}',
+      );
+      return r;
+    } on TimeoutException {
+      _info('probe 0x${code.toRadixString(16)}: no answer');
+      return null;
+    }
+  }
+
   /// Battery percent, or null if neither characteristic answers.
   Future<int?> readBattery() async {
     for (final (uuid, huami) in [
@@ -467,7 +520,13 @@ class MiBand {
   }
 
   /// Starts continuous HR measurement; emits BPM about once a second.
-  Future<Stream<int>> startLiveHr() async {
+  Future<Stream<int>> startLiveHr() async => (await startLiveHrRaw())
+      .map(parseHeartRateMeasurement)
+      .where((b) => b != null)
+      .cast<int>();
+
+  /// [startLiveHr] as raw 0x2A37 notifications (see [parseHrMeasurement]).
+  Future<Stream<List<int>>> startLiveHrRaw() async {
     final raw = await _notifications(BandUuids.heartRateMeasurement);
     await _write(BandUuids.heartRateControlPoint, HrCommands.stopManual);
     await _write(BandUuids.heartRateControlPoint, HrCommands.stopContinuous);
@@ -479,10 +538,7 @@ class MiBand {
         HrCommands.keepAlive,
       ).catchError((Object e) => _info('keep-alive failed: $e'));
     });
-    return raw
-        .map(parseHeartRateMeasurement)
-        .where((b) => b != null)
-        .cast<int>();
+    return raw;
   }
 
   Future<void> stopLiveHr() async {

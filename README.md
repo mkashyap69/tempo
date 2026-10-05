@@ -286,6 +286,8 @@ The protocol layer is the riskiest part of the project. The rules:
 3. **Confirm, then remove the marker.** When a capture confirms a detail, delete its `TODO(verify)` and add a **golden test** built from the captured bytes.
 4. **Our own implementation only.** Gadgetbridge is useful for understanding the protocol, but it's AGPL-3.0. Don't copy its code or translate it line by line.
 
+**Band explorer** (Data health → *Band explorer*, or Profile → Advanced) is the fastest way to get a capture of everything at once. It is read-only: it reads every readable characteristic, asks the band about every history type code `0x00`–`0x3f` without transferring or acknowledging (so the band deletes nothing), and records two minutes of raw live heart rate to see whether beat-to-beat (RR) intervals arrive. It saves `explorer-<time>.json` next to the packet log and can share both. Note Mi Fitness's numbers for the same day (VO₂ max, resting HR, stress, sleep stages) when you run it, so unknown values can be matched to known ones.
+
 Most unverified details are in `packages/band_ble/lib/src/`: `uuids.dart`, `protocol.dart` (auth, live HR), `fetch.dart` (history fetch, record layouts, sleep codes) and `settings.dart` (band configuration).
 
 ### Changing a score

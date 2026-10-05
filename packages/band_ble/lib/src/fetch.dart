@@ -37,11 +37,15 @@ abstract final class FetchCommands {
   /// [encodeBandTime] has no seconds byte; this inserts it before tz.
   /// A 7-byte time (tz where the second should be) got `10 01 02` on
   /// V1.0.6.20. TODO(verify)
-  static Uint8List start(FetchType t, DateTime since) {
+  static Uint8List start(FetchType t, DateTime since) =>
+      startCode(t.code, since);
+
+  /// [start] for any data type code, e.g. when probing which exist.
+  static Uint8List startCode(int code, DateTime since) {
     final time = encodeBandTime(since);
     return Uint8List.fromList([
       startOpcode,
-      t.code,
+      code,
       ...time.sublist(0, 6),
       since.toLocal().second,
       time[6],

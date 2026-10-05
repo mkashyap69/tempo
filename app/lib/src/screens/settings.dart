@@ -27,6 +27,7 @@ import '../design/components.dart';
 import '../design/tokens.dart';
 import '../design/type.dart';
 import '../state/providers.dart';
+import 'band_explorer.dart';
 import 'data_health.dart';
 import 'nav.dart';
 import 'onboarding.dart' show AvailabilityEditor, WorkoutsEditor;
@@ -922,6 +923,13 @@ class SettingsScreen extends ConsumerWidget {
             'Re-download band history',
             sub: 'Fixes sleep and activity stored at the wrong time',
             onTap: !paired ? null : () => redownloadHistory(context, ref),
+          ),
+          ListRow(
+            'Band explorer',
+            sub: 'Read-only survey of what your band can share',
+            onTap: !paired
+                ? null
+                : () => push(context, const BandExplorerScreen()),
           ),
           ListRow(
             'Recompute all scores',

@@ -18,6 +18,8 @@ import '../design/icons.dart';
 import '../design/tokens.dart';
 import '../design/type.dart';
 import '../state/providers.dart';
+import 'band_explorer.dart';
+import 'nav.dart';
 import 'settings.dart' show redownloadHistory;
 
 /// Per-day wear: (minutes, kind) runs. kind: 0 worn, 1 not worn, 2 gap.
@@ -293,6 +295,7 @@ class DataHealthScreen extends ConsumerWidget {
                                 'failed' => 'Failed',
                                 'settings' => 'Settings',
                                 'repair' => 'Repair',
+                                'explore' => 'Explorer',
                                 _ => 'Gap',
                               },
                               style: TempoType.caption.c(
@@ -306,13 +309,23 @@ class DataHealthScreen extends ConsumerWidget {
                 ),
         ),
         if (h.lastSync != null)
-          Center(
-            child: TempoButton(
-              'Re-download band history',
-              small: true,
-              kind: ButtonKind.ghost,
-              onTap: () => redownloadHistory(context, ref),
-            ),
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 8,
+            children: [
+              TempoButton(
+                'Re-download band history',
+                small: true,
+                kind: ButtonKind.ghost,
+                onTap: () => redownloadHistory(context, ref),
+              ),
+              TempoButton(
+                'Band explorer',
+                small: true,
+                kind: ButtonKind.ghost,
+                onTap: () => push(context, const BandExplorerScreen()),
+              ),
+            ],
           ),
         PrivacyNote(
           'All data stays on this phone · ${(h.dbBytes / 1e6).toStringAsFixed(h.dbBytes < 1e7 ? 1 : 0)} MB · ${h.daysStored} days',

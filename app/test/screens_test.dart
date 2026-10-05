@@ -30,6 +30,7 @@ import 'package:tempo/src/screens/trends.dart';
 import 'package:tempo/src/screens/weekly_plan.dart';
 import 'package:tempo/src/screens/weekly_report.dart';
 import 'package:tempo/src/screens/workouts.dart';
+import 'package:tempo/src/screens/band_explorer.dart';
 import 'package:tempo/src/screens/workout_detail.dart';
 import 'package:tempo/src/state/live_session.dart';
 import 'package:tempo/src/state/providers.dart';
@@ -89,6 +90,7 @@ void main() {
     ),
     'Data health': (() => const DataHealthScreen(), 'Wear and gaps'),
     'Workouts': (() => const WorkoutsScreen(), 'Last 7 days'),
+    'Band explorer': (() => const BandExplorerScreen(), 'Run explorer'),
     'Journal': (() => const JournalScreen(), 'Yesterday, quickly'),
     'Weekly report': (
       () => const WeeklyReportScreen(),

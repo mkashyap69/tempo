@@ -68,15 +68,45 @@ final class AuthResponse {
 
 /// Heart Rate Measurement (SIG 0x2A37). Flags bit 0: 0 = uint8 BPM,
 /// 1 = uint16 LE BPM. Standard layout; TODO(verify) the band follows it.
-int? parseHeartRateMeasurement(List<int> data) {
-  if (data.isEmpty) return null;
-  final wide = data[0] & 0x01 == 1;
-  if (wide) {
-    if (data.length < 3) return null;
-    return data[1] | (data[2] << 8);
+int? parseHeartRateMeasurement(List<int> data) => parseHrMeasurement(data)?.bpm;
+
+/// One Heart Rate Measurement (0x2A37) notification, per the Bluetooth SIG
+/// Heart Rate Service spec: flags; bpm (u8, or u16 LE if bit 0); energy
+/// expended u16 if bit 3; then RR intervals u16 LE in 1/1024 s if bit 4.
+/// Whether the Mi Band 6 fills in RR intervals is TODO(verify): the Band
+/// explorer logs raw notifications to find out.
+final class HrMeasurement {
+  const HrMeasurement(this.bpm, {this.rrMs = const [], this.flags = 0});
+  final int bpm;
+
+  /// Beat-to-beat intervals in milliseconds, oldest first.
+  final List<int> rrMs;
+  final int flags;
+  bool get hasRr => flags & 0x10 != 0;
+}
+
+HrMeasurement? parseHrMeasurement(List<int> d) {
+  if (d.isEmpty) return null;
+  final flags = d[0];
+  var i = 1;
+  int bpm;
+  if (flags & 0x01 != 0) {
+    if (d.length < 3) return null;
+    bpm = d[1] | (d[2] << 8);
+    i = 3;
+  } else {
+    if (d.length < 2) return null;
+    bpm = d[1];
+    i = 2;
   }
-  if (data.length < 2) return null;
-  return data[1];
+  if (flags & 0x08 != 0) i += 2; // energy expended
+  final rr = <int>[];
+  if (flags & 0x10 != 0) {
+    for (; i + 1 < d.length; i += 2) {
+      rr.add(((d[i] | (d[i + 1] << 8)) * 1000 / 1024).round());
+    }
+  }
+  return HrMeasurement(bpm, rrMs: rr, flags: flags);
 }
 
 /// Writes to the HR control point (0x2A39). Huami-specific. TODO(verify)

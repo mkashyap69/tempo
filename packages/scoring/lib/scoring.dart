@@ -7,6 +7,7 @@ export 'src/activity.dart';
 export 'src/baseline.dart';
 export 'src/coach.dart';
 export 'src/daily.dart';
+export 'src/hrv.dart';
 export 'src/insights.dart';
 export 'src/load.dart';
 export 'src/recovery.dart';
