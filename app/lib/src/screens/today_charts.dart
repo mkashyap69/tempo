@@ -67,30 +67,6 @@ class TodayRings extends StatelessWidget {
         ? ('—', 'After tonight')
         : ('${r.round()}%', recoveryWord(r));
 
-    final ringsWidget = Semantics(
-      label: noData
-          ? 'No data yet'
-          : 'Recovery $big, strain ${n1(t.strain)}, sleep ${sp == null ? 'no data' : '${sp.round()} percent'}',
-      child: NestedRings(
-        size: 196,
-        rings: rings,
-        center: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              big,
-              style: TempoType.scoreL.copyWith(
-                fontSize: 34,
-                height: 1.1,
-                color: dim ? c.text2 : c.text1,
-              ),
-            ),
-            Text(word, style: TempoType.caption.c(c.text2)),
-          ],
-        ),
-      ),
-    );
-
     final tg = t.target;
     final legend = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -107,7 +83,7 @@ class TodayRings extends StatelessWidget {
               : _rhrLine(t),
           onTap: noData ? null : () => push(context, const RecoveryScreen()),
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 10),
         _LegendItem(
           label: 'STRAIN',
           color: noData ? c.text3 : strainColor,
@@ -120,7 +96,7 @@ class TodayRings extends StatelessWidget {
           sub: noData ? '' : 'of 21',
           onTap: noData ? null : () => push(context, const StrainScreen()),
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 10),
         _LegendItem(
           label: 'SLEEP',
           color: noData ? c.text3 : s.sleepChannel,
@@ -136,15 +112,43 @@ class TodayRings extends StatelessWidget {
     );
 
     return LayoutBuilder(
-      builder: (context, box) => box.maxWidth < 330
-          ? Column(children: [ringsWidget, const SizedBox(height: 16), legend])
-          : Row(
-              children: [
-                ringsWidget,
-                const SizedBox(width: 16),
-                Expanded(child: legend),
-              ],
+      builder: (context, box) {
+        // Leave ~128 for the legend. Phone gutters make width ~320, which
+        // used to fall under a 330px stack and put the three stats below.
+        final ring = (box.maxWidth - 144).clamp(128.0, 196.0);
+        final k = ring / 196;
+        return Row(
+          children: [
+            Semantics(
+              label: noData
+                  ? 'No data yet'
+                  : 'Recovery $big, strain ${n1(t.strain)}, sleep ${sp == null ? 'no data' : '${sp.round()} percent'}',
+              child: NestedRings(
+                size: ring,
+                stroke: 15 * k,
+                gap: 5 * k,
+                rings: rings,
+                center: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      big,
+                      style: TempoType.scoreL.copyWith(
+                        fontSize: 34 * k,
+                        height: 1.1,
+                        color: dim ? c.text2 : c.text1,
+                      ),
+                    ),
+                    Text(word, style: TempoType.caption.c(c.text2)),
+                  ],
+                ),
+              ),
             ),
+            const SizedBox(width: 16),
+            Expanded(child: legend),
+          ],
+        );
+      },
     );
   }
 
@@ -182,7 +186,12 @@ class _LegendItem extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: TempoType.overline.copyWith(color: color)),
+          Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TempoType.overline.copyWith(color: color),
+          ),
           Text.rich(
             TextSpan(
               children: [
@@ -191,6 +200,8 @@ class _LegendItem extends StatelessWidget {
                   TextSpan(text: trailing, style: TempoType.caption.c(c.text3)),
               ],
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: TempoType.titleL
                 .copyWith(fontWeight: FontWeight.w300, color: c.text1)
                 .tnum,
@@ -323,11 +334,21 @@ class WeekRecoveryStrain extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: Text('Last 7 days', style: TempoType.label.c(c.text1)),
+                child: Text(
+                  'Last 7 days',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TempoType.label.c(c.text1),
+                ),
               ),
-              _Key(colors: [s.recHigh, s.recMid, s.recLow], text: 'recovery'),
+              Flexible(
+                child: _Key(
+                  colors: [s.recHigh, s.recMid, s.recLow],
+                  text: 'recovery',
+                ),
+              ),
               const SizedBox(width: 10),
-              _Key(colors: [s.strain[2]], text: 'strain'),
+              Flexible(child: _Key(colors: [s.strain[2]], text: 'strain')),
             ],
           ),
           const SizedBox(height: 14),
@@ -423,7 +444,14 @@ class _Key extends StatelessWidget {
           ),
         ),
       const SizedBox(width: 5),
-      Text(text, style: TempoType.caption.c(context.c.text3)),
+      Flexible(
+        child: Text(
+          text,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TempoType.caption.c(context.c.text3),
+        ),
+      ),
     ],
   );
 }

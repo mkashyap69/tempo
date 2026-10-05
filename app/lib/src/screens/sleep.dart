@@ -318,33 +318,51 @@ class SleepScreen extends ConsumerWidget {
               ],
             ),
           ),
-          GridView.count(
-            crossAxisCount: 2,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: 10,
-            crossAxisSpacing: 10,
-            childAspectRatio: 1.55,
-            padding: EdgeInsets.zero,
+          Column(
             children: [
-              _StatTile('Sleep debt', hmShort(t.debt), '7-day · naps count'),
-              _StatTile(
-                'Efficiency',
-                '${(night.session.efficiency * 100).round()}%',
-                'Asleep vs in bed',
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: _StatTile(
+                      'Sleep debt',
+                      hmShort(t.debt),
+                      '7-day · naps count',
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _StatTile(
+                      'Efficiency',
+                      '${(night.session.efficiency * 100).round()}%',
+                      'Asleep vs in bed',
+                    ),
+                  ),
+                ],
               ),
-              _StatTile(
-                'Consistency',
-                night.bedtimes.length < 3
-                    ? '—'
-                    : '${(sc.consistency(night.bedtimes) * 100).round()}%',
-                'Bedtimes within ±25 min',
-              ),
-              _StatTile(
-                'Fell asleep',
-                '${night.latency} min',
-                '${night.wakeUps.length} wake-ups, ${night.awake.inMinutes} min awake',
-                estimate: true,
+              const SizedBox(height: 10),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: _StatTile(
+                      'Consistency',
+                      night.bedtimes.length < 3
+                          ? '—'
+                          : '${(sc.consistency(night.bedtimes) * 100).round()}%',
+                      'Bedtimes within ±25 min',
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _StatTile(
+                      'Fell asleep',
+                      '${night.latency} min',
+                      '${night.wakeUps.length} wake-ups, ${night.awake.inMinutes} min awake',
+                      estimate: true,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -592,6 +610,7 @@ class _StatTile extends StatelessWidget {
     padding: const EdgeInsets.all(14),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
         Overline(k),
         const SizedBox(height: 4),
@@ -605,7 +624,12 @@ class _StatTile extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 4),
-        Text(sub, maxLines: 2, style: TempoType.caption.c(context.c.text2)),
+        Text(
+          sub,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: TempoType.caption.c(context.c.text2),
+        ),
       ],
     ),
   );

@@ -1168,8 +1168,8 @@ class DetailHeader extends StatelessWidget {
   final VoidCallback? onBack;
   final Widget? center;
   @override
-  Widget build(BuildContext context) => SizedBox(
-    height: 44,
+  Widget build(BuildContext context) => ConstrainedBox(
+    constraints: const BoxConstraints(minHeight: 44),
     child: Row(
       children: [
         Transform.translate(
@@ -1185,12 +1185,20 @@ class DetailHeader extends StatelessWidget {
             child:
                 center ??
                 Column(
+                  mainAxisSize: MainAxisSize.min,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(title, style: TempoType.label.c(context.c.text1)),
+                    Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TempoType.label.c(context.c.text1),
+                    ),
                     if (subtitle != null)
                       Text(
                         subtitle!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: TempoType.caption.c(context.c.text3).tnum,
                       ),
                   ],
@@ -1367,24 +1375,38 @@ class ListRow extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         child: Row(
           children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(k, style: TempoType.body.c(color ?? c.text1)),
-                if (sub != null)
-                  Text(sub!, style: TempoType.caption.c(c.text3)),
-              ],
-            ),
-            const SizedBox(width: 12),
             Expanded(
-              child: value == null || value!.isEmpty
-                  ? const SizedBox()
-                  : Text(
-                      value!,
-                      textAlign: TextAlign.right,
-                      style: TempoType.bodyS.c(c.text2),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    k,
+                    maxLines: sub == null ? 2 : 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TempoType.body.c(color ?? c.text1),
+                  ),
+                  if (sub != null)
+                    Text(
+                      sub!,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TempoType.caption.c(c.text3),
                     ),
+                ],
+              ),
             ),
+            if (value != null && value!.isNotEmpty) ...[
+              const SizedBox(width: 12),
+              Flexible(
+                child: Text(
+                  value!,
+                  textAlign: TextAlign.right,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TempoType.bodyS.c(c.text2),
+                ),
+              ),
+            ],
             ?trailing,
             if (chevron && onTap != null) ...[
               const SizedBox(width: 6),
