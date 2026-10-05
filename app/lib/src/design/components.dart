@@ -1397,7 +1397,9 @@ class ListRow extends StatelessWidget {
             ),
             if (value != null && value!.isNotEmpty) ...[
               const SizedBox(width: 12),
-              Flexible(
+              // Fill the space so every value (and its chevron) ends at the
+              // row's right edge, however short it is.
+              Expanded(
                 child: Text(
                   value!,
                   textAlign: TextAlign.right,
