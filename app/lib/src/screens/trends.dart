@@ -22,6 +22,7 @@ import 'recovery.dart';
 import 'sleep.dart';
 import 'strain.dart';
 import 'stress.dart';
+import 'workouts.dart';
 
 /// One value per day for each metric, oldest first; null = no data.
 class TrendSeries {
@@ -283,6 +284,7 @@ class _TrendsState extends ConsumerState<TrendsScreen> {
           childAspectRatio: 165 / 56,
           children: [
             for (final (t, icon, page) in [
+              ('Workouts', TempoIcons.run, () => const WorkoutsScreen()),
               (
                 'Day timeline',
                 TempoIcons.timeline,

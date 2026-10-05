@@ -9,6 +9,7 @@ const _tables = [
   'hr_live',
   'stress_samples',
   'spo2_samples',
+  'band_workouts',
   'sleep_sessions',
   'daily_scores',
   'baselines',

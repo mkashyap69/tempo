@@ -12,7 +12,10 @@ enum FetchType {
   activity(0x01, 'activity'),
   stress(0x14, 'stress'), // TODO(verify)
   spo2(0x25, 'spo2'), // TODO(verify)
-  pai(0x0d, 'pai'); // TODO(verify)
+  pai(0x0d, 'pai'), // TODO(verify)
+  /// Workouts started on the band (Workout app). One summary per fetch;
+  /// the reply's start time is that workout's start. TODO(verify)
+  workouts(0x05, 'workouts');
 
   const FetchType(this.code, this.key);
   final int code;
@@ -218,3 +221,67 @@ const sleepKinds = <int, String>{
 /// Codes meaning "not worn". TODO(verify)
 /// 0xf3 in that capture is 245 minutes with no HR sample at all.
 const notWornKinds = {0x73, 0x0f, 0xf3}; // TODO(verify)
+
+/// A workout recorded by the band's own Workout app.
+final class BandWorkout {
+  const BandWorkout({
+    required this.start,
+    required this.end,
+    required this.kind,
+    required this.raw,
+  });
+  final DateTime start, end;
+
+  /// Band sport code, see [bandSportNames]. TODO(verify)
+  final int kind;
+
+  /// The whole summary, kept so later firmware findings can re-read it.
+  final Uint8List raw;
+
+  Duration get duration => end.difference(start);
+}
+
+/// Summary header: `version u16 LE, kind u16 LE, start u32 LE, end u32 LE`
+/// (Unix seconds), then per-version stats that Tempo does not read; HR,
+/// steps and strain come from the activity minutes instead. TODO(verify)
+/// [announcedStart] is the start the fetch reply gave; the header's times
+/// are only trusted when they agree with it (within a day) and end > start.
+BandWorkout? parseWorkoutSummary(Uint8List data, DateTime announcedStart) {
+  if (data.length < 12) return null;
+  int u16(int o) => data[o] | (data[o + 1] << 8);
+  int u32(int o) =>
+      data[o] | (data[o + 1] << 8) | (data[o + 2] << 16) | (data[o + 3] << 24);
+  final kind = u16(2);
+  final start = DateTime.fromMillisecondsSinceEpoch(u32(4) * 1000);
+  final end = DateTime.fromMillisecondsSinceEpoch(u32(8) * 1000);
+  if (start.difference(announcedStart).abs() > const Duration(days: 1)) {
+    return null;
+  }
+  final d = end.difference(start);
+  if (d <= Duration.zero || d > const Duration(hours: 24)) return null;
+  return BandWorkout(start: start, end: end, kind: kind, raw: data);
+}
+
+/// Band sport codes → Tempo sport names (scoring's `Sport`). Every code is
+/// TODO(verify) against a workout captured on the real band; unknown codes
+/// stay "other" and keep their number in the title.
+const bandSportNames = <int, String>{
+  0x01: 'running', // outdoor run
+  0x06: 'walking', // walking
+  0x08: 'running', // treadmill
+  0x09: 'cycling', // outdoor cycling
+  0x0a: 'cycling', // indoor cycling
+  0x10: 'sport', // freestyle
+  0x3c: 'yoga',
+};
+
+/// Display titles for [bandSportNames] codes. TODO(verify)
+const bandSportTitles = <int, String>{
+  0x01: 'Outdoor run',
+  0x06: 'Walk',
+  0x08: 'Treadmill',
+  0x09: 'Outdoor ride',
+  0x0a: 'Indoor ride',
+  0x10: 'Freestyle',
+  0x3c: 'Yoga',
+};

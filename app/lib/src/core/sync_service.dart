@@ -22,6 +22,7 @@ class SyncReport {
     this.earliestNew, {
     this.newWorkouts = 0,
     this.gapMinutes = 0,
+    this.bandWorkouts = 0,
   });
   final Map<String, int> counts;
   final DateTime? earliestNew;
@@ -29,6 +30,9 @@ class SyncReport {
 
   /// Activity minutes the band had already overwritten (memory full).
   final int gapMinutes;
+
+  /// Workouts recorded on the band's Workout app, new this sync.
+  final int bandWorkouts;
 
   int get minutes => counts[FetchType.activity.key] ?? 0;
   @override
@@ -183,8 +187,8 @@ class SyncService {
           ]);
           counts[type.key] = recs.length;
           if (recs.isNotEmpty) last = recs.last.ts;
-        case FetchType.pai:
-          break;
+        case FetchType.pai || FetchType.workouts:
+          break; // workouts: fetched one summary at a time below
       }
       if (last != null) {
         await db.setCursor(
@@ -195,6 +199,35 @@ class SyncService {
         if (earliest == null || start.isBefore(earliest)) earliest = start;
       }
     }
+    // Workouts recorded with the band's Workout app. The summary format is
+    // still TODO(verify), so a failure here never fails the sync.
+    var bandNew = 0;
+    try {
+      final cursor = await db.cursor(band.id, FetchType.workouts.key);
+      final ws = await band.fetchWorkouts(
+        cursor ?? DateTime.now().subtract(firstSyncWindow),
+      );
+      if (ws.isNotEmpty) {
+        await db.appendBandWorkouts([
+          for (final w in ws)
+            BandWorkoutsCompanion.insert(
+              start: Value(toTs(w.start)),
+              end: toTs(w.end),
+              kind: w.kind,
+              raw: hex(w.raw),
+              fetchedAt: toTs(DateTime.now()),
+            ),
+        ]);
+        await db.setCursor(
+          band.id,
+          FetchType.workouts.key,
+          ws.last.start.add(const Duration(seconds: 1)),
+        );
+        bandNew = ws.length;
+        final first = ws.first.start;
+        if (earliest == null || first.isBefore(earliest)) earliest = first;
+      }
+    } catch (_) {}
     await db.putSetting(Keys.lastSync, DateTime.now().toIso8601String());
     final before = (await db.workoutsBetween(
       DateTime(2000),
@@ -214,6 +247,7 @@ class SyncService {
       earliest,
       newWorkouts: (after - before).clamp(0, 999),
       gapMinutes: gap,
+      bandWorkouts: bandNew,
     );
   }
 }

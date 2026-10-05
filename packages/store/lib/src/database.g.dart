@@ -941,6 +941,345 @@ class Spo2SamplesCompanion extends UpdateCompanion<Spo2Sample> {
   }
 }
 
+class $BandWorkoutsTable extends BandWorkouts
+    with TableInfo<$BandWorkoutsTable, BandWorkoutRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $BandWorkoutsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _startMeta = const VerificationMeta('start');
+  @override
+  late final GeneratedColumn<int> start = GeneratedColumn<int>(
+    'start',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _endMeta = const VerificationMeta('end');
+  @override
+  late final GeneratedColumn<int> end = GeneratedColumn<int>(
+    'end',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _kindMeta = const VerificationMeta('kind');
+  @override
+  late final GeneratedColumn<int> kind = GeneratedColumn<int>(
+    'kind',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _rawMeta = const VerificationMeta('raw');
+  @override
+  late final GeneratedColumn<String> raw = GeneratedColumn<String>(
+    'raw',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _fetchedAtMeta = const VerificationMeta(
+    'fetchedAt',
+  );
+  @override
+  late final GeneratedColumn<int> fetchedAt = GeneratedColumn<int>(
+    'fetched_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [start, end, kind, raw, fetchedAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'band_workouts';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<BandWorkoutRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('start')) {
+      context.handle(
+        _startMeta,
+        start.isAcceptableOrUnknown(data['start']!, _startMeta),
+      );
+    }
+    if (data.containsKey('end')) {
+      context.handle(
+        _endMeta,
+        end.isAcceptableOrUnknown(data['end']!, _endMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_endMeta);
+    }
+    if (data.containsKey('kind')) {
+      context.handle(
+        _kindMeta,
+        kind.isAcceptableOrUnknown(data['kind']!, _kindMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_kindMeta);
+    }
+    if (data.containsKey('raw')) {
+      context.handle(
+        _rawMeta,
+        raw.isAcceptableOrUnknown(data['raw']!, _rawMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_rawMeta);
+    }
+    if (data.containsKey('fetched_at')) {
+      context.handle(
+        _fetchedAtMeta,
+        fetchedAt.isAcceptableOrUnknown(data['fetched_at']!, _fetchedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_fetchedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {start};
+  @override
+  BandWorkoutRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return BandWorkoutRow(
+      start: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}start'],
+      )!,
+      end: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}end'],
+      )!,
+      kind: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}kind'],
+      )!,
+      raw: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}raw'],
+      )!,
+      fetchedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}fetched_at'],
+      )!,
+    );
+  }
+
+  @override
+  $BandWorkoutsTable createAlias(String alias) {
+    return $BandWorkoutsTable(attachedDatabase, alias);
+  }
+}
+
+class BandWorkoutRow extends DataClass implements Insertable<BandWorkoutRow> {
+  final int start;
+  final int end;
+  final int kind;
+  final String raw;
+  final int fetchedAt;
+  const BandWorkoutRow({
+    required this.start,
+    required this.end,
+    required this.kind,
+    required this.raw,
+    required this.fetchedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['start'] = Variable<int>(start);
+    map['end'] = Variable<int>(end);
+    map['kind'] = Variable<int>(kind);
+    map['raw'] = Variable<String>(raw);
+    map['fetched_at'] = Variable<int>(fetchedAt);
+    return map;
+  }
+
+  BandWorkoutsCompanion toCompanion(bool nullToAbsent) {
+    return BandWorkoutsCompanion(
+      start: Value(start),
+      end: Value(end),
+      kind: Value(kind),
+      raw: Value(raw),
+      fetchedAt: Value(fetchedAt),
+    );
+  }
+
+  factory BandWorkoutRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return BandWorkoutRow(
+      start: serializer.fromJson<int>(json['start']),
+      end: serializer.fromJson<int>(json['end']),
+      kind: serializer.fromJson<int>(json['kind']),
+      raw: serializer.fromJson<String>(json['raw']),
+      fetchedAt: serializer.fromJson<int>(json['fetchedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'start': serializer.toJson<int>(start),
+      'end': serializer.toJson<int>(end),
+      'kind': serializer.toJson<int>(kind),
+      'raw': serializer.toJson<String>(raw),
+      'fetchedAt': serializer.toJson<int>(fetchedAt),
+    };
+  }
+
+  BandWorkoutRow copyWith({
+    int? start,
+    int? end,
+    int? kind,
+    String? raw,
+    int? fetchedAt,
+  }) => BandWorkoutRow(
+    start: start ?? this.start,
+    end: end ?? this.end,
+    kind: kind ?? this.kind,
+    raw: raw ?? this.raw,
+    fetchedAt: fetchedAt ?? this.fetchedAt,
+  );
+  BandWorkoutRow copyWithCompanion(BandWorkoutsCompanion data) {
+    return BandWorkoutRow(
+      start: data.start.present ? data.start.value : this.start,
+      end: data.end.present ? data.end.value : this.end,
+      kind: data.kind.present ? data.kind.value : this.kind,
+      raw: data.raw.present ? data.raw.value : this.raw,
+      fetchedAt: data.fetchedAt.present ? data.fetchedAt.value : this.fetchedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('BandWorkoutRow(')
+          ..write('start: $start, ')
+          ..write('end: $end, ')
+          ..write('kind: $kind, ')
+          ..write('raw: $raw, ')
+          ..write('fetchedAt: $fetchedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(start, end, kind, raw, fetchedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is BandWorkoutRow &&
+          other.start == this.start &&
+          other.end == this.end &&
+          other.kind == this.kind &&
+          other.raw == this.raw &&
+          other.fetchedAt == this.fetchedAt);
+}
+
+class BandWorkoutsCompanion extends UpdateCompanion<BandWorkoutRow> {
+  final Value<int> start;
+  final Value<int> end;
+  final Value<int> kind;
+  final Value<String> raw;
+  final Value<int> fetchedAt;
+  const BandWorkoutsCompanion({
+    this.start = const Value.absent(),
+    this.end = const Value.absent(),
+    this.kind = const Value.absent(),
+    this.raw = const Value.absent(),
+    this.fetchedAt = const Value.absent(),
+  });
+  BandWorkoutsCompanion.insert({
+    this.start = const Value.absent(),
+    required int end,
+    required int kind,
+    required String raw,
+    required int fetchedAt,
+  }) : end = Value(end),
+       kind = Value(kind),
+       raw = Value(raw),
+       fetchedAt = Value(fetchedAt);
+  static Insertable<BandWorkoutRow> custom({
+    Expression<int>? start,
+    Expression<int>? end,
+    Expression<int>? kind,
+    Expression<String>? raw,
+    Expression<int>? fetchedAt,
+  }) {
+    return RawValuesInsertable({
+      if (start != null) 'start': start,
+      if (end != null) 'end': end,
+      if (kind != null) 'kind': kind,
+      if (raw != null) 'raw': raw,
+      if (fetchedAt != null) 'fetched_at': fetchedAt,
+    });
+  }
+
+  BandWorkoutsCompanion copyWith({
+    Value<int>? start,
+    Value<int>? end,
+    Value<int>? kind,
+    Value<String>? raw,
+    Value<int>? fetchedAt,
+  }) {
+    return BandWorkoutsCompanion(
+      start: start ?? this.start,
+      end: end ?? this.end,
+      kind: kind ?? this.kind,
+      raw: raw ?? this.raw,
+      fetchedAt: fetchedAt ?? this.fetchedAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (start.present) {
+      map['start'] = Variable<int>(start.value);
+    }
+    if (end.present) {
+      map['end'] = Variable<int>(end.value);
+    }
+    if (kind.present) {
+      map['kind'] = Variable<int>(kind.value);
+    }
+    if (raw.present) {
+      map['raw'] = Variable<String>(raw.value);
+    }
+    if (fetchedAt.present) {
+      map['fetched_at'] = Variable<int>(fetchedAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('BandWorkoutsCompanion(')
+          ..write('start: $start, ')
+          ..write('end: $end, ')
+          ..write('kind: $kind, ')
+          ..write('raw: $raw, ')
+          ..write('fetchedAt: $fetchedAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $SleepSessionsTable extends SleepSessions
     with TableInfo<$SleepSessionsTable, SleepSession> {
   @override
@@ -4808,6 +5147,7 @@ abstract class _$TempoDb extends GeneratedDatabase {
   late final $HrLiveTable hrLive = $HrLiveTable(this);
   late final $StressSamplesTable stressSamples = $StressSamplesTable(this);
   late final $Spo2SamplesTable spo2Samples = $Spo2SamplesTable(this);
+  late final $BandWorkoutsTable bandWorkouts = $BandWorkoutsTable(this);
   late final $SleepSessionsTable sleepSessions = $SleepSessionsTable(this);
   late final $DailyScoresTable dailyScores = $DailyScoresTable(this);
   late final $BaselinesTable baselines = $BaselinesTable(this);
@@ -4826,6 +5166,7 @@ abstract class _$TempoDb extends GeneratedDatabase {
     hrLive,
     stressSamples,
     spo2Samples,
+    bandWorkouts,
     sleepSessions,
     dailyScores,
     baselines,
@@ -5409,6 +5750,200 @@ typedef $$Spo2SamplesTableProcessedTableManager =
       $$Spo2SamplesTableUpdateCompanionBuilder,
       (Spo2Sample, BaseReferences<_$TempoDb, $Spo2SamplesTable, Spo2Sample>),
       Spo2Sample,
+      PrefetchHooks Function()
+    >;
+typedef $$BandWorkoutsTableCreateCompanionBuilder =
+    BandWorkoutsCompanion Function({
+      Value<int> start,
+      required int end,
+      required int kind,
+      required String raw,
+      required int fetchedAt,
+    });
+typedef $$BandWorkoutsTableUpdateCompanionBuilder =
+    BandWorkoutsCompanion Function({
+      Value<int> start,
+      Value<int> end,
+      Value<int> kind,
+      Value<String> raw,
+      Value<int> fetchedAt,
+    });
+
+class $$BandWorkoutsTableFilterComposer
+    extends Composer<_$TempoDb, $BandWorkoutsTable> {
+  $$BandWorkoutsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get start => $composableBuilder(
+    column: $table.start,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get end => $composableBuilder(
+    column: $table.end,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get raw => $composableBuilder(
+    column: $table.raw,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get fetchedAt => $composableBuilder(
+    column: $table.fetchedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$BandWorkoutsTableOrderingComposer
+    extends Composer<_$TempoDb, $BandWorkoutsTable> {
+  $$BandWorkoutsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get start => $composableBuilder(
+    column: $table.start,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get end => $composableBuilder(
+    column: $table.end,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get raw => $composableBuilder(
+    column: $table.raw,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get fetchedAt => $composableBuilder(
+    column: $table.fetchedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$BandWorkoutsTableAnnotationComposer
+    extends Composer<_$TempoDb, $BandWorkoutsTable> {
+  $$BandWorkoutsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get start =>
+      $composableBuilder(column: $table.start, builder: (column) => column);
+
+  GeneratedColumn<int> get end =>
+      $composableBuilder(column: $table.end, builder: (column) => column);
+
+  GeneratedColumn<int> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => column);
+
+  GeneratedColumn<String> get raw =>
+      $composableBuilder(column: $table.raw, builder: (column) => column);
+
+  GeneratedColumn<int> get fetchedAt =>
+      $composableBuilder(column: $table.fetchedAt, builder: (column) => column);
+}
+
+class $$BandWorkoutsTableTableManager
+    extends
+        RootTableManager<
+          _$TempoDb,
+          $BandWorkoutsTable,
+          BandWorkoutRow,
+          $$BandWorkoutsTableFilterComposer,
+          $$BandWorkoutsTableOrderingComposer,
+          $$BandWorkoutsTableAnnotationComposer,
+          $$BandWorkoutsTableCreateCompanionBuilder,
+          $$BandWorkoutsTableUpdateCompanionBuilder,
+          (
+            BandWorkoutRow,
+            BaseReferences<_$TempoDb, $BandWorkoutsTable, BandWorkoutRow>,
+          ),
+          BandWorkoutRow,
+          PrefetchHooks Function()
+        > {
+  $$BandWorkoutsTableTableManager(_$TempoDb db, $BandWorkoutsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$BandWorkoutsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$BandWorkoutsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$BandWorkoutsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> start = const Value.absent(),
+                Value<int> end = const Value.absent(),
+                Value<int> kind = const Value.absent(),
+                Value<String> raw = const Value.absent(),
+                Value<int> fetchedAt = const Value.absent(),
+              }) => BandWorkoutsCompanion(
+                start: start,
+                end: end,
+                kind: kind,
+                raw: raw,
+                fetchedAt: fetchedAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> start = const Value.absent(),
+                required int end,
+                required int kind,
+                required String raw,
+                required int fetchedAt,
+              }) => BandWorkoutsCompanion.insert(
+                start: start,
+                end: end,
+                kind: kind,
+                raw: raw,
+                fetchedAt: fetchedAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$BandWorkoutsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$TempoDb,
+      $BandWorkoutsTable,
+      BandWorkoutRow,
+      $$BandWorkoutsTableFilterComposer,
+      $$BandWorkoutsTableOrderingComposer,
+      $$BandWorkoutsTableAnnotationComposer,
+      $$BandWorkoutsTableCreateCompanionBuilder,
+      $$BandWorkoutsTableUpdateCompanionBuilder,
+      (
+        BandWorkoutRow,
+        BaseReferences<_$TempoDb, $BandWorkoutsTable, BandWorkoutRow>,
+      ),
+      BandWorkoutRow,
       PrefetchHooks Function()
     >;
 typedef $$SleepSessionsTableCreateCompanionBuilder =
@@ -7418,6 +7953,8 @@ class $TempoDbManager {
       $$StressSamplesTableTableManager(_db, _db.stressSamples);
   $$Spo2SamplesTableTableManager get spo2Samples =>
       $$Spo2SamplesTableTableManager(_db, _db.spo2Samples);
+  $$BandWorkoutsTableTableManager get bandWorkouts =>
+      $$BandWorkoutsTableTableManager(_db, _db.bandWorkouts);
   $$SleepSessionsTableTableManager get sleepSessions =>
       $$SleepSessionsTableTableManager(_db, _db.sleepSessions);
   $$DailyScoresTableTableManager get dailyScores =>

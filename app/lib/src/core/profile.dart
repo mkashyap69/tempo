@@ -33,6 +33,7 @@ abstract final class Keys {
   static const healthExportedTo = 'health_exported_to'; // ISO, last written
   static const pauses = 'pauses'; // JSON, see pause.dart
   static const batteryPrompted = 'battery_opt_prompted'; // 1 once asked
+  static const bandDismissed = 'band_workouts_dismissed'; // JSON [start ts]
 }
 
 /// Everything the user tells Tempo in onboarding and Profile.
@@ -193,6 +194,10 @@ String sportLabel(Sport? s) => switch (s) {
   Sport.sport => 'Sport',
   null => 'Workout',
 };
+
+/// [sportLabel] for a stored sport name (null or unknown → "Workout").
+String sportLabelFor(String? name) =>
+    sportLabel(Sport.values.asNameMap()[name]);
 
 /// Onboarding chip order.
 const sportOrder = [

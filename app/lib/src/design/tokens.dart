@@ -268,6 +268,24 @@ class TempoScales extends ThemeExtension<TempoScales> {
   }
 }
 
+/// Sport colours for workout icons, bars and the workouts history. Keyed
+/// by scoring `Sport` name; null or unknown is neutral. Light-theme values
+/// are darker so icons keep 3:1 on white.
+Color sportColor(String? sport, {required bool dark}) => switch (sport) {
+  'running' => dark ? const Color(0xFFFF6B5B) : const Color(0xFFD23F2F),
+  'walking' => dark ? const Color(0xFF4CC38A) : const Color(0xFF1E8A57),
+  'cycling' => dark ? const Color(0xFF4DA3FF) : const Color(0xFF1F6FD1),
+  'strength' => dark ? const Color(0xFFB48CFF) : const Color(0xFF7246D6),
+  'yoga' => dark ? const Color(0xFFFF8FC7) : const Color(0xFFC0377F),
+  'hiit' => dark ? const Color(0xFFFFB13B) : const Color(0xFFB36B00),
+  'sport' => dark ? const Color(0xFF7FD4FF) : const Color(0xFF117FA8),
+  _ => dark ? const Color(0xFFA9ADB4) : const Color(0xFF575B62),
+};
+
+/// Low-alpha fill behind a sport icon.
+Color sportTint(String? sport, {required bool dark}) =>
+    sportColor(sport, dark: dark).withValues(alpha: dark ? .16 : .12);
+
 /// 4-pt grid. Screen gutter s5 · card padding s4 · between cards 10.
 abstract final class TempoSpace {
   static const s1 = 4.0, s2 = 8.0, s3 = 12.0, s4 = 16.0, s5 = 20.0, s6 = 24.0;

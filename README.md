@@ -104,6 +104,8 @@ The **play button** starts a workout: today's suggested session (guided interval
 
 Every detail screen explains itself: Recovery breaks down what moved it against your 30-day baseline, Strain shows the day's heart rate, time in zones and how it built up, Sleep shows the hypnogram, need, debt and tonight's bedtime, and so on.
 
+**Workouts.** Trends → *Workouts* (or *All ›* on Today and Strain) lists every workout: ones you record with the band's own Workout app (fetched on sync, marked *From band*), live sessions started in Tempo, and walks, runs and rides Tempo spots from heart rate and steps. The band's workout format is still being confirmed on real hardware: if a band workout doesn't appear, send a packet log from a sync right after one.
+
 **Home-screen widgets.** Small (Recovery) and medium (Recovery, Strain, Sleep). Tapping a score opens its detail screen. On Android add them from the launcher's widget list. On iOS the widget extension needs a one-time Xcode step, see [`app/ios/TempoWidget/README.md`](app/ios/TempoWidget/README.md).
 
 **Syncing.** Tempo syncs when you open the app and in the background: every 3 hours on Android, and whenever iOS allows it on iPhone. The band holds several days of data, so a missed sync catches up next time. If the band's memory filled before a sync, Data health logs a gap with the minutes lost. On Android, Tempo asks once to be left out of battery optimisation so overnight syncs keep running.

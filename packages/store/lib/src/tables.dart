@@ -37,6 +37,19 @@ class Spo2Samples extends Table {
 }
 
 /// Derived from minute kinds. Replaced on recompute.
+/// Workout summaries recorded by the band's own Workout app, as fetched.
+/// Append-only; `workouts` rows with source 'band' are derived from these.
+@DataClassName('BandWorkoutRow')
+class BandWorkouts extends Table {
+  IntColumn get start => integer()();
+  IntColumn get end => integer()();
+  IntColumn get kind => integer()(); // band sport code, TODO(verify)
+  TextColumn get raw => text()(); // summary bytes, hex
+  IntColumn get fetchedAt => integer()();
+  @override
+  Set<Column> get primaryKey => {start};
+}
+
 class SleepSessions extends Table {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get start => integer()();
@@ -110,7 +123,7 @@ class Workouts extends Table {
   TextColumn get sport =>
       text().nullable()(); // scoring Sport name; null = unknown
   TextColumn get title => text()();
-  TextColumn get source => text()(); // 'live' | 'auto'
+  TextColumn get source => text()(); // 'live' | 'auto' | 'band'
   BoolColumn get confirmed => boolean().withDefault(const Constant(false))();
   RealColumn get strain => real()(); // day strain added by this session
   RealColumn get trimp => real()();

@@ -1,11 +1,14 @@
 import 'dart:convert';
+import 'dart:math' as math;
+
+import 'package:band_ble/band_ble.dart' show bandSportNames, bandSportTitles;
 
 import 'package:drift/drift.dart';
 import 'package:scoring/scoring.dart' as sc;
 import 'package:store/store.dart' as st;
 
 import 'pause.dart';
-import 'profile.dart' show sportLabel;
+import 'profile.dart' show Keys, sportLabel;
 import 'stages.dart';
 
 const hrMaxKey = 'hr_max';
@@ -144,13 +147,47 @@ class ScoreService {
       hrRest: rest,
       hrMax: s.hrMax.toDouble(),
     );
+    List<int?> hrIn(DateTime a, DateTime b) => [
+      for (final m in mins)
+        if (!m.ts.isBefore(a) && m.ts.isBefore(b)) m.hr,
+    ];
+
+    // Workouts recorded on the band come first: confirmed, and auto
+    // detection then skips anything overlapping them.
+    final dismissed = await dismissedBandWorkouts(db);
+    for (final b in await db.bandWorkoutsBetween(day, end)) {
+      if (dismissed.contains(b.start)) continue;
+      final a = st.fromTs(b.start), z = st.fromTs(b.end);
+      final hrs = hrIn(a, z).whereType<int>().toList();
+      final t0 = trimpTo(a), t1 = trimpTo(z);
+      final sport = sc.Sport.values.asNameMap()[bandSportNames[b.kind]];
+      await db.upsertBandWorkout(
+        st.WorkoutsCompanion.insert(
+          start: b.start,
+          end: b.end,
+          sport: Value(sport?.name),
+          title:
+              bandSportTitles[b.kind] ??
+              'Band workout (type ${b.kind.toRadixString(16)})',
+          source: 'band',
+          confirmed: const Value(true),
+          strain: sc.strainFromTrimp(t1) - sc.strainFromTrimp(t0),
+          trimp: t1 - t0,
+          avgHr: Value(
+            hrs.isEmpty
+                ? null
+                : (hrs.reduce((x, y) => x + y) / hrs.length).round(),
+          ),
+          maxHr: Value(hrs.isEmpty ? null : hrs.reduce(math.max)),
+          zones: jsonEncode(sc.timeInZones(hrIn(a, z), s.hrMax)),
+        ),
+      );
+    }
+
     final rows = <st.WorkoutsCompanion>[];
     for (final a in found) {
       final t0 = trimpTo(a.start), t1 = trimpTo(a.end);
-      final inside = [
-        for (final m in mins)
-          if (!m.ts.isBefore(a.start) && m.ts.isBefore(a.end)) m.hr,
-      ];
+      final inside = hrIn(a.start, a.end);
       rows.add(
         st.WorkoutsCompanion.insert(
           start: st.toTs(a.start),
@@ -200,6 +237,22 @@ Future<void> saveRpe(st.TempoDb db, int workoutId, int rpe) async {
     final t = st.fromTs(w.start);
     await ScoreService(db).recomputeFrom(DateTime(t.year, t.month, t.day));
   }
+}
+
+/// Band workout starts the user deleted; never re-derived.
+Future<Set<int>> dismissedBandWorkouts(st.TempoDb db) async {
+  try {
+    final raw = await db.setting(Keys.bandDismissed);
+    return {for (final v in jsonDecode(raw ?? '[]') as List) v as int};
+  } catch (_) {
+    return {};
+  }
+}
+
+Future<void> dismissBandWorkout(st.TempoDb db, int start) async {
+  final s = await dismissedBandWorkouts(db)
+    ..add(start);
+  await db.putSetting(Keys.bandDismissed, jsonEncode(s.toList()));
 }
 
 DateTime parseDateKey(String k) {

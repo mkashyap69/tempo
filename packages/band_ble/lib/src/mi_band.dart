@@ -404,6 +404,29 @@ class MiBand {
     }
   }
 
+  /// Workouts recorded on the band since [since], oldest first. The band
+  /// hands out one summary per fetch, so this asks again from just after
+  /// each one until it has nothing newer (at most [max]). Summaries that
+  /// don't parse are skipped but still in the packet log.
+  Future<List<BandWorkout>> fetchWorkouts(
+    DateTime since, {
+    int max = 30,
+  }) async {
+    final out = <BandWorkout>[];
+    var from = since;
+    for (var i = 0; i < max; i++) {
+      final r = await fetch(FetchType.workouts, from);
+      final start = r.start;
+      if (start == null || r.data.isEmpty) break;
+      final w = parseWorkoutSummary(r.data, start);
+      if (w != null) out.add(w);
+      final next = (w?.start ?? start).add(const Duration(seconds: 1));
+      if (!next.isAfter(from)) break; // band repeated itself
+      from = next;
+    }
+    return out;
+  }
+
   /// Battery percent, or null if neither characteristic answers.
   Future<int?> readBattery() async {
     for (final (uuid, huami) in [

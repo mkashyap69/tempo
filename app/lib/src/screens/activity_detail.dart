@@ -7,7 +7,7 @@ import 'package:scoring/scoring.dart' as sc;
 import 'package:store/store.dart' as st;
 
 import '../core/coach_service.dart';
-import '../core/score_service.dart' show saveRpe;
+import '../core/score_service.dart' show dismissBandWorkout, saveRpe;
 import '../core/format.dart';
 import '../core/profile.dart';
 import '../design/chart.dart';
@@ -159,11 +159,12 @@ class ActivityDetailScreen extends ConsumerWidget {
       children: [
         DetailHeader(
           title: '',
-          center: TempoBadge(
-            w.source == 'auto'
-                ? (w.confirmed ? 'Auto-detected · confirmed' : 'Auto-detected')
-                : 'Recorded live',
-          ),
+          center: TempoBadge(switch (w.source) {
+            'auto' =>
+              w.confirmed ? 'Auto-detected · confirmed' : 'Auto-detected',
+            'band' => 'Recorded on the band',
+            _ => 'Recorded live',
+          }),
           trailing: TempoIconButton(
             TempoIcons.edit,
             label: 'Edit activity',
@@ -171,14 +172,35 @@ class ActivityDetailScreen extends ConsumerWidget {
             onTap: () => _edit(context, ref, w),
           ),
         ),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        Row(
           children: [
-            Text(w.title, style: TempoType.pageTitle.c(c.text1)),
-            const SizedBox(height: 4),
-            Text(
-              '${dayShort(a)} · ${clockShort(a)}–${clockOf(b)} · $mins min',
-              style: TempoType.bodyS.c(c.text2).tnum,
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: sportTint(w.sport, dark: c.dark),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              alignment: Alignment.center,
+              child: TempoIcon(
+                sportIcon(w.sport),
+                size: 26,
+                color: sportColor(w.sport, dark: c.dark),
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(w.title, style: TempoType.pageTitle.c(c.text1)),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${dayShort(a)} · ${clockShort(a)}–${clockOf(b)} · $mins min',
+                    style: TempoType.bodyS.c(c.text2).tnum,
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -454,7 +476,10 @@ class ActivityDetailScreen extends ConsumerWidget {
       action: 'Delete',
       danger: true,
     )) {
-      await ref.read(dbProvider).deleteWorkout(w.id);
+      final db = ref.read(dbProvider);
+      await db.deleteWorkout(w.id);
+      // Band workouts are re-derived on every rescore; remember the removal.
+      if (w.source == 'band') await dismissBandWorkout(db, w.start);
       if (context.mounted) Navigator.of(context).maybePop();
     }
   }

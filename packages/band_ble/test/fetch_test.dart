@@ -153,4 +153,40 @@ void main() {
       11,
     );
   });
+
+  group('workout summary (synthetic until captured)', () {
+    Uint8List summary(int kind, DateTime a, DateTime b, {int extra = 20}) {
+      final bd = ByteData(12 + extra)
+        ..setUint16(0, 0x0103, Endian.little)
+        ..setUint16(2, kind, Endian.little)
+        ..setUint32(4, a.millisecondsSinceEpoch ~/ 1000, Endian.little)
+        ..setUint32(8, b.millisecondsSinceEpoch ~/ 1000, Endian.little);
+      return bd.buffer.asUint8List();
+    }
+
+    final a = DateTime(2026, 10, 5, 7, 5);
+    final b = a.add(const Duration(minutes: 32, seconds: 10));
+    test('header gives kind, start and end', () {
+      final w = parseWorkoutSummary(summary(0x01, a, b), a)!;
+      expect(w.kind, 0x01);
+      expect(w.start, a);
+      expect(w.duration, const Duration(minutes: 32, seconds: 10));
+      expect(w.raw.length, 32);
+      expect(bandSportNames[w.kind], 'running');
+    });
+    test('rejects times that disagree with the fetch reply', () {
+      expect(
+        parseWorkoutSummary(summary(1, a, b), a.add(const Duration(days: 3))),
+        isNull,
+      );
+    });
+    test('rejects end before start, absurd lengths and short data', () {
+      expect(parseWorkoutSummary(summary(1, b, a), b), isNull);
+      expect(
+        parseWorkoutSummary(summary(1, a, a.add(const Duration(hours: 30))), a),
+        isNull,
+      );
+      expect(parseWorkoutSummary(Uint8List(8), a), isNull);
+    });
+  });
 }

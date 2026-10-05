@@ -217,4 +217,42 @@ void main() {
       expect(w.map((x) => x.title), ['Run', 'Ride']);
     },
   );
+
+  test('band workouts: raw rows append-only, derived row upserts', () async {
+    BandWorkoutsCompanion raw(int start) => BandWorkoutsCompanion.insert(
+      start: Value(start),
+      end: start + 1800,
+      kind: 1,
+      raw: '0301',
+      fetchedAt: start + 4000,
+    );
+    await db.appendBandWorkouts([raw(1000), raw(1000), raw(9000)]);
+    final rows = await db.bandWorkoutsBetween(fromTs(0), fromTs(10000));
+    expect(rows.map((r) => r.start), [1000, 9000]);
+    expect(
+      () => db.customStatement('DELETE FROM band_workouts'),
+      throwsA(anything),
+    );
+
+    WorkoutsCompanion derived(double strain) => WorkoutsCompanion.insert(
+      start: 1000,
+      end: 2800,
+      sport: const Value('running'),
+      title: 'Outdoor run',
+      source: 'band',
+      confirmed: const Value(true),
+      strain: strain,
+      trimp: 20,
+      zones: '[0,0,0,0,0]',
+    );
+    await db.upsertBandWorkout(derived(6));
+    final id = (await db.workoutsBetween(fromTs(0), fromTs(10000))).single.id;
+    await db.updateWorkout(id, const WorkoutsCompanion(rpe: Value(6)));
+    await db.upsertBandWorkout(derived(7.5));
+    final w = (await db.workoutsBetween(fromTs(0), fromTs(10000))).single;
+    expect(w.strain, 7.5);
+    expect(w.rpe, 6); // user edits survive a rescore
+    expect((await db.watchAllWorkouts(sport: 'running').first).length, 1);
+    expect((await db.watchAllWorkouts(sport: 'cycling').first), isEmpty);
+  });
 }

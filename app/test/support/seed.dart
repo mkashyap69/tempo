@@ -145,6 +145,19 @@ Future<TempoDb> seededDb({
   await db.appendMinutes(minutes);
   await db.appendStress(stress);
   await db.appendSpo2(spo2);
+  // A ride recorded with the band's Workout app two days ago.
+  final ride = DateTime(today.year, today.month, today.day - 2, 18);
+  if (days >= 2) {
+    await db.appendBandWorkouts([
+      BandWorkoutsCompanion.insert(
+        start: Value(toTs(ride)),
+        end: toTs(ride.add(const Duration(minutes: 40))),
+        kind: 0x09,
+        raw: '',
+        fetchedAt: toTs(ride.add(const Duration(hours: 2))),
+      ),
+    ]);
+  }
   await saveAppProfile(db, const Profile());
   await db.putSetting(Keys.onboarded, '1');
   if (paired) {

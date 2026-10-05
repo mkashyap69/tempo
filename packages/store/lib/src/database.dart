@@ -11,6 +11,7 @@ const rawTables = [
   'hr_live',
   'stress_samples',
   'spo2_samples',
+  'band_workouts',
 ];
 
 int toTs(DateTime t) => t.millisecondsSinceEpoch ~/ 1000;
@@ -24,6 +25,7 @@ String dateKey(DateTime d) =>
     HrLive,
     StressSamples,
     Spo2Samples,
+    BandWorkouts,
     SleepSessions,
     DailyScores,
     Baselines,
@@ -39,21 +41,14 @@ class TempoDb extends _$TempoDb {
   TempoDb(super.e);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (m) async {
       await m.createAll();
       for (final t in rawTables) {
-        await customStatement(
-          'CREATE TRIGGER ${t}_no_update BEFORE UPDATE ON $t '
-          "BEGIN SELECT RAISE(ABORT, '$t is append-only'); END",
-        );
-        await customStatement(
-          'CREATE TRIGGER ${t}_no_delete BEFORE DELETE ON $t '
-          "BEGIN SELECT RAISE(ABORT, '$t is append-only'); END",
-        );
+        await _appendOnly(t);
       }
     },
     onUpgrade: (m, from, to) async {
@@ -66,10 +61,40 @@ class TempoDb extends _$TempoDb {
         await m.addColumn(dailyScores, dailyScores.napHours);
         await m.addColumn(dailyScores, dailyScores.baseNeed);
       }
+      if (from < 4) {
+        await m.createTable(bandWorkouts);
+        await _appendOnly('band_workouts');
+      }
     },
   );
 
+  Future<void> _appendOnly(String t) async {
+    await customStatement(
+      'CREATE TRIGGER ${t}_no_update BEFORE UPDATE ON $t '
+      "BEGIN SELECT RAISE(ABORT, '$t is append-only'); END",
+    );
+    await customStatement(
+      'CREATE TRIGGER ${t}_no_delete BEFORE DELETE ON $t '
+      "BEGIN SELECT RAISE(ABORT, '$t is append-only'); END",
+    );
+  }
+
   // ---- raw (append-only) -------------------------------------------------
+
+  /// Stores band workout summaries; ones already stored are ignored.
+  Future<void> appendBandWorkouts(List<BandWorkoutsCompanion> rows) => batch(
+    (b) => b.insertAll(bandWorkouts, rows, mode: InsertMode.insertOrIgnore),
+  );
+
+  /// Band workouts starting in [from, to), oldest first.
+  Future<List<BandWorkoutRow>> bandWorkoutsBetween(
+    DateTime from,
+    DateTime to,
+  ) =>
+      (select(bandWorkouts)
+            ..where((x) => x.start.isBetweenValues(toTs(from), toTs(to) - 1))
+            ..orderBy([(x) => OrderingTerm.asc(x.start)]))
+          .get();
 
   /// Inserts new minutes; rows for minutes already stored are ignored.
   Future<void> appendMinutes(List<MinuteSamplesCompanion> rows) => batch(
@@ -308,6 +333,42 @@ class TempoDb extends _$TempoDb {
             ..where((x) => x.start.isBetweenValues(toTs(from), toTs(to) - 1))
             ..orderBy([(x) => OrderingTerm.asc(x.start)]))
           .watch();
+
+  /// Inserts or refreshes the derived row for a band workout (matched on
+  /// source 'band' and start). Keeps the user's RPE, title and sport edits.
+  Future<void> upsertBandWorkout(WorkoutsCompanion row) => transaction(
+    () async {
+      final existing =
+          await (select(workouts)..where(
+                (x) =>
+                    x.source.equals('band') & x.start.equals(row.start.value),
+              ))
+              .getSingleOrNull();
+      if (existing == null) {
+        await into(workouts).insert(row);
+      } else {
+        await (update(workouts)..where((x) => x.id.equals(existing.id))).write(
+          WorkoutsCompanion(
+            end: row.end,
+            strain: row.strain,
+            trimp: row.trimp,
+            avgHr: row.avgHr,
+            maxHr: row.maxHr,
+            zones: row.zones,
+          ),
+        );
+      }
+    },
+  );
+
+  /// Every workout, newest first, optionally only one sport.
+  Stream<List<Workout>> watchAllWorkouts({String? sport, int limit = 500}) {
+    final q = select(workouts)
+      ..orderBy([(x) => OrderingTerm.desc(x.start)])
+      ..limit(limit);
+    if (sport != null) q.where((x) => x.sport.equals(sport));
+    return q.watch();
+  }
 
   /// Replaces unconfirmed auto-detected workouts in [from, to) with [rows].
   /// Live and confirmed ones stay; rows overlapping them are dropped.

@@ -205,4 +205,47 @@ void main() {
     expect(widgetTarget(Uri.parse('tempo://nope')), isNull);
     expect(widgetTarget(null), isNull);
   });
+
+  test('band workouts become confirmed workouts; a delete sticks', () async {
+    final today = dayOf(DateTime.now());
+    final a = today.add(const Duration(hours: 7));
+    await db.appendMinutes([
+      for (var m = 0; m < 30; m++)
+        MinuteSamplesCompanion.insert(
+          ts: Value(toTs(a.add(Duration(minutes: m)))),
+          steps: 160,
+          intensity: 90,
+          kind: 1,
+          hr: const Value(150),
+        ),
+    ]);
+    await db.appendBandWorkouts([
+      BandWorkoutsCompanion.insert(
+        start: Value(toTs(a)),
+        end: toTs(a.add(const Duration(minutes: 30))),
+        kind: 0x01,
+        raw: '',
+        fetchedAt: toTs(a),
+      ),
+    ]);
+    await ScoreService(db).recomputeFrom(today);
+    var ws = await db.workoutsBetween(
+      today,
+      today.add(const Duration(days: 1)),
+    );
+    final band = ws.where((w) => w.source == 'band').single;
+    expect(band.title, 'Outdoor run');
+    expect(band.sport, 'running');
+    expect(band.confirmed, isTrue);
+    expect(band.avgHr, 150);
+    expect(band.strain, greaterThan(0));
+    // Auto detection doesn't double it.
+    expect(ws.where((w) => w.source == 'auto'), isEmpty);
+
+    await db.deleteWorkout(band.id);
+    await dismissBandWorkout(db, band.start);
+    await ScoreService(db).recomputeFrom(today);
+    ws = await db.workoutsBetween(today, today.add(const Duration(days: 1)));
+    expect(ws.where((w) => w.source == 'band'), isEmpty);
+  });
 }

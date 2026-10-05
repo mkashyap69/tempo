@@ -20,6 +20,7 @@ import 'shared.dart';
 import 'sleep.dart';
 import 'strain.dart';
 import 'workout_detail.dart';
+import 'workouts.dart';
 
 class TodayScreen extends ConsumerWidget {
   const TodayScreen({super.key, this.onTab});
@@ -305,6 +306,26 @@ abstract final class TodayBody {
           onWhy: () => push(context, const WorkoutDetailScreen()),
         ),
       if (!noData && t.firstDay) const FirstWeekCard(),
+      if (t.workouts.isNotEmpty)
+        Section(
+          title: 'Today’s workouts',
+          trailing: Pressable(
+            label: 'All workouts',
+            onTap: () => push(context, const WorkoutsScreen()),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Text('All ›', style: TempoType.bodyS.c(c.text2)),
+            ),
+          ),
+          child: CardList(
+            children: [
+              for (final (i, w) in t.workouts.indexed) ...[
+                if (i > 0) const Hair(),
+                ActivityRow(w: w),
+              ],
+            ],
+          ),
+        ),
       if (!noData)
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,

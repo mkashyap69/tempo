@@ -53,7 +53,32 @@ abstract final class TempoIcons {
   static const bandPill = 'M8 3h8v18H8zM12 9v6';
   static const play =
       'M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z';
+
+  // Sports.
+  static const run =
+      'M13 4.5a1.5 1.5 0 1 0 3 0a1.5 1.5 0 1 0-3 0M8 21l3-6 3 2v4M6 12l3-3 4 1 3 4h3';
+  static const walk =
+      'M11 4.5a1.5 1.5 0 1 0 3 0a1.5 1.5 0 1 0-3 0M11 8l-2 6 3 2 1 5M11 8l3 3 3 1M9 14l-2 7';
+  static const ride =
+      'M3 17a3 3 0 1 0 6 0a3 3 0 1 0-6 0M15 17a3 3 0 1 0 6 0a3 3 0 1 0-6 0M6 17l4-7h5l3 7M10 10L9 7H7M15 10l-2 7';
+  static const strength = 'M3 10v4M6 7v10M18 7v10M21 10v4M6 12h12';
+  static const yoga =
+      'M11 4.5a1.5 1.5 0 1 0 3 0a1.5 1.5 0 1 0-3 0M5 20h14M12.5 8v6M8 11l4.5-2 4.5 2M9.5 20l3-6 3 6';
+  static const hiit = 'M13 3L5 14h6l-1 7 8-11h-6z';
+  static const sport = 'M3 12a9 9 0 1 0 18 0a9 9 0 1 0-18 0M12 3v18M3 12h18';
 }
+
+/// Icon for a scoring `Sport` name; heart rate when unknown.
+String sportIcon(String? sport) => switch (sport) {
+  'running' => TempoIcons.run,
+  'walking' => TempoIcons.walk,
+  'cycling' => TempoIcons.ride,
+  'strength' => TempoIcons.strength,
+  'yoga' => TempoIcons.yoga,
+  'hiit' => TempoIcons.hiit,
+  'sport' => TempoIcons.sport,
+  _ => TempoIcons.heartRate,
+};
 
 class TempoIcon extends StatelessWidget {
   const TempoIcon(

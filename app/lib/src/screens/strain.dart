@@ -11,6 +11,7 @@ import '../core/format.dart';
 import '../core/profile.dart';
 import '../design/chart.dart';
 import '../design/components.dart';
+import '../design/icons.dart';
 import '../design/meter.dart';
 import '../design/tokens.dart';
 import '../design/type.dart';
@@ -19,6 +20,7 @@ import 'activity_detail.dart';
 import 'learn.dart';
 import 'nav.dart';
 import 'shared.dart';
+import 'workouts.dart';
 
 class StrainDay {
   StrainDay(
@@ -311,6 +313,14 @@ class StrainScreen extends ConsumerWidget {
         ),
         Section(
           title: 'Activities today',
+          trailing: Pressable(
+            label: 'All workouts',
+            onTap: () => push(context, const WorkoutsScreen()),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Text('All ›', style: TempoType.bodyS.c(c.text2)),
+            ),
+          ),
           child: d.workouts.isEmpty
               ? const TempoEmpty(
                   'No activities yet today. Start one with the play button, or Tempo will spot walks and rides on the next sync.',
@@ -396,65 +406,125 @@ Future<void> changeActivity(
 }
 
 class ActivityRow extends StatelessWidget {
-  const ActivityRow({super.key, required this.w});
+  const ActivityRow({super.key, required this.w, this.showDay = false});
   final st.Workout w;
+
+  /// History lists show the day instead of only the clock.
+  final bool showDay;
   @override
   Widget build(BuildContext context) {
     final c = context.c, s = context.s;
     final zones = (jsonDecode(w.zones) as List).cast<num>();
-    var top = 1;
-    for (var i = 0; i < zones.length; i++) {
-      if (zones[i] > 0 && zones[i] >= zones[top - 1]) top = i + 1;
-    }
+    final total = zones.fold<num>(0, (a, z) => a + z);
     final a = st.fromTs(w.start), b = st.fromTs(w.end);
+    final mins = ((w.end - w.start) / 60).round();
+    final when = showDay
+        ? '${dm(a)} · ${clockShort(a)} ${ampm(a)}'
+        : '${clockShort(a)}–${clockShort(b)}${ampm(b) == 'pm' ? ' pm' : ''}';
     return Pressable(
       label: w.title,
       onTap: () => push(context, ActivityDetailScreen(id: w.id)),
       child: Container(
-        constraints: const BoxConstraints(minHeight: 68),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        child: Row(
+        constraints: const BoxConstraints(minHeight: 72),
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Container(
-              width: 6,
-              height: 36,
-              decoration: BoxDecoration(
-                color: s.zoneColor(top),
-                borderRadius: BorderRadius.circular(3),
-              ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+            Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: sportTint(w.sport, dark: c.dark),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  alignment: Alignment.center,
+                  child: TempoIcon(
+                    sportIcon(w.sport),
+                    size: 20,
+                    color: sportColor(w.sport, dark: c.dark),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(w.title, style: TempoType.label.c(c.text1)),
-                      if (w.source == 'auto') ...[
-                        const SizedBox(width: 8),
-                        const TempoBadge('Auto-detected', small: true),
-                      ],
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              w.title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TempoType.label.c(c.text1),
+                            ),
+                          ),
+                          if (w.source != 'live') ...[
+                            const SizedBox(width: 8),
+                            TempoBadge(
+                              w.source == 'band'
+                                  ? 'From band'
+                                  : w.confirmed
+                                  ? 'Detected'
+                                  : 'Auto-detected',
+                              small: true,
+                            ),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        '$when · ${mmssShort(mins)}${w.avgHr == null ? '' : ' · avg ${w.avgHr} bpm'}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TempoType.caption.c(c.text2).tnum,
+                      ),
                     ],
                   ),
-                  const SizedBox(height: 3),
-                  Text(
-                    '${clockShort(a)}–${clockShort(b)}${ampm(b) == 'pm' ? ' pm' : ''}${w.avgHr == null ? '' : ' · avg ${w.avgHr} bpm'}',
-                    style: TempoType.caption.c(c.text2).tnum,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  '+${n1(w.strain)}',
+                  style: TempoType.label.c(s.strain[1]).tnum,
+                ),
+              ],
+            ),
+            if (total > 0) ...[
+              const SizedBox(height: 10),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(3),
+                child: SizedBox(
+                  height: 5,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      for (var i = 0; i < 5 && i < zones.length; i++)
+                        if (zones[i] > 0)
+                          Expanded(
+                            flex: (zones[i] * 100 / total).round().clamp(
+                              1,
+                              100,
+                            ),
+                            child: ColoredBox(color: s.zone[i]),
+                          ),
+                    ],
                   ),
-                ],
+                ),
               ),
-            ),
-            Text(
-              '+${n1(w.strain)}',
-              style: TempoType.label.c(s.strain[1]).tnum,
-            ),
+            ],
           ],
         ),
       ),
     );
   }
 }
+
+/// "45 min" / "1 h 15".
+String mmssShort(int minutes) => minutes < 60
+    ? '$minutes min'
+    : '${minutes ~/ 60} h ${(minutes % 60).toString().padLeft(2, '0')}';
 
 /// Zone rows: label, bar, bpm range, minutes.
 class ZoneRows extends StatelessWidget {
