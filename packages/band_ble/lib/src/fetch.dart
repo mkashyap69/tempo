@@ -144,10 +144,23 @@ final class ChunkAssembler {
 }
 
 final class ActivityRecord {
-  const ActivityRecord(this.ts, this.kind, this.intensity, this.steps, this.hr);
+  const ActivityRecord(
+    this.ts,
+    this.kind,
+    this.intensity,
+    this.steps,
+    this.hr, [
+    this.aux,
+  ]);
   final DateTime ts;
   final int kind, intensity, steps;
   final int? hr;
+
+  /// Bytes 4–7 as a little-endian u32, kept raw. In the capture byte 5
+  /// climbs to ~61 while still (a stillness counter?) and bytes 6–7 sit at
+  /// 0x80 awake and vary 0x8c–0xd0 only during band-detected sleep.
+  /// All TODO(verify).
+  final int? aux;
 }
 
 /// Activity on V1.0.6.20: 8 bytes per minute. The first four match the older
@@ -171,6 +184,10 @@ List<ActivityRecord> parseActivity(Uint8List data, DateTime start) {
         data[i + 1],
         data[i + 2],
         hr == 0xff || hr == 0 ? null : hr,
+        data[i + 4] |
+            (data[i + 5] << 8) |
+            (data[i + 6] << 16) |
+            (data[i + 7] << 24),
       ),
     );
   }
@@ -202,25 +219,22 @@ List<ValueRecord> parseSpo2(Uint8List data) {
   return out;
 }
 
-/// Activity-kind codes → sleep stage name. All TODO(verify); unknown codes
-/// map to null (treated as awake/unknown by scoring).
-const sleepKinds = <int, String>{
-  0x70: 'light', // TODO(verify)
-  0x7a: 'light', // TODO(verify)
-  0x7b: 'deep', // TODO(verify)
-  0x79: 'deep', // TODO(verify)
-  0x6e: 'rem', // TODO(verify)
-  // android-2026-10-04T12-33-07: 0xf0 runs for hours with HR every minute
-  // and ~0 steps (night and a nap). 0xf9/0xfa sit inside those runs.
-  // Stage split is still TODO(verify); counted as light so the night exists.
-  0xf0: 'light',
-  0xf9: 'light',
-  0xfa: 'light',
-};
+/// The activity kind byte on V1.0.6.20 is a bit field, read from
+/// `android-2026-10-04T12-33-07` (golden test in fetch_golden_test.dart):
+///
+/// * bit 7 set = inside a sleep the band detected (0xf0, 0xd0, 0xd9, 0xdb,
+///   0xf9, 0xfa). Heart rate is sampled every minute there.
+/// * low nibble 3 = not worn: no heart rate at all (0x73, 0xf3, 0x53, 0x03).
+/// * 0x5x = still, 0x6x/0x1x = light movement, 0x01 = walking with steps.
+///   0x70/0x7a follow waking (HR 85–92, steps rising): awake, not sleep.
+///
+/// The band does not send sleep stages; every sleeping minute is the same
+/// kind, so stages are estimated in `scoring` from HR and motion. The
+/// meaning of the remaining low-nibble values (9, a, b) is TODO(verify).
+bool kindAsleep(int kind) => kind & 0x80 != 0 && !kindNotWorn(kind);
 
-/// Codes meaning "not worn". TODO(verify)
-/// 0xf3 in that capture is 245 minutes with no HR sample at all.
-const notWornKinds = {0x73, 0x0f, 0xf3}; // TODO(verify)
+/// See [kindAsleep].
+bool kindNotWorn(int kind) => kind & 0x0f == 0x03;
 
 /// A workout recorded by the band's own Workout app.
 final class BandWorkout {

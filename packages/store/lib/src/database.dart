@@ -41,7 +41,7 @@ class TempoDb extends _$TempoDb {
   TempoDb(super.e);
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -65,6 +65,9 @@ class TempoDb extends _$TempoDb {
         await m.createTable(bandWorkouts);
         await _appendOnly('band_workouts');
       }
+      if (from < 5) {
+        await m.addColumn(minuteSamples, minuteSamples.aux);
+      }
     },
   );
 
@@ -80,6 +83,36 @@ class TempoDb extends _$TempoDb {
   }
 
   // ---- raw (append-only) -------------------------------------------------
+
+  /// The one exception to append-only, run only on the user's explicit
+  /// "Re-download band history": deletes raw samples from [from] on and
+  /// every sync cursor, so the next sync fetches them again from the band.
+  /// Used to replace rows an older build stored at the wrong time. The
+  /// guard triggers are dropped and recreated inside the transaction.
+  /// Returns the minutes removed.
+  Future<int> clearRawHistoryFrom(DateTime from) => transaction(() async {
+    const tables = ['minute_samples', 'stress_samples', 'spo2_samples'];
+    var removed = 0;
+    for (final t in tables) {
+      await customStatement('DROP TRIGGER IF EXISTS ${t}_no_delete');
+      final n = await customUpdate(
+        'DELETE FROM $t WHERE ts >= ?',
+        variables: [Variable.withInt(toTs(from))],
+        updates: {
+          for (final tb in allTables)
+            if (tb.actualTableName == t) tb,
+        },
+        updateKind: UpdateKind.delete,
+      );
+      if (t == 'minute_samples') removed = n;
+      await customStatement(
+        'CREATE TRIGGER ${t}_no_delete BEFORE DELETE ON $t '
+        "BEGIN SELECT RAISE(ABORT, '$t is append-only'); END",
+      );
+    }
+    await delete(syncState).go();
+    return removed;
+  });
 
   /// Stores band workout summaries; ones already stored are ignored.
   Future<void> appendBandWorkouts(List<BandWorkoutsCompanion> rows) => batch(

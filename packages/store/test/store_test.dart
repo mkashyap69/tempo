@@ -255,4 +255,27 @@ void main() {
     expect((await db.watchAllWorkouts(sport: 'running').first).length, 1);
     expect((await db.watchAllWorkouts(sport: 'cycling').first), isEmpty);
   });
+
+  test(
+    'clearRawHistoryFrom: only on request, then append-only again',
+    () async {
+      await db.appendMinutes([m(60, hr: 50), m(120, hr: 51), m(180, hr: 52)]);
+      await db.setCursor('band', 'activity', fromTs(240));
+      final n = await db.clearRawHistoryFrom(fromTs(120));
+      expect(n, 2);
+      expect(
+        (await db.minutesBetween(fromTs(0), fromTs(1000))).map((r) => r.ts),
+        [60],
+      );
+      expect(await db.cursor('band', 'activity'), isNull);
+      // Corrected rows can land in the freed minutes.
+      await db.appendMinutes([m(120, hr: 70)]);
+      expect((await db.minutesBetween(fromTs(100), fromTs(130))).single.hr, 70);
+      // The guard is back.
+      expect(
+        () => db.customStatement('DELETE FROM minute_samples'),
+        throwsA(anything),
+      );
+    },
+  );
 }

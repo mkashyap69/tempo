@@ -21,6 +21,7 @@ import '../core/notifications.dart';
 import '../core/pause.dart';
 import '../core/profile.dart';
 import '../core/score_service.dart';
+import '../core/sync_service.dart';
 import '../core/today.dart';
 import '../design/components.dart';
 import '../design/tokens.dart';
@@ -196,6 +197,22 @@ Future<int?> editNumber(
   );
   ctl.dispose();
   return r;
+}
+
+/// Profile → Advanced and Data health: replace stored band history with a
+/// fresh download (see SyncService.redownload).
+Future<void> redownloadHistory(BuildContext context, WidgetRef ref) async {
+  final ok = await confirmSheet(
+    context,
+    title: 'Re-download band history?',
+    body: 'Tempo fetches everything your band still holds and replaces what’s stored from that point on. Use it if sleep or activity times look shifted. Older days the band no longer has stay as they are.',
+    action: 'Re-download',
+  );
+  if (!ok || !context.mounted) return;
+  await bandAction(
+    context,
+    () => SyncService(ref.read(dbProvider)).redownload(),
+  );
 }
 
 /// Profile → Restore from export: pick a Tempo JSON export, merge it in,
@@ -900,6 +917,11 @@ class SettingsScreen extends ConsumerWidget {
             onTap: !paired
                 ? null
                 : () => bandAction(context, () => writeBandSettings(ref)),
+          ),
+          ListRow(
+            'Re-download band history',
+            sub: 'Fixes sleep and activity stored at the wrong time',
+            onTap: !paired ? null : () => redownloadHistory(context, ref),
           ),
           ListRow(
             'Recompute all scores',

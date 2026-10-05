@@ -40,8 +40,12 @@ class Night {
     required this.typical,
     required this.bedtimes,
     required this.hrBand,
+    this.staged = true,
   });
   final DateTime morning;
+
+  /// False when the band sampled HR too rarely to estimate stages.
+  final bool staged;
   final List<sc.Minute> minutes;
   final int latency;
   final List<st.Spo2Sample> spo2;
@@ -84,19 +88,18 @@ final nightProvider = FutureProvider.family<Night, DateTime>((
     );
   }
   final a = st.fromTs(s!.sleepStart!), b = st.fromTs(s.sleepEnd!);
-  sc.Minute dec(st.MinuteSample m) => sc.Minute(
-    st.fromTs(m.ts),
-    hr: m.hr,
-    steps: m.steps,
-    stage: stageForKind(m.kind),
+  // Decode the hour before and the night together so the night is staged
+  // exactly as scoring staged it.
+  final decoded = decodeMinutes(
+    await db.minutesBetween(a.subtract(const Duration(minutes: 60)), b),
   );
-  final mins = [for (final m in await db.minutesBetween(a, b)) dec(m)];
+  final mins = [
+    for (final m in decoded.minutes)
+      if (!m.ts.isBefore(a)) m,
+  ];
   final before = [
-    for (final m in await db.minutesBetween(
-      a.subtract(const Duration(minutes: 60)),
-      a,
-    ))
-      dec(m),
+    for (final m in decoded.minutes)
+      if (m.ts.isBefore(a)) m,
   ];
   final past = await db.scoresBefore(
     morning.add(const Duration(days: 1)),
@@ -138,6 +141,7 @@ final nightProvider = FutureProvider.family<Night, DateTime>((
           st.fromTs(p.sleepStart!).hour * 60 + st.fromTs(p.sleepStart!).minute,
     ],
     hrBand: lo == null || hi == null ? null : (lo, hi + 4),
+    staged: !decoded.unstaged,
   );
 });
 
@@ -264,6 +268,13 @@ class SleepScreen extends ConsumerWidget {
                   ],
                 ),
                 const SizedBox(height: 12),
+                if (!night.staged) ...[
+                  Text(
+                    'No stages for this night: the band measured heart rate only every 10–30 minutes. Tempo now asks it for every minute, so the next night will have them.',
+                    style: TempoType.caption.c(c.text2),
+                  ),
+                  const SizedBox(height: 8),
+                ],
                 Hypnogram(minutes: night.minutes, height: 160),
                 const SizedBox(height: 12),
                 Row(
@@ -467,7 +478,7 @@ class SleepScreen extends ConsumerWidget {
           ),
         ),
         Text(
-          'Stages come from the band’s motion and heart rate, so they’re estimates. Need starts at 7 h 30 m; after 14 scored nights it learns from the nights you recover best after, then adjusts to strain and debt.${strainYesterday > 0 ? '' : ''}',
+          'The band marks when you sleep; Tempo estimates the stages from your heart rate and movement, so treat them as a guide. Need starts at 7 h 30 m; after 14 scored nights it learns from the nights you recover best after, then adjusts to strain and debt.${strainYesterday > 0 ? '' : ''}',
           style: TempoType.caption.c(c.text3),
         ),
       ],

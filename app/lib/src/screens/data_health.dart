@@ -11,13 +11,14 @@ import '../core/coach_service.dart';
 import '../core/format.dart';
 import '../core/profile.dart';
 
-import 'package:band_ble/band_ble.dart' show notWornKinds;
+import 'package:band_ble/band_ble.dart' show kindNotWorn;
 
 import '../design/components.dart';
 import '../design/icons.dart';
 import '../design/tokens.dart';
 import '../design/type.dart';
 import '../state/providers.dart';
+import 'settings.dart' show redownloadHistory;
 
 /// Per-day wear: (minutes, kind) runs. kind: 0 worn, 1 not worn, 2 gap.
 class _Health {
@@ -61,7 +62,7 @@ final _healthProvider = FutureProvider<_Health>((ref) async {
     final byMin = List<int>.filled(1440, 2); // default: gap (no record)
     for (final m in mins) {
       final t = st.fromTs(m.ts);
-      byMin[t.hour * 60 + t.minute] = notWornKinds.contains(m.kind) ? 1 : 0;
+      byMin[t.hour * 60 + t.minute] = kindNotWorn(m.kind) ? 1 : 0;
     }
     final end = i == 0
         ? (last != null && DateUtils.isSameDay(last, d)
@@ -290,6 +291,8 @@ class DataHealthScreen extends ConsumerWidget {
                                       : 'OK · ${(l.durationMs! / 1000).round()} s',
                                 'retried' => 'Retried',
                                 'failed' => 'Failed',
+                                'settings' => 'Settings',
+                                'repair' => 'Repair',
                                 _ => 'Gap',
                               },
                               style: TempoType.caption.c(
@@ -302,6 +305,15 @@ class DataHealthScreen extends ConsumerWidget {
                   ],
                 ),
         ),
+        if (h.lastSync != null)
+          Center(
+            child: TempoButton(
+              'Re-download band history',
+              small: true,
+              kind: ButtonKind.ghost,
+              onTap: () => redownloadHistory(context, ref),
+            ),
+          ),
         PrivacyNote(
           'All data stays on this phone · ${(h.dbBytes / 1e6).toStringAsFixed(h.dbBytes < 1e7 ? 1 : 0)} MB · ${h.daysStored} days',
         ),

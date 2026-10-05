@@ -8,6 +8,9 @@ class MinuteSamples extends Table {
   IntColumn get steps => integer()();
   IntColumn get intensity => integer()();
   IntColumn get kind => integer()(); // raw band activity-kind code
+  // Record bytes 4–7 (u32 LE), kept raw; meaning TODO(verify). Null for
+  // rows synced before schema 5.
+  IntColumn get aux => integer().nullable()();
   IntColumn get hr => integer().nullable()();
   @override
   Set<Column> get primaryKey => {ts};
