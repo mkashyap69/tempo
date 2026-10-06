@@ -186,6 +186,31 @@ void main() {
       ];
       expect(detectSessions(long).length, 2);
     });
+    test('a quiet wake with the band off the wrist ends the sleep', () {
+      // 6 Oct: asleep to 09:45, 34 min apart (17 off the wrist), then 5 min
+      // flagged asleep just after putting the band back on.
+      final a = DateTime(2026, 10, 6, 8, 45);
+      List<Minute> gap({required bool off}) => [
+        for (var i = 0; i < 34; i++)
+          Minute(
+            a.add(Duration(minutes: 61 + i)),
+            stage: off && i >= 16 ? Stage.unknown : Stage.wake,
+            offWrist: off && i >= 16,
+          ),
+      ];
+      List<Minute> night({required bool off}) => [
+        ...run(a, 61, stage: Stage.light),
+        ...gap(off: off),
+        ...run(a.add(const Duration(minutes: 95)), 25, stage: Stage.light),
+      ];
+      expect(detectSessions(night(off: false)).length, 1);
+      final split = detectSessions(
+        night(off: true),
+        const SleepParams(minSessionMinutes: 20),
+      );
+      expect(split.length, 2);
+      expect(split.first.end, a.add(const Duration(minutes: 61)));
+    });
     test('drops sessions shorter than the minimum', () {
       expect(detectSessions(run(t, 30, stage: Stage.light)), isEmpty);
     });

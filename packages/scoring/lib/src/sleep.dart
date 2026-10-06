@@ -41,7 +41,9 @@ final class SleepParams {
   /// A longer wake still belongs to the same sleep when it's quiet: up to
   /// [maxQuietGapMinutes] with at most [quietGapMaxSteps] steps (lying
   /// awake). Seen 6 Oct: 31 min awake at 05:28 with 0 steps split a
-  /// 7 h 22 m night into 5 h + a "nap".
+  /// 7 h 22 m night into 5 h + a "nap". The band must be worn the whole
+  /// gap: on 6 Oct a 34-min gap with 17 min off the wrist joined a 5-min
+  /// "sleep" after putting the band back on and moved wake 38 min later.
   final int maxQuietGapMinutes, quietGapMaxSteps;
   final int minSessionMinutes;
 
@@ -79,11 +81,15 @@ List<SleepSession> detectSessions(
       final (a, b) = merged.last;
       final gap = minutes[r.$1].ts.difference(minutes[b].ts).inMinutes;
       var steps = 0;
+      var offWrist = false;
       for (var k = b + 1; k < r.$1; k++) {
         steps += minutes[k].steps;
+        offWrist |= minutes[k].offWrist;
       }
       if (gap <= p.maxWakeGapMinutes ||
-          (gap <= p.maxQuietGapMinutes && steps <= p.quietGapMaxSteps)) {
+          (gap <= p.maxQuietGapMinutes &&
+              steps <= p.quietGapMaxSteps &&
+              !offWrist)) {
         merged[merged.length - 1] = (a, r.$2);
         continue;
       }
