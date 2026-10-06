@@ -1,3 +1,4 @@
+import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -146,13 +147,39 @@ void main() {
           ),
           b: b,
         );
-        if (data.status == sc.DayStatus.missedSlot) {
+        if (data.status == sc.DayStatus.missedSlot && data.rescue.offered) {
           expect(find.text('STILL TIME TODAY'), findsOneWidget);
           expect(find.text('Plan it'), findsOneWidget);
+        } else if (data.state == sc.DayState.rest) {
+          expect(find.textContaining('rest day now'), findsOneWidget);
         }
         await teardown(t, db);
       });
     }
+
+    testWidgets('rescue offered: Plan it / Skip today', (t) async {
+      final now = DateTime.now();
+      final (db, data) = (await t.runAsync(() async {
+        final d = TempoDb(NativeDatabase.memory());
+        await saveAppProfile(d, const Profile());
+        await CoachService(d).swapToday(sc.sessionTemplate('easy_run'), 'x');
+        await d.putSetting(Keys.coachSlot, 'am');
+        final td = await loadToday(
+          d,
+          at: DateTime(now.year, now.month, now.day, 11),
+        );
+        return (d, td);
+      }))!;
+      expect(data.rescue.offered, isTrue);
+      await render(
+        t,
+        db,
+        Scaffold(body: ListView(children: [RescueCard(data)])),
+      );
+      expect(find.text('STILL TIME TODAY'), findsOneWidget);
+      expect(find.text('Plan it'), findsOneWidget);
+      await teardown(t, db);
+    });
 
     testWidgets('Coach shows status, also-today and week glyphs', (t) async {
       final db = (await t.runAsync(() => seededDb(days: 30)))!;

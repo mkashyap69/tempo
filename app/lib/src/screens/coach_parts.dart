@@ -144,6 +144,14 @@ class RescueCard extends ConsumerWidget {
         ),
       );
     }
+    if (!r.offered && t.state == sc.DayState.rest) {
+      return TempoCard(
+        child: Text(
+          'Your ${t.plan!.title.toLowerCase()} didn’t show up — and today is a rest day now anyway, so there’s nothing to make up.',
+          style: TempoType.bodyS.c(c.text2),
+        ),
+      );
+    }
     if (!r.offered) {
       return TempoCard(
         child: Text(
