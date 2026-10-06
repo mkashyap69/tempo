@@ -642,4 +642,119 @@ void main() {
       await d.close();
     });
   });
+
+  group('unplanned workouts', () {
+    // Monday 5 Oct 2026, 20:00.
+    final mon = DateTime(2026, 10, 5);
+    final at = mon.add(const Duration(hours: 20));
+    Future<void> week(List<String> keys) async {
+      await saveAppProfile(db, const Profile());
+      for (var i = 0; i < 7; i++) {
+        await db.putPlanDay(
+          PlanDaysCompanion.insert(
+            date: dateKey(mon.add(Duration(days: i))),
+            session: jsonEncode(sc.sessionTemplate(keys[i]).toJson()),
+            general: false,
+          ),
+        );
+      }
+    }
+
+    Future<void> did(String sport, int minutes, {int hard = 0}) =>
+        db.addWorkout(
+          WorkoutsCompanion.insert(
+            start: toTs(mon.add(const Duration(hours: 18))),
+            end: toTs(mon.add(Duration(hours: 18, minutes: minutes))),
+            sport: Value(sport),
+            title: sport,
+            source: 'band',
+            strain: hard > 0 ? 13 : 5,
+            trimp: 40,
+            zones: '[0,${minutes - hard},0,$hard,0]',
+          ),
+        );
+    Future<sc.Session> plan(int i) async => sc.Session.fromJson(
+      jsonDecode((await db.planDay(mon.add(Duration(days: i))))!.session)
+          as Map<String, dynamic>,
+    );
+
+    test(
+      'strength + a hard ride: strength moves, the ride takes its place',
+      () async {
+        await week([
+          'strength_full',
+          'easy_run',
+          'easy_run',
+          'threshold_run',
+          'easy_run',
+          'easy_walk',
+          'rest',
+        ]);
+        await did('cycling', 50, hard: 15);
+        final s = await CoachService(db).reconcileToday(at: at);
+        expect(s.kind, sc.SwapKind.moved);
+        expect((await plan(0)).title, 'Ride 50′');
+        expect((await db.planDay(mon))!.status, 'done');
+        expect((await db.planDay(mon))!.reason, contains('Saturday'));
+        expect((await plan(5)).key, 'strength_full');
+        // Idempotent: nothing moves twice.
+        final again = await CoachService(db).reconcileToday(at: at);
+        expect(again.kind, isNot(sc.SwapKind.moved));
+        expect((await plan(5)).key, 'strength_full');
+      },
+    );
+
+    test('strength + a light walk: credited, strength stands', () async {
+      await week([
+        'strength_full',
+        'easy_run',
+        'easy_run',
+        'easy_run',
+        'easy_run',
+        'easy_walk',
+        'rest',
+      ]);
+      await did('walking', 60);
+      final s = await CoachService(db).reconcileToday(at: at);
+      expect(s.kind, sc.SwapKind.stands);
+      expect((await plan(0)).key, 'strength_full');
+    });
+
+    test('an unplanned hard day eases tomorrow\'s hard session now', () async {
+      await week([
+        'easy_run',
+        'threshold_run',
+        'easy_run',
+        'easy_run',
+        'easy_run',
+        'easy_walk',
+        'rest',
+      ]);
+      await did('hiit', 40, hard: 12);
+      final s = await CoachService(db).reconcileToday(at: at);
+      expect(s.hardDay, isTrue);
+      expect((await plan(1)).isHard, isFalse);
+      expect(
+        (await db.planDay(mon.add(const Duration(days: 1))))!.reason,
+        contains('Today was already hard'),
+      );
+      expect(await db.setting(Keys.carried), contains('threshold_run'));
+    });
+
+    test('a ride covering a planned easy run just counts', () async {
+      await week([
+        'easy_run',
+        'easy_run',
+        'easy_run',
+        'easy_run',
+        'easy_run',
+        'easy_walk',
+        'rest',
+      ]);
+      await did('cycling', 45);
+      final s = await CoachService(db).reconcileToday(at: at);
+      expect(s.kind, sc.SwapKind.counted);
+      expect((await plan(0)).key, 'easy_run');
+    });
+  });
 }

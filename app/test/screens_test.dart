@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
@@ -178,6 +179,37 @@ void main() {
       );
       expect(find.text('STILL TIME TODAY'), findsOneWidget);
       expect(find.text('Plan it'), findsOneWidget);
+      await teardown(t, db);
+    });
+
+    testWidgets('walk instead of strength: credited, strength stands', (
+      t,
+    ) async {
+      final now = DateTime.now();
+      final day = DateTime(now.year, now.month, now.day);
+      final (db, data) = (await t.runAsync(() async {
+        final d = TempoDb(NativeDatabase.memory());
+        await saveAppProfile(d, const Profile());
+        await CoachService(d)
+            .swapToday(sc.sessionTemplate('strength_full'), 'x');
+        await d.addWorkout(
+          WorkoutsCompanion.insert(
+            start: toTs(day.add(const Duration(hours: 7))),
+            end: toTs(day.add(const Duration(hours: 8))),
+            sport: const Value('walking'),
+            title: 'Walk',
+            source: 'band',
+            strain: 5,
+            trimp: 30,
+            zones: '[10,50,0,0,0]',
+          ),
+        );
+        return (d, await loadToday(d, at: day.add(const Duration(hours: 9))));
+      }))!;
+      expect(data.swap.kind, sc.SwapKind.stands);
+      await render(t, db, Scaffold(body: ListView(children: [SwapNote(data)])));
+      expect(find.textContaining('Strength is still today'), findsOneWidget);
+      expect(find.text('That was my strength session'), findsOneWidget);
       await teardown(t, db);
     });
 

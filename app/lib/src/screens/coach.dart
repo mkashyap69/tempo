@@ -207,6 +207,7 @@ class CoachScreen extends ConsumerWidget {
             footer: t.pause == null ? SessionActions(t) : null,
             onTap: () => push(context, const WorkoutDetailScreen()),
           ),
+        if (t.pause == null) SwapNote(t),
         if (t.pause == null &&
             !t.restDay &&
             t.plan != null &&
@@ -456,6 +457,10 @@ class CoachScreen extends ConsumerWidget {
   }
 
   static String _why(TodayData t, bool general) {
+    // What you did replaced the plan: say what moved where.
+    if (t.plan?.key == 'done' && t.planRow?.reason != null) {
+      return t.planRow!.reason!.replaceFirst(RegExp(r'^[▲■▼·] '), '');
+    }
     if (general) return 'General · built from your goal';
     final parts = [
       if (t.recovery != null) 'Recovery ${t.recovery!.round()}%',

@@ -439,3 +439,129 @@ List<LeverAction> leverActions({
 String _k(double v) => v >= 1000
     ? '${(v / 1000).toStringAsFixed(1).replaceAll('.0', '')}k'
     : '${v.round()}';
+
+// ---- unplanned workouts -----------------------------------------------------
+
+/// How an unplanned workout relates to today's planned session.
+enum SwapKind {
+  /// Nothing unplanned to account for.
+  none,
+
+  /// It covered the session (same family, enough of it).
+  counted,
+
+  /// Different kind, but it made today a hard day: the planned session
+  /// moves to a later easy day.
+  moved,
+
+  /// Different kind and light: credited, the session still stands.
+  stands,
+}
+
+final class Swap {
+  const Swap(this.kind, {this.by, this.hardDay = false});
+  final SwapKind kind;
+
+  /// The workout that counted, moved or was credited.
+  final DoneWorkout? by;
+
+  /// Today ended up hard (from any workout), whatever was planned.
+  final bool hardDay;
+}
+
+/// Unplanned work shorter than this is ignored.
+const swapMinMinutes = 10;
+
+/// Today was hard: any workout with ≥ 5 min in Z4–Z5, or the day's strain
+/// past what [plan] would have added at most.
+bool madeHard(List<DoneWorkout> ws, double dayStrain, Session plan) =>
+    ws.any((w) => w.hardMinutes >= hardMinutesNeeded) ||
+    (!plan.isRest && plan.strainHi > 0 && dayStrain >= plan.strainHi);
+
+/// What today's workouts mean for today's [plan], given how it matched.
+Swap substitute({
+  required Session plan,
+  required SessionMatch match,
+  required List<DoneWorkout> workouts,
+  double dayStrain = 0,
+}) {
+  final ws = [
+    for (final w in workouts)
+      if (w.minutes >= swapMinMinutes) w,
+  ]..sort((a, b) => b.minutes.compareTo(a.minutes));
+  final hard = madeHard(ws, dayStrain, plan);
+  if (ws.isEmpty || plan.isRest) return Swap(SwapKind.none, hardDay: hard);
+  if (match.kind == MatchKind.done || match.kind == MatchKind.doneEasier) {
+    final by = ws.where((w) => compatible(plan, w.sport)).firstOrNull;
+    return Swap(SwapKind.counted, by: by ?? ws.first, hardDay: hard);
+  }
+  final other = ws.where((w) => !compatible(plan, w.sport)).firstOrNull;
+  if (other == null) return Swap(SwapKind.none, hardDay: hard);
+  return Swap(
+    hard ? SwapKind.moved : SwapKind.stands,
+    by: other,
+    hardDay: hard,
+  );
+}
+
+/// The next day this week that can take [s]: available, planned easy (not
+/// strength, not rest), and with no hard or strength day either side.
+/// [week] is Monday first; [available] uses 1 = Monday.
+int? moveTarget(
+  List<Session> week,
+  int today,
+  Session s, {
+  Set<int> available = const {1, 2, 3, 4, 5, 6, 7},
+}) {
+  bool heavy(int i) =>
+      i >= 0 &&
+      i < week.length &&
+      (week[i].isHard || week[i].sport == Sport.strength);
+  for (var j = today + 1; j < week.length; j++) {
+    final d = week[j];
+    if (!available.contains(j + 1)) continue;
+    if (d.isRest || d.isHard || d.sport == Sport.strength) continue;
+    if (d.intensity != Intensity.easy) continue;
+    if (j == today + 1) continue; // today was hard: not tomorrow
+    if (heavy(j - 1) || heavy(j + 1)) continue;
+    return j;
+  }
+  return null;
+}
+
+String sportName(Sport? s) => switch (s) {
+  Sport.running => 'Run',
+  Sport.cycling => 'Ride',
+  Sport.walking => 'Walk',
+  Sport.strength => 'Strength',
+  Sport.yoga => 'Yoga',
+  Sport.hiit => 'HIIT',
+  Sport.sport => 'Sport',
+  null => 'Workout',
+};
+
+/// What you did, as a plan session, so today's plan shows it.
+Session sessionFromDone(DoneWorkout w) {
+  var zone = 1, best = -1;
+  for (var z = 0; z < w.zoneMinutes.length; z++) {
+    if (w.zoneMinutes[z] > best) {
+      best = w.zoneMinutes[z];
+      zone = z + 1;
+    }
+  }
+  final intensity = w.hardMinutes >= hardMinutesNeeded
+      ? Intensity.hard
+      : zone >= 3
+      ? Intensity.moderate
+      : Intensity.easy;
+  return Session(
+    key: 'done',
+    title: '${sportName(w.sport)} ${w.minutes}′',
+    sport: w.sport,
+    segments: [Segment(max(1, w.minutes), zone.clamp(1, 5))],
+    strainLo: 0,
+    strainHi: w.strain,
+    intensity: intensity,
+    note: 'what you did',
+  );
+}

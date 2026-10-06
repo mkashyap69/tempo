@@ -46,7 +46,11 @@ class TodayData {
     this.shortNight = false,
     this.pmSlot = 18 * 60,
     this.amSlot = 7 * 60,
+    this.swap = const sc.Swap(sc.SwapKind.none),
   });
+
+  /// How today's unplanned workouts relate to the plan.
+  final sc.Swap swap;
 
   /// What the user decided for today's session (Tempo Coach).
   final sc.Intent intent;
@@ -239,6 +243,15 @@ Future<TodayData> loadToday(st.TempoDb db, {DateTime? at}) async {
           bedtime: bedtime,
           plannedMinute: planned,
         );
+  final done = [for (final w in workouts) doneWorkout(w)];
+  final swap = plan == null
+      ? const sc.Swap(sc.SwapKind.none)
+      : sc.substitute(
+          plan: plan,
+          match: match,
+          workouts: done,
+          dayStrain: score?.strain ?? 0,
+        );
   final strains = [
     for (final d in history.take(28))
       if (d.strain > 0) d.strain,
@@ -299,6 +312,7 @@ Future<TodayData> loadToday(st.TempoDb db, {DateTime? at}) async {
     shortNight: shortNight,
     pmSlot: slots.pm,
     amSlot: slots.am,
+    swap: swap,
   );
 }
 

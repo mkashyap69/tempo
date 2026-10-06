@@ -90,3 +90,8 @@
 - 2026-10-06 · Scoring algo 6: band-flagged-awake minutes inside the night that are quiet (0 steps, movement < 25, HR not more than 12 bpm above the night's median) are now staged like any other minute.
   - The rule only applies between the first and last ≥ 10-minute runs of flagged sleep, so a stray flagged minute can't pull onset earlier.
   - On 5–6 Oct this took wake from 59 to 34 min. The stage shares (to the 08:18 sync) are deep 15 % and REM 16 %, against Mi Fitness's 13 % and 14 %.
+- 2026-10-06 · Workouts you do instead of the plan (scoring/coach_day.dart `substitute`, applied after each sync by CoachService.reconcileToday):
+  - **Counted.** The same family of workout, done enough, counts as the session; the existing match bands decide.
+  - **Moved.** A different kind of workout that made today hard (≥ 5 min in Z4–Z5, or day strain past the plan's top) moves the planned session to the next available easy day. It never goes to tomorrow or next to a hard or strength day. Today's plan becomes what you did, with the reason stored; with no room left this week, the session is skipped.
+  - **Stands.** A different kind of workout that stayed light is credited, but the session stays, because cardio doesn't replace strength. The Coach card offers "That was my strength session".
+  - **Tomorrow.** A hard day, planned or not, eases tomorrow's hard session straight after the sync and carries it forward, rather than waiting for the next morning.

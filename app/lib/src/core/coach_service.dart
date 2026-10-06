@@ -240,6 +240,113 @@ class CoachService {
     return s;
   }
 
+  /// Accounts for workouts you did instead of the plan (after every sync).
+  /// A different kind of workout that made today hard moves the planned
+  /// session to a later easy day and puts what you did in its place; a
+  /// hard day also eases tomorrow's hard session straight away. Safe to
+  /// run repeatedly: once moved, today's plan is what you did.
+  Future<sc.Swap> reconcileToday({DateTime? at}) async {
+    final now = at ?? DateTime.now();
+    final today = dayOf(now);
+    if (isPaused(await loadPauses(db), today)) {
+      return const sc.Swap(sc.SwapKind.none);
+    }
+    final rows = await ensureWeek(today);
+    final idx = today.weekday - 1;
+    if (idx >= rows.length) return const sc.Swap(sc.SwapKind.none);
+    final week = [
+      for (final r in rows)
+        sc.Session.fromJson(jsonDecode(r.session) as Map<String, dynamic>),
+    ];
+    final plan = week[idx];
+    final ws = [
+      for (final w in await db.workoutsBetween(
+        today,
+        today.add(const Duration(days: 1)),
+      ))
+        doneWorkout(w),
+    ];
+    final strain = (await db.scoreFor(today))?.strain ?? 0;
+    final swap = sc.substitute(
+      plan: plan,
+      match: sc.matchSession(plan, ws),
+      workouts: ws,
+      dayStrain: strain,
+    );
+    final stamp = st.toTs(now);
+    String day(int i) => const [
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+      'Sunday',
+    ][i];
+
+    if (swap.kind == sc.SwapKind.moved && plan.key != 'done') {
+      final by = swap.by!;
+      final did = sc.sessionFromDone(by);
+      final profile = await loadAppProfile(db) ?? const Profile();
+      final j = sc.moveTarget(week, idx, plan, available: profile.days);
+      final whereTo = j == null
+          ? 'Not enough room left this week, so it’s skipped.'
+          : '${plan.title} moves to ${day(j)}.';
+      await db.putPlanDay(
+        st.PlanDaysCompanion.insert(
+          date: rows[idx].date,
+          session: jsonEncode(did.toJson()),
+          original: Value(rows[idx].original ?? rows[idx].session),
+          reason: Value('· ${did.title} made today a hard day. $whereTo'),
+          adaptedAt: Value(stamp),
+          general: rows[idx].general,
+          algoVersion: const Value(sc.coachDayAlgo),
+        ),
+      );
+      await db.setPlanIntent(today, sc.Intent.done.name, source: 'coach');
+      if (j != null) {
+        await db.putPlanDay(
+          st.PlanDaysCompanion.insert(
+            date: rows[j].date,
+            session: jsonEncode(plan.toJson()),
+            original: Value(rows[j].original ?? rows[j].session),
+            reason: Value(
+              '· Moved from ${day(idx)}: you did ${did.title} instead.',
+            ),
+            adaptedAt: Value(stamp),
+            general: rows[j].general,
+            algoVersion: const Value(sc.coachDayAlgo),
+          ),
+        );
+      }
+    }
+
+    // A hard day (planned or not) eases tomorrow's hard session now.
+    if (swap.hardDay && idx < 6 && week[idx + 1].isHard) {
+      final next = rows[idx + 1];
+      final from = week[idx + 1];
+      final to = sc.sessionTemplate(sc.easierKeyFor(from));
+      await db.putPlanDay(
+        st.PlanDaysCompanion.insert(
+          date: next.date,
+          session: jsonEncode(to.toJson()),
+          original: Value(next.original ?? next.session),
+          reason: Value(
+            '■ Today was already hard — no two hard days in a row. ${from.title} carried forward.',
+          ),
+          adaptedAt: Value(stamp),
+          general: next.general,
+          algoVersion: const Value(sc.coachDayAlgo),
+        ),
+      );
+      final carried = await db.setting(Keys.carried);
+      if (carried == null || carried.isEmpty) {
+        await db.putSetting(Keys.carried, jsonEncode(from.toJson()));
+      }
+    }
+    return swap;
+  }
+
   /// Morning adaptation (Flow · morning plan adaptation). Runs once per day,
   /// only when today's score has last night in it (fresh and complete).
   /// Looks three days ahead; holds off entirely while paused.

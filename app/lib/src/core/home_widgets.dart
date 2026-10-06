@@ -124,6 +124,11 @@ Future<void> afterSync(st.TempoDb db) async {
   } catch (e) {
     debugPrint('coach adapt: $e');
   }
+  try {
+    await CoachService(db).reconcileToday();
+  } catch (e) {
+    debugPrint('coach reconcile: $e');
+  }
   final t = await loadToday(db);
   await updateHomeWidgets(t);
   await rescheduleNotifications(db, t);

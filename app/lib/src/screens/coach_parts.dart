@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -426,6 +427,74 @@ class FocusSummary extends StatelessWidget {
             ),
           ),
           TempoIcon(TempoIcons.chevron, size: 18, color: c.text3, stroke: 2),
+        ],
+      ),
+    );
+  }
+}
+
+/// What an unplanned workout did to today's plan: counted, moved, or
+/// credited while the session still stands. Offers the strength fix-up
+/// when the band couldn't tell.
+class SwapNote extends ConsumerWidget {
+  const SwapNote(this.t, {super.key});
+  final TodayData t;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final c = context.c, s = context.s;
+    final plan = t.plan;
+    final w = t.swap.by;
+    if (plan == null || w == null) return const SizedBox.shrink();
+    final did = sc.sessionFromDone(w).title;
+    final String text;
+    Color? tint;
+    switch (t.swap.kind) {
+      case sc.SwapKind.counted:
+        if (plan.key == 'done' || w.sport == plan.sport) {
+          return const SizedBox.shrink();
+        }
+        text = '$did counted as today’s ${plan.title.toLowerCase()}.';
+        tint = s.tintRecHigh;
+      case sc.SwapKind.stands:
+        text = plan.sport == sc.Sport.strength
+            ? '$did counted toward Zone 2 and steps. Strength is still today’s session — cardio doesn’t replace it.'
+            : '$did counted toward your day. ${plan.title} is still on — it trains something different.';
+      case sc.SwapKind.moved || sc.SwapKind.none:
+        return const SizedBox.shrink();
+    }
+    final match = t.workouts
+        .where((x) => st.fromTs(x.start) == w.start)
+        .firstOrNull;
+    return TempoCard(
+      color: tint,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(text, style: TempoType.bodyS.c(c.text1)),
+          if (plan.sport == sc.Sport.strength &&
+              w.sport != sc.Sport.strength &&
+              match != null) ...[
+            const SizedBox(height: 8),
+            TempoButton(
+              'That was my strength session',
+              small: true,
+              kind: ButtonKind.secondary,
+              onTap: () async {
+                await ref
+                    .read(dbProvider)
+                    .updateWorkout(
+                      match.id,
+                      const st.WorkoutsCompanion(
+                        sport: Value('strength'),
+                        title: Value('Strength'),
+                        confirmed: Value(true),
+                      ),
+                    );
+                await _afterChange(ref);
+              },
+            ),
+          ],
         ],
       ),
     );
