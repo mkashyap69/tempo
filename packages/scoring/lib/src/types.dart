@@ -6,7 +6,8 @@
 ///    estimated from HR and motion (sleep_stages.dart).
 /// 5: a quiet wake (≤ 90 min, ≤ 30 steps) stays inside the night; deep
 ///    judged against the night's HR drift; band walking code (0x01).
-const algoVersion = 5;
+/// 6: quiet minutes the band flags awake inside the night are staged.
+const algoVersion = 6;
 
 enum Stage { wake, light, deep, rem, unknown }
 

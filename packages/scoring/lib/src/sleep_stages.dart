@@ -26,6 +26,7 @@ final class StageParams {
     this.smoothWindow = 5,
     this.varWindow = 9,
     this.detrend = true,
+    this.quietAwakeSleeps = true,
   });
 
   /// Share of asleep minutes that need an HR reading; below it (HR only
@@ -43,6 +44,12 @@ final class StageParams {
   /// against a straight line fitted through the night's asleep HR (a
   /// rolling median would swallow long deep blocks).
   final bool detrend;
+
+  /// Minutes inside the night the band flags awake but that are quiet (no
+  /// steps, movement under [wakeMotion], HR not raised) are staged like
+  /// any other minute. 6 Oct: Mi Fitness counted 1 wake-up of 1 min where
+  /// the band's flag had 30 min awake at 05:28, nearly all still.
+  final bool quietAwakeSleeps;
 }
 
 /// Result of [stageSleep]: the same minutes with stages, and whether there
@@ -122,9 +129,35 @@ StagedSleep stageSleep(
   final sdLo = quantile(asleepVary, .5)!;
   final sdHi = quantile(asleepVary, .5)!;
 
+  // Only between the first and last ≥ 10-minute runs of flagged sleep,
+  // so a stray flagged minute can't pull onset or wake-up outward.
+  int? coreFrom, coreTo;
+  var runStart = idx.first;
+  for (var k = 1; k <= idx.length; k++) {
+    final end = k == idx.length || idx[k] != idx[k - 1] + 1;
+    if (!end) continue;
+    final a = runStart, b = idx[k - 1];
+    if (b - a + 1 >= 10) {
+      coreFrom ??= a;
+      coreTo = b;
+    }
+    if (k < idx.length) runStart = idx[k];
+  }
+  final quiet = [
+    if (p.quietAwakeSleeps && coreFrom != null)
+      for (var i = coreFrom; i <= coreTo!; i++)
+        if (sleep[i].stage == Stage.wake &&
+            sleep[i].steps == 0 &&
+            sleep[i].motion < p.wakeMotion &&
+            smooth[i] <= med + p.wakeHrAbove)
+          i,
+  ];
+  final judged = [...idx, ...quiet]..sort();
+  final judgedSet = judged.toSet();
+
   final onset = sleep[idx.first].ts;
   final stages = [for (final m in sleep) m.stage];
-  for (final i in idx) {
+  for (final i in judged) {
     final m = sleep[i];
     final sinceOnset = m.ts.difference(onset).inMinutes;
     final still = m.motion <= p.stillMotion && m.steps == 0;
@@ -155,9 +188,9 @@ StagedSleep stageSleep(
     final len = j - i;
     final s = stages[i];
     if (((s == Stage.deep || s == Stage.rem) && len < p.minRunMinutes) ||
-        (s == Stage.wake && len < 2 && sleep[i].stage.asleep)) {
+        (s == Stage.wake && len < 2 && judgedSet.contains(i))) {
       for (var k = i; k < j; k++) {
-        if (sleep[k].stage.asleep) stages[k] = Stage.light;
+        if (judgedSet.contains(k)) stages[k] = Stage.light;
       }
     }
     i = j;

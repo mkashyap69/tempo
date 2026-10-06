@@ -90,7 +90,8 @@ void main() {
     );
     expect(n.artifactMinutes, inInclusiveRange(100, 130));
     expect(n.belowNinety, lessThan(.02));
-    expect(n.score, inInclusiveRange(70, 85));
+    // Mi Fitness, same band and night: "Breathing score 79".
+    expect(n.score, inInclusiveRange(76, 82));
   });
 
   test('the evening walk is walking, from the band\'s own code', () {
@@ -98,5 +99,26 @@ void main() {
     final walk = w.firstWhere((a) => a.duration.inMinutes > 40);
     expect(walk.sport, sc.Sport.walking);
     expect(walk.start.toUtc(), DateTime.utc(2026, 10, 5, 13, 9)); // 18:39
+  });
+
+  test('stages and wake match Mi Fitness\'s shares for the night', () {
+    // Mi Fitness 6 Oct: 9 h 41 m, deep 13 %, REM 14 %, light 73 %,
+    // 1 wake-up of 1 min. Our data stops at the 08:18 sync.
+    final s = sc.detectSessions(minutes()).single;
+    final staged = sc.stageSleep(s.minutes).minutes;
+    int count(sc.Stage x) => staged.where((m) => m.stage == x).length;
+    final asleep =
+        count(sc.Stage.light) + count(sc.Stage.deep) + count(sc.Stage.rem);
+    // ignore: avoid_print
+    print(
+      'deep ${(100 * count(sc.Stage.deep) / asleep).round()} % · '
+      'REM ${(100 * count(sc.Stage.rem) / asleep).round()} % · '
+      'wake ${count(sc.Stage.wake)} min',
+    );
+    expect(count(sc.Stage.deep) / asleep, inInclusiveRange(.10, .18));
+    expect(count(sc.Stage.rem) / asleep, inInclusiveRange(.10, .20));
+    // Was 59 before quiet flagged-awake minutes were staged; Mi Fitness
+    // counts almost none, Tempo keeps the restless ones (HR up, moving).
+    expect(count(sc.Stage.wake), lessThan(40));
   });
 }

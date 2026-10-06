@@ -86,3 +86,7 @@
   - The PAI record (0x0d) holds float32s equal to the debug log's pai_add values (0.003049, 0.978192); it is not decoded further yet.
   - Firmware PAI inputs: rhr 65, mhr 175, gender 0.
   - The debug log's `[ALG]act=` line equals our 8-byte minute record.
+- 2026-10-06 · Mi Fitness for the night of 5–6 Oct: breathing score 79, the same as Tempo's plateau-filtered 79 (38 without the filter). That's the second night that matches (4–5 Oct: 61 vs 62). Its other figures: 9 h 41 m asleep from 23:53, deep 13 %, REM 14 %, light 73 %, 1 wake-up of 1 min, efficiency 100 %.
+- 2026-10-06 · Scoring algo 6: band-flagged-awake minutes inside the night that are quiet (0 steps, movement < 25, HR not more than 12 bpm above the night's median) are now staged like any other minute.
+  - The rule only applies between the first and last ≥ 10-minute runs of flagged sleep, so a stray flagged minute can't pull onset earlier.
+  - On 5–6 Oct this took wake from 59 to 34 min. The stage shares (to the 08:18 sync) are deep 15 % and REM 16 %, against Mi Fitness's 13 % and 14 %.
