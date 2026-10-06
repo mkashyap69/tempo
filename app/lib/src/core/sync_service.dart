@@ -1,5 +1,6 @@
 import 'package:band_ble/band_ble.dart';
 import 'package:drift/drift.dart';
+import 'package:scoring/scoring.dart' as sc;
 import 'package:store/store.dart';
 
 import 'band_link.dart';
@@ -248,6 +249,13 @@ class SyncService {
           Keys.stepsNow,
           '${DateTime.now().toIso8601String()}|${steps.steps}',
         );
+        // The band's own stride, for walk distance and pace (sc.gaitOf).
+        if (steps.steps >= sc.minStepsForBandStride && steps.meters > 0) {
+          await db.putSetting(
+            Keys.bandStride,
+            (steps.meters / steps.steps).toStringAsFixed(3),
+          );
+        }
       }
     } catch (_) {}
     await ensureConfigured(band);

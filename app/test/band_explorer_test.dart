@@ -77,6 +77,41 @@ class _FakeBand implements ExplorerBand {
   Future<void> stopLiveHr() async => stopped = true;
 }
 
+/// Answers like V1.0.6.20 on 6 Oct: from long ago, only the first block.
+class _BlockBand extends _FakeBand {
+  final since = <DateTime>[];
+  @override
+  Future<ProbeOutcome> probeFetch(int code, DateTime since) async {
+    probed.add(code);
+    this.since.add(since);
+    const ok = [0x10, 0x01, 0x01];
+    final old = since.isBefore(DateTime(2026, 10, 5, 17, 49));
+    return switch (code) {
+      0x01 when old => ProbeOutcome(
+        FetchStartReply(true, 1368, DateTime(2026, 10, 5, 17, 58)),
+        ok,
+        List.filled(1368 * 8, 1),
+      ),
+      0x01 when since == DateTime(2026, 10, 6, 16, 46) => ProbeOutcome(
+        FetchStartReply(true, 175, DateTime(2026, 10, 6, 16, 46)),
+        ok,
+        List.filled(175 * 8, 2),
+      ),
+      0x13 when old => ProbeOutcome(
+        FetchStartReply(true, 9, DateTime(2026, 10, 5, 17, 49)),
+        ok,
+        List.filled(9, 0xff),
+      ),
+      0x13 when since == DateTime(2026, 10, 5, 17, 58) => ProbeOutcome(
+        FetchStartReply(true, 1435, DateTime(2026, 10, 5, 17, 58)),
+        ok,
+        List.filled(1435, 30),
+      ),
+      _ => const ProbeOutcome(FetchStartReply(true, 0, null), ok, []),
+    };
+  }
+}
+
 void main() {
   test('surveys characteristics, history types and live HR (no RR)', () async {
     final band = _FakeBand();
@@ -84,7 +119,9 @@ void main() {
       codes: [0x01, 0x05, 0x07, 0x14],
       hrFor: Duration.zero,
     ).run(band);
-    expect(band.probed, [0x01, 0x05, 0x07, 0x14]);
+    // 0x01 is followed once more from its block end; the fake repeats
+    // itself, so that stops it.
+    expect(band.probed, [0x01, 0x01, 0x05, 0x07, 0x14]);
     expect(r.probes.map((p) => p.code), [0x01, 0x07, 0x14]);
     expect(r.silent, [0x05]);
     expect(r.newWithData.single.code, 0x07);
@@ -103,6 +140,24 @@ void main() {
     expect(hist[1]['reply'], '100101');
     expect((j['history'] as List).first, containsPair('code', '0x01'));
     expect(j['silentCodes'], ['0x5']);
+  });
+
+  test('follows activity and stress blocks to the present', () async {
+    final band = _BlockBand();
+    final r = await BandExplorer(
+      codes: [0x01, 0x13],
+      hrFor: Duration.zero,
+      now: () => DateTime(2026, 10, 6, 19, 41),
+    ).run(band);
+    final act = r.probes.first;
+    // 6 Oct: 1368 minutes to 16:46, then 175 more to 19:41.
+    expect(act.count, 1368 + 175);
+    expect(act.data.length, (1368 + 175) * 8);
+    expect(act.blocks.map((b) => b.$2), [1368, 175]);
+    expect(band.since[1], DateTime(2026, 10, 6, 16, 46));
+    final j = act.toJson();
+    expect((j['blocks'] as List).length, 2);
+    expect(r.probes.last.blocks.map((b) => b.$2), [9, 1435]);
   });
 
   test('beat intervals become HRV when the band sends them', () async {
