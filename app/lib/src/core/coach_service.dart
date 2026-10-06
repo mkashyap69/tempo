@@ -4,6 +4,7 @@ import 'package:drift/drift.dart';
 import 'package:scoring/scoring.dart' as sc;
 import 'package:store/store.dart' as st;
 
+import 'block_service.dart';
 import 'longevity_service.dart' show loadFocus;
 import 'pause.dart';
 import 'profile.dart';
@@ -86,12 +87,15 @@ class CoachService {
     );
     final general = latest.isEmpty || latest.first.calibrating;
     final focus = await loadFocus(db);
+    // No progression while the baseline is still being learned.
+    final block = general ? null : await blockWeekFor(db, mon);
     final week = sc.weekPlan(
       profile.prefs,
       general: general,
       focus: focus != null && focus.activeOn(mon.add(const Duration(days: 6)))
           ? focus.lever
           : null,
+      block: block,
     );
     final today = dayOf(DateTime.now());
     final have = {for (final e in existing) e.date: e};
@@ -108,7 +112,7 @@ class CoachService {
           status: const Value('planned'),
           plannedMinute: const Value(null),
           statusSource: const Value(null),
-          algoVersion: const Value('coach-1'),
+          algoVersion: Value(block == null ? 'coach-1' : sc.blockAlgo),
         ),
       );
     }

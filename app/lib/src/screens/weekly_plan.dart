@@ -12,6 +12,7 @@ import '../design/type.dart';
 import '../state/providers.dart';
 import 'activity_detail.dart';
 import 'coach.dart';
+import 'goal.dart';
 import 'nav.dart';
 import 'onboarding.dart' show AvailabilityEditor;
 import 'workout_detail.dart';
@@ -90,6 +91,7 @@ class WeeklyPlanScreen extends ConsumerWidget {
             ),
           ],
         ),
+        const GoalCard(),
         if (changes.isNotEmpty)
           TempoCard(
             child: Column(

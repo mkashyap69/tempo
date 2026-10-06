@@ -10,6 +10,7 @@ library;
 
 import 'dart:math';
 
+import 'block.dart';
 import 'load.dart';
 import 'longevity.dart';
 import 'strain.dart';
@@ -437,8 +438,21 @@ final class CoachPrefs {
 /// [focus] (a Tempo Age lever the user is working on) tilts the week:
 /// active minutes turns up to two short easy sessions into longer Zone 2
 /// ones; strength makes sure there are two strength sessions.
-List<Session> weekPlan(CoachPrefs p, {bool general = false, Lever? focus}) {
-  final likes = p.likes.isEmpty ? {Sport.walking} : p.likes;
+///
+/// [block] (a training goal) sets the hard count by phase, makes a running
+/// event's key sessions runs, scales session length by the week's volume
+/// and puts the race on race day.
+List<Session> weekPlan(
+  CoachPrefs p, {
+  bool general = false,
+  Lever? focus,
+  BlockWeek? block,
+}) {
+  final runEvent = block != null && block.goal != BlockGoal.open;
+  final likes = {
+    ...(p.likes.isEmpty ? {Sport.walking} : p.likes),
+    if (runEvent) Sport.running,
+  };
   final avail = [
     for (var d = 1; d <= 7; d++)
       if (p.days.contains(d)) d,
@@ -446,28 +460,39 @@ List<Session> weekPlan(CoachPrefs p, {bool general = false, Lever? focus}) {
   if (avail.length == 7) avail.remove(3); // Wednesday off
   final plan = List<String>.filled(7, 'rest');
 
-  final hardSports = [
-    for (final s in likes)
-      if (hardKeyFor(s) != null) s,
-  ];
+  final hardSports = runEvent
+      ? [Sport.running]
+      : [
+          for (final s in likes)
+            if (hardKeyFor(s) != null) s,
+        ];
+  final hardCount = block?.hard(p.hardPerWeek) ?? p.hardPerWeek;
+  final sharp =
+      block?.phase == Phase.peak &&
+      (block!.goal == BlockGoal.run5k || block.goal == BlockGoal.run10k);
   final hard = <int>[];
   if (!general && hardSports.isNotEmpty) {
     // Latest days first so the week ends on quality; ≥ 2 days apart.
     for (final d in avail.reversed) {
-      if (hard.length >= p.hardPerWeek) break;
+      if (hard.length >= hardCount) break;
       if (hard.every((h) => (h - d).abs() >= 2)) hard.add(d);
     }
     for (final (i, d) in hard.indexed) {
-      plan[d - 1] = hardKeyFor(hardSports[i % hardSports.length])!;
+      final sport = hardSports[i % hardSports.length];
+      plan[d - 1] = sharp && sport == Sport.running
+          ? 'vo2_run'
+          : hardKeyFor(sport)!;
     }
   }
 
-  final long = _longKey(likes);
+  final long = runEvent ? 'long_run' : _longKey(likes);
   final rest = [
     for (final d in avail)
       if (!hard.contains(d)) d,
   ];
-  if (long != null && rest.isNotEmpty && p.goal != Goal.wellbeing) {
+  if (long != null &&
+      rest.isNotEmpty &&
+      (p.goal != Goal.wellbeing || block != null)) {
     final weekend = rest.where((d) => d >= 6).toList();
     final d = weekend.isNotEmpty ? weekend.first : rest.last;
     plan[d - 1] = long;
@@ -489,7 +514,107 @@ List<Session> weekPlan(CoachPrefs p, {bool general = false, Lever? focus}) {
     plan[d - 1] = k;
   }
   _applyFocus(plan, focus, likes, hard: hard);
-  return [for (final k in plan) fitMinutes(sessionTemplate(k), p.maxMinutes)];
+  if (block == null) {
+    return [for (final k in plan) fitMinutes(sessionTemplate(k), p.maxMinutes)];
+  }
+  final week = [
+    for (final k in plan)
+      k.startsWith('long_')
+          ? scaled(
+              sessionTemplate(k),
+              block.longVolume,
+              cap: max(p.maxMinutes, longCapMinutes(block.goal)),
+            )
+          : fitMinutes(scaled(sessionTemplate(k), block.volume), p.maxMinutes),
+  ];
+  final race = block.raceDay;
+  if (race != null) {
+    week[race - 1] = raceSession(block.goal);
+    if (race > 1) week[race - 2] = sessionTemplate('rest');
+  }
+  return week;
+}
+
+/// Race-day session for [g] (never adapted, carried or moved).
+Session raceSession(BlockGoal g) => Session(
+  key: 'race',
+  title: 'Race · ${goalName(g)}',
+  sport: Sport.running,
+  segments: [
+    Segment(switch (g) {
+      BlockGoal.run5k => 30,
+      BlockGoal.run10k => 55,
+      BlockGoal.half => 115,
+      BlockGoal.marathon || BlockGoal.open => 240,
+    }, g == BlockGoal.marathon ? 3 : 4),
+  ],
+  strainLo: 14,
+  strainHi: 20,
+  intensity: Intensity.hard,
+  note: 'Race day',
+);
+
+/// [s] grown or shrunk by [f]: intervals change their rep count, other
+/// sessions their longest block (in 5-minute steps, never under 10′).
+/// Rest days and [f] ≈ 1 come back unchanged. [cap] bounds the total.
+Session scaled(Session s, double f, {int? cap}) {
+  if (s.segments.isEmpty || (f - 1).abs() < .025) {
+    return cap == null ? s : fitMinutes(s, cap);
+  }
+  final segs = [...s.segments];
+  final reps = _repeats(segs);
+  List<Segment> out;
+  if (reps != null) {
+    final (from, n) = reps;
+    final m = (n * f).round().clamp(2, n * 2);
+    out = [
+      ...segs.take(from),
+      ..._reps(m, segs[from], segs[from + 1]),
+      ...segs.skip(from + n * 2),
+    ];
+  } else {
+    var iMax = 0;
+    for (var i = 1; i < segs.length; i++) {
+      if (segs[i].minutes > segs[iMax].minutes) iMax = i;
+    }
+    final m = max(10, (segs[iMax].minutes * f / 5).round() * 5);
+    out = [...segs]..[iMax] = Segment(m, segs[iMax].zone);
+  }
+  final r = Session(
+    key: s.key,
+    title: s.title,
+    sport: s.sport,
+    segments: out,
+    strainLo: s.strainLo,
+    strainHi: s.strainHi,
+    intensity: s.intensity,
+    note: s.note,
+  );
+  if (cap == null) return r;
+  // Trim with whole reps first, so a cap never breaks an interval.
+  if (reps != null && r.minutes > cap) {
+    final (from, n) = reps;
+    final per = segs[from].minutes + segs[from + 1].minutes;
+    final m = max(2, ((n * f).round() - ((r.minutes - cap) / per).ceil()));
+    return fitMinutes(scaled(s, m / n), cap);
+  }
+  return fitMinutes(r, cap);
+}
+
+/// The first run of a repeated (work, recover) pair: (start, reps), or
+/// null when the session has none.
+(int, int)? _repeats(List<Segment> segs) {
+  for (var i = 0; i + 3 < segs.length; i++) {
+    final a = segs[i], b = segs[i + 1];
+    var n = 1;
+    while (i + n * 2 + 1 < segs.length &&
+        Session._same(segs[i + n * 2], a) &&
+        Session._same(segs[i + n * 2 + 1], b)) {
+      n++;
+    }
+    if (n > 1) return (i, n);
+  }
+  return null;
 }
 
 void _applyFocus(
@@ -622,6 +747,8 @@ Adaptation adaptWeek(
   final changes = <PlanChange>[];
   final now = w[today];
   Session? pending = carried;
+  // Race day is the user's call, whatever the morning says.
+  if (now.key == 'race') return Adaptation(w, changes, pending);
 
   bool canTakeHard(int i) =>
       !w[i].isHard &&
@@ -723,7 +850,10 @@ Adaptation adaptWeek(
       }
   }
   // Look three days ahead (today … today+2).
-  if (state == DayState.rest && today < 6 && w[today + 1].isHard) {
+  if (state == DayState.rest &&
+      today < 6 &&
+      w[today + 1].isHard &&
+      w[today + 1].key != 'race') {
     // Tomorrow starts easy after a rest day.
     final from = w[today + 1], to = sessionTemplate(easierKeyFor(from));
     w[today + 1] = to;
@@ -739,7 +869,7 @@ Adaptation adaptWeek(
     pending ??= from;
   }
   for (var i = today; i < 6 && i <= today + 2; i++) {
-    if (w[i].isHard && w[i + 1].isHard) {
+    if (w[i].isHard && w[i + 1].isHard && w[i + 1].key != 'race') {
       final from = w[i + 1], to = sessionTemplate(easierKeyFor(from));
       w[i + 1] = to;
       changes.add(

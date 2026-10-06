@@ -310,7 +310,8 @@ Rescue replanToday({
 // ---- missed days and the week -----------------------------------------------
 
 /// Key sessions carry when missed; easy ones are dropped (never stacked).
-bool isKeySession(Session s) => s.isHard || s.key.startsWith('long_');
+bool isKeySession(Session s) =>
+    s.key != 'race' && (s.isHard || s.key.startsWith('long_'));
 
 /// Three or more missed days in the trailing week: offer to realign.
 bool needsRealign(List<DayStatus> last7) =>

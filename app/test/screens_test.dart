@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:scoring/scoring.dart' as sc;
 import 'package:store/store.dart';
+import 'package:tempo/src/core/block_service.dart';
 import 'package:tempo/src/core/coach_service.dart';
 import 'package:tempo/src/core/longevity_service.dart';
 import 'package:tempo/src/core/today.dart';
@@ -20,6 +21,7 @@ import 'package:tempo/src/screens/coach_parts.dart';
 import 'package:tempo/src/screens/coach_settings.dart';
 import 'package:tempo/src/screens/data_health.dart';
 import 'package:tempo/src/screens/feel.dart';
+import 'package:tempo/src/screens/goal.dart';
 import 'package:tempo/src/screens/day_timeline.dart';
 import 'package:tempo/src/screens/insight_detail.dart';
 import 'package:tempo/src/screens/journal.dart';
@@ -125,6 +127,28 @@ void main() {
       });
     }
   }
+
+  group('Training goal', () {
+    for (final b in Brightness.values) {
+      testWidgets('no goal, then a half marathon (${b.name})', (t) async {
+        final db = (await t.runAsync(() => seededDb(days: 30)))!;
+        await render(t, db, const GoalCard(), b: b);
+        expect(find.text('No training goal'), findsOneWidget);
+        await t.runAsync(
+          () => saveBlock(
+            db,
+            sc.BlockGoal.half,
+            event: mondayOf(DateTime.now())
+                .add(const Duration(days: 7 * 11 + 6)),
+          ),
+        );
+        await settle(t);
+        expect(find.textContaining('Half marathon'), findsOneWidget);
+        expect(find.textContaining('Week 1 of 12 · Base'), findsOneWidget);
+        await teardown(t, db);
+      });
+    }
+  });
 
   group('Morning feel', () {
     for (final b in Brightness.values) {

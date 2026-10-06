@@ -180,6 +180,7 @@ Only one app can hold the band, so Mi Fitness must not be running.
 | C3 · One Coach screen | — | Tempo Coach: session + status, rescue, Also today (focus lever), week glyphs | A week where Coach alone answers "what do I do today?" |
 | C4 · Notifications v2 | — | 8 nudge kinds with buttons, 5 channels, caps, quiet hours, backoff | 14-day field diary: buttons work app-closed, ≥ 90 % within 15 min, no day over cap |
 | C5 / C6 (deferred) | — | Learned nudge timing; band vibration cues | After 4 weeks of C4 in the field |
+| P1 · Goals and progression | — | Training goal (event or open-ended), phases, earned weekly volume steps, lighter every 4th week, taper and race day | A block run for 4+ weeks where each week's step up / hold / step back matches how the week actually went |
 
 Phase 0 is the go/no-go. Week counts assume one engineer part-time.
 

@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:scoring/scoring.dart' as sc;
 import 'package:store/store.dart';
 import 'package:tempo/src/core/battery.dart';
+import 'package:tempo/src/core/block_service.dart';
 import 'package:tempo/src/core/coach_notifier.dart';
 import 'package:tempo/src/core/coach_service.dart';
 import 'package:tempo/src/core/notifications.dart';
@@ -169,6 +170,71 @@ void main() {
     final c = await feelComparison(db, now);
     expect(c.n, 2);
     expect(c.fit, sc.FeelFit.learning);
+  });
+
+  group('training goal', () {
+    Future<void> plan(DateTime d, String key, {String status = 'planned'}) =>
+        db.putPlanDay(
+          PlanDaysCompanion.insert(
+            date: dateKey(d),
+            session: jsonEncode(sc.sessionTemplate(key).toJson()),
+            general: false,
+            status: Value(status),
+          ),
+        );
+
+    test('week outcome counts done, easier, marked done and rest', () async {
+      final mon = DateTime(2026, 9, 28);
+      DateTime day(int i) => mon.add(Duration(days: i));
+      await plan(day(0), 'easy_run'); // done by a run below
+      await plan(day(1), 'threshold_run'); // run without Z4: done easier
+      await plan(day(2), 'rest');
+      await plan(day(3), 'strength_full', status: 'done'); // marked done
+      await plan(day(4), 'easy_ride'); // nothing
+      Future<void> run(DateTime d, List<int> zones) => db.addWorkout(
+        WorkoutsCompanion.insert(
+          start: toTs(d.add(const Duration(hours: 7))),
+          end: toTs(d.add(const Duration(hours: 8))),
+          sport: const Value('running'),
+          title: 'Run',
+          source: 'live',
+          strain: 3,
+          trimp: 50,
+          zones: jsonEncode(zones),
+        ),
+      );
+      await run(day(0), [0, 60, 0, 0, 0]);
+      await run(day(1), [0, 60, 0, 0, 0]);
+      for (final (i, f) in [(0, 4), (1, 4), (2, 3)]) {
+        await db.setFeel(day(i), f);
+      }
+      final o = await weekOutcome(db, mon);
+      expect(o.planned, 4);
+      expect(o.done, 2.5);
+      expect(o.feel, closeTo(11 / 3, 1e-9));
+      expect(o.recovery, isNull); // no scores that week
+    });
+
+    test('setting a goal rebuilds the week from the block', () async {
+      final d = await seededDb(days: 30);
+      addTearDown(d.close);
+      final now = DateTime.now();
+      await saveBlock(
+        d,
+        sc.BlockGoal.half,
+        event: mondayOf(now).add(const Duration(days: 7 * 11 + 6)),
+      );
+      final b = (await loadBlock(d))!;
+      expect(b.weeks, 12);
+      final rows = await d.planBetween(
+        mondayOf(now),
+        mondayOf(now).add(const Duration(days: 6)),
+      );
+      final today = rows.where((r) => r.date == dateKey(dayOf(now)));
+      expect(today.single.algoVersion, sc.blockAlgo);
+      await saveBlock(d, null);
+      expect(await loadBlock(d), isNull);
+    });
   });
 
   group('coach', () {

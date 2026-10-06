@@ -30,4 +30,4 @@ Personal Whoop-style app for the Mi Band 6, built in Flutter. Full plan: `PLAN.m
 
 ## Current phase
 
-Tempo Coach C0–C4 built (see PLAN.md → Milestones and `docs/research/Tempo Coach adaptive plan.md`). Gates now: C1's 7-day status check and C4's 14-day notification field diary on a real phone. C5/C6 deferred.
+Tempo Coach C0–C4 and P1 (goals and progression) built (see PLAN.md → Milestones and `docs/research/Tempo Coach adaptive plan.md`). Gates now: C1's 7-day status check, C4's 14-day notification field diary on a real phone, and P1's 4-week block check. C5/C6 deferred.
