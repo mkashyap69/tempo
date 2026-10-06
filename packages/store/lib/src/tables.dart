@@ -115,6 +115,16 @@ class Journal extends Table {
   Set<Column> get primaryKey => {date, tag};
 }
 
+/// How you felt on waking, 1–5, asked before the day's call. User input:
+/// re-rating the same morning replaces it.
+class MorningFeel extends Table {
+  TextColumn get date => text()();
+  IntColumn get feel => integer()();
+  IntColumn get ts => integer()(); // when it was answered
+  @override
+  Set<Column> get primaryKey => {date};
+}
+
 class SyncState extends Table {
   TextColumn get device => text()();
   TextColumn get dataType => text()();

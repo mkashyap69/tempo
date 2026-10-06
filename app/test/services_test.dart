@@ -10,6 +10,7 @@ import 'package:tempo/src/core/coach_notifier.dart';
 import 'package:tempo/src/core/coach_service.dart';
 import 'package:tempo/src/core/notifications.dart';
 import 'package:tempo/src/core/export.dart';
+import 'package:tempo/src/core/feel.dart';
 import 'package:tempo/src/core/home_widgets.dart';
 import 'package:tempo/src/core/longevity_service.dart';
 import 'package:tempo/src/core/pause.dart';
@@ -115,6 +116,28 @@ void main() {
       final t = await loadToday(db);
       expect(t.pause, isNotNull);
     });
+  });
+
+  test('feel comparison pairs rated, scored, calibrated mornings', () async {
+    final now = DateTime(2026, 10, 6, 9);
+    for (var i = 0; i < 4; i++) {
+      final d = DateTime(2026, 10, 3 + i);
+      await db.upsertScore(
+        DailyScoresCompanion.insert(
+          date: dateKey(d),
+          strain: 5,
+          trimp: 10,
+          hrMax: 190,
+          recovery: Value(40.0 + 10 * i),
+          calibrating: i == 0, // still calibrating: no recovery to compare
+          algoVersion: sc.algoVersion,
+        ),
+      );
+      if (i != 2) await db.setFeel(d, 2 + i); // day 3 not rated
+    }
+    final c = await feelComparison(db, now);
+    expect(c.n, 2);
+    expect(c.fit, sc.FeelFit.learning);
   });
 
   group('coach', () {

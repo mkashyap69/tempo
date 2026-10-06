@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:scoring/scoring.dart' as sc;
 import 'package:store/store.dart' as st;
 
+import '../core/feel.dart';
 import '../core/format.dart';
 import '../core/today.dart';
 import '../design/chart.dart';
@@ -15,6 +16,7 @@ import '../state/providers.dart';
 import 'baselines.dart';
 import 'calendar.dart';
 import 'coach.dart';
+import 'feel.dart';
 import 'learn.dart';
 import 'nav.dart';
 import 'shared.dart';
@@ -51,6 +53,7 @@ class RecoveryScreen extends ConsumerWidget {
         )
         .length;
     final today = t.target;
+    final feel = ref.watch(feelComparisonProvider).value;
 
     return TempoPage(
       gap: 22,
@@ -248,6 +251,7 @@ class RecoveryScreen extends ConsumerWidget {
             ],
           ),
         ),
+        if (feel != null) FeelVsRecoveryCard(cmp: feel),
         TempoCard(
           onTap: () => push(context, const CoachScreen(standalone: true)),
           child: Row(

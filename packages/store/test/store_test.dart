@@ -346,4 +346,44 @@ void main() {
     expect(await old.nudgesSince(fromTs(0)), isEmpty);
     await old.close();
   });
+
+  test('morning feel: re-rating replaces, clamps to 1–5', () async {
+    final db = TempoDb(NativeDatabase.memory());
+    final d = DateTime(2026, 10, 6);
+    await db.setFeel(d, 2);
+    await db.setFeel(d, 4);
+    await db.setFeel(d.add(const Duration(days: 1)), 9);
+    final all = await db.feelSince(d);
+    expect(
+      [for (final f in all) (f.date, f.feel)],
+      [('2026-10-06', 4), ('2026-10-07', 5)],
+    );
+    expect(await db.watchFeel(d).first, 4);
+    expect(
+      await db.watchFeel(d.subtract(const Duration(days: 1))).first,
+      isNull,
+    );
+    await db.close();
+  });
+
+  test('v8 → v9 adds morning_feel and keeps journal rows', () async {
+    final old = TempoDb(
+      NativeDatabase.memory(
+        setup: (raw) {
+          raw.execute(
+            'CREATE TABLE journal (date TEXT NOT NULL, tag TEXT NOT NULL, '
+            'value INTEGER NOT NULL, PRIMARY KEY (date, tag))',
+          );
+          raw.execute(
+            "INSERT INTO journal VALUES ('2026-10-05', 'alcohol', 1)",
+          );
+          raw.execute('PRAGMA user_version = 8');
+        },
+      ),
+    );
+    expect((await old.journalFor(DateTime(2026, 10, 5))).single.tag, 'alcohol');
+    await old.setFeel(DateTime(2026, 10, 6), 3);
+    expect((await old.feelSince(DateTime(2026, 10, 1))).single.feel, 3);
+    await old.close();
+  });
 }

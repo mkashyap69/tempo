@@ -39,13 +39,14 @@ String dateKey(DateTime d) =>
     SyncLog,
     Longevity,
     NudgeLog,
+    MorningFeel,
   ],
 )
 class TempoDb extends _$TempoDb {
   TempoDb(super.e);
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -87,6 +88,9 @@ class TempoDb extends _$TempoDb {
         }
         await m.createTable(nudgeLog);
         await _appendOnly('nudge_log');
+      }
+      if (from < 9) {
+        await m.createTable(morningFeel);
       }
       if (from < 6) {
         await m.addColumn(spo2Samples, spo2Samples.quality);
@@ -351,6 +355,28 @@ class TempoDb extends _$TempoDb {
 
   Stream<List<JournalData>> watchJournal() => select(journal).watch();
 
+  /// Rates [day]'s morning 1–5 (replaces an earlier answer).
+  Future<void> setFeel(DateTime day, int feel, {DateTime? at}) =>
+      into(morningFeel).insertOnConflictUpdate(
+        MorningFeelCompanion.insert(
+          date: dateKey(day),
+          feel: feel.clamp(1, 5),
+          ts: toTs(at ?? DateTime.now()),
+        ),
+      );
+
+  Stream<int?> watchFeel(DateTime day) =>
+      (select(morningFeel)..where((f) => f.date.equals(dateKey(day))))
+          .watchSingleOrNull()
+          .map((f) => f?.feel);
+
+  /// Ratings from [from] on, oldest first.
+  Future<List<MorningFeelData>> feelSince(DateTime from) =>
+      (select(morningFeel)
+            ..where((f) => f.date.isBiggerOrEqualValue(dateKey(from)))
+            ..orderBy([(f) => OrderingTerm.asc(f.date)]))
+          .get();
+
   Stream<List<JournalData>> watchJournalFor(DateTime day) =>
       (select(journal)..where((j) => j.date.equals(dateKey(day)))).watch();
 
@@ -570,6 +596,7 @@ class TempoDb extends _$TempoDb {
     'daily_scores',
     'baselines',
     'journal',
+    'morning_feel',
     'sync_state',
     'workouts',
     'plan_days',

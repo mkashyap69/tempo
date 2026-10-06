@@ -6865,6 +6865,263 @@ class NudgeLogCompanion extends UpdateCompanion<NudgeLogData> {
   }
 }
 
+class $MorningFeelTable extends MorningFeel
+    with TableInfo<$MorningFeelTable, MorningFeelData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $MorningFeelTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _dateMeta = const VerificationMeta('date');
+  @override
+  late final GeneratedColumn<String> date = GeneratedColumn<String>(
+    'date',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _feelMeta = const VerificationMeta('feel');
+  @override
+  late final GeneratedColumn<int> feel = GeneratedColumn<int>(
+    'feel',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _tsMeta = const VerificationMeta('ts');
+  @override
+  late final GeneratedColumn<int> ts = GeneratedColumn<int>(
+    'ts',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [date, feel, ts];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'morning_feel';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<MorningFeelData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('date')) {
+      context.handle(
+        _dateMeta,
+        date.isAcceptableOrUnknown(data['date']!, _dateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_dateMeta);
+    }
+    if (data.containsKey('feel')) {
+      context.handle(
+        _feelMeta,
+        feel.isAcceptableOrUnknown(data['feel']!, _feelMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_feelMeta);
+    }
+    if (data.containsKey('ts')) {
+      context.handle(_tsMeta, ts.isAcceptableOrUnknown(data['ts']!, _tsMeta));
+    } else if (isInserting) {
+      context.missing(_tsMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {date};
+  @override
+  MorningFeelData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return MorningFeelData(
+      date: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}date'],
+      )!,
+      feel: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}feel'],
+      )!,
+      ts: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}ts'],
+      )!,
+    );
+  }
+
+  @override
+  $MorningFeelTable createAlias(String alias) {
+    return $MorningFeelTable(attachedDatabase, alias);
+  }
+}
+
+class MorningFeelData extends DataClass implements Insertable<MorningFeelData> {
+  final String date;
+  final int feel;
+  final int ts;
+  const MorningFeelData({
+    required this.date,
+    required this.feel,
+    required this.ts,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['date'] = Variable<String>(date);
+    map['feel'] = Variable<int>(feel);
+    map['ts'] = Variable<int>(ts);
+    return map;
+  }
+
+  MorningFeelCompanion toCompanion(bool nullToAbsent) {
+    return MorningFeelCompanion(
+      date: Value(date),
+      feel: Value(feel),
+      ts: Value(ts),
+    );
+  }
+
+  factory MorningFeelData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return MorningFeelData(
+      date: serializer.fromJson<String>(json['date']),
+      feel: serializer.fromJson<int>(json['feel']),
+      ts: serializer.fromJson<int>(json['ts']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'date': serializer.toJson<String>(date),
+      'feel': serializer.toJson<int>(feel),
+      'ts': serializer.toJson<int>(ts),
+    };
+  }
+
+  MorningFeelData copyWith({String? date, int? feel, int? ts}) =>
+      MorningFeelData(
+        date: date ?? this.date,
+        feel: feel ?? this.feel,
+        ts: ts ?? this.ts,
+      );
+  MorningFeelData copyWithCompanion(MorningFeelCompanion data) {
+    return MorningFeelData(
+      date: data.date.present ? data.date.value : this.date,
+      feel: data.feel.present ? data.feel.value : this.feel,
+      ts: data.ts.present ? data.ts.value : this.ts,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MorningFeelData(')
+          ..write('date: $date, ')
+          ..write('feel: $feel, ')
+          ..write('ts: $ts')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(date, feel, ts);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is MorningFeelData &&
+          other.date == this.date &&
+          other.feel == this.feel &&
+          other.ts == this.ts);
+}
+
+class MorningFeelCompanion extends UpdateCompanion<MorningFeelData> {
+  final Value<String> date;
+  final Value<int> feel;
+  final Value<int> ts;
+  final Value<int> rowid;
+  const MorningFeelCompanion({
+    this.date = const Value.absent(),
+    this.feel = const Value.absent(),
+    this.ts = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  MorningFeelCompanion.insert({
+    required String date,
+    required int feel,
+    required int ts,
+    this.rowid = const Value.absent(),
+  }) : date = Value(date),
+       feel = Value(feel),
+       ts = Value(ts);
+  static Insertable<MorningFeelData> custom({
+    Expression<String>? date,
+    Expression<int>? feel,
+    Expression<int>? ts,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (date != null) 'date': date,
+      if (feel != null) 'feel': feel,
+      if (ts != null) 'ts': ts,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  MorningFeelCompanion copyWith({
+    Value<String>? date,
+    Value<int>? feel,
+    Value<int>? ts,
+    Value<int>? rowid,
+  }) {
+    return MorningFeelCompanion(
+      date: date ?? this.date,
+      feel: feel ?? this.feel,
+      ts: ts ?? this.ts,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (date.present) {
+      map['date'] = Variable<String>(date.value);
+    }
+    if (feel.present) {
+      map['feel'] = Variable<int>(feel.value);
+    }
+    if (ts.present) {
+      map['ts'] = Variable<int>(ts.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MorningFeelCompanion(')
+          ..write('date: $date, ')
+          ..write('feel: $feel, ')
+          ..write('ts: $ts, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$TempoDb extends GeneratedDatabase {
   _$TempoDb(QueryExecutor e) : super(e);
   $TempoDbManager get managers => $TempoDbManager(this);
@@ -6885,6 +7142,7 @@ abstract class _$TempoDb extends GeneratedDatabase {
   late final $SyncLogTable syncLog = $SyncLogTable(this);
   late final $LongevityTable longevity = $LongevityTable(this);
   late final $NudgeLogTable nudgeLog = $NudgeLogTable(this);
+  late final $MorningFeelTable morningFeel = $MorningFeelTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -6907,6 +7165,7 @@ abstract class _$TempoDb extends GeneratedDatabase {
     syncLog,
     longevity,
     nudgeLog,
+    morningFeel,
   ];
 }
 
@@ -10509,6 +10768,168 @@ typedef $$NudgeLogTableProcessedTableManager =
       NudgeLogData,
       PrefetchHooks Function()
     >;
+typedef $$MorningFeelTableCreateCompanionBuilder =
+    MorningFeelCompanion Function({
+      required String date,
+      required int feel,
+      required int ts,
+      Value<int> rowid,
+    });
+typedef $$MorningFeelTableUpdateCompanionBuilder =
+    MorningFeelCompanion Function({
+      Value<String> date,
+      Value<int> feel,
+      Value<int> ts,
+      Value<int> rowid,
+    });
+
+class $$MorningFeelTableFilterComposer
+    extends Composer<_$TempoDb, $MorningFeelTable> {
+  $$MorningFeelTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get date => $composableBuilder(
+    column: $table.date,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get feel => $composableBuilder(
+    column: $table.feel,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get ts => $composableBuilder(
+    column: $table.ts,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$MorningFeelTableOrderingComposer
+    extends Composer<_$TempoDb, $MorningFeelTable> {
+  $$MorningFeelTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get date => $composableBuilder(
+    column: $table.date,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get feel => $composableBuilder(
+    column: $table.feel,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get ts => $composableBuilder(
+    column: $table.ts,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$MorningFeelTableAnnotationComposer
+    extends Composer<_$TempoDb, $MorningFeelTable> {
+  $$MorningFeelTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get date =>
+      $composableBuilder(column: $table.date, builder: (column) => column);
+
+  GeneratedColumn<int> get feel =>
+      $composableBuilder(column: $table.feel, builder: (column) => column);
+
+  GeneratedColumn<int> get ts =>
+      $composableBuilder(column: $table.ts, builder: (column) => column);
+}
+
+class $$MorningFeelTableTableManager
+    extends
+        RootTableManager<
+          _$TempoDb,
+          $MorningFeelTable,
+          MorningFeelData,
+          $$MorningFeelTableFilterComposer,
+          $$MorningFeelTableOrderingComposer,
+          $$MorningFeelTableAnnotationComposer,
+          $$MorningFeelTableCreateCompanionBuilder,
+          $$MorningFeelTableUpdateCompanionBuilder,
+          (
+            MorningFeelData,
+            BaseReferences<_$TempoDb, $MorningFeelTable, MorningFeelData>,
+          ),
+          MorningFeelData,
+          PrefetchHooks Function()
+        > {
+  $$MorningFeelTableTableManager(_$TempoDb db, $MorningFeelTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$MorningFeelTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$MorningFeelTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$MorningFeelTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> date = const Value.absent(),
+                Value<int> feel = const Value.absent(),
+                Value<int> ts = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => MorningFeelCompanion(
+                date: date,
+                feel: feel,
+                ts: ts,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String date,
+                required int feel,
+                required int ts,
+                Value<int> rowid = const Value.absent(),
+              }) => MorningFeelCompanion.insert(
+                date: date,
+                feel: feel,
+                ts: ts,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$MorningFeelTableProcessedTableManager =
+    ProcessedTableManager<
+      _$TempoDb,
+      $MorningFeelTable,
+      MorningFeelData,
+      $$MorningFeelTableFilterComposer,
+      $$MorningFeelTableOrderingComposer,
+      $$MorningFeelTableAnnotationComposer,
+      $$MorningFeelTableCreateCompanionBuilder,
+      $$MorningFeelTableUpdateCompanionBuilder,
+      (
+        MorningFeelData,
+        BaseReferences<_$TempoDb, $MorningFeelTable, MorningFeelData>,
+      ),
+      MorningFeelData,
+      PrefetchHooks Function()
+    >;
 
 class $TempoDbManager {
   final _$TempoDb _db;
@@ -10547,4 +10968,6 @@ class $TempoDbManager {
       $$LongevityTableTableManager(_db, _db.longevity);
   $$NudgeLogTableTableManager get nudgeLog =>
       $$NudgeLogTableTableManager(_db, _db.nudgeLog);
+  $$MorningFeelTableTableManager get morningFeel =>
+      $$MorningFeelTableTableManager(_db, _db.morningFeel);
 }
