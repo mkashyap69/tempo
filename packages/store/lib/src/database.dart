@@ -653,7 +653,8 @@ class TempoDb extends _$TempoDb {
         ];
         if (keys.isEmpty) continue;
         n += await customUpdate(
-          '$verb INTO $t (${keys.join(', ')}) '
+          // Quoted: od_events has a column named "drop".
+          '$verb INTO $t (${keys.map((k) => '"$k"').join(', ')}) '
           'VALUES (${List.filled(keys.length, '?').join(', ')})',
           variables: [for (final k in keys) _variable(r[k])],
           updates: {

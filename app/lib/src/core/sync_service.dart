@@ -4,6 +4,7 @@ import 'package:scoring/scoring.dart' as sc;
 import 'package:store/store.dart';
 
 import 'band_link.dart';
+import 'backup.dart' show BackupService;
 import 'battery.dart';
 import 'longevity_service.dart' show updateLongevity;
 import 'profile.dart' show Keys, loadAppProfile;
@@ -413,6 +414,8 @@ class SyncService {
     try {
       await updateLongevity(db);
     } catch (_) {} // Tempo Age is derived; a failure never fails the sync.
+    // A backup at most every 12 h, so a reinstall can bring data back.
+    await BackupService(db).maybeBackup();
     final after = (await db.workoutsBetween(
       DateTime(2000),
       DateTime(2100),

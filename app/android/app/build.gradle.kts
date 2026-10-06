@@ -54,4 +54,6 @@ flutter {
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
     implementation("androidx.core:core-ktx:1.15.0")
+    // registerForActivityResult(OpenDocumentTree) for the backup folder.
+    implementation("androidx.activity:activity-ktx:1.9.3")
 }

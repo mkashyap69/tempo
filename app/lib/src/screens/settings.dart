@@ -1,8 +1,6 @@
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:band_ble/band_ble.dart' show SettingsCommands;
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -27,6 +25,7 @@ import '../design/components.dart';
 import '../design/tokens.dart';
 import '../design/type.dart';
 import '../state/providers.dart';
+import 'backups.dart';
 import 'band_explorer.dart';
 import 'coach_settings.dart';
 import 'data_health.dart';
@@ -215,41 +214,6 @@ Future<void> redownloadHistory(BuildContext context, WidgetRef ref) async {
     context,
     () => SyncService(ref.read(dbProvider)).redownload(),
   );
-}
-
-/// Profile → Restore from export: pick a Tempo JSON export, merge it in,
-/// rescore. Samples already on this phone are kept as they are.
-Future<void> restoreFromFile(BuildContext context, WidgetRef ref) async {
-  final ok = await confirmSheet(
-    context,
-    title: 'Restore from an export?',
-    body: 'Adds the samples, workouts, journal and plan from a Tempo JSON export. Anything already on this phone stays; scores are recomputed.',
-    action: 'Choose file',
-  );
-  if (!ok) return;
-  PlatformFile? f;
-  try {
-    f = await FilePicker.pickFile(
-      type: FileType.custom,
-      allowedExtensions: const ['json'],
-    );
-  } catch (_) {}
-  if (f == null || !context.mounted) return;
-  final db = ref.read(dbProvider);
-  String message;
-  try {
-    final n = await restoreJson(db, utf8.decode(await f.readAsBytes()));
-    final first = await db.firstMinute();
-    if (first != null) await ScoreService(db).recomputeFrom(first);
-    final mins = n['minute_samples'] ?? 0;
-    final days = (mins / 1440).toStringAsFixed(mins < 14400 ? 1 : 0);
-    message = 'Restored ~$days days of samples, ${n['workouts'] ?? 0} workouts';
-  } on FormatException catch (e) {
-    message = '${e.message}. Choose a file from Export → JSON.';
-  } catch (e) {
-    message = 'Restore failed: $e';
-  }
-  if (context.mounted) showTempoToast(context, message);
 }
 
 class SettingsScreen extends ConsumerWidget {
@@ -839,9 +803,11 @@ class SettingsScreen extends ConsumerWidget {
             },
           ),
           ListRow(
-            'Restore from export',
-            value: 'JSON',
-            onTap: () => restoreFromFile(context, ref),
+            'Backups',
+            value: backupSummary(
+              ref.watch(settingProvider(Keys.lastBackup)).value,
+            ),
+            onTap: () => push(context, const BackupsScreen()),
           ),
           ListRow(
             healthName,
@@ -890,7 +856,7 @@ class SettingsScreen extends ConsumerWidget {
               final ok = await confirmSheet(
                 context,
                 title: 'Delete all data?',
-                body: 'Deletes every sample, score and workout on this phone. Export first if you want a copy. Tempo closes; reopen it to start fresh.',
+                body: 'Deletes every sample, score and workout on this phone. Backups in your backup folder are kept. Tempo closes; reopen it to start fresh.',
                 action: 'Delete everything',
                 danger: true,
               );
