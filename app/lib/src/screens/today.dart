@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:scoring/scoring.dart' as sc;
+import 'package:store/store.dart' as st;
 
+import '../core/feel.dart';
 import '../core/format.dart';
 import '../core/pause.dart';
 import '../core/today.dart';
@@ -13,6 +15,7 @@ import '../design/tokens.dart';
 import '../design/type.dart';
 import '../state/providers.dart';
 import 'coach_parts.dart' show statusLabel, statusColor;
+import 'feel.dart';
 import 'nav.dart';
 import 'pairing.dart';
 import 'recovery.dart';
@@ -77,6 +80,15 @@ abstract final class TodayBody {
       noPermission: noPermission,
     );
     final adds = planAdds(t);
+    // Asked before the call and the rings, so the score can't sway it.
+    final now = DateTime.now();
+    final felt = ref.watch(feelProvider(st.dateKey(t.day)));
+    final askFeel =
+        !noData &&
+        felt.hasValue &&
+        felt.value == null &&
+        now.hour < feelAskUntilHour &&
+        st.dateKey(now) == st.dateKey(t.day);
 
     String syncText;
     if (!paired) {
@@ -222,6 +234,7 @@ abstract final class TodayBody {
       ),
       if (sync.running) _SyncProgress(sync: sync),
       ?banner,
+      if (askFeel) FeelCard(day: t.day),
       Pressable(
         label: 'Why today’s call',
         onTap: noData || t.firstDay ? null : () => showWhySheet(context, t),

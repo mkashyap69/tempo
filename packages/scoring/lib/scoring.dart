@@ -9,6 +9,7 @@ export 'src/breathing.dart';
 export 'src/coach.dart';
 export 'src/coach_day.dart';
 export 'src/daily.dart';
+export 'src/feel.dart';
 export 'src/hrv.dart';
 export 'src/insights.dart';
 export 'src/load.dart';

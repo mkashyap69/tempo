@@ -14,6 +14,7 @@ const _tables = [
   'daily_scores',
   'baselines',
   'journal',
+  'morning_feel',
   'sync_state',
   'workouts',
   'plan_days',

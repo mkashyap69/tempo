@@ -19,6 +19,7 @@ import 'package:tempo/src/screens/coach.dart';
 import 'package:tempo/src/screens/coach_parts.dart';
 import 'package:tempo/src/screens/coach_settings.dart';
 import 'package:tempo/src/screens/data_health.dart';
+import 'package:tempo/src/screens/feel.dart';
 import 'package:tempo/src/screens/day_timeline.dart';
 import 'package:tempo/src/screens/insight_detail.dart';
 import 'package:tempo/src/screens/journal.dart';
@@ -124,6 +125,50 @@ void main() {
       });
     }
   }
+
+  group('Morning feel', () {
+    for (final b in Brightness.values) {
+      testWidgets('check-in card writes the rating (${b.name})', (t) async {
+        final db = (await t.runAsync(() => seededDb(days: 3)))!;
+        final day = DateTime(2026, 10, 6);
+        await render(t, db, FeelCard(day: day), b: b);
+        expect(find.text('How do you feel?'), findsOneWidget);
+        expect(find.text('Drained'), findsOneWidget);
+        await t.tap(find.text('Good'));
+        await settle(t, frames: 5);
+        final rated = await t.runAsync(() => db.feelSince(day));
+        expect(rated!.single.feel, 4);
+        await teardown(t, db);
+      });
+    }
+
+    for (final (fit, word) in [
+      (sc.FeelFit.learning, 'Learning'),
+      (sc.FeelFit.tracks, 'Tracks'),
+      (sc.FeelFit.off, 'Doesn’t match'),
+    ]) {
+      testWidgets('comparison card: ${fit.name}', (t) async {
+        final db = (await t.runAsync(() => seededDb(days: 3)))!;
+        await render(
+          t,
+          db,
+          FeelVsRecoveryCard(
+            cmp: sc.FeelComparison(
+              n: fit == sc.FeelFit.learning ? 5 : 20,
+              agree: 12,
+              rho: .6,
+              fit: fit,
+              recoveryHigh: 2,
+            ),
+          ),
+          b: Brightness.light,
+        );
+        expect(find.text(word), findsOneWidget);
+        expect(find.textContaining('Same colour on 12 of'), findsOneWidget);
+        await teardown(t, db);
+      });
+    }
+  });
 
   group('Tempo Coach', () {
     for (final b in Brightness.values) {
