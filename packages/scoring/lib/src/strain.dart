@@ -57,6 +57,15 @@ double trimp(
 double strainFromTrimp(double trimp, [StrainParams p = const StrainParams()]) =>
     21 * (1 - exp(-trimp / p.k));
 
+/// The k that puts a day of [trimp] at [strain] (0–21): the inverse of
+/// [strainFromTrimp], for calibrating k on real days.
+double kForStrain(double trimp, double strain) {
+  if (trimp <= 0 || strain <= 0 || strain >= 21) {
+    throw ArgumentError('needs trimp > 0 and 0 < strain < 21');
+  }
+  return -trimp / log(1 - strain / 21);
+}
+
 /// Session-RPE load (Foster) in TRIMP units.
 double trimpFromRpe(
   int rpe,

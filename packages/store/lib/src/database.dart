@@ -206,6 +206,17 @@ class TempoDb extends _$TempoDb {
             ..orderBy([(m) => OrderingTerm.asc(m.ts)]))
           .get();
 
+  /// Minutes with a heart-rate reading in [from, to): how long the band
+  /// was worn.
+  Future<int> hrMinutesBetween(DateTime from, DateTime to) async {
+    final r = await customSelect(
+      'SELECT COUNT(*) AS n FROM minute_samples '
+      'WHERE ts >= ? AND ts < ? AND hr IS NOT NULL',
+      variables: [Variable.withInt(toTs(from)), Variable.withInt(toTs(to))],
+    ).getSingle();
+    return r.read<int>('n');
+  }
+
   /// Steps in [from, to).
   Future<int> stepsBetween(DateTime from, DateTime to) async {
     final r = await customSelect(

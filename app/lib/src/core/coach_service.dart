@@ -12,9 +12,11 @@ DateTime dayOf(DateTime t) => DateTime(t.year, t.month, t.day);
 DateTime mondayOf(DateTime t) =>
     dayOf(t).subtract(Duration(days: t.weekday - 1));
 
-/// Daily TRIMP, newest first, for the last [days] days ending [day]
-/// (missing days count as 0).
-Future<List<double>> dailyTrimp(
+/// Daily TRIMP, newest first, for the last [days] days ending [day]. A day
+/// is null when it has no data: paused, no score, or the band worn for
+/// under [sc.loadMinWornMinutes] (off charging, not synced), so a gap
+/// doesn't read as a rest day.
+Future<List<double?>> dailyTrimp(
   st.TempoDb db,
   DateTime day, {
   int days = 28 * 4,
@@ -24,14 +26,22 @@ Future<List<double>> dailyTrimp(
   final byDate = {for (final r in rows) r.date: r.trimp};
   if (rows.isEmpty) return [];
   final first = DateTime.parse(rows.first.date);
-  return [
-    for (
-      var d = dayOf(day);
-      !d.isBefore(first);
-      d = DateTime(d.year, d.month, d.day - 1)
-    )
-      byDate[st.dateKey(d)] ?? 0,
-  ];
+  final pauses = await loadPauses(db);
+  final out = <double?>[];
+  for (
+    var d = dayOf(day);
+    !d.isBefore(first);
+    d = DateTime(d.year, d.month, d.day - 1)
+  ) {
+    final t = byDate[st.dateKey(d)];
+    final next = DateTime(d.year, d.month, d.day + 1);
+    final known =
+        t != null &&
+        !isPaused(pauses, d) &&
+        await db.hrMinutesBetween(d, next) >= sc.loadMinWornMinutes;
+    out.add(known ? t : null);
+  }
+  return out;
 }
 
 Future<sc.CardioLoad> loadFor(st.TempoDb db, DateTime day) async =>
@@ -219,7 +229,16 @@ class CoachService {
       load: load.status,
       daysSinceHard: await daysSinceHard(day),
     );
-    return (sc.readiness(base, rhr: flag, shortNight: short), flag, short);
+    return (
+      sc.readiness(
+        base,
+        rhr: flag,
+        shortNight: short,
+        overreaching: load.status == sc.LoadStatus.overreaching,
+      ),
+      flag,
+      short,
+    );
   }
 
   /// Yesterday's key session, if it was missed: carried (never stacked);

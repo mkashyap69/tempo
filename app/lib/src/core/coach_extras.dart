@@ -125,10 +125,12 @@ Future<CoachExtras> loadCoachExtras(st.TempoDb db, TodayData t) async {
     plannedStrengthLeft: strengthLeft,
   );
 
+  // Days without data are left out, not counted as rest.
   final trimp = await dailyTrimp(db, today, days: 35);
-  final last7 = trimp.take(7).toList();
-  final mean28 = trimp.length >= 28
-      ? trimp.take(28).fold<double>(0, (a, v) => a + v) / 4
+  final last7 = trimp.take(7).whereType<double>().toList();
+  final known28 = trimp.take(28).whereType<double>().toList();
+  final mean28 = known28.length >= sc.loadMinDays
+      ? 7 * known28.fold<double>(0, (a, v) => a + v) / known28.length
       : double.infinity;
 
   var focus = await loadFocus(db);

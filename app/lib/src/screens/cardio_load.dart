@@ -30,12 +30,12 @@ List<String> loadAdvice(sc.LoadStatus s) => switch (s) {
   ],
   sc.LoadStatus.overreaching => [
     'Two easy days before any intensity.',
-    'Cap each day at 10 strain until load drops back into range.',
+    'No hard sessions until load drops back into range.',
     'Go to bed by your target — sleep is the fastest fix.',
   ],
   sc.LoadStatus.learning => [
     'Wear the band through every session so load starts counting.',
-    'Status appears after 7 days of data.',
+    'Status appears after 14 days of wear.',
     'Until then, the plan stays general and moderate.',
   ],
 };
@@ -70,7 +70,7 @@ class _CardioLoadState extends ConsumerState<CardioLoadScreen> {
     final pos = l.status == sc.LoadStatus.learning ? null : _markerPos(l.ratio);
     final p = l.percentVsNormal;
     final lead = switch (l.status) {
-      sc.LoadStatus.learning => 'Tempo needs 7 days of heart rate to compare your week with your normal.',
+      sc.LoadStatus.learning => 'Tempo needs 14 days of wear, 4 of them this week, to compare your week with your normal. Days off the band don’t count as rest.',
       sc.LoadStatus.building =>
         'Your last 7 days are $p% above your 28-day normal. That’s the productive zone: fitness grows if recovery keeps up.',
       sc.LoadStatus.maintaining => 'Your week matches your normal. Fitness holds steady — fine for a busy week, slow for progress.',

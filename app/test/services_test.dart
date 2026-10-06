@@ -117,6 +117,37 @@ void main() {
     });
   });
 
+  test('daily TRIMP leaves out days off the band and paused days', () async {
+    final d0 = DateTime(2026, 9, 20);
+    DateTime day(int i) => d0.add(Duration(days: i));
+    Future<void> wear(DateTime d, int minutes) => db.appendMinutes([
+      for (var m = 0; m < minutes; m++)
+        MinuteSamplesCompanion.insert(
+          ts: Value(toTs(d.add(Duration(minutes: 360 + m)))),
+          steps: 0,
+          intensity: 0,
+          kind: 1,
+          hr: const Value(70),
+        ),
+    ]);
+    // Oldest first: worn, worn only 2 h (charging), worn but paused, worn.
+    for (var i = 0; i < 4; i++) {
+      await db.upsertScore(
+        DailyScoresCompanion.insert(
+          date: dateKey(day(i)),
+          strain: 5,
+          trimp: 10.0 + i,
+          hrMax: 190,
+          calibrating: false,
+          algoVersion: sc.algoVersion,
+        ),
+      );
+      await wear(day(i), i == 1 ? 120 : sc.loadMinWornMinutes);
+    }
+    await startPause(db, PauseReason.ill, on: day(2), until: day(2));
+    expect(await dailyTrimp(db, day(3), days: 4), [13.0, null, null, 10.0]);
+  });
+
   group('coach', () {
     Future<void> rated(int daysAgo, int rpe, double strain) => db.addWorkout(
       WorkoutsCompanion.insert(

@@ -60,6 +60,13 @@ void main() {
         closeTo(minuteTrimp(125, hrRest: 60, hrMax: 190), 1e-9),
       );
     });
+    test('kForStrain inverts strainFromTrimp', () {
+      final k = kForStrain(200, 18.5);
+      expect(strainFromTrimp(200, StrainParams(k: k)), closeTo(18.5, 1e-9));
+      expect(kForStrain(40 * 2, strainFromTrimp(80)), closeTo(40, 1e-9));
+      expect(() => kForStrain(0, 10), throwsArgumentError);
+      expect(() => kForStrain(100, 21), throwsArgumentError);
+    });
     group('calibration (rest 50, max 186)', () {
       double strainOf(List<(int, int)> blocks) => strainFromTrimp(
         trimp(

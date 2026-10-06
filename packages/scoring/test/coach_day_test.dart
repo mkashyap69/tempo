@@ -227,6 +227,15 @@ void main() {
     expect(readiness(DayState.easeOff, rhr: RhrFlag.illness), DayState.rest);
     expect(readiness(DayState.general, rhr: RhrFlag.illness), DayState.general);
     expect(readiness(DayState.go), DayState.go);
+    expect(readiness(DayState.easeOff, overreaching: true), DayState.easeOff);
+    expect(
+      readiness(DayState.easeOff, overreaching: true, shortNight: true),
+      DayState.rest,
+    );
+    expect(
+      readiness(DayState.easeOff, overreaching: true, rhr: RhrFlag.elevated),
+      DayState.rest,
+    );
     expect(shortSleep(5.9, 8), isTrue);
     expect(shortSleep(6.5, 9), isTrue);
     expect(shortSleep(7, 8), isFalse);

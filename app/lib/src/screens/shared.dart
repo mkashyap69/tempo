@@ -365,7 +365,7 @@ Color loadColor(BuildContext context, sc.LoadStatus s) => switch (s) {
 
 /// "7-day load 12% above your 28-day"
 String loadSub(sc.CardioLoad l) {
-  if (l.status == sc.LoadStatus.learning) return 'Ready after 7 days of data';
+  if (l.status == sc.LoadStatus.learning) return 'Ready after 14 days of wear';
   final p = l.percentVsNormal;
   if (p.abs() < 3) return '7-day load matches your 28-day';
   return '7-day load ${p.abs()}% ${p > 0 ? 'above' : 'below'} your 28-day';

@@ -13,7 +13,7 @@ import 'coach.dart';
 import 'longevity.dart';
 
 /// Version stamped on plan rows and decisions made by these rules.
-const coachDayAlgo = 'coach-day-1';
+const coachDayAlgo = 'coach-day-2';
 
 /// A finished workout, as the matcher sees it.
 final class DoneWorkout {
@@ -203,14 +203,19 @@ bool shortSleep(double? slept, double? need) =>
     slept != null && (slept < 6 || (need != null && slept < .75 * need));
 
 /// [dayState] with the band's extra signals: illness → rest; elevated RHR
-/// or a short night caps a Go day at Ease off.
+/// or a short night caps a Go day at Ease off. With an [overreaching]
+/// load, either of those is the second sign that makes it a rest day.
 DayState readiness(
   DayState base, {
   RhrFlag rhr = RhrFlag.none,
   bool shortNight = false,
+  bool overreaching = false,
 }) {
   if (base == DayState.general) return base;
   if (rhr == RhrFlag.illness) return DayState.rest;
+  if (overreaching && (rhr == RhrFlag.elevated || shortNight)) {
+    return DayState.rest;
+  }
   if (base == DayState.go && (rhr == RhrFlag.elevated || shortNight)) {
     return DayState.easeOff;
   }

@@ -1,9 +1,11 @@
 /// Coach: strain targets, the weekly plan and its morning adaptation.
 ///
 /// Branch rules (design → Flow · morning plan adaptation):
-/// Go: recovery ≥ 67 and load not overreaching. Ease off: 34–66, or less
-/// than 48 h since the last hard day. Rest: ≤ 33 or overreaching. In
-/// calibration everything stays General and moderate.
+/// Go: recovery ≥ 67 and load not overreaching. Ease off: 34–66, less
+/// than 48 h since the last hard day, or load overreaching. Rest: ≤ 33, or
+/// overreaching with recovery under 50 (the load ratio alone has no
+/// causal link to injury, so it needs a second sign before it forces
+/// rest). In calibration everything stays General and moderate.
 library;
 
 import 'dart:math';
@@ -547,6 +549,10 @@ final class StrainTarget {
   bool contains(double s) => s >= lo && s <= hi;
 }
 
+/// Overreaching load forces rest only below this recovery; above it, the
+/// day eases off.
+const overRestBelow = 50.0;
+
 StrainTarget strainTarget({
   double? recovery,
   bool calibrating = false,
@@ -556,11 +562,12 @@ StrainTarget strainTarget({
     return const StrainTarget(8, 12, general: true);
   if (calibrating || recovery == null)
     return const StrainTarget(10, 14, general: true);
-  if (recovery <= 33 || load == LoadStatus.overreaching) {
+  final over = load == LoadStatus.overreaching;
+  if (recovery <= 33 || (over && recovery < overRestBelow)) {
     return const StrainTarget(0, 8, cap: true);
   }
   if (recovery < 50) return const StrainTarget(8, 12);
-  if (recovery < 67) return const StrainTarget(10, 13);
+  if (recovery < 67 || over) return const StrainTarget(10, 13);
   if (recovery < 80) return const StrainTarget(13, 16);
   if (recovery < 90) return const StrainTarget(14, 17);
   return const StrainTarget(15, 18);
@@ -573,8 +580,11 @@ DayState dayState({
   int? daysSinceHard,
 }) {
   if (calibrating || recovery == null) return DayState.general;
-  if (recovery <= 33 || load == LoadStatus.overreaching) return DayState.rest;
-  if (recovery < 67 || (daysSinceHard != null && daysSinceHard < 2)) {
+  final over = load == LoadStatus.overreaching;
+  if (recovery <= 33 || (over && recovery < overRestBelow)) {
+    return DayState.rest;
+  }
+  if (recovery < 67 || over || (daysSinceHard != null && daysSinceHard < 2)) {
     return DayState.easeOff;
   }
   return DayState.go;

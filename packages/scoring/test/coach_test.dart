@@ -48,8 +48,33 @@ void main() {
   });
 
   group('cardio load', () {
-    test('learning under 7 days', () {
+    test('learning under 14 days of data', () {
       expect(cardioLoad([50, 50, 50]).status, LoadStatus.learning);
+      expect(cardioLoad(List.filled(13, 50.0)).status, LoadStatus.learning);
+      expect(cardioLoad(List.filled(14, 50.0)).status, LoadStatus.building);
+    });
+    test('learning with fewer than 4 days of data this week', () {
+      final days = <double?>[
+        50, 50, 50, null, null, null, null, //
+        ...List.filled(21, 50.0),
+      ];
+      final l = cardioLoad(days);
+      expect(l.status, LoadStatus.learning);
+      expect((l.acuteDays, l.chronicDays), (3, 24));
+    });
+    test('days with no data drop out instead of counting as 0', () {
+      // A week off the band, then an ordinary week: same load as before.
+      final days = <double?>[
+        ...List.filled(7, 60.0),
+        ...List.filled(7, null),
+        ...List.filled(14, 60.0),
+      ];
+      final l = cardioLoad(days);
+      expect(l.chronic, 60);
+      expect(l.status, LoadStatus.building);
+      // The old reading (gap as 0) would have called this overreaching.
+      final asZero = cardioLoad([for (final d in days) d ?? 0]);
+      expect(asZero.status, LoadStatus.overreaching);
     });
     test('status thresholds', () {
       expect(loadStatusFor(0.79), LoadStatus.detraining);
@@ -80,11 +105,11 @@ void main() {
       expect(strainTarget(recovery: 24).cap, isTrue);
       expect(strainTarget(recovery: 24).hi, 8);
     });
-    test('overreaching caps even a green morning', () {
-      expect(
-        strainTarget(recovery: 80, load: LoadStatus.overreaching).cap,
-        isTrue,
-      );
+    test('overreaching eases a green morning, caps a low one', () {
+      final t = strainTarget(recovery: 80, load: LoadStatus.overreaching);
+      expect((t.lo, t.hi, t.cap), (10, 13, false));
+      final low = strainTarget(recovery: 45, load: LoadStatus.overreaching);
+      expect((low.hi, low.cap), (8, true));
     });
     test('calibrating is general 10–14', () {
       final t = strainTarget(calibrating: true);
@@ -100,7 +125,15 @@ void main() {
       expect(dayState(recovery: 33), DayState.rest);
       expect(
         dayState(recovery: 90, load: LoadStatus.overreaching),
+        DayState.easeOff,
+      );
+      expect(
+        dayState(recovery: 49, load: LoadStatus.overreaching),
         DayState.rest,
+      );
+      expect(
+        dayState(recovery: 50, load: LoadStatus.overreaching),
+        DayState.easeOff,
       );
       expect(dayState(recovery: 90, calibrating: true), DayState.general);
     });
