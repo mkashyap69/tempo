@@ -29,6 +29,7 @@ import 'backups.dart';
 import 'band_explorer.dart';
 import 'coach_settings.dart';
 import 'data_health.dart';
+import 'learn.dart';
 import 'nav.dart';
 import 'onboarding.dart' show AvailabilityEditor, WorkoutsEditor;
 import 'pairing.dart';
@@ -763,6 +764,13 @@ class SettingsScreen extends ConsumerWidget {
               await db.putSetting(Keys.bedtimeNudge, v);
               await rescheduleNotifications(db, await loadToday(db));
             },
+          ),
+        ]),
+        group('Help', [
+          ListRow(
+            'How Tempo thinks',
+            sub: 'Recovery, strain, load and the plan, in six short cards',
+            onTap: () => push(context, const LearnScreen()),
           ),
         ]),
         group('Your data', [

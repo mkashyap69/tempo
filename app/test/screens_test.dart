@@ -384,6 +384,72 @@ void main() {
       await teardown(t, db);
     });
 
+    for (final b in Brightness.values) {
+      testWidgets('Coach: goal strip and Today / Week / Goal (${b.name})', (
+        t,
+      ) async {
+        coachTab.value = CoachTab.today;
+        addTearDown(() => coachTab.value = CoachTab.today);
+        final db = (await t.runAsync(() => seededDb(days: 30)))!;
+        await render(t, db, const CoachScreen(standalone: true), b: b, h: 3600);
+        expect(find.text('TODAY’S READINESS'), findsOneWidget);
+        expect(find.text('No training goal'), findsOneWidget); // the strip
+        await t.tap(find.text('Week'));
+        await settle(t);
+        expect(find.text('PLANNED VS ACTUAL STRAIN'), findsOneWidget);
+        expect(find.text('Your week so far'), findsOneWidget);
+        expect(find.text('TODAY’S READINESS'), findsNothing);
+        await t.tap(find.text('Goal'));
+        await settle(t);
+        expect(find.text('Set a goal'), findsOneWidget);
+        expect(t.takeException(), isNull);
+        await teardown(t, db);
+      });
+    }
+
+    testWidgets('Coach week shows the goal scorecard', (t) async {
+      coachTab.value = CoachTab.week;
+      addTearDown(() => coachTab.value = CoachTab.today);
+      final db = (await t.runAsync(() async {
+        final d = await seededDb(days: 30);
+        await saveBlock(
+          d,
+          sc.BlockGoal.half,
+          event: mondayOf(DateTime.now()).add(const Duration(days: 7 * 11 + 6)),
+        );
+        return d;
+      }))!;
+      await render(t, db, const CoachScreen(standalone: true), h: 3600);
+      expect(find.textContaining('THIS WEEK ·'), findsOneWidget);
+      expect(find.text('Sessions'), findsOneWidget);
+      expect(find.textContaining('Week 1 of 12 · Base'), findsOneWidget);
+      await teardown(t, db);
+    });
+
+    testWidgets('Today: the goal line opens Coach at the goal', (t) async {
+      addTearDown(() => coachTab.value = CoachTab.today);
+      final db = (await t.runAsync(() => seededDb(days: 30)))!;
+      await render(t, db, const TodayScreen(), h: 2600);
+      final line = find.text('Training for something? Set a goal');
+      expect(line, findsOneWidget);
+      await t.tap(line);
+      await settle(t);
+      expect(coachTab.value, CoachTab.goal);
+      expect(find.text('Set a goal'), findsOneWidget);
+      await teardown(t, db);
+    });
+
+    testWidgets('Trends as a tab: shortcuts and cardio load', (t) async {
+      final db = (await t.runAsync(() => seededDb(days: 30)))!;
+      await render(t, db, const TrendsScreen(tab: true), h: 2600);
+      for (final s in ['Workouts', 'Day timeline', 'Calendar', 'Baselines']) {
+        expect(find.text(s), findsOneWidget);
+      }
+      expect(find.text('CARDIO LOAD'), findsOneWidget);
+      expect(find.byTooltip('Back'), findsNothing);
+      await teardown(t, db);
+    });
+
     testWidgets('Coach at large text: no overflow', (t) async {
       final db = (await t.runAsync(() => seededDb(days: 30)))!;
       t.platformDispatcher.textScaleFactorTestValue = 1.35;
@@ -404,7 +470,8 @@ void main() {
         await render(t, db, const LongevityScreen(), b: b, h: 3200);
         expect(find.text('WHAT SHAPES IT'), findsOneWidget);
         expect(find.text('HEALTH DETAILS'), findsOneWidget);
-        expect(find.text('Trends'), findsOneWidget);
+        // Trends has its own tab now.
+        expect(find.text('Trends'), findsNothing);
         await teardown(t, db);
       });
     }

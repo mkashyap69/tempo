@@ -14,7 +14,7 @@ import '../design/type.dart';
 import '../state/providers.dart';
 import 'baselines.dart';
 import 'calendar.dart';
-import 'data_health.dart';
+import 'coach.dart' show CardioLoadCard;
 import 'day_timeline.dart';
 import 'nav.dart';
 import 'night_detail.dart';
@@ -225,7 +225,10 @@ final _specs = <_Spec>[
 ];
 
 class TrendsScreen extends ConsumerStatefulWidget {
-  const TrendsScreen({super.key});
+  const TrendsScreen({super.key, this.tab = false});
+
+  /// Shown as a tab (no back button, room for the tab bar).
+  final bool tab;
   @override
   ConsumerState<TrendsScreen> createState() => _TrendsState();
 }
@@ -240,19 +243,70 @@ class _TrendsState extends ConsumerState<TrendsScreen> {
     final debt = ref.watch(todayProvider).value?.debt;
     return TempoPage(
       gap: 18,
+      bottom: widget.tab ? 100 : 48,
       children: [
-        DetailHeader(
-          title: 'Trends',
-          trailing: Transform.translate(
-            offset: const Offset(10, 0),
-            child: TempoIconButton(
-              TempoIcons.calendar,
-              label: 'Calendar',
-              stroke: 1.75,
-              onTap: () => push(context, const CalendarScreen()),
+        if (widget.tab)
+          SizedBox(
+            height: 44,
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text('Trends', style: TempoType.pageTitle.c(c.text1)),
+            ),
+          )
+        else
+          DetailHeader(
+            title: 'Trends',
+            trailing: Transform.translate(
+              offset: const Offset(10, 0),
+              child: TempoIconButton(
+                TempoIcons.calendar,
+                label: 'Calendar',
+                stroke: 1.75,
+                onTap: () => push(context, const CalendarScreen()),
+              ),
             ),
           ),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final (t, icon, page) in [
+              ('Workouts', TempoIcons.run, () => const WorkoutsScreen()),
+              (
+                'Day timeline',
+                TempoIcons.timeline,
+                () => const DayTimelineScreen(),
+              ),
+              ('Calendar', TempoIcons.calendar, () => const CalendarScreen()),
+              (
+                'Baselines',
+                TempoIcons.baselines,
+                () => const BaselinesScreen(),
+              ),
+            ])
+              Pressable(
+                label: t,
+                onTap: () => push(context, page()),
+                child: Container(
+                  height: 40,
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  decoration: BoxDecoration(
+                    color: c.surface1,
+                    borderRadius: BorderRadius.circular(TempoRadii.pill),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TempoIcon(icon, size: 16, color: c.text1),
+                      const SizedBox(width: 8),
+                      Text(t, style: TempoType.label.c(c.text1)),
+                    ],
+                  ),
+                ),
+              ),
+          ],
         ),
+        const CardioLoadCard(),
         TempoSegmented<int>(
           values: const [7, 30, 90],
           labels: const ['7 days', '30 days', '90 days'],
@@ -269,50 +323,6 @@ class _TrendsState extends ConsumerState<TrendsScreen> {
               prev: data.$2.metrics[sp.key]!,
               debt: sp.key == 'sleep' ? debt : null,
             ),
-        GridView.count(
-          crossAxisCount: 2,
-          shrinkWrap: true,
-          padding: EdgeInsets.zero,
-          physics: const NeverScrollableScrollPhysics(),
-          mainAxisSpacing: 10,
-          crossAxisSpacing: 10,
-          childAspectRatio: 165 / 56,
-          children: [
-            for (final (t, icon, page) in [
-              ('Workouts', TempoIcons.run, () => const WorkoutsScreen()),
-              (
-                'Day timeline',
-                TempoIcons.timeline,
-                () => const DayTimelineScreen(),
-              ),
-              (
-                'Baselines',
-                TempoIcons.baselines,
-                () => const BaselinesScreen(),
-              ),
-              ('Calendar', TempoIcons.calendar, () => const CalendarScreen()),
-              ('Data health', TempoIcons.band, () => const DataHealthScreen()),
-            ])
-              Pressable(
-                label: t,
-                onTap: () => push(context, page()),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14),
-                  decoration: BoxDecoration(
-                    color: c.surface1,
-                    borderRadius: BorderRadius.circular(TempoRadii.md),
-                  ),
-                  child: Row(
-                    children: [
-                      TempoIcon(icon, size: 18, color: c.text1),
-                      const SizedBox(width: 10),
-                      Text(t, style: TempoType.label.c(c.text1)),
-                    ],
-                  ),
-                ),
-              ),
-          ],
-        ),
       ],
     );
   }

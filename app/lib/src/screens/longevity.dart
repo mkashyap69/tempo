@@ -14,7 +14,6 @@ import '../design/tokens.dart';
 import '../design/type.dart';
 import '../state/providers.dart';
 import 'nav.dart';
-import 'trends.dart';
 
 class LongevityData {
   LongevityData({
@@ -173,15 +172,6 @@ class _LongevityScreenState extends ConsumerState<LongevityScreen> {
               child: _Contributors(d.contributors),
             ),
           Section(title: 'Health details', child: _ManualCard(d.manual)),
-          CardList(
-            children: [
-              ListRow(
-                'Trends',
-                sub: 'Recovery, strain and sleep over 7–90 days',
-                onTap: () => push(context, const TrendsScreen()),
-              ),
-            ],
-          ),
           Text(
             'Tempo Age is a wellness estimate from published population '
             'studies, not a medical test or a diagnosis. Talk to a doctor '

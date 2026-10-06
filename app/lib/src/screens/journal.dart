@@ -96,8 +96,54 @@ String insightText(InsightData d) {
       : 'After $name, your recovery averages $pts points higher.';
 }
 
+/// On Today until yesterday's check-in is done.
+class JournalNudge extends ConsumerWidget {
+  const JournalNudge({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final j = ref.watch(journalProvider).value;
+    if (j == null || j.yesterday.length >= journalTags.length) {
+      return const SizedBox.shrink();
+    }
+    final c = context.c;
+    return TempoCard(
+      label: 'Journal check-in',
+      onTap: () => push(context, const JournalScreen(standalone: true)),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Overline('Journal'),
+                const SizedBox(height: 6),
+                Text('Yesterday, quickly', style: TempoType.titleM.c(c.text1)),
+                const SizedBox(height: 2),
+                Text(
+                  'Five taps. Tempo matches them against your recovery.',
+                  style: TempoType.bodyS.c(c.text2),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          TempoButton(
+            'Check in',
+            small: true,
+            onTap: () => push(context, const JournalScreen(standalone: true)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class JournalScreen extends ConsumerStatefulWidget {
-  const JournalScreen({super.key});
+  const JournalScreen({super.key, this.standalone = false});
+
+  /// Pushed (back button) rather than a tab.
+  final bool standalone;
   @override
   ConsumerState<JournalScreen> createState() => _JournalState();
 }
@@ -115,19 +161,25 @@ class _JournalState extends ConsumerState<JournalScreen> {
     final locked = j.count < sc.insightsUnlockAt;
     return TempoPage(
       gap: 18,
-      bottom: 100,
+      bottom: widget.standalone ? 48 : 100,
       children: [
-        SizedBox(
-          height: 44,
-          child: Row(
-            children: [
-              Expanded(
-                child: Text('Journal', style: TempoType.pageTitle.c(c.text1)),
-              ),
-              TempoBadge('${j.count} check-ins'),
-            ],
+        if (widget.standalone)
+          DetailHeader(
+            title: 'Journal',
+            trailing: TempoBadge('${j.count} check-ins'),
+          )
+        else
+          SizedBox(
+            height: 44,
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text('Journal', style: TempoType.pageTitle.c(c.text1)),
+                ),
+                TempoBadge('${j.count} check-ins'),
+              ],
+            ),
           ),
-        ),
         TempoSegmented<bool>(
           values: const [false, true],
           labels: const ['Check-in', 'Insights'],
