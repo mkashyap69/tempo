@@ -4,6 +4,7 @@ import 'package:scoring/scoring.dart' as sc;
 import 'package:store/store.dart' as st;
 
 import 'coach_service.dart';
+import 'data_source.dart';
 import 'pause.dart';
 import 'profile.dart';
 
@@ -34,6 +35,8 @@ class TodayData {
     required this.rhrBase,
     required this.stressBase,
     required this.sleepBase,
+    this.hrvBase,
+    this.source = sc.bandSource,
     this.daysSinceHard,
     this.pause,
     this.baseNeedLearned = false,
@@ -89,6 +92,13 @@ class TodayData {
   final Profile profile;
   final List<st.Workout> workouts;
   final sc.Baseline? rhrBase, stressBase, sleepBase;
+
+  /// Real HRV (ms) over the last 30 nights of the same kind, from a Health
+  /// source; null with the band.
+  final sc.Baseline? hrvBase;
+
+  /// The data source today's numbers come from (`daily_scores.source`).
+  final String source;
 
   /// The open ill/travel pause, if any.
   final Pause? pause;
@@ -146,8 +156,15 @@ String fmtHm(int minuteOfDay) =>
 Future<TodayData> loadToday(st.TempoDb db, {DateTime? at}) async {
   final day = dayOf(at ?? DateTime.now());
   final score = await db.scoreFor(day);
+  final source = score?.source ?? (await loadDataSource(db)).key;
   final history = await db.scoresBefore(day, limit: 90);
-  final recent30 = [?score, ...history.take(29)];
+  // Baselines and calibration compare only days of one source (scoring
+  // does the same); a switch of source starts them fresh.
+  final same = [
+    for (final d in history)
+      if (d.source == source) d,
+  ];
+  final recent30 = [?score, ...same.take(29)];
   final nights = recent30
       .where((d) => d.sleptHours != null)
       .length
@@ -191,7 +208,7 @@ Future<TodayData> loadToday(st.TempoDb db, {DateTime? at}) async {
   ];
   const sleepParams = sc.SleepParams();
   final needSamples = [
-    for (final d in [?score, ...history.take(59)])
+    for (final d in [?score, ...same.take(59)])
       if (d.sleptHours != null &&
           d.recovery != null &&
           !d.calibrating &&
@@ -273,9 +290,15 @@ Future<TodayData> loadToday(st.TempoDb db, {DateTime? at}) async {
               p75 != null &&
               plan.strainLo >= p75,
         );
-  final rhrBase = sc.Baseline.of(history.take(30).map((d) => d.rhr));
-  final stressBase = sc.Baseline.of(history.take(30).map((d) => d.hrvProxy));
-  final sleepBase = sc.Baseline.of(history.take(30).map((d) => d.sleepPerf));
+  final rhrBase = sc.Baseline.of(same.take(30).map((d) => d.rhr));
+  final stressBase = sc.Baseline.of(same.take(30).map((d) => d.hrvProxy));
+  final sleepBase = sc.Baseline.of(same.take(30).map((d) => d.sleepPerf));
+  final hrvBase = sc.Baseline.of([
+    for (final d in same.take(30))
+      if (d.hrv != null &&
+          (score?.hrvKind == null || d.hrvKind == score!.hrvKind))
+        d.hrv,
+  ]);
   return TodayData(
     day: day,
     score: score,
@@ -301,6 +324,8 @@ Future<TodayData> loadToday(st.TempoDb db, {DateTime? at}) async {
     rhrBase: rhrBase,
     stressBase: stressBase,
     sleepBase: sleepBase,
+    hrvBase: hrvBase,
+    source: source,
     daysSinceHard: sinceHard,
     pause: activePause(pauses),
     smartAlarm: parseHm(await db.setting(Keys.smartAlarm)),

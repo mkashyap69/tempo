@@ -39,3 +39,23 @@ in `packages/scoring/lib/src/strain.dart` and bump `algoVersion`.
 2. Fetch type codes and activity record size (4 bytes assumed).
 3. Sleep kind codes (`sleepKinds` in band_ble/lib/src/fetch.dart) — if Sleep is empty, this is why.
 4. Stress / SpO2 layouts — wrong values here only affect Recovery.
+
+## Health sources (no band needed)
+
+Neither Xcode nor the Android SDK is in the dev container, so everything
+below is TODO(verify) on a phone. Send the Sync log (Profile → Sync health)
+and Profile → Export (JSON) when something's off.
+
+| # | Step | Pass when |
+| --- | --- | --- |
+| H1 | Onboarding → "Where does your data come from?" → Apple Health / Health Connect → Connect | The system sheet lists heart rate, HRV, resting HR, sleep, steps, SpO₂, workouts (Android also distance, calories, past data, background) |
+| H2 | Today after the first read | Sync pill shows progress, then "Imported N records"; Sync log says "… imported · N heart-rate readings, N sleep records, N workouts" |
+| H3 | Sleep, last night | Bed/wake times and stages match the Health app (Apple) / the watch's app (Health Connect) within a few minutes |
+| H4 | Recovery | Calibrating if fewer than 14 nights in the last 90 days, else a score with "HRV, overnight" (Apple: SDNN; Android: "HRV (RMSSD)" if the watch writes it) |
+| H5 | Steps on Today vs the Health app's total | Within ~5 % (Tempo takes the busier of phone and watch per minute; Health deduplicates its own way) |
+| H6 | A workout logged on the watch | Appears in Workouts as a confirmed workout with HR and strain; not duplicated by an auto-detected one |
+| H7 | Delete that workout in Health, then pull to refresh | It disappears from Workouts (tombstoned; the raw row stays) |
+| H8 | Start a workout in Tempo | Timer only ("HR from Health later"); after the watch syncs and Tempo reads, it shows HR and strain |
+| H9 | iPhone locked overnight | No banner in the morning; the open reads fine. Sync log may show "could not be read (phone locked?)" lines from the night |
+| H10 | Android background (close Tempo 3+ h) | A new "Health Connect · …" line in the Sync log without opening Tempo; if "background reads not allowed", allow it in Health Connect → Tempo |
+| H11 | Profile → Data source → Mi Band 6 → back to Health | No scores lost; Recovery recalibrates only if the new source has under 14 nights |

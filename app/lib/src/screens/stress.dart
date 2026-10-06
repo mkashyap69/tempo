@@ -5,7 +5,7 @@ import 'package:store/store.dart' as st;
 
 import '../core/coach_service.dart';
 import '../core/format.dart';
-import '../core/stages.dart';
+import '../core/minutes.dart';
 import '../design/chart.dart';
 import '../design/components.dart';
 import '../design/icons.dart';
@@ -36,19 +36,15 @@ final _stressProvider = FutureProvider.family<_StressData, DateTime>((
   ref.watch(dbTickProvider);
   final db = ref.watch(dbProvider);
   final readings = [
-    for (final x in await db.stressBetween(
-      day,
-      day.add(const Duration(days: 1)),
-    ))
+    for (final x in await loadStress(db, day, day.add(const Duration(days: 1))))
       sc.StressReading(st.fromTs(x.ts), x.value),
   ];
   // Sleeps as scoring finds them, naps included (≥ 20 min asleep).
-  final mins = decodeMinutes(
-    await db.minutesBetween(
-      day.subtract(const Duration(hours: 12)),
-      day.add(const Duration(hours: 36)),
-    ),
-  ).minutes;
+  final mins = (await loadMinutes(
+    db,
+    day.subtract(const Duration(hours: 12)),
+    day.add(const Duration(hours: 36)),
+  )).minutes;
   final sleeps = sc.detectSessions(
     mins,
     sc.SleepParams(minSessionMinutes: const sc.SleepParams().minNapMinutes),

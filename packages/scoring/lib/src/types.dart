@@ -8,7 +8,10 @@
 ///    judged against the night's HR drift; band walking code (0x01).
 /// 6: quiet minutes the band flags awake inside the night are staged.
 /// 7: a quiet wake only joins sleep while the band is worn.
-const algoVersion = 7;
+/// 8: data sources (band, Apple Health, Health Connect): baselines and
+///    calibration per source; real HRV (ln ms, higher is better) as the
+///    recovery HRV input; the source's resting HR when the night has none.
+const algoVersion = 8;
 
 enum Stage { wake, light, deep, rem, unknown }
 

@@ -1,5 +1,5 @@
 name: tempo
-description: Personal recovery/strain app for the Mi Band 6.
+description: Personal recovery/strain app for the Mi Band 6, Apple Health or Health Connect.
 publish_to: none
 version: 0.0.1+1
 resolution: workspace
@@ -23,6 +23,8 @@ dependencies:
     path: ../packages/store
   scoring:
     path: ../packages/scoring
+  health_source:
+    path: ../packages/health_source
   intl: ^0.20.3
   share_plus: ^13.3.1
   flutter_local_notifications: ^22.3.1

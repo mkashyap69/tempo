@@ -6,6 +6,8 @@ import 'package:scoring/scoring.dart' as sc;
 import 'package:store/store.dart' as st;
 
 import 'coach_service.dart' show CoachService, dayOf;
+import 'data_source.dart';
+import 'minutes.dart';
 import 'pause.dart';
 import 'profile.dart';
 import 'score_service.dart' show parseDateKey;
@@ -152,9 +154,12 @@ Future<int> _countMinutes(
   DateTime to,
   int minHr,
 ) async {
+  final table = (await loadDataSource(db)).isHealth
+      ? 'health_minutes'
+      : 'minute_samples';
   final r = await db
       .customSelect(
-        'SELECT COUNT(*) AS n FROM minute_samples WHERE ts >= ? AND ts < ? AND hr >= ?',
+        'SELECT COUNT(*) AS n FROM $table WHERE ts >= ? AND ts < ? AND hr >= ?',
         variables: [
           Variable.withInt(st.toTs(from)),
           Variable.withInt(st.toTs(to)),
@@ -172,10 +177,13 @@ Future<List<double>> _dailySteps(
   DateTime to,
 ) async {
   final out = <double>[];
+  final table = (await loadDataSource(db)).isHealth
+      ? 'health_minutes'
+      : 'minute_samples';
   for (var d = from; d.isBefore(to); d = DateTime(d.year, d.month, d.day + 1)) {
     final r = await db
         .customSelect(
-          'SELECT COALESCE(SUM(steps), 0) AS s FROM minute_samples WHERE ts >= ? AND ts < ?',
+          'SELECT COALESCE(SUM(steps), 0) AS s FROM $table WHERE ts >= ? AND ts < ?',
           variables: [
             Variable.withInt(st.toTs(d)),
             Variable.withInt(st.toTs(DateTime(d.year, d.month, d.day + 1))),
@@ -188,8 +196,10 @@ Future<List<double>> _dailySteps(
   return out;
 }
 
-/// Mean band stress (1–99) in [from, to); null under a day's worth.
+/// Mean band stress (1–99) in [from, to); null under a day's worth, and
+/// always null for a Health source (Health has no stress index).
 Future<double?> _meanStress(st.TempoDb db, DateTime from, DateTime to) async {
+  if ((await loadDataSource(db)).isHealth) return null;
   final r = await db
       .customSelect(
         'SELECT AVG(value) AS m, COUNT(*) AS n FROM stress_samples '
@@ -265,11 +275,11 @@ Future<sc.LongevityInputs> longevityInputs(
       end: b,
       sleptHours: s.sleptHours ?? b.difference(a).inMinutes / 60,
       spo2: [
-        for (final x in await db.spo2Between(a, b))
+        for (final x in await loadSpo2(db, a, b))
           (ts: st.fromTs(x.ts), avg: x.value, quality: x.quality),
       ],
       events: [
-        for (final e in await db.odEventsBetween(a, b))
+        for (final e in await loadOdEvents(db, a, b))
           (ts: st.fromTs(e.ts), drop: e.drop),
       ],
     );
@@ -365,7 +375,7 @@ Future<sc.TempoAge> updateLongevity(st.TempoDb db) async {
     ))
       if (s.algoVersion == longevityAlgo) s.date,
   };
-  final first = await db.firstMinute();
+  final first = await firstDataMinute(db);
   for (var m = 6; m >= 1; m--) {
     final d = DateTime(today.year, today.month - m, today.day);
     if (first == null || d.isBefore(first.add(const Duration(days: 30)))) {

@@ -5,7 +5,9 @@ import 'package:scoring/scoring.dart' as sc;
 import 'package:store/store.dart' as st;
 
 import '../core/coach_service.dart';
+import '../core/data_source.dart';
 import '../core/format.dart';
+import '../core/minutes.dart';
 import '../design/chart.dart';
 import '../design/components.dart';
 import '../design/icons.dart';
@@ -38,9 +40,12 @@ Future<TrendSeries> loadSeries(
 ) async {
   final scores = {for (final s in await db.scoresBetween(from, to)) s.date: s};
   final steps = <String, double>{};
+  final table = (await loadDataSource(db)).isHealth
+      ? 'health_minutes'
+      : 'minute_samples';
   final rows = await db
       .customSelect(
-        "SELECT date(ts, 'unixepoch', 'localtime') AS d, SUM(steps) AS s FROM minute_samples WHERE ts >= ? AND ts < ? GROUP BY d",
+        "SELECT date(ts, 'unixepoch', 'localtime') AS d, SUM(steps) AS s FROM $table WHERE ts >= ? AND ts < ? GROUP BY d",
         variables: [
           Variable.withInt(st.toTs(from)),
           Variable.withInt(st.toTs(to.add(const Duration(days: 1)))),
@@ -50,7 +55,8 @@ Future<TrendSeries> loadSeries(
   for (final r in rows) {
     steps[r.read<String>('d')] = r.read<int>('s').toDouble();
   }
-  final spo2 = await db.spo2Between(
+  final spo2 = await loadSpo2(
+    db,
     from.subtract(const Duration(hours: 12)),
     to.add(const Duration(days: 1)),
   );
@@ -78,6 +84,7 @@ Future<TrendSeries> loadSeries(
       'sleep',
       'rhr',
       'stress',
+      'hrv',
       'spo2',
       'steps',
     ])
@@ -90,6 +97,7 @@ Future<TrendSeries> loadSeries(
     m['sleep']!.add(s?.sleepPerf);
     m['rhr']!.add(s?.rhr);
     m['stress']!.add(s?.hrvProxy);
+    m['hrv']!.add(s?.hrv);
     m['spo2']!.add(nightSpo2(s));
     m['steps']!.add(steps[st.dateKey(d)]);
   }
@@ -200,6 +208,17 @@ final _specs = <_Spec>[
     lowIsBest: true,
   ),
   _Spec(
+    'hrv',
+    'HRV',
+    'ms overnight',
+    _Kind.line,
+    10,
+    120,
+    (a) => '${a.round()}',
+    () => const BaselinesScreen(),
+    pbLabel: 'Highest',
+  ),
+  _Spec(
     'spo2',
     'SpO₂',
     '% overnight',
@@ -238,6 +257,7 @@ class _TrendsState extends ConsumerState<TrendsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final health = ref.watch(dataSourceProvider).isHealth;
     final c = context.c;
     final data = ref.watch(trendsProvider(_range)).value;
     final debt = ref.watch(todayProvider).value?.debt;
@@ -317,12 +337,14 @@ class _TrendsState extends ConsumerState<TrendsScreen> {
           const SizedBox(height: 400)
         else
           for (final sp in _specs)
-            _TrendCard(
-              spec: sp,
-              cur: data.$1.metrics[sp.key]!,
-              prev: data.$2.metrics[sp.key]!,
-              debt: sp.key == 'sleep' ? debt : null,
-            ),
+            // The band has a stress index; Health sources have real HRV.
+            if (sp.key != (health ? 'stress' : 'hrv'))
+              _TrendCard(
+                spec: sp,
+                cur: data.$1.metrics[sp.key]!,
+                prev: data.$2.metrics[sp.key]!,
+                debt: sp.key == 'sleep' ? debt : null,
+              ),
       ],
     );
   }

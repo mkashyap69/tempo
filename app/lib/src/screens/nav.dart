@@ -66,7 +66,10 @@ Future<void> openLive(
     if (go && context.mounted) await push(context, const PairingScreen());
     return;
   }
-  final adapter = ref.read(adapterProvider).value;
+  // A Health source has no band: the session is timed (LiveSession).
+  final adapter = ref.read(dataSourceProvider).isHealth
+      ? null
+      : ref.read(adapterProvider).value;
   if (adapter == BluetoothAdapterState.unauthorized ||
       adapter == BluetoothAdapterState.off) {
     await showTempoSheet<void>(

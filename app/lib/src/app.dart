@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/background_guard.dart';
 import 'core/band_link.dart' show deviceIdKey;
 import 'core/coach_notifier.dart';
+import 'core/data_source.dart';
 import 'core/home_widgets.dart';
 import 'core/notifications.dart';
 import 'core/profile.dart';
@@ -275,14 +276,19 @@ class _ShellState extends ConsumerState<Shell> with WidgetsBindingObserver {
   Future<void> _askBatteryOnce() async {
     final db = ref.read(dbProvider);
     if (await db.setting(Keys.batteryPrompted) == '1') return;
-    if ((await db.setting(deviceIdKey) ?? '').isEmpty) return;
+    final healthConnect = await loadDataSource(db) == DataSource.healthConnect;
+    if (!healthConnect && (await db.setting(deviceIdKey) ?? '').isEmpty) {
+      return;
+    }
     if (await BackgroundGuard.batteryExempt) return;
     await db.putSetting(Keys.batteryPrompted, '1');
     if (!mounted) return;
     final ok = await confirmSheet(
       context,
       title: 'Keep syncing overnight?',
-      body: 'Android’s battery optimisation can stop Tempo syncing in the background, so mornings start with old data. Allow Tempo to run in the background?',
+      body: healthConnect
+          ? 'Android’s battery optimisation can stop Tempo reading Health Connect in the background, so mornings start with old data. Allow Tempo to run in the background?'
+          : 'Android’s battery optimisation can stop Tempo syncing in the background, so mornings start with old data. Allow Tempo to run in the background?',
       action: 'Allow',
     );
     if (ok) await BackgroundGuard.requestBatteryExemption();
@@ -314,7 +320,8 @@ class _ShellState extends ConsumerState<Shell> with WidgetsBindingObserver {
   }
 
   void _sync() {
-    if (ref.read(liveSessionProvider) != null) {
+    final live = ref.read(liveSessionProvider);
+    if (live != null && !live.timerOnly) {
       return; // the workout holds the band
     }
     ref.read(syncProvider.notifier).syncNow();

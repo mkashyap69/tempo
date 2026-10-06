@@ -7,4 +7,5 @@ workspace:
   - packages/band_ble
   - packages/store
   - packages/scoring
+  - packages/health_source
   - tools/backtest

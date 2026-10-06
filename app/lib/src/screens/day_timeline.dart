@@ -8,7 +8,8 @@ import 'package:store/store.dart' as st;
 
 import '../core/coach_service.dart';
 import '../core/format.dart';
-import '../core/stages.dart';
+import '../core/data_source.dart';
+import '../core/minutes.dart';
 import '../design/components.dart';
 import '../design/icons.dart';
 import '../design/tokens.dart';
@@ -18,8 +19,11 @@ import 'activity_detail.dart';
 import 'nav.dart';
 
 class _Day {
-  _Day(this.minutes, this.stress, this.workouts, this.plan);
+  _Day(this.minutes, this.decoded, this.stress, this.workouts, this.plan);
   final List<st.MinuteSample> minutes;
+
+  /// [minutes] as scoring sees them (staged), index for index.
+  final List<sc.Minute> decoded;
   final List<st.StressSample> stress;
   final List<st.Workout> workouts;
   final sc.Session? plan;
@@ -30,9 +34,11 @@ final _dayProvider = FutureProvider.family<_Day, DateTime>((ref, day) async {
   final db = ref.watch(dbProvider);
   final end = day.add(const Duration(days: 1));
   final p = await db.planDay(day);
+  final source = await loadDataSource(db);
   return _Day(
-    await db.minutesBetween(day, end),
-    await db.stressBetween(day, end),
+    await loadMinuteRows(db, day, end, source: source),
+    (await loadMinutes(db, day, end, source: source)).minutes,
+    await loadStress(db, day, end, source: source),
     await db.workoutsBetween(day, end),
     p == null
         ? null
@@ -146,8 +152,9 @@ class _DayTimelineState extends ConsumerState<DayTimelineScreen> {
               final actW = hrLeft - actLeft - 8;
               // Stages per minute.
               final sleep = <Widget>[];
-              final decoded = decodeMinutes(d.minutes).minutes;
+              final decoded = d.decoded;
               for (final (i, m) in d.minutes.indexed) {
+                if (i >= decoded.length) break;
                 final stg = decoded[i].stage;
                 if (!stg.asleep) continue;
                 final (wd, col) = switch (stg) {

@@ -93,6 +93,10 @@ class DailyScores extends Table {
   RealColumn get hrvProxy => real().nullable()();
   BoolColumn get calibrating => boolean()();
   IntColumn get algoVersion => integer()();
+  // v10: band | apple_health | health_connect; real HRV from Health (ms).
+  TextColumn get source => text().withDefault(const Constant('band'))();
+  RealColumn get hrv => real().nullable()();
+  TextColumn get hrvKind => text().nullable()(); // sdnn | rmssd
   @override
   Set<Column> get primaryKey => {date};
 }
@@ -150,7 +154,7 @@ class Workouts extends Table {
   TextColumn get sport =>
       text().nullable()(); // scoring Sport name; null = unknown
   TextColumn get title => text()();
-  TextColumn get source => text()(); // 'live' | 'auto' | 'band'
+  TextColumn get source => text()(); // 'live' | 'auto' | 'band' | 'health'
   BoolColumn get confirmed => boolean().withDefault(const Constant(false))();
   RealColumn get strain => real()(); // day strain added by this session
   RealColumn get trimp => real()();
@@ -220,4 +224,48 @@ class Longevity extends Table {
   IntColumn get algoVersion => integer()();
   @override
   Set<Column> get primaryKey => {date};
+}
+
+/// Records read from Apple Health or Health Connect, as read. Append-only:
+/// an edited or deleted Health record gets a [HealthDeletions] tombstone
+/// instead. Keyed by health_source's `HealthRecord.key` (kind, platform
+/// id, start, end), since Health Connect shares one id across the samples
+/// of a record.
+@DataClassName('HealthRecordRow')
+class HealthRecords extends Table {
+  TextColumn get key => text()();
+  TextColumn get uuid => text()();
+  TextColumn get kind => text()(); // health_source HealthKind name
+  IntColumn get startMs => integer()(); // Unix ms
+  IntColumn get endMs => integer()();
+  RealColumn get value => real()();
+  TextColumn get sourceApp => text()();
+  TextColumn get extra => text().nullable()(); // workout type
+  IntColumn get fetchedAt => integer()();
+  @override
+  Set<Column> get primaryKey => {key};
+}
+
+/// Health records found gone (deleted, or replaced by an edit) on a later
+/// read. Append-only.
+@DataClassName('HealthDeletionRow')
+class HealthDeletions extends Table {
+  TextColumn get key => text()();
+  IntColumn get seenAt => integer()();
+  @override
+  Set<Column> get primaryKey => {key};
+}
+
+/// Per-minute data derived from [HealthRecords] (health_source HealthGrid).
+/// Derived: rebuilt for a window after every Health read.
+@DataClassName('HealthMinuteRow')
+class HealthMinutes extends Table {
+  IntColumn get ts => integer()(); // start of minute
+  IntColumn get steps => integer()();
+  IntColumn get hr => integer().nullable()(); // measured or interpolated
+  BoolColumn get hrMeasured => boolean()();
+  TextColumn get sleep => text().nullable()(); // health_source SleepMark name
+  IntColumn get spo2 => integer().nullable()();
+  @override
+  Set<Column> get primaryKey => {ts};
 }

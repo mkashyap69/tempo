@@ -1,6 +1,6 @@
 # Health connectors: Tempo without a Mi Band
 
-As of Oct 6, 2026 · Status: proposal, needs owner sign-off (it changes two locked decisions)
+As of Oct 6, 2026 · Status: decided and built (H0–H4); D1–D4 signed off by the owner, see docs/decisions.md. Device gates H2/H3 still to run.
 
 ## Summary
 
@@ -10,7 +10,11 @@ Let someone with no Mi Band 6 pick **Apple Health** (iOS, HealthKit) or **Health
 
 The work is mostly a **seam**, not new scoring. Scoring already takes `List<Minute>` + stress readings and doesn't care where they came from. `tools/backtest/lib/health_export.dart` already maps Apple Health HR and sleep records onto minutes, and has been run on 2020–2026 data. The app already depends on the `health` plugin (write-only today, `app/lib/src/core/health_export.dart`). What's new is: read permissions, an append-only raw table for Health records, a resampler from records to minutes, a recovery variant that uses real HRV, and hiding band-only features.
 
-## Decisions this needs from the owner
+## Decisions (owner, 2026-10-06)
+
+D1 yes (read-only Health, not locked to the band), D2 one source per install, D3 yes (real HRV feeds Recovery), D4 stays personal and sideloaded. Where the build differs from the proposal below, docs/decisions.md wins: baselines are per source by filtering on `daily_scores.source` (no metric suffix), and the re-read window is 3 days with a 10-day re-read once a day.
+
+### As proposed
 
 | # | Decision | Recommendation |
 | --- | --- | --- |

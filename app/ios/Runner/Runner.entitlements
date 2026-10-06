@@ -7,7 +7,7 @@
 	<array>
 		<string>group.dev.tempo.tempo</string>
 	</array>
-	<!-- Profile → Health export writes workouts and sleep. -->
+	<!-- Apple Health as the data source (read), and Profile → Health export (write). -->
 	<key>com.apple.developer.healthkit</key>
 	<true/>
 	<key>com.apple.developer.healthkit.access</key>

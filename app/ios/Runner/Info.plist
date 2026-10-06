@@ -48,7 +48,7 @@
 		</dict>
 	</array>
 	<key>NSHealthShareUsageDescription</key>
-	<string>Tempo only writes to Apple Health. It never reads your Health data.</string>
+	<string>When you choose Apple Health as your data source, Tempo reads heart rate, HRV, resting heart rate, sleep, steps, SpO₂ and workouts to score recovery, strain and sleep. Everything stays on this phone.</string>
 	<key>NSHealthUpdateUsageDescription</key>
 	<string>Tempo saves your workouts and sleep to Apple Health when you turn on Health export.</string>
 	<key>NSBluetoothAlwaysUsageDescription</key>

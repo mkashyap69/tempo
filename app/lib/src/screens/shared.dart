@@ -104,22 +104,42 @@ List<Contributor> contributors(BuildContext context, TodayData t) {
     );
   }
 
+  // Band: the stress index stands in for HRV. Health: real HRV when the
+  // watch measures it; neither on a Health source without HRV.
+  final health = t.source != sc.bandSource;
   final list = [
-    make(
-      'stress',
-      'Stress index, overnight',
-      true,
-      score?.hrvProxy,
-      t.stressBase,
-      .4,
-      true,
-      (x) => '${x.round()}',
-      (z, d) => z > .4
-          ? 'Calmer than usual · helped'
-          : z < -.4
-          ? 'Higher than usual · hurt'
-          : 'About usual',
-    ),
+    if (!health)
+      make(
+        'stress',
+        'Stress index, overnight',
+        true,
+        score?.hrvProxy,
+        t.stressBase,
+        .4,
+        true,
+        (x) => '${x.round()}',
+        (z, d) => z > .4
+            ? 'Calmer than usual · helped'
+            : z < -.4
+            ? 'Higher than usual · hurt'
+            : 'About usual',
+      ),
+    if (health && (score?.hrv != null || t.hrvBase != null))
+      make(
+        'hrv',
+        score?.hrvKind == 'rmssd' ? 'HRV (RMSSD), overnight' : 'HRV, overnight',
+        false,
+        score?.hrv,
+        t.hrvBase,
+        .4,
+        false,
+        (x) => '${x.round()} ms',
+        (z, d) => z > .4
+            ? '${d.abs().round()} ms above · helped'
+            : z < -.4
+            ? '${d.abs().round()} ms below · hurt'
+            : 'Near baseline',
+      ),
     make(
       'rhr',
       'Resting heart rate',
@@ -158,9 +178,10 @@ List<Contributor> contributors(BuildContext context, TodayData t) {
       },
     ),
   ];
-  if (score?.sleepPerf != null && !calib) {
-    final sl = list[2];
-    list[2] = Contributor(
+  final si = list.indexWhere((x) => x.key == 'sleep');
+  if (score?.sleepPerf != null && !calib && si >= 0) {
+    final sl = list[si];
+    list[si] = Contributor(
       key: sl.key,
       name: sl.name,
       proxy: false,
@@ -202,19 +223,33 @@ List<Contributor> contributors(BuildContext context, TodayData t) {
 
 /// Plain-language "why" for a recovery score.
 String recoveryWhy(TodayData t, List<Contributor> cs) {
+  final health = t.source != sc.bandSource;
   if (t.calibrating) {
-    return 'Tempo needs 14 nights to learn your normal resting HR, stress and sleep. Until then there’s no recovery score — anything else would be a guess.';
+    return 'Tempo needs 14 nights to learn your normal resting HR, ${health ? 'HRV' : 'stress'} and sleep. Until then there’s no recovery score — anything else would be a guess.';
   }
   if (t.recovery == null) {
-    return 'No recovery yet for today. Sync after waking so Tempo can read last night.';
+    return health
+        ? 'No recovery yet for today. Once your watch has synced last night to Health, open Tempo again.'
+        : 'No recovery yet for today. Sync after waking so Tempo can read last night.';
   }
   final parts = <String>[];
   final rhr = t.rhrDelta, st = t.stressDelta;
+  final hrv = t.score?.hrv, hb = t.hrvBase;
+  if (hrv != null && hb != null && hb.sd > 0) {
+    final z = (hrv - hb.mean) / hb.sd;
+    parts.add(
+      z > .4
+          ? 'your overnight HRV was higher than usual'
+          : z < -.4
+          ? 'your overnight HRV was lower than usual'
+          : 'your overnight HRV was about usual',
+    );
+  }
   if (rhr != null) {
     parts.add(
       rhr.abs() < 1
-          ? 'Your resting heart rate was right on your baseline'
-          : 'Your resting heart rate was ${rhr.abs().round()} bpm ${rhr < 0 ? 'below' : 'above'} your baseline',
+          ? 'your resting heart rate was right on your baseline'
+          : 'your resting heart rate was ${rhr.abs().round()} bpm ${rhr < 0 ? 'below' : 'above'} your baseline',
     );
   }
   if (st != null) {
@@ -229,6 +264,7 @@ String recoveryWhy(TodayData t, List<Contributor> cs) {
   var s = parts.isEmpty
       ? 'Recovery uses last night against your 30-day baseline'
       : parts.join(' and ');
+  s = s[0].toUpperCase() + s.substring(1);
   s += '.';
   if (t.sleepPerf != null && t.slept != null && t.need != null) {
     s += t.sleepPerf! >= 100
@@ -244,12 +280,14 @@ String recoveryWhy(TodayData t, List<Contributor> cs) {
   TodayData t, {
   bool noBand = false,
   bool noPermission = false,
+  bool health = false,
 }) {
   final c = context.c, s = context.s;
   final target = t.target;
+  final device = health ? 'watch' : 'band';
   if (noBand || noPermission) {
     return (
-      'Connect your band',
+      health ? 'Connect Health' : 'Connect your band',
       c.text1,
       ' to see today’s recovery, strain and sleep.',
     );
@@ -258,14 +296,16 @@ String recoveryWhy(TodayData t, List<Contributor> cs) {
     return (
       'Yesterday’s data',
       c.text2,
-      ' — sync before you train so today’s plan uses last night’s sleep.',
+      health
+          ? ' — let your watch sync to Health before you train so today’s plan uses last night’s sleep.'
+          : ' — sync before you train so today’s plan uses last night’s sleep.',
     );
   }
   if (t.firstDay) {
     return (
       'Welcome to Tempo.',
       c.text1,
-      ' Wear your band tonight — your first sleep and recovery arrive tomorrow morning.',
+      ' Wear your $device tonight — your first sleep and recovery arrive tomorrow morning.',
     );
   }
   if (t.calibrating) {
@@ -280,7 +320,9 @@ String recoveryWhy(TodayData t, List<Contributor> cs) {
     return (
       'Last night isn’t in yet',
       c.text1,
-      ' — sync near your band to see today’s recovery.',
+      health
+          ? ' — once your watch syncs last night to Health, recovery appears here.'
+          : ' — sync near your band to see today’s recovery.',
     );
   }
   final lead = 'Recovery ${r.round()}%';

@@ -2189,6 +2189,36 @@ class $DailyScoresTable extends DailyScores
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _sourceMeta = const VerificationMeta('source');
+  @override
+  late final GeneratedColumn<String> source = GeneratedColumn<String>(
+    'source',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('band'),
+  );
+  static const VerificationMeta _hrvMeta = const VerificationMeta('hrv');
+  @override
+  late final GeneratedColumn<double> hrv = GeneratedColumn<double>(
+    'hrv',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _hrvKindMeta = const VerificationMeta(
+    'hrvKind',
+  );
+  @override
+  late final GeneratedColumn<String> hrvKind = GeneratedColumn<String>(
+    'hrv_kind',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     date,
@@ -2207,6 +2237,9 @@ class $DailyScoresTable extends DailyScores
     hrvProxy,
     calibrating,
     algoVersion,
+    source,
+    hrv,
+    hrvKind,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -2334,6 +2367,24 @@ class $DailyScoresTable extends DailyScores
     } else if (isInserting) {
       context.missing(_algoVersionMeta);
     }
+    if (data.containsKey('source')) {
+      context.handle(
+        _sourceMeta,
+        source.isAcceptableOrUnknown(data['source']!, _sourceMeta),
+      );
+    }
+    if (data.containsKey('hrv')) {
+      context.handle(
+        _hrvMeta,
+        hrv.isAcceptableOrUnknown(data['hrv']!, _hrvMeta),
+      );
+    }
+    if (data.containsKey('hrv_kind')) {
+      context.handle(
+        _hrvKindMeta,
+        hrvKind.isAcceptableOrUnknown(data['hrv_kind']!, _hrvKindMeta),
+      );
+    }
     return context;
   }
 
@@ -2407,6 +2458,18 @@ class $DailyScoresTable extends DailyScores
         DriftSqlType.int,
         data['${effectivePrefix}algo_version'],
       )!,
+      source: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source'],
+      )!,
+      hrv: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}hrv'],
+      ),
+      hrvKind: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}hrv_kind'],
+      ),
     );
   }
 
@@ -2433,6 +2496,9 @@ class DailyScore extends DataClass implements Insertable<DailyScore> {
   final double? hrvProxy;
   final bool calibrating;
   final int algoVersion;
+  final String source;
+  final double? hrv;
+  final String? hrvKind;
   const DailyScore({
     required this.date,
     required this.strain,
@@ -2450,6 +2516,9 @@ class DailyScore extends DataClass implements Insertable<DailyScore> {
     this.hrvProxy,
     required this.calibrating,
     required this.algoVersion,
+    required this.source,
+    this.hrv,
+    this.hrvKind,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -2488,6 +2557,13 @@ class DailyScore extends DataClass implements Insertable<DailyScore> {
     }
     map['calibrating'] = Variable<bool>(calibrating);
     map['algo_version'] = Variable<int>(algoVersion);
+    map['source'] = Variable<String>(source);
+    if (!nullToAbsent || hrv != null) {
+      map['hrv'] = Variable<double>(hrv);
+    }
+    if (!nullToAbsent || hrvKind != null) {
+      map['hrv_kind'] = Variable<String>(hrvKind);
+    }
     return map;
   }
 
@@ -2525,6 +2601,11 @@ class DailyScore extends DataClass implements Insertable<DailyScore> {
           : Value(hrvProxy),
       calibrating: Value(calibrating),
       algoVersion: Value(algoVersion),
+      source: Value(source),
+      hrv: hrv == null && nullToAbsent ? const Value.absent() : Value(hrv),
+      hrvKind: hrvKind == null && nullToAbsent
+          ? const Value.absent()
+          : Value(hrvKind),
     );
   }
 
@@ -2550,6 +2631,9 @@ class DailyScore extends DataClass implements Insertable<DailyScore> {
       hrvProxy: serializer.fromJson<double?>(json['hrvProxy']),
       calibrating: serializer.fromJson<bool>(json['calibrating']),
       algoVersion: serializer.fromJson<int>(json['algoVersion']),
+      source: serializer.fromJson<String>(json['source']),
+      hrv: serializer.fromJson<double?>(json['hrv']),
+      hrvKind: serializer.fromJson<String?>(json['hrvKind']),
     );
   }
   @override
@@ -2572,6 +2656,9 @@ class DailyScore extends DataClass implements Insertable<DailyScore> {
       'hrvProxy': serializer.toJson<double?>(hrvProxy),
       'calibrating': serializer.toJson<bool>(calibrating),
       'algoVersion': serializer.toJson<int>(algoVersion),
+      'source': serializer.toJson<String>(source),
+      'hrv': serializer.toJson<double?>(hrv),
+      'hrvKind': serializer.toJson<String?>(hrvKind),
     };
   }
 
@@ -2592,6 +2679,9 @@ class DailyScore extends DataClass implements Insertable<DailyScore> {
     Value<double?> hrvProxy = const Value.absent(),
     bool? calibrating,
     int? algoVersion,
+    String? source,
+    Value<double?> hrv = const Value.absent(),
+    Value<String?> hrvKind = const Value.absent(),
   }) => DailyScore(
     date: date ?? this.date,
     strain: strain ?? this.strain,
@@ -2609,6 +2699,9 @@ class DailyScore extends DataClass implements Insertable<DailyScore> {
     hrvProxy: hrvProxy.present ? hrvProxy.value : this.hrvProxy,
     calibrating: calibrating ?? this.calibrating,
     algoVersion: algoVersion ?? this.algoVersion,
+    source: source ?? this.source,
+    hrv: hrv.present ? hrv.value : this.hrv,
+    hrvKind: hrvKind.present ? hrvKind.value : this.hrvKind,
   );
   DailyScore copyWithCompanion(DailyScoresCompanion data) {
     return DailyScore(
@@ -2636,6 +2729,9 @@ class DailyScore extends DataClass implements Insertable<DailyScore> {
       algoVersion: data.algoVersion.present
           ? data.algoVersion.value
           : this.algoVersion,
+      source: data.source.present ? data.source.value : this.source,
+      hrv: data.hrv.present ? data.hrv.value : this.hrv,
+      hrvKind: data.hrvKind.present ? data.hrvKind.value : this.hrvKind,
     );
   }
 
@@ -2657,7 +2753,10 @@ class DailyScore extends DataClass implements Insertable<DailyScore> {
           ..write('rhr: $rhr, ')
           ..write('hrvProxy: $hrvProxy, ')
           ..write('calibrating: $calibrating, ')
-          ..write('algoVersion: $algoVersion')
+          ..write('algoVersion: $algoVersion, ')
+          ..write('source: $source, ')
+          ..write('hrv: $hrv, ')
+          ..write('hrvKind: $hrvKind')
           ..write(')'))
         .toString();
   }
@@ -2680,6 +2779,9 @@ class DailyScore extends DataClass implements Insertable<DailyScore> {
     hrvProxy,
     calibrating,
     algoVersion,
+    source,
+    hrv,
+    hrvKind,
   );
   @override
   bool operator ==(Object other) =>
@@ -2700,7 +2802,10 @@ class DailyScore extends DataClass implements Insertable<DailyScore> {
           other.rhr == this.rhr &&
           other.hrvProxy == this.hrvProxy &&
           other.calibrating == this.calibrating &&
-          other.algoVersion == this.algoVersion);
+          other.algoVersion == this.algoVersion &&
+          other.source == this.source &&
+          other.hrv == this.hrv &&
+          other.hrvKind == this.hrvKind);
 }
 
 class DailyScoresCompanion extends UpdateCompanion<DailyScore> {
@@ -2720,6 +2825,9 @@ class DailyScoresCompanion extends UpdateCompanion<DailyScore> {
   final Value<double?> hrvProxy;
   final Value<bool> calibrating;
   final Value<int> algoVersion;
+  final Value<String> source;
+  final Value<double?> hrv;
+  final Value<String?> hrvKind;
   final Value<int> rowid;
   const DailyScoresCompanion({
     this.date = const Value.absent(),
@@ -2738,6 +2846,9 @@ class DailyScoresCompanion extends UpdateCompanion<DailyScore> {
     this.hrvProxy = const Value.absent(),
     this.calibrating = const Value.absent(),
     this.algoVersion = const Value.absent(),
+    this.source = const Value.absent(),
+    this.hrv = const Value.absent(),
+    this.hrvKind = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   DailyScoresCompanion.insert({
@@ -2757,6 +2868,9 @@ class DailyScoresCompanion extends UpdateCompanion<DailyScore> {
     this.hrvProxy = const Value.absent(),
     required bool calibrating,
     required int algoVersion,
+    this.source = const Value.absent(),
+    this.hrv = const Value.absent(),
+    this.hrvKind = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : date = Value(date),
        strain = Value(strain),
@@ -2781,6 +2895,9 @@ class DailyScoresCompanion extends UpdateCompanion<DailyScore> {
     Expression<double>? hrvProxy,
     Expression<bool>? calibrating,
     Expression<int>? algoVersion,
+    Expression<String>? source,
+    Expression<double>? hrv,
+    Expression<String>? hrvKind,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -2800,6 +2917,9 @@ class DailyScoresCompanion extends UpdateCompanion<DailyScore> {
       if (hrvProxy != null) 'hrv_proxy': hrvProxy,
       if (calibrating != null) 'calibrating': calibrating,
       if (algoVersion != null) 'algo_version': algoVersion,
+      if (source != null) 'source': source,
+      if (hrv != null) 'hrv': hrv,
+      if (hrvKind != null) 'hrv_kind': hrvKind,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -2821,6 +2941,9 @@ class DailyScoresCompanion extends UpdateCompanion<DailyScore> {
     Value<double?>? hrvProxy,
     Value<bool>? calibrating,
     Value<int>? algoVersion,
+    Value<String>? source,
+    Value<double?>? hrv,
+    Value<String?>? hrvKind,
     Value<int>? rowid,
   }) {
     return DailyScoresCompanion(
@@ -2840,6 +2963,9 @@ class DailyScoresCompanion extends UpdateCompanion<DailyScore> {
       hrvProxy: hrvProxy ?? this.hrvProxy,
       calibrating: calibrating ?? this.calibrating,
       algoVersion: algoVersion ?? this.algoVersion,
+      source: source ?? this.source,
+      hrv: hrv ?? this.hrv,
+      hrvKind: hrvKind ?? this.hrvKind,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -2895,6 +3021,15 @@ class DailyScoresCompanion extends UpdateCompanion<DailyScore> {
     if (algoVersion.present) {
       map['algo_version'] = Variable<int>(algoVersion.value);
     }
+    if (source.present) {
+      map['source'] = Variable<String>(source.value);
+    }
+    if (hrv.present) {
+      map['hrv'] = Variable<double>(hrv.value);
+    }
+    if (hrvKind.present) {
+      map['hrv_kind'] = Variable<String>(hrvKind.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -2920,6 +3055,9 @@ class DailyScoresCompanion extends UpdateCompanion<DailyScore> {
           ..write('hrvProxy: $hrvProxy, ')
           ..write('calibrating: $calibrating, ')
           ..write('algoVersion: $algoVersion, ')
+          ..write('source: $source, ')
+          ..write('hrv: $hrv, ')
+          ..write('hrvKind: $hrvKind, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -7122,6 +7260,1157 @@ class MorningFeelCompanion extends UpdateCompanion<MorningFeelData> {
   }
 }
 
+class $HealthRecordsTable extends HealthRecords
+    with TableInfo<$HealthRecordsTable, HealthRecordRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $HealthRecordsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _keyMeta = const VerificationMeta('key');
+  @override
+  late final GeneratedColumn<String> key = GeneratedColumn<String>(
+    'key',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _uuidMeta = const VerificationMeta('uuid');
+  @override
+  late final GeneratedColumn<String> uuid = GeneratedColumn<String>(
+    'uuid',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _kindMeta = const VerificationMeta('kind');
+  @override
+  late final GeneratedColumn<String> kind = GeneratedColumn<String>(
+    'kind',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _startMsMeta = const VerificationMeta(
+    'startMs',
+  );
+  @override
+  late final GeneratedColumn<int> startMs = GeneratedColumn<int>(
+    'start_ms',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _endMsMeta = const VerificationMeta('endMs');
+  @override
+  late final GeneratedColumn<int> endMs = GeneratedColumn<int>(
+    'end_ms',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _valueMeta = const VerificationMeta('value');
+  @override
+  late final GeneratedColumn<double> value = GeneratedColumn<double>(
+    'value',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sourceAppMeta = const VerificationMeta(
+    'sourceApp',
+  );
+  @override
+  late final GeneratedColumn<String> sourceApp = GeneratedColumn<String>(
+    'source_app',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _extraMeta = const VerificationMeta('extra');
+  @override
+  late final GeneratedColumn<String> extra = GeneratedColumn<String>(
+    'extra',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _fetchedAtMeta = const VerificationMeta(
+    'fetchedAt',
+  );
+  @override
+  late final GeneratedColumn<int> fetchedAt = GeneratedColumn<int>(
+    'fetched_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    key,
+    uuid,
+    kind,
+    startMs,
+    endMs,
+    value,
+    sourceApp,
+    extra,
+    fetchedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'health_records';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<HealthRecordRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('key')) {
+      context.handle(
+        _keyMeta,
+        key.isAcceptableOrUnknown(data['key']!, _keyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_keyMeta);
+    }
+    if (data.containsKey('uuid')) {
+      context.handle(
+        _uuidMeta,
+        uuid.isAcceptableOrUnknown(data['uuid']!, _uuidMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_uuidMeta);
+    }
+    if (data.containsKey('kind')) {
+      context.handle(
+        _kindMeta,
+        kind.isAcceptableOrUnknown(data['kind']!, _kindMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_kindMeta);
+    }
+    if (data.containsKey('start_ms')) {
+      context.handle(
+        _startMsMeta,
+        startMs.isAcceptableOrUnknown(data['start_ms']!, _startMsMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_startMsMeta);
+    }
+    if (data.containsKey('end_ms')) {
+      context.handle(
+        _endMsMeta,
+        endMs.isAcceptableOrUnknown(data['end_ms']!, _endMsMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_endMsMeta);
+    }
+    if (data.containsKey('value')) {
+      context.handle(
+        _valueMeta,
+        value.isAcceptableOrUnknown(data['value']!, _valueMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_valueMeta);
+    }
+    if (data.containsKey('source_app')) {
+      context.handle(
+        _sourceAppMeta,
+        sourceApp.isAcceptableOrUnknown(data['source_app']!, _sourceAppMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_sourceAppMeta);
+    }
+    if (data.containsKey('extra')) {
+      context.handle(
+        _extraMeta,
+        extra.isAcceptableOrUnknown(data['extra']!, _extraMeta),
+      );
+    }
+    if (data.containsKey('fetched_at')) {
+      context.handle(
+        _fetchedAtMeta,
+        fetchedAt.isAcceptableOrUnknown(data['fetched_at']!, _fetchedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_fetchedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {key};
+  @override
+  HealthRecordRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return HealthRecordRow(
+      key: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}key'],
+      )!,
+      uuid: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}uuid'],
+      )!,
+      kind: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}kind'],
+      )!,
+      startMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}start_ms'],
+      )!,
+      endMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}end_ms'],
+      )!,
+      value: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}value'],
+      )!,
+      sourceApp: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source_app'],
+      )!,
+      extra: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}extra'],
+      ),
+      fetchedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}fetched_at'],
+      )!,
+    );
+  }
+
+  @override
+  $HealthRecordsTable createAlias(String alias) {
+    return $HealthRecordsTable(attachedDatabase, alias);
+  }
+}
+
+class HealthRecordRow extends DataClass implements Insertable<HealthRecordRow> {
+  final String key;
+  final String uuid;
+  final String kind;
+  final int startMs;
+  final int endMs;
+  final double value;
+  final String sourceApp;
+  final String? extra;
+  final int fetchedAt;
+  const HealthRecordRow({
+    required this.key,
+    required this.uuid,
+    required this.kind,
+    required this.startMs,
+    required this.endMs,
+    required this.value,
+    required this.sourceApp,
+    this.extra,
+    required this.fetchedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['key'] = Variable<String>(key);
+    map['uuid'] = Variable<String>(uuid);
+    map['kind'] = Variable<String>(kind);
+    map['start_ms'] = Variable<int>(startMs);
+    map['end_ms'] = Variable<int>(endMs);
+    map['value'] = Variable<double>(value);
+    map['source_app'] = Variable<String>(sourceApp);
+    if (!nullToAbsent || extra != null) {
+      map['extra'] = Variable<String>(extra);
+    }
+    map['fetched_at'] = Variable<int>(fetchedAt);
+    return map;
+  }
+
+  HealthRecordsCompanion toCompanion(bool nullToAbsent) {
+    return HealthRecordsCompanion(
+      key: Value(key),
+      uuid: Value(uuid),
+      kind: Value(kind),
+      startMs: Value(startMs),
+      endMs: Value(endMs),
+      value: Value(value),
+      sourceApp: Value(sourceApp),
+      extra: extra == null && nullToAbsent
+          ? const Value.absent()
+          : Value(extra),
+      fetchedAt: Value(fetchedAt),
+    );
+  }
+
+  factory HealthRecordRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return HealthRecordRow(
+      key: serializer.fromJson<String>(json['key']),
+      uuid: serializer.fromJson<String>(json['uuid']),
+      kind: serializer.fromJson<String>(json['kind']),
+      startMs: serializer.fromJson<int>(json['startMs']),
+      endMs: serializer.fromJson<int>(json['endMs']),
+      value: serializer.fromJson<double>(json['value']),
+      sourceApp: serializer.fromJson<String>(json['sourceApp']),
+      extra: serializer.fromJson<String?>(json['extra']),
+      fetchedAt: serializer.fromJson<int>(json['fetchedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'key': serializer.toJson<String>(key),
+      'uuid': serializer.toJson<String>(uuid),
+      'kind': serializer.toJson<String>(kind),
+      'startMs': serializer.toJson<int>(startMs),
+      'endMs': serializer.toJson<int>(endMs),
+      'value': serializer.toJson<double>(value),
+      'sourceApp': serializer.toJson<String>(sourceApp),
+      'extra': serializer.toJson<String?>(extra),
+      'fetchedAt': serializer.toJson<int>(fetchedAt),
+    };
+  }
+
+  HealthRecordRow copyWith({
+    String? key,
+    String? uuid,
+    String? kind,
+    int? startMs,
+    int? endMs,
+    double? value,
+    String? sourceApp,
+    Value<String?> extra = const Value.absent(),
+    int? fetchedAt,
+  }) => HealthRecordRow(
+    key: key ?? this.key,
+    uuid: uuid ?? this.uuid,
+    kind: kind ?? this.kind,
+    startMs: startMs ?? this.startMs,
+    endMs: endMs ?? this.endMs,
+    value: value ?? this.value,
+    sourceApp: sourceApp ?? this.sourceApp,
+    extra: extra.present ? extra.value : this.extra,
+    fetchedAt: fetchedAt ?? this.fetchedAt,
+  );
+  HealthRecordRow copyWithCompanion(HealthRecordsCompanion data) {
+    return HealthRecordRow(
+      key: data.key.present ? data.key.value : this.key,
+      uuid: data.uuid.present ? data.uuid.value : this.uuid,
+      kind: data.kind.present ? data.kind.value : this.kind,
+      startMs: data.startMs.present ? data.startMs.value : this.startMs,
+      endMs: data.endMs.present ? data.endMs.value : this.endMs,
+      value: data.value.present ? data.value.value : this.value,
+      sourceApp: data.sourceApp.present ? data.sourceApp.value : this.sourceApp,
+      extra: data.extra.present ? data.extra.value : this.extra,
+      fetchedAt: data.fetchedAt.present ? data.fetchedAt.value : this.fetchedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('HealthRecordRow(')
+          ..write('key: $key, ')
+          ..write('uuid: $uuid, ')
+          ..write('kind: $kind, ')
+          ..write('startMs: $startMs, ')
+          ..write('endMs: $endMs, ')
+          ..write('value: $value, ')
+          ..write('sourceApp: $sourceApp, ')
+          ..write('extra: $extra, ')
+          ..write('fetchedAt: $fetchedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    key,
+    uuid,
+    kind,
+    startMs,
+    endMs,
+    value,
+    sourceApp,
+    extra,
+    fetchedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is HealthRecordRow &&
+          other.key == this.key &&
+          other.uuid == this.uuid &&
+          other.kind == this.kind &&
+          other.startMs == this.startMs &&
+          other.endMs == this.endMs &&
+          other.value == this.value &&
+          other.sourceApp == this.sourceApp &&
+          other.extra == this.extra &&
+          other.fetchedAt == this.fetchedAt);
+}
+
+class HealthRecordsCompanion extends UpdateCompanion<HealthRecordRow> {
+  final Value<String> key;
+  final Value<String> uuid;
+  final Value<String> kind;
+  final Value<int> startMs;
+  final Value<int> endMs;
+  final Value<double> value;
+  final Value<String> sourceApp;
+  final Value<String?> extra;
+  final Value<int> fetchedAt;
+  final Value<int> rowid;
+  const HealthRecordsCompanion({
+    this.key = const Value.absent(),
+    this.uuid = const Value.absent(),
+    this.kind = const Value.absent(),
+    this.startMs = const Value.absent(),
+    this.endMs = const Value.absent(),
+    this.value = const Value.absent(),
+    this.sourceApp = const Value.absent(),
+    this.extra = const Value.absent(),
+    this.fetchedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  HealthRecordsCompanion.insert({
+    required String key,
+    required String uuid,
+    required String kind,
+    required int startMs,
+    required int endMs,
+    required double value,
+    required String sourceApp,
+    this.extra = const Value.absent(),
+    required int fetchedAt,
+    this.rowid = const Value.absent(),
+  }) : key = Value(key),
+       uuid = Value(uuid),
+       kind = Value(kind),
+       startMs = Value(startMs),
+       endMs = Value(endMs),
+       value = Value(value),
+       sourceApp = Value(sourceApp),
+       fetchedAt = Value(fetchedAt);
+  static Insertable<HealthRecordRow> custom({
+    Expression<String>? key,
+    Expression<String>? uuid,
+    Expression<String>? kind,
+    Expression<int>? startMs,
+    Expression<int>? endMs,
+    Expression<double>? value,
+    Expression<String>? sourceApp,
+    Expression<String>? extra,
+    Expression<int>? fetchedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (key != null) 'key': key,
+      if (uuid != null) 'uuid': uuid,
+      if (kind != null) 'kind': kind,
+      if (startMs != null) 'start_ms': startMs,
+      if (endMs != null) 'end_ms': endMs,
+      if (value != null) 'value': value,
+      if (sourceApp != null) 'source_app': sourceApp,
+      if (extra != null) 'extra': extra,
+      if (fetchedAt != null) 'fetched_at': fetchedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  HealthRecordsCompanion copyWith({
+    Value<String>? key,
+    Value<String>? uuid,
+    Value<String>? kind,
+    Value<int>? startMs,
+    Value<int>? endMs,
+    Value<double>? value,
+    Value<String>? sourceApp,
+    Value<String?>? extra,
+    Value<int>? fetchedAt,
+    Value<int>? rowid,
+  }) {
+    return HealthRecordsCompanion(
+      key: key ?? this.key,
+      uuid: uuid ?? this.uuid,
+      kind: kind ?? this.kind,
+      startMs: startMs ?? this.startMs,
+      endMs: endMs ?? this.endMs,
+      value: value ?? this.value,
+      sourceApp: sourceApp ?? this.sourceApp,
+      extra: extra ?? this.extra,
+      fetchedAt: fetchedAt ?? this.fetchedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (key.present) {
+      map['key'] = Variable<String>(key.value);
+    }
+    if (uuid.present) {
+      map['uuid'] = Variable<String>(uuid.value);
+    }
+    if (kind.present) {
+      map['kind'] = Variable<String>(kind.value);
+    }
+    if (startMs.present) {
+      map['start_ms'] = Variable<int>(startMs.value);
+    }
+    if (endMs.present) {
+      map['end_ms'] = Variable<int>(endMs.value);
+    }
+    if (value.present) {
+      map['value'] = Variable<double>(value.value);
+    }
+    if (sourceApp.present) {
+      map['source_app'] = Variable<String>(sourceApp.value);
+    }
+    if (extra.present) {
+      map['extra'] = Variable<String>(extra.value);
+    }
+    if (fetchedAt.present) {
+      map['fetched_at'] = Variable<int>(fetchedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('HealthRecordsCompanion(')
+          ..write('key: $key, ')
+          ..write('uuid: $uuid, ')
+          ..write('kind: $kind, ')
+          ..write('startMs: $startMs, ')
+          ..write('endMs: $endMs, ')
+          ..write('value: $value, ')
+          ..write('sourceApp: $sourceApp, ')
+          ..write('extra: $extra, ')
+          ..write('fetchedAt: $fetchedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $HealthDeletionsTable extends HealthDeletions
+    with TableInfo<$HealthDeletionsTable, HealthDeletionRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $HealthDeletionsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _keyMeta = const VerificationMeta('key');
+  @override
+  late final GeneratedColumn<String> key = GeneratedColumn<String>(
+    'key',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _seenAtMeta = const VerificationMeta('seenAt');
+  @override
+  late final GeneratedColumn<int> seenAt = GeneratedColumn<int>(
+    'seen_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [key, seenAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'health_deletions';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<HealthDeletionRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('key')) {
+      context.handle(
+        _keyMeta,
+        key.isAcceptableOrUnknown(data['key']!, _keyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_keyMeta);
+    }
+    if (data.containsKey('seen_at')) {
+      context.handle(
+        _seenAtMeta,
+        seenAt.isAcceptableOrUnknown(data['seen_at']!, _seenAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_seenAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {key};
+  @override
+  HealthDeletionRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return HealthDeletionRow(
+      key: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}key'],
+      )!,
+      seenAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}seen_at'],
+      )!,
+    );
+  }
+
+  @override
+  $HealthDeletionsTable createAlias(String alias) {
+    return $HealthDeletionsTable(attachedDatabase, alias);
+  }
+}
+
+class HealthDeletionRow extends DataClass
+    implements Insertable<HealthDeletionRow> {
+  final String key;
+  final int seenAt;
+  const HealthDeletionRow({required this.key, required this.seenAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['key'] = Variable<String>(key);
+    map['seen_at'] = Variable<int>(seenAt);
+    return map;
+  }
+
+  HealthDeletionsCompanion toCompanion(bool nullToAbsent) {
+    return HealthDeletionsCompanion(key: Value(key), seenAt: Value(seenAt));
+  }
+
+  factory HealthDeletionRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return HealthDeletionRow(
+      key: serializer.fromJson<String>(json['key']),
+      seenAt: serializer.fromJson<int>(json['seenAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'key': serializer.toJson<String>(key),
+      'seenAt': serializer.toJson<int>(seenAt),
+    };
+  }
+
+  HealthDeletionRow copyWith({String? key, int? seenAt}) =>
+      HealthDeletionRow(key: key ?? this.key, seenAt: seenAt ?? this.seenAt);
+  HealthDeletionRow copyWithCompanion(HealthDeletionsCompanion data) {
+    return HealthDeletionRow(
+      key: data.key.present ? data.key.value : this.key,
+      seenAt: data.seenAt.present ? data.seenAt.value : this.seenAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('HealthDeletionRow(')
+          ..write('key: $key, ')
+          ..write('seenAt: $seenAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(key, seenAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is HealthDeletionRow &&
+          other.key == this.key &&
+          other.seenAt == this.seenAt);
+}
+
+class HealthDeletionsCompanion extends UpdateCompanion<HealthDeletionRow> {
+  final Value<String> key;
+  final Value<int> seenAt;
+  final Value<int> rowid;
+  const HealthDeletionsCompanion({
+    this.key = const Value.absent(),
+    this.seenAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  HealthDeletionsCompanion.insert({
+    required String key,
+    required int seenAt,
+    this.rowid = const Value.absent(),
+  }) : key = Value(key),
+       seenAt = Value(seenAt);
+  static Insertable<HealthDeletionRow> custom({
+    Expression<String>? key,
+    Expression<int>? seenAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (key != null) 'key': key,
+      if (seenAt != null) 'seen_at': seenAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  HealthDeletionsCompanion copyWith({
+    Value<String>? key,
+    Value<int>? seenAt,
+    Value<int>? rowid,
+  }) {
+    return HealthDeletionsCompanion(
+      key: key ?? this.key,
+      seenAt: seenAt ?? this.seenAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (key.present) {
+      map['key'] = Variable<String>(key.value);
+    }
+    if (seenAt.present) {
+      map['seen_at'] = Variable<int>(seenAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('HealthDeletionsCompanion(')
+          ..write('key: $key, ')
+          ..write('seenAt: $seenAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $HealthMinutesTable extends HealthMinutes
+    with TableInfo<$HealthMinutesTable, HealthMinuteRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $HealthMinutesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _tsMeta = const VerificationMeta('ts');
+  @override
+  late final GeneratedColumn<int> ts = GeneratedColumn<int>(
+    'ts',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _stepsMeta = const VerificationMeta('steps');
+  @override
+  late final GeneratedColumn<int> steps = GeneratedColumn<int>(
+    'steps',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _hrMeta = const VerificationMeta('hr');
+  @override
+  late final GeneratedColumn<int> hr = GeneratedColumn<int>(
+    'hr',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _hrMeasuredMeta = const VerificationMeta(
+    'hrMeasured',
+  );
+  @override
+  late final GeneratedColumn<bool> hrMeasured = GeneratedColumn<bool>(
+    'hr_measured',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("hr_measured" IN (0, 1))',
+    ),
+  );
+  static const VerificationMeta _sleepMeta = const VerificationMeta('sleep');
+  @override
+  late final GeneratedColumn<String> sleep = GeneratedColumn<String>(
+    'sleep',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _spo2Meta = const VerificationMeta('spo2');
+  @override
+  late final GeneratedColumn<int> spo2 = GeneratedColumn<int>(
+    'spo2',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    ts,
+    steps,
+    hr,
+    hrMeasured,
+    sleep,
+    spo2,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'health_minutes';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<HealthMinuteRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('ts')) {
+      context.handle(_tsMeta, ts.isAcceptableOrUnknown(data['ts']!, _tsMeta));
+    }
+    if (data.containsKey('steps')) {
+      context.handle(
+        _stepsMeta,
+        steps.isAcceptableOrUnknown(data['steps']!, _stepsMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_stepsMeta);
+    }
+    if (data.containsKey('hr')) {
+      context.handle(_hrMeta, hr.isAcceptableOrUnknown(data['hr']!, _hrMeta));
+    }
+    if (data.containsKey('hr_measured')) {
+      context.handle(
+        _hrMeasuredMeta,
+        hrMeasured.isAcceptableOrUnknown(data['hr_measured']!, _hrMeasuredMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_hrMeasuredMeta);
+    }
+    if (data.containsKey('sleep')) {
+      context.handle(
+        _sleepMeta,
+        sleep.isAcceptableOrUnknown(data['sleep']!, _sleepMeta),
+      );
+    }
+    if (data.containsKey('spo2')) {
+      context.handle(
+        _spo2Meta,
+        spo2.isAcceptableOrUnknown(data['spo2']!, _spo2Meta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {ts};
+  @override
+  HealthMinuteRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return HealthMinuteRow(
+      ts: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}ts'],
+      )!,
+      steps: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}steps'],
+      )!,
+      hr: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}hr'],
+      ),
+      hrMeasured: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}hr_measured'],
+      )!,
+      sleep: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sleep'],
+      ),
+      spo2: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}spo2'],
+      ),
+    );
+  }
+
+  @override
+  $HealthMinutesTable createAlias(String alias) {
+    return $HealthMinutesTable(attachedDatabase, alias);
+  }
+}
+
+class HealthMinuteRow extends DataClass implements Insertable<HealthMinuteRow> {
+  final int ts;
+  final int steps;
+  final int? hr;
+  final bool hrMeasured;
+  final String? sleep;
+  final int? spo2;
+  const HealthMinuteRow({
+    required this.ts,
+    required this.steps,
+    this.hr,
+    required this.hrMeasured,
+    this.sleep,
+    this.spo2,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['ts'] = Variable<int>(ts);
+    map['steps'] = Variable<int>(steps);
+    if (!nullToAbsent || hr != null) {
+      map['hr'] = Variable<int>(hr);
+    }
+    map['hr_measured'] = Variable<bool>(hrMeasured);
+    if (!nullToAbsent || sleep != null) {
+      map['sleep'] = Variable<String>(sleep);
+    }
+    if (!nullToAbsent || spo2 != null) {
+      map['spo2'] = Variable<int>(spo2);
+    }
+    return map;
+  }
+
+  HealthMinutesCompanion toCompanion(bool nullToAbsent) {
+    return HealthMinutesCompanion(
+      ts: Value(ts),
+      steps: Value(steps),
+      hr: hr == null && nullToAbsent ? const Value.absent() : Value(hr),
+      hrMeasured: Value(hrMeasured),
+      sleep: sleep == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sleep),
+      spo2: spo2 == null && nullToAbsent ? const Value.absent() : Value(spo2),
+    );
+  }
+
+  factory HealthMinuteRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return HealthMinuteRow(
+      ts: serializer.fromJson<int>(json['ts']),
+      steps: serializer.fromJson<int>(json['steps']),
+      hr: serializer.fromJson<int?>(json['hr']),
+      hrMeasured: serializer.fromJson<bool>(json['hrMeasured']),
+      sleep: serializer.fromJson<String?>(json['sleep']),
+      spo2: serializer.fromJson<int?>(json['spo2']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'ts': serializer.toJson<int>(ts),
+      'steps': serializer.toJson<int>(steps),
+      'hr': serializer.toJson<int?>(hr),
+      'hrMeasured': serializer.toJson<bool>(hrMeasured),
+      'sleep': serializer.toJson<String?>(sleep),
+      'spo2': serializer.toJson<int?>(spo2),
+    };
+  }
+
+  HealthMinuteRow copyWith({
+    int? ts,
+    int? steps,
+    Value<int?> hr = const Value.absent(),
+    bool? hrMeasured,
+    Value<String?> sleep = const Value.absent(),
+    Value<int?> spo2 = const Value.absent(),
+  }) => HealthMinuteRow(
+    ts: ts ?? this.ts,
+    steps: steps ?? this.steps,
+    hr: hr.present ? hr.value : this.hr,
+    hrMeasured: hrMeasured ?? this.hrMeasured,
+    sleep: sleep.present ? sleep.value : this.sleep,
+    spo2: spo2.present ? spo2.value : this.spo2,
+  );
+  HealthMinuteRow copyWithCompanion(HealthMinutesCompanion data) {
+    return HealthMinuteRow(
+      ts: data.ts.present ? data.ts.value : this.ts,
+      steps: data.steps.present ? data.steps.value : this.steps,
+      hr: data.hr.present ? data.hr.value : this.hr,
+      hrMeasured: data.hrMeasured.present
+          ? data.hrMeasured.value
+          : this.hrMeasured,
+      sleep: data.sleep.present ? data.sleep.value : this.sleep,
+      spo2: data.spo2.present ? data.spo2.value : this.spo2,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('HealthMinuteRow(')
+          ..write('ts: $ts, ')
+          ..write('steps: $steps, ')
+          ..write('hr: $hr, ')
+          ..write('hrMeasured: $hrMeasured, ')
+          ..write('sleep: $sleep, ')
+          ..write('spo2: $spo2')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(ts, steps, hr, hrMeasured, sleep, spo2);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is HealthMinuteRow &&
+          other.ts == this.ts &&
+          other.steps == this.steps &&
+          other.hr == this.hr &&
+          other.hrMeasured == this.hrMeasured &&
+          other.sleep == this.sleep &&
+          other.spo2 == this.spo2);
+}
+
+class HealthMinutesCompanion extends UpdateCompanion<HealthMinuteRow> {
+  final Value<int> ts;
+  final Value<int> steps;
+  final Value<int?> hr;
+  final Value<bool> hrMeasured;
+  final Value<String?> sleep;
+  final Value<int?> spo2;
+  const HealthMinutesCompanion({
+    this.ts = const Value.absent(),
+    this.steps = const Value.absent(),
+    this.hr = const Value.absent(),
+    this.hrMeasured = const Value.absent(),
+    this.sleep = const Value.absent(),
+    this.spo2 = const Value.absent(),
+  });
+  HealthMinutesCompanion.insert({
+    this.ts = const Value.absent(),
+    required int steps,
+    this.hr = const Value.absent(),
+    required bool hrMeasured,
+    this.sleep = const Value.absent(),
+    this.spo2 = const Value.absent(),
+  }) : steps = Value(steps),
+       hrMeasured = Value(hrMeasured);
+  static Insertable<HealthMinuteRow> custom({
+    Expression<int>? ts,
+    Expression<int>? steps,
+    Expression<int>? hr,
+    Expression<bool>? hrMeasured,
+    Expression<String>? sleep,
+    Expression<int>? spo2,
+  }) {
+    return RawValuesInsertable({
+      if (ts != null) 'ts': ts,
+      if (steps != null) 'steps': steps,
+      if (hr != null) 'hr': hr,
+      if (hrMeasured != null) 'hr_measured': hrMeasured,
+      if (sleep != null) 'sleep': sleep,
+      if (spo2 != null) 'spo2': spo2,
+    });
+  }
+
+  HealthMinutesCompanion copyWith({
+    Value<int>? ts,
+    Value<int>? steps,
+    Value<int?>? hr,
+    Value<bool>? hrMeasured,
+    Value<String?>? sleep,
+    Value<int?>? spo2,
+  }) {
+    return HealthMinutesCompanion(
+      ts: ts ?? this.ts,
+      steps: steps ?? this.steps,
+      hr: hr ?? this.hr,
+      hrMeasured: hrMeasured ?? this.hrMeasured,
+      sleep: sleep ?? this.sleep,
+      spo2: spo2 ?? this.spo2,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (ts.present) {
+      map['ts'] = Variable<int>(ts.value);
+    }
+    if (steps.present) {
+      map['steps'] = Variable<int>(steps.value);
+    }
+    if (hr.present) {
+      map['hr'] = Variable<int>(hr.value);
+    }
+    if (hrMeasured.present) {
+      map['hr_measured'] = Variable<bool>(hrMeasured.value);
+    }
+    if (sleep.present) {
+      map['sleep'] = Variable<String>(sleep.value);
+    }
+    if (spo2.present) {
+      map['spo2'] = Variable<int>(spo2.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('HealthMinutesCompanion(')
+          ..write('ts: $ts, ')
+          ..write('steps: $steps, ')
+          ..write('hr: $hr, ')
+          ..write('hrMeasured: $hrMeasured, ')
+          ..write('sleep: $sleep, ')
+          ..write('spo2: $spo2')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$TempoDb extends GeneratedDatabase {
   _$TempoDb(QueryExecutor e) : super(e);
   $TempoDbManager get managers => $TempoDbManager(this);
@@ -7143,6 +8432,11 @@ abstract class _$TempoDb extends GeneratedDatabase {
   late final $LongevityTable longevity = $LongevityTable(this);
   late final $NudgeLogTable nudgeLog = $NudgeLogTable(this);
   late final $MorningFeelTable morningFeel = $MorningFeelTable(this);
+  late final $HealthRecordsTable healthRecords = $HealthRecordsTable(this);
+  late final $HealthDeletionsTable healthDeletions = $HealthDeletionsTable(
+    this,
+  );
+  late final $HealthMinutesTable healthMinutes = $HealthMinutesTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -7166,6 +8460,9 @@ abstract class _$TempoDb extends GeneratedDatabase {
     longevity,
     nudgeLog,
     morningFeel,
+    healthRecords,
+    healthDeletions,
+    healthMinutes,
   ];
 }
 
@@ -8358,6 +9655,9 @@ typedef $$DailyScoresTableCreateCompanionBuilder =
       Value<double?> hrvProxy,
       required bool calibrating,
       required int algoVersion,
+      Value<String> source,
+      Value<double?> hrv,
+      Value<String?> hrvKind,
       Value<int> rowid,
     });
 typedef $$DailyScoresTableUpdateCompanionBuilder =
@@ -8378,6 +9678,9 @@ typedef $$DailyScoresTableUpdateCompanionBuilder =
       Value<double?> hrvProxy,
       Value<bool> calibrating,
       Value<int> algoVersion,
+      Value<String> source,
+      Value<double?> hrv,
+      Value<String?> hrvKind,
       Value<int> rowid,
     });
 
@@ -8467,6 +9770,21 @@ class $$DailyScoresTableFilterComposer
 
   ColumnFilters<int> get algoVersion => $composableBuilder(
     column: $table.algoVersion,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get source => $composableBuilder(
+    column: $table.source,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get hrv => $composableBuilder(
+    column: $table.hrv,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get hrvKind => $composableBuilder(
+    column: $table.hrvKind,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -8559,6 +9877,21 @@ class $$DailyScoresTableOrderingComposer
     column: $table.algoVersion,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get source => $composableBuilder(
+    column: $table.source,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get hrv => $composableBuilder(
+    column: $table.hrv,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get hrvKind => $composableBuilder(
+    column: $table.hrvKind,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$DailyScoresTableAnnotationComposer
@@ -8625,6 +9958,15 @@ class $$DailyScoresTableAnnotationComposer
     column: $table.algoVersion,
     builder: (column) => column,
   );
+
+  GeneratedColumn<String> get source =>
+      $composableBuilder(column: $table.source, builder: (column) => column);
+
+  GeneratedColumn<double> get hrv =>
+      $composableBuilder(column: $table.hrv, builder: (column) => column);
+
+  GeneratedColumn<String> get hrvKind =>
+      $composableBuilder(column: $table.hrvKind, builder: (column) => column);
 }
 
 class $$DailyScoresTableTableManager
@@ -8674,6 +10016,9 @@ class $$DailyScoresTableTableManager
                 Value<double?> hrvProxy = const Value.absent(),
                 Value<bool> calibrating = const Value.absent(),
                 Value<int> algoVersion = const Value.absent(),
+                Value<String> source = const Value.absent(),
+                Value<double?> hrv = const Value.absent(),
+                Value<String?> hrvKind = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => DailyScoresCompanion(
                 date: date,
@@ -8692,6 +10037,9 @@ class $$DailyScoresTableTableManager
                 hrvProxy: hrvProxy,
                 calibrating: calibrating,
                 algoVersion: algoVersion,
+                source: source,
+                hrv: hrv,
+                hrvKind: hrvKind,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -8712,6 +10060,9 @@ class $$DailyScoresTableTableManager
                 Value<double?> hrvProxy = const Value.absent(),
                 required bool calibrating,
                 required int algoVersion,
+                Value<String> source = const Value.absent(),
+                Value<double?> hrv = const Value.absent(),
+                Value<String?> hrvKind = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => DailyScoresCompanion.insert(
                 date: date,
@@ -8730,6 +10081,9 @@ class $$DailyScoresTableTableManager
                 hrvProxy: hrvProxy,
                 calibrating: calibrating,
                 algoVersion: algoVersion,
+                source: source,
+                hrv: hrv,
+                hrvKind: hrvKind,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -10930,6 +12284,640 @@ typedef $$MorningFeelTableProcessedTableManager =
       MorningFeelData,
       PrefetchHooks Function()
     >;
+typedef $$HealthRecordsTableCreateCompanionBuilder =
+    HealthRecordsCompanion Function({
+      required String key,
+      required String uuid,
+      required String kind,
+      required int startMs,
+      required int endMs,
+      required double value,
+      required String sourceApp,
+      Value<String?> extra,
+      required int fetchedAt,
+      Value<int> rowid,
+    });
+typedef $$HealthRecordsTableUpdateCompanionBuilder =
+    HealthRecordsCompanion Function({
+      Value<String> key,
+      Value<String> uuid,
+      Value<String> kind,
+      Value<int> startMs,
+      Value<int> endMs,
+      Value<double> value,
+      Value<String> sourceApp,
+      Value<String?> extra,
+      Value<int> fetchedAt,
+      Value<int> rowid,
+    });
+
+class $$HealthRecordsTableFilterComposer
+    extends Composer<_$TempoDb, $HealthRecordsTable> {
+  $$HealthRecordsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get key => $composableBuilder(
+    column: $table.key,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get uuid => $composableBuilder(
+    column: $table.uuid,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get startMs => $composableBuilder(
+    column: $table.startMs,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get endMs => $composableBuilder(
+    column: $table.endMs,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get value => $composableBuilder(
+    column: $table.value,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get sourceApp => $composableBuilder(
+    column: $table.sourceApp,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get extra => $composableBuilder(
+    column: $table.extra,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get fetchedAt => $composableBuilder(
+    column: $table.fetchedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$HealthRecordsTableOrderingComposer
+    extends Composer<_$TempoDb, $HealthRecordsTable> {
+  $$HealthRecordsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get key => $composableBuilder(
+    column: $table.key,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get uuid => $composableBuilder(
+    column: $table.uuid,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get startMs => $composableBuilder(
+    column: $table.startMs,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get endMs => $composableBuilder(
+    column: $table.endMs,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get value => $composableBuilder(
+    column: $table.value,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get sourceApp => $composableBuilder(
+    column: $table.sourceApp,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get extra => $composableBuilder(
+    column: $table.extra,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get fetchedAt => $composableBuilder(
+    column: $table.fetchedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$HealthRecordsTableAnnotationComposer
+    extends Composer<_$TempoDb, $HealthRecordsTable> {
+  $$HealthRecordsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get key =>
+      $composableBuilder(column: $table.key, builder: (column) => column);
+
+  GeneratedColumn<String> get uuid =>
+      $composableBuilder(column: $table.uuid, builder: (column) => column);
+
+  GeneratedColumn<String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => column);
+
+  GeneratedColumn<int> get startMs =>
+      $composableBuilder(column: $table.startMs, builder: (column) => column);
+
+  GeneratedColumn<int> get endMs =>
+      $composableBuilder(column: $table.endMs, builder: (column) => column);
+
+  GeneratedColumn<double> get value =>
+      $composableBuilder(column: $table.value, builder: (column) => column);
+
+  GeneratedColumn<String> get sourceApp =>
+      $composableBuilder(column: $table.sourceApp, builder: (column) => column);
+
+  GeneratedColumn<String> get extra =>
+      $composableBuilder(column: $table.extra, builder: (column) => column);
+
+  GeneratedColumn<int> get fetchedAt =>
+      $composableBuilder(column: $table.fetchedAt, builder: (column) => column);
+}
+
+class $$HealthRecordsTableTableManager
+    extends
+        RootTableManager<
+          _$TempoDb,
+          $HealthRecordsTable,
+          HealthRecordRow,
+          $$HealthRecordsTableFilterComposer,
+          $$HealthRecordsTableOrderingComposer,
+          $$HealthRecordsTableAnnotationComposer,
+          $$HealthRecordsTableCreateCompanionBuilder,
+          $$HealthRecordsTableUpdateCompanionBuilder,
+          (
+            HealthRecordRow,
+            BaseReferences<_$TempoDb, $HealthRecordsTable, HealthRecordRow>,
+          ),
+          HealthRecordRow,
+          PrefetchHooks Function()
+        > {
+  $$HealthRecordsTableTableManager(_$TempoDb db, $HealthRecordsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$HealthRecordsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$HealthRecordsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$HealthRecordsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> key = const Value.absent(),
+                Value<String> uuid = const Value.absent(),
+                Value<String> kind = const Value.absent(),
+                Value<int> startMs = const Value.absent(),
+                Value<int> endMs = const Value.absent(),
+                Value<double> value = const Value.absent(),
+                Value<String> sourceApp = const Value.absent(),
+                Value<String?> extra = const Value.absent(),
+                Value<int> fetchedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => HealthRecordsCompanion(
+                key: key,
+                uuid: uuid,
+                kind: kind,
+                startMs: startMs,
+                endMs: endMs,
+                value: value,
+                sourceApp: sourceApp,
+                extra: extra,
+                fetchedAt: fetchedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String key,
+                required String uuid,
+                required String kind,
+                required int startMs,
+                required int endMs,
+                required double value,
+                required String sourceApp,
+                Value<String?> extra = const Value.absent(),
+                required int fetchedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => HealthRecordsCompanion.insert(
+                key: key,
+                uuid: uuid,
+                kind: kind,
+                startMs: startMs,
+                endMs: endMs,
+                value: value,
+                sourceApp: sourceApp,
+                extra: extra,
+                fetchedAt: fetchedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$HealthRecordsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$TempoDb,
+      $HealthRecordsTable,
+      HealthRecordRow,
+      $$HealthRecordsTableFilterComposer,
+      $$HealthRecordsTableOrderingComposer,
+      $$HealthRecordsTableAnnotationComposer,
+      $$HealthRecordsTableCreateCompanionBuilder,
+      $$HealthRecordsTableUpdateCompanionBuilder,
+      (
+        HealthRecordRow,
+        BaseReferences<_$TempoDb, $HealthRecordsTable, HealthRecordRow>,
+      ),
+      HealthRecordRow,
+      PrefetchHooks Function()
+    >;
+typedef $$HealthDeletionsTableCreateCompanionBuilder =
+    HealthDeletionsCompanion Function({
+      required String key,
+      required int seenAt,
+      Value<int> rowid,
+    });
+typedef $$HealthDeletionsTableUpdateCompanionBuilder =
+    HealthDeletionsCompanion Function({
+      Value<String> key,
+      Value<int> seenAt,
+      Value<int> rowid,
+    });
+
+class $$HealthDeletionsTableFilterComposer
+    extends Composer<_$TempoDb, $HealthDeletionsTable> {
+  $$HealthDeletionsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get key => $composableBuilder(
+    column: $table.key,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get seenAt => $composableBuilder(
+    column: $table.seenAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$HealthDeletionsTableOrderingComposer
+    extends Composer<_$TempoDb, $HealthDeletionsTable> {
+  $$HealthDeletionsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get key => $composableBuilder(
+    column: $table.key,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get seenAt => $composableBuilder(
+    column: $table.seenAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$HealthDeletionsTableAnnotationComposer
+    extends Composer<_$TempoDb, $HealthDeletionsTable> {
+  $$HealthDeletionsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get key =>
+      $composableBuilder(column: $table.key, builder: (column) => column);
+
+  GeneratedColumn<int> get seenAt =>
+      $composableBuilder(column: $table.seenAt, builder: (column) => column);
+}
+
+class $$HealthDeletionsTableTableManager
+    extends
+        RootTableManager<
+          _$TempoDb,
+          $HealthDeletionsTable,
+          HealthDeletionRow,
+          $$HealthDeletionsTableFilterComposer,
+          $$HealthDeletionsTableOrderingComposer,
+          $$HealthDeletionsTableAnnotationComposer,
+          $$HealthDeletionsTableCreateCompanionBuilder,
+          $$HealthDeletionsTableUpdateCompanionBuilder,
+          (
+            HealthDeletionRow,
+            BaseReferences<_$TempoDb, $HealthDeletionsTable, HealthDeletionRow>,
+          ),
+          HealthDeletionRow,
+          PrefetchHooks Function()
+        > {
+  $$HealthDeletionsTableTableManager(_$TempoDb db, $HealthDeletionsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$HealthDeletionsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$HealthDeletionsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$HealthDeletionsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> key = const Value.absent(),
+                Value<int> seenAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => HealthDeletionsCompanion(
+                key: key,
+                seenAt: seenAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String key,
+                required int seenAt,
+                Value<int> rowid = const Value.absent(),
+              }) => HealthDeletionsCompanion.insert(
+                key: key,
+                seenAt: seenAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$HealthDeletionsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$TempoDb,
+      $HealthDeletionsTable,
+      HealthDeletionRow,
+      $$HealthDeletionsTableFilterComposer,
+      $$HealthDeletionsTableOrderingComposer,
+      $$HealthDeletionsTableAnnotationComposer,
+      $$HealthDeletionsTableCreateCompanionBuilder,
+      $$HealthDeletionsTableUpdateCompanionBuilder,
+      (
+        HealthDeletionRow,
+        BaseReferences<_$TempoDb, $HealthDeletionsTable, HealthDeletionRow>,
+      ),
+      HealthDeletionRow,
+      PrefetchHooks Function()
+    >;
+typedef $$HealthMinutesTableCreateCompanionBuilder =
+    HealthMinutesCompanion Function({
+      Value<int> ts,
+      required int steps,
+      Value<int?> hr,
+      required bool hrMeasured,
+      Value<String?> sleep,
+      Value<int?> spo2,
+    });
+typedef $$HealthMinutesTableUpdateCompanionBuilder =
+    HealthMinutesCompanion Function({
+      Value<int> ts,
+      Value<int> steps,
+      Value<int?> hr,
+      Value<bool> hrMeasured,
+      Value<String?> sleep,
+      Value<int?> spo2,
+    });
+
+class $$HealthMinutesTableFilterComposer
+    extends Composer<_$TempoDb, $HealthMinutesTable> {
+  $$HealthMinutesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get ts => $composableBuilder(
+    column: $table.ts,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get steps => $composableBuilder(
+    column: $table.steps,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get hr => $composableBuilder(
+    column: $table.hr,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get hrMeasured => $composableBuilder(
+    column: $table.hrMeasured,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get sleep => $composableBuilder(
+    column: $table.sleep,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get spo2 => $composableBuilder(
+    column: $table.spo2,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$HealthMinutesTableOrderingComposer
+    extends Composer<_$TempoDb, $HealthMinutesTable> {
+  $$HealthMinutesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get ts => $composableBuilder(
+    column: $table.ts,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get steps => $composableBuilder(
+    column: $table.steps,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get hr => $composableBuilder(
+    column: $table.hr,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get hrMeasured => $composableBuilder(
+    column: $table.hrMeasured,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get sleep => $composableBuilder(
+    column: $table.sleep,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get spo2 => $composableBuilder(
+    column: $table.spo2,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$HealthMinutesTableAnnotationComposer
+    extends Composer<_$TempoDb, $HealthMinutesTable> {
+  $$HealthMinutesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get ts =>
+      $composableBuilder(column: $table.ts, builder: (column) => column);
+
+  GeneratedColumn<int> get steps =>
+      $composableBuilder(column: $table.steps, builder: (column) => column);
+
+  GeneratedColumn<int> get hr =>
+      $composableBuilder(column: $table.hr, builder: (column) => column);
+
+  GeneratedColumn<bool> get hrMeasured => $composableBuilder(
+    column: $table.hrMeasured,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get sleep =>
+      $composableBuilder(column: $table.sleep, builder: (column) => column);
+
+  GeneratedColumn<int> get spo2 =>
+      $composableBuilder(column: $table.spo2, builder: (column) => column);
+}
+
+class $$HealthMinutesTableTableManager
+    extends
+        RootTableManager<
+          _$TempoDb,
+          $HealthMinutesTable,
+          HealthMinuteRow,
+          $$HealthMinutesTableFilterComposer,
+          $$HealthMinutesTableOrderingComposer,
+          $$HealthMinutesTableAnnotationComposer,
+          $$HealthMinutesTableCreateCompanionBuilder,
+          $$HealthMinutesTableUpdateCompanionBuilder,
+          (
+            HealthMinuteRow,
+            BaseReferences<_$TempoDb, $HealthMinutesTable, HealthMinuteRow>,
+          ),
+          HealthMinuteRow,
+          PrefetchHooks Function()
+        > {
+  $$HealthMinutesTableTableManager(_$TempoDb db, $HealthMinutesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$HealthMinutesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$HealthMinutesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$HealthMinutesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> ts = const Value.absent(),
+                Value<int> steps = const Value.absent(),
+                Value<int?> hr = const Value.absent(),
+                Value<bool> hrMeasured = const Value.absent(),
+                Value<String?> sleep = const Value.absent(),
+                Value<int?> spo2 = const Value.absent(),
+              }) => HealthMinutesCompanion(
+                ts: ts,
+                steps: steps,
+                hr: hr,
+                hrMeasured: hrMeasured,
+                sleep: sleep,
+                spo2: spo2,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> ts = const Value.absent(),
+                required int steps,
+                Value<int?> hr = const Value.absent(),
+                required bool hrMeasured,
+                Value<String?> sleep = const Value.absent(),
+                Value<int?> spo2 = const Value.absent(),
+              }) => HealthMinutesCompanion.insert(
+                ts: ts,
+                steps: steps,
+                hr: hr,
+                hrMeasured: hrMeasured,
+                sleep: sleep,
+                spo2: spo2,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$HealthMinutesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$TempoDb,
+      $HealthMinutesTable,
+      HealthMinuteRow,
+      $$HealthMinutesTableFilterComposer,
+      $$HealthMinutesTableOrderingComposer,
+      $$HealthMinutesTableAnnotationComposer,
+      $$HealthMinutesTableCreateCompanionBuilder,
+      $$HealthMinutesTableUpdateCompanionBuilder,
+      (
+        HealthMinuteRow,
+        BaseReferences<_$TempoDb, $HealthMinutesTable, HealthMinuteRow>,
+      ),
+      HealthMinuteRow,
+      PrefetchHooks Function()
+    >;
 
 class $TempoDbManager {
   final _$TempoDb _db;
@@ -10970,4 +12958,10 @@ class $TempoDbManager {
       $$NudgeLogTableTableManager(_db, _db.nudgeLog);
   $$MorningFeelTableTableManager get morningFeel =>
       $$MorningFeelTableTableManager(_db, _db.morningFeel);
+  $$HealthRecordsTableTableManager get healthRecords =>
+      $$HealthRecordsTableTableManager(_db, _db.healthRecords);
+  $$HealthDeletionsTableTableManager get healthDeletions =>
+      $$HealthDeletionsTableTableManager(_db, _db.healthDeletions);
+  $$HealthMinutesTableTableManager get healthMinutes =>
+      $$HealthMinutesTableTableManager(_db, _db.healthMinutes);
 }
