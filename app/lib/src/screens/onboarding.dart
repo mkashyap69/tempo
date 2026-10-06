@@ -509,8 +509,8 @@ class _OnboardingState extends ConsumerState<OnboardingScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _title(
-              'What are you training for?',
-              'Pick one. It shapes which workouts Coach suggests.',
+              'What matters most?',
+              'Pick one. It shapes which workouts Coach suggests. You can set a race goal later on Weekly plan.',
             ),
             const SizedBox(height: 24),
             for (final g in sc.Goal.values) ...[

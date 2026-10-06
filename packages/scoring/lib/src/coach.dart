@@ -441,7 +441,8 @@ final class CoachPrefs {
 ///
 /// [block] (a training goal) sets the hard count by phase, makes a running
 /// event's key sessions runs, scales session length by the week's volume
-/// and puts the race on race day.
+/// and puts the race on race day. A tune-up race is that week's hard
+/// session: the two days before it ease, the day after is rest.
 List<Session> weekPlan(
   CoachPrefs p, {
   bool general = false,
@@ -532,13 +533,35 @@ List<Session> weekPlan(
     week[race - 1] = raceSession(block.goal);
     if (race > 1) week[race - 2] = sessionTemplate('rest');
   }
+  final tune = block.tuneUp;
+  if (tune != null && race == null) _placeTuneUp(week, tune, hardCount);
   return week;
 }
 
-/// Race-day session for [g] (never adapted, carried or moved).
-Session raceSession(BlockGoal g) => Session(
+void _placeTuneUp(List<Session> week, TuneUp t, int hardCount) {
+  final d = t.date.weekday - 1;
+  bool heavy(Session s) => s.isHard || s.key.startsWith('long_');
+  Session ease(Session s) => fitMinutes(sessionTemplate(easierKeyFor(s)), 40);
+  week[d] = raceSession(t.goal, tuneUp: true);
+  for (final j in [d - 1, d - 2]) {
+    if (j >= 0 && heavy(week[j])) week[j] = ease(week[j]);
+  }
+  if (d < 6 && !week[d + 1].isRest) week[d + 1] = sessionTemplate('rest');
+  // The race is one of the week's hard sessions.
+  final others = [
+    for (var i = 0; i < 7; i++)
+      if (i != d && week[i].isHard) i,
+  ];
+  for (final i in others.take(max(0, others.length - (hardCount - 1)))) {
+    week[i] = ease(week[i]);
+  }
+}
+
+/// Race-day session for [g] (never adapted, carried or moved). A
+/// [tuneUp] is a shorter race inside the block.
+Session raceSession(BlockGoal g, {bool tuneUp = false}) => Session(
   key: 'race',
-  title: 'Race · ${goalName(g)}',
+  title: '${tuneUp ? 'Tune-up' : 'Race'} · ${goalName(g)}',
   sport: Sport.running,
   segments: [
     Segment(switch (g) {
@@ -551,7 +574,7 @@ Session raceSession(BlockGoal g) => Session(
   strainLo: 14,
   strainHi: 20,
   intensity: Intensity.hard,
-  note: 'Race day',
+  note: tuneUp ? 'Tune-up race' : 'Race day',
 );
 
 /// [s] grown or shrunk by [f]: intervals change their rep count, other

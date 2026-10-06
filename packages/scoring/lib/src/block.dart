@@ -5,40 +5,83 @@
 /// plan done, recovery and how you felt holding), holds when you didn't,
 /// and steps back after a bad week. Every 4th week is lighter. An event
 /// ends in a peak and a taper, with the race on the last day.
+///
+/// One goal leads the plan. Shorter tune-up races sit inside it (each
+/// replaces that week's hard session), and the next goal waits until a
+/// recovery week after this one's race.
 library;
 
 import 'dart:math';
 
 /// Version stamped on plan rows built from a block.
-const blockAlgo = 'block-1';
+const blockAlgo = 'block-2';
 
 enum BlockGoal { open, run5k, run10k, half, marathon }
 
 enum Phase { base, build, peak, deload, taper, race }
 
+/// A shorter race inside a block, run as that week's hard session.
+final class TuneUp {
+  const TuneUp({required this.goal, required this.date});
+
+  /// The distance (never [BlockGoal.open]).
+  final BlockGoal goal;
+  final DateTime date;
+
+  Map<String, Object?> toJson() => {'goal': goal.name, 'date': _ymd(date)};
+
+  static TuneUp fromJson(Map<String, dynamic> j) => TuneUp(
+    goal: BlockGoal.values.byName(j['goal'] as String),
+    date: DateTime.parse(j['date'] as String),
+  );
+}
+
 /// One training block. [start] is the Monday it began; [event] is the
 /// race day (null for an open-ended block).
 final class TrainingBlock {
-  const TrainingBlock({required this.goal, required this.start, this.event});
+  const TrainingBlock({
+    required this.goal,
+    required this.start,
+    this.event,
+    this.tuneUps = const [],
+  });
   final BlockGoal goal;
   final DateTime start;
   final DateTime? event;
+
+  /// Tune-up races, oldest first.
+  final List<TuneUp> tuneUps;
 
   bool get isEvent => goal != BlockGoal.open && event != null;
 
   /// Weeks from [start] to the race week, inclusive.
   int get weeks => isEvent ? _weeksBetween(start, event!) + 1 : 0;
 
+  /// 0-based week of the block that [day] falls in.
+  int weekOf(DateTime day) => _weeksBetween(start, day);
+
+  TrainingBlock withTuneUps(List<TuneUp> t) => TrainingBlock(
+    goal: goal,
+    start: start,
+    event: event,
+    tuneUps: [...t]..sort((a, b) => a.date.compareTo(b.date)),
+  );
+
   Map<String, Object?> toJson() => {
     'goal': goal.name,
     'start': _ymd(start),
     'event': event == null ? null : _ymd(event!),
+    if (tuneUps.isNotEmpty) 'tune_ups': [for (final t in tuneUps) t.toJson()],
   };
 
   static TrainingBlock fromJson(Map<String, dynamic> j) => TrainingBlock(
     goal: BlockGoal.values.byName(j['goal'] as String),
     start: DateTime.parse(j['start'] as String),
     event: j['event'] == null ? null : DateTime.parse(j['event'] as String),
+    tuneUps: [
+      for (final t in (j['tune_ups'] as List?) ?? const [])
+        TuneUp.fromJson(t as Map<String, dynamic>),
+    ],
   );
 }
 
@@ -60,6 +103,52 @@ int _weeksBetween(DateTime a, DateTime b) {
 
 /// An event needs this much lead time; longer plans are capped.
 const blockMinWeeks = 4, blockMaxWeeks = 24;
+
+/// Lead time that leaves room for a full base, build, peak and taper.
+/// Shorter is allowed (down to [blockMinWeeks]) with a warning.
+int recommendedWeeks(BlockGoal g) => switch (g) {
+  BlockGoal.run5k => 6,
+  BlockGoal.run10k => 8,
+  BlockGoal.half => 10,
+  BlockGoal.marathon => 16,
+  BlockGoal.open => 0,
+};
+
+/// Weeks an event block on [event] would have if it started the week of
+/// [from].
+int eventWeeks(DateTime from, DateTime event) => _weeksBetween(from, event) + 1;
+
+/// At most this many tune-up races in one block, at least
+/// [tuneUpGapDays] before the goal race and one a week at most.
+const tuneUpMax = 3, tuneUpGapDays = 14;
+
+enum TuneUpProblem { tooMany, beforeStart, tooLate, sameWeek }
+
+/// Why a tune-up on [date] doesn't fit [b] (null when it does). It must
+/// fall inside the block, at least [tuneUpGapDays] before the race (so
+/// never in the taper), and not in a week that already has one.
+TuneUpProblem? tuneUpProblem(TrainingBlock b, DateTime date) {
+  if (b.tuneUps.length >= tuneUpMax) return TuneUpProblem.tooMany;
+  if (b.weekOf(date) < 0) return TuneUpProblem.beforeStart;
+  if (b.isEvent) {
+    final last = b.event!.subtract(const Duration(days: tuneUpGapDays));
+    if (_dayKey(date) > _dayKey(last)) return TuneUpProblem.tooLate;
+  }
+  if (b.tuneUps.any((t) => b.weekOf(t.date) == b.weekOf(date))) {
+    return TuneUpProblem.sameWeek;
+  }
+  return null;
+}
+
+/// The Monday the next goal starts after [b]: one easy recovery week after
+/// the race week. Null for an open block (switch goal instead).
+DateTime? nextBlockStart(TrainingBlock b) {
+  if (!b.isEvent) return null;
+  final m = _monday(b.event!);
+  return DateTime(m.year, m.month, m.day + 14);
+}
+
+int _dayKey(DateTime d) => d.year * 10000 + d.month * 100 + d.day;
 
 /// Every [deloadEvery]th week of base and build is lighter.
 const deloadEvery = 4;
@@ -157,7 +246,9 @@ final class BlockWeek {
     required this.phase,
     required this.level,
     required this.lastCall,
+    this.prevPhase,
     this.raceDay,
+    this.tuneUp,
   });
   final BlockGoal goal;
 
@@ -168,11 +259,24 @@ final class BlockWeek {
   /// Absorbed weeks so far (0..[levelMax]).
   final int level;
 
-  /// What last week's outcome did to [level] (null in week 1).
+  /// What last week's outcome did to [level]. Null in week 1 and after a
+  /// week that doesn't move the level (lighter, peak, taper).
   final WeekCall? lastCall;
+
+  /// Last week's phase (null in week 1).
+  final Phase? prevPhase;
 
   /// Race day, 1 = Monday … 7 = Sunday, in the race week.
   final int? raceDay;
+
+  /// A tune-up race this week (never in the race week).
+  final TuneUp? tuneUp;
+
+  /// The tune-up's day, 1 = Monday … 7 = Sunday.
+  int? get tuneUpDay => tuneUp?.date.weekday;
+
+  /// First week of its phase (a phase change worth explaining).
+  bool get newPhase => prevPhase != phase;
 
   /// Multiplier on session length this week.
   double get volume {
@@ -204,27 +308,37 @@ final class BlockWeek {
   };
 }
 
-/// Week [monday] of [b], replaying [past] (oldest first, one per finished
-/// week of the block) to set the level. Null before the block starts or
-/// after its race week.
-BlockWeek? blockWeek(TrainingBlock b, DateTime monday, List<WeekOutcome> past) {
-  final i = _weeksBetween(b.start, monday);
-  if (i < 0) return null;
-  if (b.isEvent && i >= b.weeks) return null;
+/// The phase of week [i] of [b].
+Phase phaseOf(TrainingBlock b, int i) =>
+    b.isEvent ? eventPhase(i, b.weeks, b.goal) : openPhase(i);
+
+/// Only base and build weeks move the level; the rest hold it.
+bool movesLevel(Phase p) => p == Phase.base || p == Phase.build;
+
+int _next(int level, WeekCall c) => switch (c) {
+  WeekCall.stepUp => min(levelMax, level + 1),
+  WeekCall.hold => level,
+  WeekCall.stepBack => max(0, level - 1),
+};
+
+/// Week [i] of [b] given each earlier week's call (index-aligned; missing
+/// entries are treated as unknown and hold).
+BlockWeek _weekAt(TrainingBlock b, int i, List<WeekCall?> calls) {
   var level = 0;
   WeekCall? last;
-  for (final (k, w) in past.take(i).indexed) {
-    final ph = b.isEvent ? eventPhase(k, b.weeks, b.goal) : openPhase(k);
-    // Only base and build weeks move the level; peak holds it.
-    if (ph != Phase.base && ph != Phase.build) continue;
-    last = weekCall(w);
-    level = switch (last) {
-      WeekCall.stepUp => min(levelMax, level + 1),
-      WeekCall.hold => level,
-      WeekCall.stepBack => max(0, level - 1),
-    };
+  for (var k = 0; k < i; k++) {
+    final c = k < calls.length ? calls[k] : null;
+    final moves = movesLevel(phaseOf(b, k)) && c != null;
+    if (moves) level = _next(level, c);
+    if (k == i - 1) last = moves ? c : null;
   }
-  final phase = b.isEvent ? eventPhase(i, b.weeks, b.goal) : openPhase(i);
+  final phase = phaseOf(b, i);
+  TuneUp? tune;
+  if (phase != Phase.race) {
+    for (final t in b.tuneUps) {
+      if (b.weekOf(t.date) == i) tune = t;
+    }
+  }
   return BlockWeek(
     goal: b.goal,
     index: i,
@@ -232,7 +346,120 @@ BlockWeek? blockWeek(TrainingBlock b, DateTime monday, List<WeekOutcome> past) {
     phase: phase,
     level: level,
     lastCall: last,
+    prevPhase: i == 0 ? null : phaseOf(b, i - 1),
     raceDay: phase == Phase.race ? b.event!.weekday : null,
+    tuneUp: tune,
+  );
+}
+
+/// Week [monday] of [b], replaying [past] (oldest first, one per finished
+/// week of the block) to set the level. Null before the block starts or
+/// after its race week.
+BlockWeek? blockWeek(TrainingBlock b, DateTime monday, List<WeekOutcome> past) {
+  final i = _weeksBetween(b.start, monday);
+  if (i < 0) return null;
+  if (b.isEvent && i >= b.weeks) return null;
+  return _weekAt(b, i, [for (final w in past.take(i)) weekCall(w)]);
+}
+
+/// One finished week, for the history list.
+final class WeekRecord {
+  const WeekRecord({
+    required this.index,
+    required this.phase,
+    required this.outcome,
+    required this.call,
+    required this.level,
+  });
+  final int index;
+  final Phase phase;
+  final WeekOutcome outcome;
+
+  /// What it did to the level; null for weeks that don't move it.
+  final WeekCall? call;
+
+  /// Level after this week.
+  final int level;
+}
+
+/// Every finished week of [b] in [past] (oldest first), with its call.
+List<WeekRecord> blockHistory(TrainingBlock b, List<WeekOutcome> past) {
+  final out = <WeekRecord>[];
+  var level = 0;
+  for (final (k, w) in past.indexed) {
+    if (b.isEvent && k >= b.weeks) break;
+    final ph = phaseOf(b, k);
+    final c = movesLevel(ph) ? weekCall(w) : null;
+    if (c != null) level = _next(level, c);
+    out.add(WeekRecord(index: k, phase: ph, outcome: w, call: c, level: level));
+  }
+  return out;
+}
+
+/// The whole block as it stands in week [current]: finished weeks as they
+/// went (from [past]), this week, and every later week projected as if it
+/// steps up. An open block shows [ahead] weeks past this one.
+List<BlockWeek> projectBlock(
+  TrainingBlock b,
+  int current,
+  List<WeekOutcome> past, {
+  int ahead = 8,
+}) {
+  final n = b.isEvent ? b.weeks : max(current + 1 + ahead, deloadEvery * 2);
+  final calls = <WeekCall?>[
+    for (var k = 0; k < n; k++)
+      k < current && k < past.length ? weekCall(past[k]) : WeekCall.stepUp,
+  ];
+  return [for (var i = 0; i < n; i++) _weekAt(b, i, calls)];
+}
+
+/// Where this week is heading, from what's done so far.
+final class WeekForecast {
+  const WeekForecast({
+    required this.now,
+    required this.best,
+    required this.toStepUp,
+    required this.toHold,
+    required this.bodySaysBack,
+  });
+
+  /// The call if the week ended now, and with every session left done.
+  final WeekCall now, best;
+
+  /// More sessions needed for a step up / to avoid a step back; null when
+  /// no number of sessions gets there this week.
+  final int? toStepUp, toHold;
+
+  /// Recovery or feel alone already means a step back, whatever is done.
+  final bool bodySaysBack;
+}
+
+/// Forecast for a week with [soFar] (planned is the whole week's count,
+/// done what's done so far) and [left] sessions still to come.
+WeekForecast forecastWeek(WeekOutcome soFar, {required int left}) {
+  WeekCall withMore(int k) => weekCall(
+    WeekOutcome(
+      planned: soFar.planned,
+      done: soFar.done + k,
+      recovery: soFar.recovery,
+      feel: soFar.feel,
+    ),
+  );
+  int? first(bool Function(WeekCall) ok) {
+    for (var k = 0; k <= left; k++) {
+      if (ok(withMore(k))) return k;
+    }
+    return null;
+  }
+
+  final r = soFar.recovery, f = soFar.feel;
+  return WeekForecast(
+    now: withMore(0),
+    best: withMore(left),
+    toStepUp: first((c) => c == WeekCall.stepUp),
+    toHold: first((c) => c != WeekCall.stepBack),
+    bodySaysBack:
+        (r != null && r < backRecovery) || (f != null && f < backFeel),
   );
 }
 
@@ -242,6 +469,22 @@ String goalName(BlockGoal g) => switch (g) {
   BlockGoal.run10k => '10K',
   BlockGoal.half => 'Half marathon',
   BlockGoal.marathon => 'Marathon',
+};
+
+/// What a phase is for, in a sentence.
+String phaseSay(Phase p) => switch (p) {
+  Phase.base =>
+    'Easy aerobic running to build the engine, with one hard session.',
+  Phase.build =>
+    'Longer sessions and two hard ones. It grows each week you handle well.',
+  Phase.peak =>
+    'The hardest weeks, at race effort. The size holds steady; no step-ups.',
+  Phase.deload =>
+    'About a third shorter with one hard session, so the last weeks sink in. '
+        "It doesn't count for or against you.",
+  Phase.taper =>
+    'About 40 % less, keeping a little speed, so you arrive fresh.',
+  Phase.race => 'Very light. Rest the day before, then race.',
 };
 
 String phaseName(Phase p) => switch (p) {
