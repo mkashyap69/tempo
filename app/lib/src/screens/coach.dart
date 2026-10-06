@@ -16,8 +16,8 @@ import '../design/tokens.dart';
 import '../design/type.dart';
 import '../state/providers.dart';
 import 'cardio_load.dart';
+import 'goal.dart';
 import 'coach_parts.dart';
-import 'learn.dart';
 import 'nav.dart';
 import 'shared.dart';
 import 'today.dart' show WorkoutCard;
@@ -66,6 +66,25 @@ final loadHistoryProvider =
       );
     });
 
+/// The three parts of Coach.
+enum CoachTab { today, week, goal }
+
+/// Which part of Coach is showing. Other screens set it to open Coach at
+/// the week or the goal.
+final coachTab = ValueNotifier<CoachTab>(CoachTab.today);
+
+/// Shows Coach at [t]: switches to the Coach tab, or pushes Coach where
+/// there is no tab bar.
+void openCoachAt(BuildContext context, CoachTab t) {
+  coachTab.value = t;
+  if (shellMounted) {
+    Navigator.of(context).popUntil((r) => r.isFirst);
+    shellTab.value = 1;
+  } else {
+    push(context, const CoachScreen(standalone: true));
+  }
+}
+
 class CoachScreen extends ConsumerWidget {
   const CoachScreen({super.key, this.standalone = false});
 
@@ -77,364 +96,169 @@ class CoachScreen extends ConsumerWidget {
     final t = ref.watch(todayProvider).value;
     final w = ref.watch(weekProvider).value;
     final x = ref.watch(coachExtrasProvider).value;
+    final gv = ref.watch(goalViewProvider).value;
     if (t == null || w == null) return Scaffold(backgroundColor: context.c.bg);
     final c = context.c, s = context.s;
     final general = t.planRow?.general ?? t.calibrating;
     final (lead, leadColor, rest) = _readiness(context, t);
     final adds = planAdds(t);
-    final change = w.rows.where((r) => r.reason != null).toList();
-    final hist = ref.watch(loadHistoryProvider).value ?? const [];
     final todayIdx = t.day.weekday - 1;
 
-    return TempoPage(
-      bottom: standalone ? 48 : 100,
-      children: [
-        if (standalone)
-          const DetailHeader(title: 'Tempo Coach')
-        else
-          SizedBox(
-            height: 44,
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'Tempo Coach',
-                    style: TempoType.pageTitle.c(c.text1),
-                  ),
-                ),
-                TempoBadge(general ? 'General plan' : 'Personal plan'),
-              ],
-            ),
-          ),
-        if (t.pause != null)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            decoration: BoxDecoration(
-              color: c.surface2,
-              borderRadius: BorderRadius.circular(TempoRadii.md),
-            ),
-            child: Row(
-              children: [
-                TempoIcon(TempoIcons.clock, size: 18, color: c.text1),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    'Paused (${pauseLabel(t.pause!.reason).toLowerCase()}). The plan won’t adapt and nothing is carried forward; do what feels right.',
-                    style: TempoType.bodyS.c(c.text2),
-                  ),
-                ),
-              ],
-            ),
-          )
-        else if (t.stale)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            decoration: BoxDecoration(
-              color: c.surface2,
-              borderRadius: BorderRadius.circular(TempoRadii.md),
-            ),
-            child: Row(
-              children: [
-                TempoIcon(TempoIcons.clock, size: 18, color: c.text1),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    'Plan is from ${t.lastSync == null ? 'before your last sync' : clockOf(t.lastSync!)}. Sync to adapt it to last night.',
-                    style: TempoType.bodyS.c(c.text2),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                TempoButton(
-                  'Sync',
-                  small: true,
-                  kind: ButtonKind.secondary,
-                  onTap: () => ref.read(syncProvider.notifier).syncNow(),
-                ),
-              ],
-            ),
-          ),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Overline('Today’s readiness'),
-            const SizedBox(height: 10),
-            Text.rich(
-              TextSpan(
+    return ValueListenableBuilder<CoachTab>(
+      valueListenable: coachTab,
+      builder: (context, tab, _) => TempoPage(
+        bottom: standalone ? 48 : 100,
+        children: [
+          if (standalone)
+            const DetailHeader(title: 'Tempo Coach')
+          else
+            SizedBox(
+              height: 44,
+              child: Row(
                 children: [
-                  TextSpan(
-                    text: lead,
-                    style: TextStyle(color: leadColor),
+                  Expanded(
+                    child: Text('Coach', style: TempoType.pageTitle.c(c.text1)),
                   ),
-                  TextSpan(text: rest),
+                  TempoBadge(general ? 'General plan' : 'Personal plan'),
                 ],
               ),
-              style: TempoType.titleL.c(c.text1),
             ),
-          ],
-        ),
-        if (t.restDay || (t.plan?.isRest ?? false))
-          TempoCard(
-            color: t.restDay ? s.tintRecLow : c.surface1,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Overline(
-                  t.restDay ? '▼ Rest day' : 'Rest day',
-                  color: t.restDay ? s.recLow : null,
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  'Walk, stretch, sleep early',
-                  style: TempoType.titleM.c(c.text1),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  'Strain cap ${t.target.cap ? t.target.hi.round() : 7} · bedtime ${clock12(t.bedtimeMinute)}.${_carriedNote(w, todayIdx)}',
-                  style: TempoType.bodyS.c(c.text2),
-                ),
-              ],
-            ),
-          )
-        else if (t.plan != null)
-          WorkoutCard(
-            session: t.plan!,
-            general: general,
-            adds: adds,
-            overline: 'Suggested workout',
-            why: _why(t, general),
-            chip: statusLabel(t),
-            chipColor: statusColor(context, t.status),
-            footer: t.pause == null ? SessionActions(t) : null,
-            onTap: () => push(context, const WorkoutDetailScreen()),
-          ),
-        if (t.pause == null) SwapNote(t),
-        if (t.pause == null &&
-            !t.restDay &&
-            t.plan != null &&
-            t.status == sc.DayStatus.missedSlot)
-          RescueCard(t),
-        if (x != null && x.realign && t.pause == null) const RealignCard(),
-        if (x != null) AlsoToday(x),
-        TempoCard(
-          onTap: () => push(context, const WeeklyPlanScreen()),
-          label: 'This week',
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                children: [
-                  const Expanded(child: Overline('This week')),
-                  Legend(c.text3, 'Planned', outline: true, height: 8),
-                  const SizedBox(width: 8),
-                  Legend(s.strain[1], 'Actual', height: 8),
-                ],
+          if (t.pause != null)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                color: c.surface2,
+                borderRadius: BorderRadius.circular(TempoRadii.md),
               ),
-              const SizedBox(height: 14),
-              WeekBars(week: w, today: todayIdx, height: 64, labels: true),
-              if (x != null) ...[
-                const SizedBox(height: 6),
-                WeekStatusRow(x.week),
-              ],
-              const SizedBox(height: 12),
-              Hair(),
-              const SizedBox(height: 12),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Row(
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.only(top: 1),
-                    child: TempoIcon(
-                      TempoIcons.swap,
-                      size: 16,
-                      color: c.text2,
-                      stroke: 2,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
+                  TempoIcon(TempoIcons.clock, size: 18, color: c.text1),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      change.isEmpty
-                          ? general
-                                ? 'General plan from your goals and ${t.profile.days.length} days a week. It personalises after night 14.'
-                                : 'No changes this week — the plan still fits your recovery.'
-                          : _changeLine(w, change.last),
+                      'Paused (${pauseLabel(t.pause!.reason).toLowerCase()}). The plan won’t adapt and nothing is carried forward; do what feels right.',
                       style: TempoType.bodyS.c(c.text2),
                     ),
                   ),
                 ],
               ),
-            ],
-          ),
-        ),
-        TempoCard(
-          onTap: () => push(context, const CardioLoadScreen()),
-          label: 'Cardio load',
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                children: [
-                  const Expanded(child: Overline('Cardio load')),
-                  Text('8 weeks', style: TempoType.caption.c(c.text3)),
-                ],
+            )
+          else if (t.stale)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                color: c.surface2,
+                borderRadius: BorderRadius.circular(TempoRadii.md),
               ),
-              const SizedBox(height: 12),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
+              child: Row(
                 children: [
+                  TempoIcon(TempoIcons.clock, size: 18, color: c.text1),
+                  const SizedBox(width: 12),
                   Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '${loadGlyph(t.load.status)} ${loadWord(t.load.status)}',
-                          style: TempoType.titleM.c(
-                            loadColor(context, t.load.status),
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          t.load.status == sc.LoadStatus.learning
-                              ? 'Status appears after 7 days of data.'
-                              : '${loadSub(t.load)}.',
-                          style: TempoType.bodyS.c(c.text2),
-                        ),
-                      ],
+                    child: Text(
+                      'Plan is from ${t.lastSync == null ? 'before your last sync' : clockOf(t.lastSync!)}. Sync to adapt it to last night.',
+                      style: TempoType.bodyS.c(c.text2),
                     ),
                   ),
-                  const SizedBox(width: 16),
-                  SizedBox(
-                    width: 110,
-                    height: 44,
-                    child: MiniLoad(
-                      history: hist.length > 8
-                          ? hist.sublist(hist.length - 8)
-                          : hist,
-                    ),
+                  const SizedBox(width: 12),
+                  TempoButton(
+                    'Sync',
+                    small: true,
+                    kind: ButtonKind.secondary,
+                    onTap: () => ref.read(syncProvider.notifier).syncNow(),
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 10,
-                ),
-                decoration: BoxDecoration(
-                  color: c.surface2,
-                  borderRadius: BorderRadius.circular(TempoRadii.sm),
-                ),
-                child: Text.rich(
+            ),
+          if (tab != CoachTab.goal)
+            GoalCard(onOpen: () => coachTab.value = CoachTab.goal),
+          TempoSegmented<CoachTab>(
+            values: CoachTab.values,
+            labels: const ['Today', 'Week', 'Goal'],
+            selected: tab,
+            onChanged: (v) => coachTab.value = v,
+          ),
+          if (tab == CoachTab.today) ...[
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Overline('Today’s readiness'),
+                const SizedBox(height: 10),
+                Text.rich(
                   TextSpan(
                     children: [
                       TextSpan(
-                        text: 'This week · ',
-                        style: TextStyle(color: c.text3),
+                        text: lead,
+                        style: TextStyle(color: leadColor),
                       ),
-                      TextSpan(
-                        text: x != null && x.monotony
-                            ? 'Every day has felt about the same lately — vary it: one harder, one easier.'
-                            : loadAdvice(t.load.status).first,
-                      ),
+                      TextSpan(text: rest),
                     ],
                   ),
-                  style: TempoType.bodyS.c(c.text1),
-                ),
-              ),
-            ],
-          ),
-        ),
-        CardList(
-          children: [
-            ListRow(
-              'Your week so far',
-              sub: 'Planned vs done, WHO minimums, focus',
-              onTap: () => push(context, const WeeklyReviewScreen()),
-            ),
-          ],
-        ),
-        if (x != null) FocusSummary(x),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              children: [
-                const Expanded(child: Overline('Learn')),
-                Pressable(
-                  onTap: () => push(context, const LearnScreen()),
-                  child: SizedBox(
-                    height: 44,
-                    child: Center(
-                      child: Text('All 6', style: TempoType.label.c(c.text2)),
-                    ),
-                  ),
+                  style: TempoType.titleL.c(c.text1),
                 ),
               ],
             ),
-            const SizedBox(height: 10),
-            SizedBox(
-              // Grows with large text so the two lines never clip.
-              height:
-                  120 +
-                  (MediaQuery.textScalerOf(context).scale(14) / 14 - 1) * 40,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                clipBehavior: Clip.none,
-                children: [
-                  for (final (i, l) in learnItems(
-                    context,
-                    t,
-                  ).take(3).indexed) ...[
-                    if (i > 0) const SizedBox(width: 10),
-                    Pressable(
-                      label: l.title,
-                      onTap: () => push(
-                        context,
-                        LearnCardsScreen(
-                          initial: i == 2
-                              ? 2
-                              : i == 1
-                              ? 3
-                              : 0,
-                        ),
-                      ),
-                      child: Container(
-                        width: 150,
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: c.surface1,
-                          borderRadius: BorderRadius.circular(TempoRadii.lg),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            TempoIcon(l.icon, size: 28, color: l.color),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  l.title,
-                                  style: TempoType.label.c(c.text1),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  l.short,
-                                  style: TempoType.caption.c(c.text3),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
+            if (t.restDay || (t.plan?.isRest ?? false))
+              TempoCard(
+                color: t.restDay ? s.tintRecLow : c.surface1,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Overline(
+                      t.restDay ? '▼ Rest day' : 'Rest day',
+                      color: t.restDay ? s.recLow : null,
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      'Walk, stretch, sleep early',
+                      style: TempoType.titleM.c(c.text1),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      'Strain cap ${t.target.cap ? t.target.hi.round() : 7} · bedtime ${clock12(t.bedtimeMinute)}.${_carriedNote(w, todayIdx)}',
+                      style: TempoType.bodyS.c(c.text2),
                     ),
                   ],
-                ],
+                ),
+              )
+            else if (t.plan != null)
+              WorkoutCard(
+                session: t.plan!,
+                general: general,
+                adds: adds,
+                overline: 'Suggested workout',
+                why: _why(t, general),
+                chip: statusLabel(t),
+                chipColor: statusColor(context, t.status),
+                footer: t.pause == null ? SessionActions(t) : null,
+                onTap: () => push(context, const WorkoutDetailScreen()),
               ),
+            if (t.pause == null) SwapNote(t),
+            if (t.pause == null &&
+                !t.restDay &&
+                t.plan != null &&
+                t.status == sc.DayStatus.missedSlot)
+              RescueCard(t),
+            if (x != null && x.realign && t.pause == null) const RealignCard(),
+            if (x != null) AlsoToday(x),
+            if (x != null) FocusSummary(x),
+          ] else if (tab == CoachTab.week) ...[
+            if (gv?.week != null) GoalWeekCard(v: gv!),
+            const WeekPlanBody(),
+            LoadNote(t: t, monotony: x?.monotony ?? false),
+            CardList(
+              children: [
+                ListRow(
+                  'Your week so far',
+                  sub: 'Planned vs done, WHO minimums, focus',
+                  onTap: () => push(context, const WeeklyReviewScreen()),
+                ),
+              ],
             ),
-          ],
-        ),
-      ],
+          ] else
+            const GoalBody(week: false),
+        ],
+      ),
     );
   }
 
@@ -446,14 +270,6 @@ class CoachScreen extends ConsumerWidget {
       }
     }
     return '';
-  }
-
-  static String _changeLine(WeekView w, st.PlanDay r) {
-    final i = w.rows.indexOf(r);
-    final from = w.original(i), to = w.session(i);
-    final day = dayShort(w.date(i)).substring(0, 3);
-    final why = r.reason!.replaceFirst(RegExp(r'^[▲■▼·] '), '');
-    return '$day: ${from?.title ?? 'plan'} → ${to.title}. $why';
   }
 
   static String _why(TodayData t, bool general) {
@@ -537,6 +353,146 @@ class CoachScreen extends ConsumerWidget {
       'Steady.',
       s.recMid,
       ' Recovery ${r.round()}% — keep it aerobic today; save intensity for a greener morning.',
+    );
+  }
+}
+
+/// Cardio load: status, an 8-week sparkline and this week's advice.
+class CardioLoadCard extends ConsumerWidget {
+  const CardioLoadCard({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = ref.watch(todayProvider).value;
+    if (t == null) return const SizedBox.shrink();
+    final x = ref.watch(coachExtrasProvider).value;
+    final hist = ref.watch(loadHistoryProvider).value ?? const [];
+    final c = context.c;
+    return TempoCard(
+      onTap: () => push(context, const CardioLoadScreen()),
+      label: 'Cardio load',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              const Expanded(child: Overline('Cardio load')),
+              Text('8 weeks', style: TempoType.caption.c(c.text3)),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${loadGlyph(t.load.status)} ${loadWord(t.load.status)}',
+                      style: TempoType.titleM.c(
+                        loadColor(context, t.load.status),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      t.load.status == sc.LoadStatus.learning
+                          ? 'Status appears after 7 days of data.'
+                          : '${loadSub(t.load)}.',
+                      style: TempoType.bodyS.c(c.text2),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 16),
+              SizedBox(
+                width: 110,
+                height: 44,
+                child: MiniLoad(
+                  history: hist.length > 8
+                      ? hist.sublist(hist.length - 8)
+                      : hist,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: c.surface2,
+              borderRadius: BorderRadius.circular(TempoRadii.sm),
+            ),
+            child: Text.rich(
+              TextSpan(
+                children: [
+                  TextSpan(
+                    text: 'This week · ',
+                    style: TextStyle(color: c.text3),
+                  ),
+                  TextSpan(
+                    text: x != null && x.monotony
+                        ? 'Every day has felt about the same lately — vary it: one harder, one easier.'
+                        : loadAdvice(t.load.status).first,
+                  ),
+                ],
+              ),
+              style: TempoType.bodyS.c(c.text1),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// One line on Coach's week about load, linking to the full card.
+class LoadNote extends StatelessWidget {
+  const LoadNote({super.key, required this.t, required this.monotony});
+  final TodayData t;
+  final bool monotony;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c;
+    final learning = t.load.status == sc.LoadStatus.learning;
+    return TempoCard(
+      label: 'Cardio load',
+      onTap: () => push(context, const CardioLoadScreen()),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Overline('Load'),
+                    const SizedBox(width: 8),
+                    Text(
+                      '${loadGlyph(t.load.status)} ${loadWord(t.load.status)}',
+                      style: TempoType.label.c(
+                        loadColor(context, t.load.status),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  learning
+                      ? 'Status appears after 7 days of data.'
+                      : monotony
+                      ? 'Every day has felt about the same lately. Vary it: one harder, one easier.'
+                      : loadAdvice(t.load.status).first,
+                  style: TempoType.bodyS.c(c.text2),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          TempoIcon(TempoIcons.chevron, size: 16, color: c.text3, stroke: 2),
+        ],
+      ),
     );
   }
 }

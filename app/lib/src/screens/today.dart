@@ -15,7 +15,10 @@ import '../design/tokens.dart';
 import '../design/type.dart';
 import '../state/providers.dart';
 import 'coach_parts.dart' show statusLabel, statusColor;
+import 'calendar.dart';
 import 'feel.dart';
+import 'goal.dart' show TodayGoalLine;
+import 'journal.dart' show JournalNudge, JournalScreen;
 import 'nav.dart';
 import 'pairing.dart';
 import 'recovery.dart';
@@ -194,6 +197,19 @@ abstract final class TodayBody {
                 ],
               ),
             ),
+            TempoIconButton(
+              TempoIcons.journal,
+              label: 'Journal',
+              stroke: 1.75,
+              onTap: () => push(context, const JournalScreen(standalone: true)),
+            ),
+            TempoIconButton(
+              TempoIcons.calendar,
+              label: 'Calendar',
+              stroke: 1.75,
+              onTap: () => push(context, const CalendarScreen()),
+            ),
+            const SizedBox(width: 4),
             Pressable(
               label: 'Sync now',
               onTap: paired
@@ -235,6 +251,7 @@ abstract final class TodayBody {
       if (sync.running) _SyncProgress(sync: sync),
       ?banner,
       if (askFeel) FeelCard(day: t.day),
+      if (!noData && !t.firstDay) const JournalNudge(),
       Pressable(
         label: 'Why today’s call',
         onTap: noData || t.firstDay ? null : () => showWhySheet(context, t),
@@ -268,6 +285,7 @@ abstract final class TodayBody {
           onStart: () => openLive(context, ref, plan: t.plan),
           onWhy: () => push(context, const WorkoutDetailScreen()),
         ),
+      if (!noData && !t.firstDay) const TodayGoalLine(),
       if (!noData && t.firstDay) const FirstWeekCard(),
       if (!noData) ...[
         WeekRecoveryStrain(t: t),

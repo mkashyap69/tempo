@@ -12,6 +12,7 @@ import '../design/icons.dart';
 import '../design/tokens.dart';
 import '../design/type.dart';
 import '../state/providers.dart';
+import 'coach.dart' show CoachTab, openCoachAt;
 import 'goal_setup.dart';
 import 'longevity.dart' show LongevityScreen, leverName;
 import 'nav.dart';
@@ -53,14 +54,14 @@ const weekdayNames = [
 ];
 
 Color phaseColor(BuildContext context, sc.Phase p) {
-  final c = context.c, s = context.s;
+  final s = context.s;
   return switch (p) {
-    sc.Phase.base => s.loadMaintaining,
+    sc.Phase.base => s.loadDetraining,
     sc.Phase.build => s.loadBuilding,
     sc.Phase.peak => s.loadOverreaching,
-    sc.Phase.deload => c.lineStrong,
+    sc.Phase.deload => s.loadMaintaining,
     sc.Phase.taper => s.recHigh,
-    sc.Phase.race => c.text1,
+    sc.Phase.race => s.recLow,
   };
 }
 
@@ -383,7 +384,10 @@ Map<int, String> _flags(sc.TrainingBlock b) => {
 /// Training goal on the Weekly plan: what the plan builds toward, the
 /// block at a glance and how this week is going.
 class GoalCard extends ConsumerWidget {
-  const GoalCard({super.key});
+  const GoalCard({super.key, this.onOpen});
+
+  /// Opens the goal (default: push the Goal screen).
+  final VoidCallback? onOpen;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -437,7 +441,7 @@ class GoalCard extends ConsumerWidget {
     final verdict = w == null ? null : verdictFor(v);
     return TempoCard(
       label: 'Open training goal',
-      onTap: () => push(context, const GoalScreen()),
+      onTap: onOpen ?? () => push(context, const GoalScreen()),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -500,6 +504,67 @@ class GoalCard extends ConsumerWidget {
   }
 }
 
+/// One line on Today: the goal and how this week is going. Opens Coach at
+/// the goal; with no goal it offers to set one.
+class TodayGoalLine extends ConsumerWidget {
+  const TodayGoalLine({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final async = ref.watch(goalViewProvider);
+    if (!async.hasValue) return const SizedBox.shrink();
+    final v = async.value;
+    final c = context.c;
+    final String text;
+    Tone tone = Tone.neutral;
+    String glyph = '◎';
+    if (v == null) {
+      text = 'Training for something? Set a goal';
+    } else {
+      final days = v.daysToRace;
+      final head = [
+        sc.goalName(v.block.goal),
+        if (days != null && days > 0) _days(days),
+      ].join(' · ');
+      if (v.week == null) {
+        text =
+            '$head · ${DateTime.now().isAfter(v.block.event ?? DateTime(9999)) ? 'race done' : 'starts next week'}';
+      } else {
+        final verdict = verdictFor(v);
+        tone = verdict.tone;
+        glyph = verdict.glyph;
+        text = '$head · ${verdict.line}';
+      }
+    }
+    return TempoCard(
+      label: v == null ? 'Set a training goal' : 'Open training goal',
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      onTap: () => openCoachAt(context, CoachTab.goal),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 20,
+            child: Text(
+              glyph,
+              style: TempoType.label.c(
+                tone == Tone.neutral ? c.text2 : toneColor(context, tone),
+              ),
+            ),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              text,
+              style: TempoType.bodyS.c(v == null ? c.text2 : c.text1).tnum,
+            ),
+          ),
+          TempoIcon(TempoIcons.chevron, size: 16, color: c.text3, stroke: 2),
+        ],
+      ),
+    );
+  }
+}
+
 /// Opens goal setup and, once saved, offers to undo it.
 Future<void> startGoal(BuildContext context, WidgetRef ref) async {
   final block = ref.read(goalViewProvider).value?.block;
@@ -519,14 +584,30 @@ Future<void> startGoal(BuildContext context, WidgetRef ref) async {
 
 /// Where the goal stands: the block, this week's scorecard, what's ahead
 /// and why past weeks went the way they did.
-class GoalScreen extends ConsumerStatefulWidget {
+class GoalScreen extends StatelessWidget {
   const GoalScreen({super.key});
 
   @override
-  ConsumerState<GoalScreen> createState() => _GoalScreenState();
+  Widget build(BuildContext context) => const TempoPage(
+    children: [
+      DetailHeader(title: 'Training goal'),
+      GoalBody(),
+    ],
+  );
 }
 
-class _GoalScreenState extends ConsumerState<GoalScreen> {
+/// The goal's sections: title, phase note, block, this week, extras,
+/// history, how it works and actions. In Coach the week has its own tab,
+/// so [week] leaves the scorecard out there.
+class GoalBody extends ConsumerStatefulWidget {
+  const GoalBody({super.key, this.week = true});
+  final bool week;
+
+  @override
+  ConsumerState<GoalBody> createState() => _GoalBodyState();
+}
+
+class _GoalBodyState extends ConsumerState<GoalBody> {
   int? _sel;
 
   @override
@@ -534,31 +615,29 @@ class _GoalScreenState extends ConsumerState<GoalScreen> {
     final c = context.c;
     final async = ref.watch(goalViewProvider);
     final v = async.value;
-    if (!async.hasValue) return Scaffold(backgroundColor: c.bg);
+    if (!async.hasValue) return const SizedBox(height: 400);
+    final List<Widget> children;
     if (v == null) {
-      return TempoPage(
-        children: [
-          const DetailHeader(title: 'Training goal'),
-          Text('No training goal', style: TempoType.pageTitle.c(c.text1)),
-          Text(
-            'The plan is the same week every week. Set a goal and it builds '
-            'toward it, earning each step from how your weeks go.',
-            style: TempoType.body.c(c.text2),
-          ),
-          TempoButton(
-            'Set a goal',
-            expand: true,
-            onTap: () => startGoal(context, ref),
-          ),
-        ],
-      );
-    }
-    final b = v.block, w = v.week;
-    final sel = _sel ?? w?.index ?? 0;
-    final days = v.daysToRace;
-    return TempoPage(
-      children: [
-        const DetailHeader(title: 'Training goal'),
+      children = [
+        Text('No training goal', style: TempoType.pageTitle.c(c.text1)),
+        Text(
+          'The plan is the same week every week. Set a goal and it builds '
+          'toward it: a race on a date (5K to marathon) or just getting '
+          'fitter, earning each step from how your weeks go.',
+          style: TempoType.body.c(c.text2),
+        ),
+        TempoButton(
+          'Set a goal',
+          expand: true,
+          onTap: () => startGoal(context, ref),
+        ),
+        const _HowCard(),
+      ];
+    } else {
+      final b = v.block, w = v.week;
+      final sel = _sel ?? w?.index ?? 0;
+      final days = v.daysToRace;
+      children = [
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -576,18 +655,26 @@ class _GoalScreenState extends ConsumerState<GoalScreen> {
           ],
         ),
         if (w != null && w.newPhase && !v.phaseSeen) _PhaseCard(v: v),
-        if (v.weeks.isNotEmpty) _BlockCard(v: v, sel: sel, onSel: _pick),
-        if (w != null) _ThisWeekCard(v: v),
+        if (v.weeks.isNotEmpty)
+          _BlockCard(v: v, sel: sel, onSel: (i) => setState(() => _sel = i)),
+        if (w != null && widget.week) GoalWeekCard(v: v),
         if (b.tuneUps.isNotEmpty || v.next != null || v.focus != null)
           _AlsoCard(v: v),
         if (v.history.isNotEmpty) _HistoryCard(v: v),
         const _HowCard(),
         _Actions(v: v),
+      ];
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (final (i, ch) in children.indexed) ...[
+          if (i > 0) const SizedBox(height: 20),
+          ch,
+        ],
       ],
     );
   }
-
-  void _pick(int i) => setState(() => _sel = i);
 }
 
 class _PhaseCard extends ConsumerWidget {
@@ -871,8 +958,9 @@ String _outcomeLine(sc.WeekOutcome o) => [
   if (o.feel != null) 'feel ${o.feel!.toStringAsFixed(1)}',
 ].join(' · ');
 
-class _ThisWeekCard extends ConsumerWidget {
-  const _ThisWeekCard({required this.v});
+/// This week against the step-up and step-back lines, with the verdict.
+class GoalWeekCard extends ConsumerWidget {
+  const GoalWeekCard({super.key, required this.v});
   final GoalView v;
 
   @override

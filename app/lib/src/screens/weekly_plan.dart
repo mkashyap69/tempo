@@ -25,17 +25,31 @@ final _weekWorkoutsProvider = FutureProvider<List<st.Workout>>((ref) async {
       .workoutsBetween(mon, mon.add(const Duration(days: 7)));
 });
 
-class WeeklyPlanScreen extends ConsumerWidget {
+class WeeklyPlanScreen extends StatelessWidget {
   const WeeklyPlanScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) => const TempoPage(
+    children: [
+      DetailHeader(title: 'Weekly plan'),
+      WeekPlanBody(goal: true),
+    ],
+  );
+}
+
+/// The week's plan: dates and totals (with availability), what changed,
+/// planned vs actual strain and the seven days. [goal] adds the goal card
+/// under the dates (Coach shows the goal above its switcher instead).
+class WeekPlanBody extends ConsumerWidget {
+  const WeekPlanBody({super.key, this.goal = false});
+  final bool goal;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final w = ref.watch(weekProvider).value;
     final prof = ref.watch(profileProvider).value;
     final ws = ref.watch(_weekWorkoutsProvider).value ?? const [];
-    if (w == null || prof == null) {
-      return Scaffold(backgroundColor: context.c.bg);
-    }
+    if (w == null || prof == null) return const SizedBox(height: 400);
     final c = context.c, s = context.s;
     final today = DateTime.now().weekday - 1;
     final sessions = [for (var i = 0; i < 7; i++) w.session(i)];
@@ -50,257 +64,263 @@ class WeeklyPlanScreen extends ConsumerWidget {
         .whereType<int>()
         .fold<int?>(null, (a, b) => a == null || b > a ? b : a);
 
-    return TempoPage(
-      children: [
-        DetailHeader(
-          title: 'Weekly plan',
-          trailing: TempoIconButton(
-            TempoIcons.edit,
-            label: 'Edit availability',
-            stroke: 1.75,
-            onTap: () async {
-              final next = await showTempoSheet<Profile>(
-                context,
-                builder: (ctx) =>
-                    AvailabilityEditor(profile: prof, sheet: true),
-              );
-              if (next == null) return;
-              final db = ref.read(dbProvider);
-              await saveAppProfile(db, next);
-              await CoachService(db).ensureWeek(DateTime.now(), rebuild: true);
-              if (context.mounted) {
-                showTempoToast(
-                  context,
-                  'Plan rebuilt for ${next.days.length} days · up to ${next.maxMinutes} min',
-                );
-              }
-            },
-          ),
-        ),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '${dm(w.monday)} – ${dm(w.date(6))}',
-              style: TempoType.pageTitle.c(c.text1),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              '${7 - rest} sessions + $rest rest ${rest == 1 ? 'day' : 'days'} · ${mins ~/ 60} h ${mins % 60} m planned',
-              style: TempoType.bodyS.c(c.text2),
-            ),
-          ],
-        ),
-        const GoalCard(),
-        if (changes.isNotEmpty)
-          TempoCard(
+    final edit = TempoIconButton(
+      TempoIcons.edit,
+      label: 'Edit availability',
+      stroke: 1.75,
+      onTap: () async {
+        final next = await showTempoSheet<Profile>(
+          context,
+          builder: (ctx) => AvailabilityEditor(profile: prof, sheet: true),
+        );
+        if (next == null) return;
+        final db = ref.read(dbProvider);
+        await saveAppProfile(db, next);
+        await CoachService(db).ensureWeek(DateTime.now(), rebuild: true);
+        if (context.mounted) {
+          showTempoToast(
+            context,
+            'Plan rebuilt for ${next.days.length} days · up to ${next.maxMinutes} min',
+          );
+        }
+      },
+    );
+    final children = <Widget>[
+      Row(
+        children: [
+          Expanded(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    const Expanded(child: Overline('What changed')),
-                    if (adaptedAt != null)
-                      Text(
-                        'Adapted ${clockOf(st.fromTs(adaptedAt))}',
-                        style: TempoType.caption.c(c.text3),
-                      ),
-                  ],
+                Text(
+                  '${dm(w.monday)} – ${dm(w.date(6))}',
+                  style: TempoType.titleL.c(c.text1),
                 ),
-                for (final i in changes) ...[
-                  const SizedBox(height: 12),
-                  Hair(),
-                  const SizedBox(height: 12),
-                  Text(
-                    '${dayShort(w.date(i))}${i == today ? ' · today' : ''}',
-                    style: TempoType.caption.c(c.text3),
-                  ),
-                  const SizedBox(height: 6),
-                  Wrap(
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    spacing: 8,
-                    children: [
-                      Text(
-                        w.original(i)?.title ?? '—',
-                        style: TempoType.body.copyWith(
-                          color: c.text3,
-                          decoration: TextDecoration.lineThrough,
-                          decorationColor: c.text3,
-                        ),
-                      ),
-                      TempoIcon(
-                        TempoIcons.arrow,
-                        size: 14,
-                        color: c.text2,
-                        stroke: 2,
-                      ),
-                      Text(
-                        '${w.session(i).title}${w.session(i).minutes > 0 ? ' ${w.session(i).minutes}′' : ''}',
-                        style: TempoType.body.copyWith(
-                          color: c.text1,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  Builder(
-                    builder: (context) {
-                      final r = w.rows[i].reason ?? '';
-                      final g = r.isEmpty ? '' : r.substring(0, 1);
-                      final col = switch (g) {
-                        '▲' => s.recHigh,
-                        '■' => s.recMid,
-                        '▼' => s.recLow,
-                        _ => c.text2,
-                      };
-                      return Text.rich(
-                        TextSpan(
-                          children: [
-                            TextSpan(
-                              text: '$g ',
-                              style: TextStyle(color: col),
-                            ),
-                            TextSpan(text: r.length > 2 ? r.substring(2) : r),
-                          ],
-                        ),
-                        style: TempoType.bodyS.c(c.text2),
-                      );
-                    },
-                  ),
-                ],
+                const SizedBox(height: 4),
+                Text(
+                  '${7 - rest} sessions + $rest rest ${rest == 1 ? 'day' : 'days'} · ${mins ~/ 60} h ${mins % 60} m planned',
+                  style: TempoType.bodyS.c(c.text2),
+                ),
               ],
             ),
           ),
+          edit,
+        ],
+      ),
+      if (goal) const GoalCard(),
+      if (changes.isNotEmpty)
         TempoCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Row(
                 children: [
-                  const Expanded(child: Overline('Planned vs actual strain')),
-                  Legend(c.text3, 'plan', outline: true, height: 8),
-                  const SizedBox(width: 8),
-                  Legend(s.strain[1], 'actual', height: 8),
+                  const Expanded(child: Overline('What changed')),
+                  if (adaptedAt != null)
+                    Text(
+                      'Adapted ${clockOf(st.fromTs(adaptedAt))}',
+                      style: TempoType.caption.c(c.text3),
+                    ),
                 ],
               ),
-              const SizedBox(height: 12),
-              WeekBars(week: w, today: today, height: 120, values: true),
+              for (final i in changes) ...[
+                const SizedBox(height: 12),
+                Hair(),
+                const SizedBox(height: 12),
+                Text(
+                  '${dayShort(w.date(i))}${i == today ? ' · today' : ''}',
+                  style: TempoType.caption.c(c.text3),
+                ),
+                const SizedBox(height: 6),
+                Wrap(
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 8,
+                  children: [
+                    Text(
+                      w.original(i)?.title ?? '—',
+                      style: TempoType.body.copyWith(
+                        color: c.text3,
+                        decoration: TextDecoration.lineThrough,
+                        decorationColor: c.text3,
+                      ),
+                    ),
+                    TempoIcon(
+                      TempoIcons.arrow,
+                      size: 14,
+                      color: c.text2,
+                      stroke: 2,
+                    ),
+                    Text(
+                      '${w.session(i).title}${w.session(i).minutes > 0 ? ' ${w.session(i).minutes}′' : ''}',
+                      style: TempoType.body.copyWith(
+                        color: c.text1,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Builder(
+                  builder: (context) {
+                    final r = w.rows[i].reason ?? '';
+                    final g = r.isEmpty ? '' : r.substring(0, 1);
+                    final col = switch (g) {
+                      '▲' => s.recHigh,
+                      '■' => s.recMid,
+                      '▼' => s.recLow,
+                      _ => c.text2,
+                    };
+                    return Text.rich(
+                      TextSpan(
+                        children: [
+                          TextSpan(
+                            text: '$g ',
+                            style: TextStyle(color: col),
+                          ),
+                          TextSpan(text: r.length > 2 ? r.substring(2) : r),
+                        ],
+                      ),
+                      style: TempoType.bodyS.c(c.text2),
+                    );
+                  },
+                ),
+              ],
             ],
           ),
         ),
-        CardList(
+      TempoCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            for (var i = 0; i < 7; i++)
-              Builder(
-                builder: (context) {
-                  final x = w.session(i);
-                  final a = w.actual(i);
-                  final live = i == today;
-                  final future = i > today;
-                  final inR =
-                      a != null && a >= x.strainLo && a <= x.strainHi + .5;
-                  final over = a != null && a > x.strainHi + .5;
-                  final range = '${x.strainLo.round()}–${x.strainHi.round()}';
-                  final verdict = future
-                      ? 'Target $range'
-                      : live
-                      ? 'Live · target $range'
-                      : a == null
-                      ? 'No data'
-                      : over
-                      ? 'Over plan $range'
-                      : inR
-                      ? '✓ in plan $range'
-                      : 'Under plan $range';
-                  final dayWs = ws
-                      .where(
-                        (e) =>
-                            DateUtils.isSameDay(st.fromTs(e.start), w.date(i)),
-                      )
-                      .toList();
-                  return Pressable(
-                    label: '${dayShort(w.date(i))} ${x.title}',
-                    onTap: live
-                        ? () => push(context, const WorkoutDetailScreen())
-                        : dayWs.isEmpty
-                        ? null
-                        : () => push(
-                            context,
-                            ActivityDetailScreen(id: dayWs.first.id),
-                          ),
-                    child: Container(
-                      color: live ? c.surface2 : null,
-                      constraints: const BoxConstraints(minHeight: 64),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 14,
-                      ),
-                      child: Row(
-                        children: [
-                          SizedBox(
-                            width: 44,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  dayShort(w.date(i)).substring(0, 3),
-                                  style: TempoType.label.c(c.text1),
-                                ),
-                                Text(
-                                  '${w.date(i).day}',
-                                  style: TempoType.caption.c(c.text3).tnum,
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  x.title,
-                                  style: TempoType.label.c(c.text1),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  x.isRest
-                                      ? x.note
-                                      : '${x.minutes}′ · ${x.note.isNotEmpty ? x.note : x.zones}${w.rows[i].original != null ? ' · swapped' : ''}${live ? ' · today' : ''}',
-                                  style: TempoType.caption.c(c.text2).tnum,
-                                ),
-                              ],
-                            ),
-                          ),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
+            Row(
+              children: [
+                const Expanded(child: Overline('Planned vs actual strain')),
+                Legend(c.text3, 'plan', outline: true, height: 8),
+                const SizedBox(width: 8),
+                Legend(s.strain[1], 'actual', height: 8),
+              ],
+            ),
+            const SizedBox(height: 12),
+            WeekBars(week: w, today: today, height: 120, values: true),
+          ],
+        ),
+      ),
+      CardList(
+        children: [
+          for (var i = 0; i < 7; i++)
+            Builder(
+              builder: (context) {
+                final x = w.session(i);
+                final a = w.actual(i);
+                final live = i == today;
+                final future = i > today;
+                final inR =
+                    a != null && a >= x.strainLo && a <= x.strainHi + .5;
+                final over = a != null && a > x.strainHi + .5;
+                final range = '${x.strainLo.round()}–${x.strainHi.round()}';
+                final verdict = future
+                    ? 'Target $range'
+                    : live
+                    ? 'Live · target $range'
+                    : a == null
+                    ? 'No data'
+                    : over
+                    ? 'Over plan $range'
+                    : inR
+                    ? '✓ in plan $range'
+                    : 'Under plan $range';
+                final dayWs = ws
+                    .where(
+                      (e) => DateUtils.isSameDay(st.fromTs(e.start), w.date(i)),
+                    )
+                    .toList();
+                return Pressable(
+                  label: '${dayShort(w.date(i))} ${x.title}',
+                  onTap: live
+                      ? () => push(context, const WorkoutDetailScreen())
+                      : dayWs.isEmpty
+                      ? null
+                      : () => push(
+                          context,
+                          ActivityDetailScreen(id: dayWs.first.id),
+                        ),
+                  child: Container(
+                    color: live ? c.surface2 : null,
+                    constraints: const BoxConstraints(minHeight: 64),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
+                    child: Row(
+                      children: [
+                        SizedBox(
+                          width: 44,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                a == null ? '–' : n1(a),
-                                style: TempoType.label.c(c.text1).tnum,
+                                dayShort(w.date(i)).substring(0, 3),
+                                style: TempoType.label.c(c.text1),
                               ),
-                              const SizedBox(height: 2),
                               Text(
-                                verdict,
-                                style: TempoType.caption
-                                    .c(live ? s.strain[1] : c.text3)
-                                    .tnum,
+                                '${w.date(i).day}',
+                                style: TempoType.caption.c(c.text3).tnum,
                               ),
                             ],
                           ),
-                        ],
-                      ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(x.title, style: TempoType.label.c(c.text1)),
+                              const SizedBox(height: 2),
+                              Text(
+                                x.isRest
+                                    ? x.note
+                                    : '${x.minutes}′ · ${x.note.isNotEmpty ? x.note : x.zones}${w.rows[i].original != null ? ' · swapped' : ''}${live ? ' · today' : ''}',
+                                style: TempoType.caption.c(c.text2).tnum,
+                              ),
+                            ],
+                          ),
+                        ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              a == null ? '–' : n1(a),
+                              style: TempoType.label.c(c.text1).tnum,
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              verdict,
+                              style: TempoType.caption
+                                  .c(live ? s.strain[1] : c.text3)
+                                  .tnum,
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
-                  );
-                },
-              ),
-          ],
-        ),
-        Text(
-          'Each morning after sync, Tempo re-checks recovery and load and adjusts the plan. It always says what changed and why. It never plans beyond the days and minutes you said you have (${prof.days.length} days · up to ${prof.maxMinutes} min).',
-          style: TempoType.bodyS.c(c.text3),
-        ),
+                  ),
+                );
+              },
+            ),
+        ],
+      ),
+      Text(
+        'Each morning after sync, Tempo re-checks recovery and load and adjusts the plan. It always says what changed and why. It never plans beyond the days and minutes you said you have (${prof.days.length} days · up to ${prof.maxMinutes} min).',
+        style: TempoType.bodyS.c(c.text3),
+      ),
+    ];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (final (i, ch) in children.indexed) ...[
+          if (i > 0) const SizedBox(height: 20),
+          ch,
+        ],
       ],
     );
   }

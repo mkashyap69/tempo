@@ -17,7 +17,6 @@ import 'design/theme.dart';
 import 'design/tokens.dart';
 import 'design/type.dart';
 import 'screens/coach.dart';
-import 'screens/journal.dart';
 import 'screens/live_workout.dart';
 import 'screens/nav.dart';
 import 'screens/onboarding.dart';
@@ -26,6 +25,7 @@ import 'screens/settings.dart';
 import 'screens/sleep.dart';
 import 'screens/strain.dart';
 import 'screens/today.dart';
+import 'screens/trends.dart';
 import 'screens/weekly_review.dart';
 import 'screens/workouts.dart';
 import 'screens/longevity.dart';
@@ -173,12 +173,12 @@ class _Tab {
 const _tabs = [
   _Tab('Today', TempoIcons.today, true),
   _Tab('Coach', TempoIcons.coach, true),
+  _Tab('Trends', TempoIcons.trends, false),
   _Tab('Longevity', TempoIcons.longevity, false),
-  _Tab('Journal', TempoIcons.journal, true),
   _Tab('Profile', TempoIcons.profile, false),
 ];
 
-/// Five tabs + start button. Syncs on open and on resume (the iOS fallback,
+/// Five tabs (Today, Coach, Trends, Longevity, Profile) + start button. Syncs on open and on resume (the iOS fallback,
 /// since background wakes are not guaranteed).
 class Shell extends ConsumerStatefulWidget {
   const Shell({super.key});
@@ -187,7 +187,7 @@ class Shell extends ConsumerStatefulWidget {
 }
 
 class _ShellState extends ConsumerState<Shell> with WidgetsBindingObserver {
-  int _tab = 0;
+  int get _tab => shellTab.value;
   StreamSubscription<Uri?>? _widgetTaps;
   StreamSubscription<String>? _notifTaps;
 
@@ -195,6 +195,8 @@ class _ShellState extends ConsumerState<Shell> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    shellMounted = true;
+    shellTab.addListener(_onTab);
     WidgetsBinding.instance.addPostFrameCallback((_) => _onOpen());
     _widgetTaps = listenWidgetTaps(_openFromWidget);
     // Coach notifications: buttons change the plan, taps open Coach.
@@ -215,6 +217,7 @@ class _ShellState extends ConsumerState<Shell> with WidgetsBindingObserver {
   Future<void> _openFromNotification(String target) async {
     if (!mounted) return;
     Navigator.of(context).popUntil((r) => r.isFirst);
+    if (target == 'coach') coachTab.value = CoachTab.today;
     select(target == 'workouts' ? 0 : 1);
     switch (target) {
       case 'workouts':
@@ -235,8 +238,14 @@ class _ShellState extends ConsumerState<Shell> with WidgetsBindingObserver {
     }
   }
 
+  void _onTab() {
+    if (mounted) setState(() {});
+  }
+
   @override
   void dispose() {
+    shellTab.removeListener(_onTab);
+    shellMounted = false;
     _widgetTaps?.cancel();
     _notifTaps?.cancel();
     WidgetsBinding.instance.removeObserver(this);
@@ -313,7 +322,7 @@ class _ShellState extends ConsumerState<Shell> with WidgetsBindingObserver {
 
   void select(int i) {
     if (i != _tab) TempoHaptics.selection();
-    setState(() => _tab = i);
+    shellTab.value = i;
   }
 
   @override
@@ -356,8 +365,8 @@ class _ShellState extends ConsumerState<Shell> with WidgetsBindingObserver {
               children: [
                 TodayScreen(onTab: select),
                 const CoachScreen(),
+                const TrendsScreen(tab: true),
                 const LongevityScreen(),
-                const JournalScreen(),
                 const SettingsScreen(),
               ],
             ),

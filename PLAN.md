@@ -182,6 +182,7 @@ Only one app can hold the band, so Mi Fitness must not be running.
 | C5 / C6 (deferred) | — | Learned nudge timing; band vibration cues | After 4 weeks of C4 in the field |
 | P1 · Goals and progression | — | Training goal (event or open-ended), phases, earned weekly volume steps, lighter every 4th week, taper and race day | A block run for 4+ weeks where each week's step up / hold / step back matches how the week actually went |
 | P2 · Goal screen and more goals | — | Goal screen (block timeline, this-week scorecard and forecast, phase explainer, history, how-it-works), rearrange or let go a missed key session, easy rest of week on low recovery/feel, guided setup with race-day calendar and preview, tune-up races, a queued next goal, habits alongside | Same 4-week block check as P1, plus every scorecard verdict matching the week's actual call |
+| N1 · Navigation | — | Tabs Today / Coach / Trends / Longevity / Profile; Coach as goal strip + Today / Week / Goal; Journal on Today; Trends with shortcuts and cardio load | A week of use where the goal and Trends are each reached in one tap |
 
 Phase 0 is the go/no-go. Week counts assume one engineer part-time.
 

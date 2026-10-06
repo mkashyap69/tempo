@@ -14,6 +14,13 @@ import '../state/providers.dart';
 import 'live_workout.dart';
 import 'pairing.dart';
 
+/// The selected tab (0 Today, 1 Coach, 2 Trends, 3 Longevity, 4 Profile).
+/// The shell follows it, so any screen can switch tabs.
+final shellTab = ValueNotifier<int>(0);
+
+/// True while the tab shell is on screen (tests render screens alone).
+var shellMounted = false;
+
 Future<T?> push<T>(BuildContext context, Widget page) =>
     Navigator.of(context).push<T>(CupertinoPageRoute(builder: (_) => page));
 
