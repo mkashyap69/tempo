@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart' show NumberFormat;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:scoring/scoring.dart' as sc;
 import 'package:store/store.dart' as st;
@@ -69,8 +70,22 @@ final effectProvider =
     });
 
 class _ActivityData {
-  _ActivityData(this.w, this.hr, this.hrMax, this.similar);
+  _ActivityData(
+    this.w,
+    this.hr,
+    this.hrMax,
+    this.similar, {
+    this.gait,
+    this.strideFromBand = false,
+  });
   final st.Workout w;
+
+  /// Steps, cadence and estimated distance and pace (walks, runs and other
+  /// on-foot sessions); null without steps.
+  final sc.Gait? gait;
+
+  /// Whether the stride came from the band's own counter (else height).
+  final bool strideFromBand;
   final List<(DateTime, int)> hr;
   final int hrMax;
   final List<st.Workout> similar;
@@ -85,8 +100,9 @@ final _activityProvider = FutureProvider.family<_ActivityData?, int>((
   final w = await db.workout(id);
   if (w == null) return null;
   final a = st.fromTs(w.start), b = st.fromTs(w.end);
+  final rows = await db.minutesBetween(a, b);
   var hr = <(DateTime, int)>[
-    for (final m in await db.minutesBetween(a, b))
+    for (final m in rows)
       if (m.hr != null) (st.fromTs(m.ts), m.hr!),
   ];
   if (w.source == 'live') {
@@ -118,7 +134,35 @@ final _activityProvider = FutureProvider.family<_ActivityData?, int>((
       );
   final similar = [w, ...others.take(4)]
     ..sort((p, q) => q.start.compareTo(p.start));
-  return _ActivityData(w, hr, s?.hrMax ?? profile.effectiveMaxHr, similar);
+  // Gait for anything on foot.
+  sc.Gait? gait;
+  var fromBand = false;
+  const offFoot = {'cycling', 'strength', 'yoga'};
+  if (!offFoot.contains(w.sport)) {
+    final mins = [
+      for (final m in rows) sc.Minute(st.fromTs(m.ts), steps: m.steps),
+    ];
+    final probe = sc.gaitOf(mins, strideM: 1);
+    if (probe != null) {
+      final running = w.sport == sc.Sport.running.name || probe.running;
+      final band = double.tryParse(await db.setting(Keys.bandStride) ?? '');
+      final stride = sc.strideMetres(
+        running: running,
+        bandStride: band,
+        heightCm: profile.heightCm.toDouble(),
+      );
+      fromBand = !running && band != null && stride == band;
+      gait = sc.gaitOf(mins, strideM: stride);
+    }
+  }
+  return _ActivityData(
+    w,
+    hr,
+    s?.hrMax ?? profile.effectiveMaxHr,
+    similar,
+    gait: gait,
+    strideFromBand: fromBand,
+  );
 });
 
 class ActivityDetailScreen extends ConsumerWidget {
@@ -213,6 +257,8 @@ class ActivityDetailScreen extends ConsumerWidget {
             Expanded(child: Stat('Max HR', '${w.maxHr ?? '—'}')),
           ],
         ),
+        if (data.gait != null)
+          GaitCard(gait: data.gait!, strideFromBand: data.strideFromBand),
         TempoCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -494,5 +540,116 @@ class ActivityDetailScreen extends ConsumerWidget {
       selected: w.rpe,
     );
     if (v != null) await saveRpe(ref.read(dbProvider), w.id, v);
+  }
+}
+
+/// Steps, cadence, estimated distance and pace, a cadence chart and
+/// kilometre splits for a session on foot.
+class GaitCard extends StatelessWidget {
+  const GaitCard({super.key, required this.gait, this.strideFromBand = false});
+  final sc.Gait gait;
+  final bool strideFromBand;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c;
+    final g = gait;
+    final pace = g.movingPacePerKm ?? g.pacePerKm;
+    final km = g.distanceM / 1000;
+    final steps = NumberFormat.decimalPattern().format(g.steps);
+    return TempoCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text('Pace & cadence', style: TempoType.label.c(c.text1)),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(child: Stat('Steps', steps)),
+              Expanded(
+                child: Stat('Cadence', '${g.cadence.round()}', unit: ' spm'),
+              ),
+              Expanded(
+                child: Stat(
+                  'Distance',
+                  km.toStringAsFixed(2),
+                  unit: ' km',
+                  estimate: true,
+                ),
+              ),
+              Expanded(
+                child: Stat(
+                  'Pace',
+                  pace == null ? '—' : mmss(pace),
+                  unit: ' /km',
+                  estimate: true,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          SvgChart(
+            height: 120,
+            semantics: 'Steps per minute through the session',
+            draw: (ink, box) {
+              final top = math.max(140, g.peakCadence + 10).toDouble();
+              double y(num v) => 116 - v / top * 112;
+              final n = g.perMinute.length;
+              final w = 520 / n;
+              for (final (i, v) in g.perMinute.indexed) {
+                ink.rect(
+                  Rect.fromLTRB(
+                    i * w + w * .15,
+                    y(v),
+                    (i + 1) * w - w * .15,
+                    116,
+                  ),
+                  v >= sc.movingCadence ? ink.c.text2 : ink.c.line,
+                  radius: 2,
+                );
+              }
+              ink.line(
+                Offset(0, y(g.cadence)),
+                Offset(520, y(g.cadence)),
+                ink.c.text1,
+                dash: const [6, 4],
+              );
+            },
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Steps per minute; dashed = average while moving. '
+            'Best minute ${g.peakCadence}.',
+            style: TempoType.caption.c(c.text3),
+          ),
+          if (g.splits.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            for (final (i, sp) in g.splits.indexed)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 3),
+                child: Row(
+                  children: [
+                    Text('Km ${i + 1}', style: TempoType.bodyS.c(c.text2)),
+                    const Spacer(),
+                    Text(mmss(sp), style: TempoType.bodyS.c(c.text1).tnum),
+                  ],
+                ),
+              ),
+          ],
+          const SizedBox(height: 12),
+          Text(
+            'Distance and pace are estimated from steps × '
+            '${g.strideM.toStringAsFixed(2)} m '
+            '(${strideFromBand
+                ? "the band's own stride today"
+                : g.running
+                ? 'a running stride from your height'
+                : 'a walking stride from your height'}). '
+            'The band has no GPS.',
+            style: TempoType.caption.c(c.text3),
+          ),
+        ],
+      ),
+    );
   }
 }

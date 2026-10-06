@@ -43,8 +43,13 @@ final class ProbeResult {
     this.start,
     this.raw,
     this.data = const [],
+    this.blocks = const [],
   });
   final int code;
+
+  /// (start, records) of each block when the band split the store; see
+  /// [blockCodes]. Empty for a single fetch.
+  final List<(DateTime, int)> blocks;
   final bool ok;
   final int count;
 
@@ -70,6 +75,10 @@ final class ProbeResult {
     'reply': raw == null ? null : hex(raw!),
     'bytes': data.length,
     if (count > 0 && data.isNotEmpty) 'bytesPerRecord': data.length / count,
+    if (blocks.length > 1)
+      'blocks': [
+        for (final (t, n) in blocks) {'start': t.toIso8601String(), 'count': n},
+      ],
     // Known types are decoded elsewhere; keep up to 8 KB of the rest.
     if (known == null || known == 'stress' || known == 'spo2')
       'payload': hex(data.take(8192).toList()),
@@ -153,6 +162,14 @@ typedef ExplorerProgress = void Function(
   String detail,
 );
 
+/// Per-minute types the band stores in blocks: a fetch stops at the end of
+/// the block it starts in (activity ended at 16:46 on 6 Oct while the band
+/// had data to 19:40), so the explorer follows them like the sync does.
+const blockCodes = {0x01, 0x13};
+
+/// Most blocks followed per type.
+const maxBlocks = 8;
+
 /// Read-only survey of what the band holds: every readable characteristic,
 /// which history type codes answer (never transferred or acknowledged, so
 /// nothing is deleted on the band), and raw live-HR notifications to see
@@ -162,8 +179,12 @@ class BandExplorer {
     List<int>? codes,
     this.hrFor = const Duration(minutes: 2),
     this.since,
+    this.now = DateTime.now,
   }) : codes = codes ?? [for (var c = 0; c < 0x40; c++) c];
   final List<int> codes;
+
+  /// Clock for when following blocks should stop; tests pin it.
+  final DateTime Function() now;
   final Duration hrFor;
   final DateTime? since;
 
@@ -198,14 +219,35 @@ class BandExplorer {
       if (r == null) {
         silent.add(code);
       } else {
+        var count = r.count;
+        final data = [...o.data];
+        final blocks = <(DateTime, int)>[];
+        if (blockCodes.contains(code) && r.ok && r.count > 0) {
+          var start = r.start;
+          var n = r.count;
+          while (start != null && blocks.length < maxBlocks && !stop()) {
+            blocks.add((start, n));
+            final next = start.add(Duration(minutes: n));
+            if (now().difference(next).inMinutes <= 5) break;
+            final more = await band.probeFetch(code, next);
+            final m = more.reply;
+            if (m == null || !m.ok || m.count == 0 || m.start == null) break;
+            if (!m.start!.isAfter(start)) break; // the band repeated itself
+            data.addAll(more.data);
+            count += m.count;
+            start = m.start;
+            n = m.count;
+          }
+        }
         probes.add(
           ProbeResult(
             code,
             ok: r.ok,
-            count: r.count,
+            count: count,
             start: r.start,
             raw: o.raw,
-            data: o.data,
+            data: data,
+            blocks: blocks,
           ),
         );
       }
