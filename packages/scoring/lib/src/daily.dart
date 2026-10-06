@@ -75,30 +75,50 @@ final class ScoringParams {
   final int needDays;
 }
 
-/// Scores [date]. [minutes] should cover at least noon the day before to
-/// noon the day after. [history] holds earlier days, newest first.
-/// [extraTrimp] adds load HR misses (strength sessions, see
-/// [strengthCorrection]).
-DailyScore scoreDay({
+/// The main sleep ending on the morning of a day, the naps after it, and
+/// where that day's waking hours start and end.
+final class DaySleep {
+  const DaySleep({
+    required this.night,
+    required this.naps,
+    required this.wake,
+    required this.nextSleep,
+  });
+
+  /// Longest session ending in (day-1 14:00, day 14:00], if any.
+  final SleepSession? night;
+
+  /// Shorter sleeps (≥ [SleepParams.minNapMinutes], < 3 h asleep) that start
+  /// after [wake] and before the next main sleep, oldest first.
+  final List<SleepSession> naps;
+
+  /// End of [night], else 07:00.
+  final DateTime wake;
+
+  /// Start of the next main sleep (≥ 3 h asleep) after [wake], if seen.
+  final DateTime? nextSleep;
+}
+
+/// Splits [minutes] around [date] into its night and naps (see [DaySleep]).
+DaySleep daySleep({
   required DateTime date,
   required List<Minute> minutes,
-  List<StressReading> stress = const [],
-  List<DailyScore> history = const [],
-  ScoringParams p = const ScoringParams(),
-  double extraTrimp = 0,
+  SleepParams p = const SleepParams(),
 }) {
   final day = DateTime(date.year, date.month, date.day);
   // Find naps too; only sessions past minSessionMinutes can be the night.
   final all = detectSessions(
     minutes,
     SleepParams(
-      maxWakeGapMinutes: p.sleep.maxWakeGapMinutes,
-      minSessionMinutes: p.sleep.minNapMinutes,
+      maxWakeGapMinutes: p.maxWakeGapMinutes,
+      maxQuietGapMinutes: p.maxQuietGapMinutes,
+      quietGapMaxSteps: p.quietGapMaxSteps,
+      minSessionMinutes: p.minNapMinutes,
     ),
   );
   final sessions = [
     for (final s in all)
-      if (s.asleep.inMinutes >= p.sleep.minSessionMinutes) s,
+      if (s.asleep.inMinutes >= p.minSessionMinutes) s,
   ];
 
   // Main sleep: longest session ending in (day-1 14:00, day 14:00].
@@ -123,17 +143,33 @@ DailyScore scoreDay({
   }
   // Naps: shorter daytime sleep between waking and the next main sleep.
   final napEnd = nextSleep ?? day.add(const Duration(hours: 22));
-  final napHours =
-      all
-          .where(
-            (s) =>
-                s != night &&
-                s.start.isAfter(wake) &&
-                s.start.isBefore(napEnd) &&
-                s.asleep.inMinutes < 180,
-          )
-          .fold<int>(0, (a, s) => a + s.asleep.inMinutes) /
-      60;
+  final naps = [
+    for (final s in all)
+      if (s != night &&
+          s.start.isAfter(wake) &&
+          s.start.isBefore(napEnd) &&
+          s.asleep.inMinutes < 180)
+        s,
+  ];
+  return DaySleep(night: night, naps: naps, wake: wake, nextSleep: nextSleep);
+}
+
+/// Scores [date]. [minutes] should cover at least noon the day before to
+/// noon the day after. [history] holds earlier days, newest first.
+/// [extraTrimp] adds load HR misses (strength sessions, see
+/// [strengthCorrection]).
+DailyScore scoreDay({
+  required DateTime date,
+  required List<Minute> minutes,
+  List<StressReading> stress = const [],
+  List<DailyScore> history = const [],
+  ScoringParams p = const ScoringParams(),
+  double extraTrimp = 0,
+}) {
+  final day = DateTime(date.year, date.month, date.day);
+  final sl = daySleep(date: day, minutes: minutes, p: p.sleep);
+  final night = sl.night, wake = sl.wake, nextSleep = sl.nextSleep;
+  final napHours = sl.naps.fold<int>(0, (a, s) => a + s.asleep.inMinutes) / 60;
   final dayMinutes = minutes.where(
     (m) =>
         !m.ts.isBefore(wake) && (nextSleep == null || m.ts.isBefore(nextSleep)),
@@ -188,7 +224,7 @@ DailyScore scoreDay({
   double? hrv;
   if (night != null) {
     final inSleep = stress
-        .where((s) => !s.ts.isBefore(night!.start) && s.ts.isBefore(night.end))
+        .where((s) => !s.ts.isBefore(night.start) && s.ts.isBefore(night.end))
         .map((s) => s.value)
         .toList();
     if (inSleep.isNotEmpty) {

@@ -167,6 +167,103 @@ final nightProvider = FutureProvider.family<Night, DateTime>((
   );
 });
 
+/// Naps after waking on [morning], staged from HR and motion exactly as
+/// scoring found them (same minutes window and rules as ScoreService).
+final napsProvider = FutureProvider.family<List<sc.SleepSession>, DateTime>((
+  ref,
+  morning,
+) async {
+  ref.watch(dbTickProvider);
+  final db = ref.watch(dbProvider);
+  final raw = await db.minutesBetween(
+    morning.subtract(const Duration(hours: 12)),
+    morning.add(const Duration(hours: 36)),
+  );
+  return sc.daySleep(date: morning, minutes: decodeMinutes(raw).minutes).naps;
+});
+
+/// Each nap with its times, stages and heart rate. Hidden without naps.
+class NapsCard extends ConsumerWidget {
+  const NapsCard({super.key, required this.morning});
+  final DateTime morning;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final naps = ref.watch(napsProvider(morning)).value ?? const [];
+    if (naps.isEmpty) return const SizedBox.shrink();
+    final c = context.c;
+    return TempoCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            naps.length == 1 ? 'Nap' : '${naps.length} naps',
+            style: TempoType.label.c(c.text1),
+          ),
+          for (final (i, nap) in naps.indexed) ...[
+            SizedBox(height: i == 0 ? 10 : 18),
+            _NapRow(nap: nap),
+          ],
+          const SizedBox(height: 10),
+          Text(
+            'Naps count against your sleep debt, not toward last night\'s score.',
+            style: TempoType.caption.c(c.text3),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _NapRow extends StatelessWidget {
+  const _NapRow({required this.nap});
+  final sc.SleepSession nap;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c;
+    final hrs = [
+      for (final m in nap.minutes)
+        if (m.hr != null) m.hr!,
+    ];
+    final avgHr = hrs.isEmpty
+        ? null
+        : (hrs.reduce((a, b) => a + b) / hrs.length).round();
+    final minHr = hrs.isEmpty ? null : hrs.reduce((a, b) => a < b ? a : b);
+    String part(sc.Stage st) => hmShort(nap.stage(st).inMinutes / 60);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Text(
+              '${clockOf(nap.start)} – ${clockOf(nap.end)}',
+              style: TempoType.bodyS.c(c.text1).tnum,
+            ),
+            const Spacer(),
+            Text(
+              '${hmShort(nap.asleep.inMinutes / 60)} asleep',
+              style: TempoType.bodyS.c(c.text2).tnum,
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Hypnogram(minutes: nap.minutes, height: 72, labels: false),
+        const SizedBox(height: 6),
+        Text(
+          [
+            'Light ${part(sc.Stage.light)}',
+            'Deep ${part(sc.Stage.deep)}',
+            'REM ${part(sc.Stage.rem)}',
+            if (avgHr != null) 'HR avg $avgHr, low $minHr',
+          ].join(' · '),
+          style: TempoType.caption.c(c.text2).tnum,
+        ),
+      ],
+    );
+  }
+}
+
 class SleepScreen extends ConsumerWidget {
   const SleepScreen({super.key});
 
@@ -260,7 +357,7 @@ class SleepScreen extends ConsumerWidget {
               if (t.napHours > 0) ...[
                 const SizedBox(height: 6),
                 Text(
-                  '+ ${hmShort(t.napHours)} nap today · counts against your sleep debt',
+                  '+ ${hmShort(t.napHours)} napping today · counts against your sleep debt',
                   style: TempoType.caption.c(c.text2).tnum,
                 ),
               ],
@@ -292,7 +389,7 @@ class SleepScreen extends ConsumerWidget {
                 const SizedBox(height: 12),
                 if (!night.staged) ...[
                   Text(
-                    'No stages for this night: the band measured heart rate only every 10–30 minutes. Tempo now asks it for every minute, so the next night will have them.',
+                    'No stages for this night: the band measured heart rate only every 10–30 minutes. Tempo sets it back to every minute on each sync; if this repeats, another app such as Mi Fitness is changing it.',
                     style: TempoType.caption.c(c.text2),
                   ),
                   const SizedBox(height: 8),
@@ -340,6 +437,7 @@ class SleepScreen extends ConsumerWidget {
               ],
             ),
           ),
+          NapsCard(morning: t.day),
           Column(
             children: [
               Row(

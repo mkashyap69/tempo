@@ -1,0 +1,1830 @@
+# Excerpt of history type 0x07 (band debug log, 2026-10-06 08:45-16:44 local) from ios-2026-10-06T11-14-29: stress, sleep detection and settings lines only.
+[27758596] [TIME]2026-10-6 8:45:58 week 2
+[27758637] [STRESS SYNC] allday stress:255 time:1791256500
+[27789313] Sleepdt:0,1,0.864172
+[27789320] [TIME]2026-10-6 8:46:58 week 2
+[27789324] [STRESS SYNC] allday stress:255 time:1791256560
+[27820029] Sleepdt:0,1,0.902657
+[27820033] science_sleep_enable
+[27820039] [TIME]2026-10-6 8:47:58 week 2
+[27820043] [STRESS SYNC] allday stress:255 time:1791256620
+[27850749] Sleepdt:0,1,0.951868
+[27850770] [TIME]2026-10-6 8:48:58 week 2
+[27850774] [STRESS SYNC] allday stress:255 time:1791256680
+[27865163] hrv_stress,hrv=89.019012,stress=17,stress_sleep=4.375000
+[27881469] Sleepdt:0,1,0.910652
+[27881488] [TIME]2026-10-6 8:49:58 week 2
+[27881491] [ALG]aday pres time:1791276598 stress:4
+[27881491] [STRESS SYNC] allday stress:4 time:1791256740
+[27912190] Sleepdt:0,1,0.910652
+[27912205] [TIME]2026-10-6 8:50:58 week 2
+[27912208] [STRESS SYNC] allday stress:255 time:1791256800
+[27942911] Sleepdt:0,1,0.910652
+[27942966] [TIME]2026-10-6 8:51:58 week 2
+[27942970] [STRESS SYNC] allday stress:255 time:1791256860
+[27973628] Sleepdt:0,1,0.902453
+[27973683] [TIME]2026-10-6 8:52:58 week 2
+[27973687] [STRESS SYNC] allday stress:255 time:1791256920
+[28004349] Sleepdt:0,1,0.892832
+[28004366] [TIME]2026-10-6 8:53:58 week 2
+[28004370] [STRESS SYNC] allday stress:255 time:1791256980
+[28018879] hrv_stress,hrv=76.415122,stress=22,stress_sleep=7.500000
+[28035068] Sleepdt:0,1,0.891578
+[28035087] [TIME]2026-10-6 8:54:58 week 2
+[28035091] [ALG]aday pres time:1791276898 stress:7
+[28035091] [STRESS SYNC] allday stress:7 time:1791257040
+[28065790] Sleepdt:0,1,0.891578
+[28065809] [TIME]2026-10-6 8:55:58 week 2
+[28065813] [STRESS SYNC] allday stress:255 time:1791257100
+[28096298] Sleepdt:0,1,0.891578
+[28096313] [TIME]2026-10-6 8:56:58 week 2
+[28096322] [STRESS SYNC] allday stress:255 time:1791257160
+[28099484] [STRESS SYNC]len:9 start_addr:df000 start_time:1791202740
+[28099712] [STRESS SYNC]len:899 start_addr:df009 start_time:1791203280
+[28099865] [STRESS SYNC]len:0 start_addr:0 start_time:1791257220
+[28127021] Sleepdt:0,1,0.868511
+[28127036] [TIME]2026-10-6 8:57:58 week 2
+[28127044] [STRESS SYNC] allday stress:255 time:1791257220
+[28157741] Sleepdt:0,1,0.868511
+[28157758] [TIME]2026-10-6 8:58:58 week 2
+[28157762] [STRESS SYNC] allday stress:255 time:1791257280
+[28172266] hrv_stress,hrv=62.466617,stress=28,stress_sleep=11.250000
+[28188458] Sleepdt:0,1,0.868511
+[28188510] [TIME]2026-10-6 8:59:58 week 2
+[28188514] [ALG]aday pres time:1791277198 stress:11
+[28188515] [STRESS SYNC] allday stress:11 time:1791257340
+[28219179] Sleepdt:0,1,0.873579
+[28219240] [TIME]2026-10-6 9:0:58 week 2
+[28219244] [STRESS SYNC] allday stress:255 time:1791257400
+[28249899] Sleepdt:0,1,0.925343
+[28249954] [TIME]2026-10-6 9:1:58 week 2
+[28249958] [STRESS SYNC] allday stress:255 time:1791257460
+[28280619] Sleepdt:0,1,0.925343
+[28280635] [TIME]2026-10-6 9:2:58 week 2
+[28280639] [STRESS SYNC] allday stress:255 time:1791257520
+[28311338] Sleepdt:0,1,0.924613
+[28311356] [TIME]2026-10-6 9:3:58 week 2
+[28311360] [STRESS SYNC] allday stress:255 time:1791257580
+[28325674] hrv_stress,hrv=49.167129,stress=36,stress_sleep=16.250000
+[28342058] Sleepdt:0,1,0.889815
+[28342074] [TIME]2026-10-6 9:4:58 week 2
+[28342078] [ALG]aday pres time:1791277498 stress:16
+[28342078] [STRESS SYNC] allday stress:16 time:1791257640
+[28343148][BX CHANNEL]I: receive from app 0x00 module 0x32 session id 210 size 1 ok 
+[28343148] [BX_SLEEPDATA] receive data size: 1
+[28343148] handle_query_version_cmd ==> ver: 1 
+[28343148][BX CHANNEL]I: sending to app 0x00 session 246 module 0x32 size 2
+[28343149][BX CHANNEL]I: send to app 0x00 module 0x32 session 246 size 2 ok 
+[28343217][BX CHANNEL]I: receive from app 0x00 module 0x32 session id 211 size 1 ok 
+[28343217] [BX_SLEEPDATA] receive data size: 1
+[28343217] handle_query_config_info ==> max_day: 16 func:0 
+[28343217][BX CHANNEL]I: sending to app 0x00 session 247 module 0x32 size 6
+[28343218][BX CHANNEL]I: send to app 0x00 module 0x32 session 247 size 6 ok 
+[28343287][BX CHANNEL]I: receive from app 0x00 module 0x32 session id 212 size 1 ok 
+[28343287] [BX_SLEEPDATA] receive data size: 1
+[28343292][BX CHANNEL]I: sending to app 0x00 session 248 module 0x32 size 6
+[28343293][BX CHANNEL]I: send to app 0x00 module 0x32 session 248 size 6 ok 
+[28372778] Sleepdt:0,1,0.889815
+[28372840] [TIME]2026-10-6 9:5:58 week 2
+[28372844] [STRESS SYNC] allday stress:255 time:1791257700
+[28403500] Sleepdt:0,1,0.956067
+[28403561] [TIME]2026-10-6 9:6:58 week 2
+[28403565] [STRESS SYNC] allday stress:255 time:1791257760
+[28434220] Sleepdt:0,1,0.960997
+[28434236] [TIME]2026-10-6 9:7:58 week 2
+[28434240] [STRESS SYNC] allday stress:255 time:1791257820
+[28464938] Sleepdt:0,1,0.960997
+[28464961] [TIME]2026-10-6 9:8:58 week 2
+[28464966] [STRESS SYNC] allday stress:255 time:1791257880
+[28479403] hrv_stress,hrv=85.543937,stress=18,stress_sleep=4.999999
+[28495658] Sleepdt:0,1,0.958774
+[28495680] [TIME]2026-10-6 9:9:58 week 2
+[28495685] [ALG]aday pres time:1791277798 stress:4
+[28495685] [STRESS SYNC] allday stress:4 time:1791257940
+[28526379] Sleepdt:0,1,0.953059
+[28526395] [TIME]2026-10-6 9:10:58 week 2
+[28526400] [STRESS SYNC] allday stress:255 time:1791258000
+[28557099] Sleepdt:0,1,0.958774
+[28557154] [TIME]2026-10-6 9:11:58 week 2
+[28557159] [STRESS SYNC] allday stress:255 time:1791258060
+[28587818] Sleepdt:0,1,0.976201
+[28587877] [TIME]2026-10-6 9:12:58 week 2
+[28587882] [STRESS SYNC] allday stress:255 time:1791258120
+[28618538] Sleepdt:0,1,0.978858
+[28618557] [TIME]2026-10-6 9:13:58 week 2
+[28618562] [STRESS SYNC] allday stress:255 time:1791258180
+[28633120] hrv_stress,hrv=61.044994,stress=29,stress_sleep=11.875000
+[28649258] Sleepdt:0,1,0.982344
+[28649278] [TIME]2026-10-6 9:14:58 week 2
+[28649283] [ALG]aday pres time:1791278098 stress:11
+[28649283] [STRESS SYNC] allday stress:11 time:1791258240
+[28679981] Sleepdt:0,1,0.983522
+[28679997] [TIME]2026-10-6 9:15:58 week 2
+[28680006] [STRESS SYNC] allday stress:255 time:1791258300
+[28710741] Sleepdt:0,1,0.983522
+[28710758] [TIME]2026-10-6 9:16:58 week 2
+[28710763] [STRESS SYNC] allday stress:255 time:1791258360
+[28741822] Sleepdt:0,1,0.977492
+[28741880] [TIME]2026-10-6 9:17:58 week 2
+[28741885] [STRESS SYNC] allday stress:255 time:1791258420
+[28744752] [STRESS SYNC]len:9 start_addr:df000 start_time:1791202740
+[28745016] [STRESS SYNC]len:920 start_addr:df009 start_time:1791203280
+[28745205] [STRESS SYNC]len:0 start_addr:0 start_time:1791258480
+[28772543] Sleepdt:0,1,0.977492
+[28772569] [TIME]2026-10-6 9:18:58 week 2
+[28772574] [STRESS SYNC] allday stress:255 time:1791258480
+[28787169] hrv_stress,hrv=62.416454,stress=28,stress_sleep=11.250000
+[28803265] Sleepdt:0,1,0.980680
+[28803281] [TIME]2026-10-6 9:19:58 week 2
+[28803291] [ALG]aday pres time:1791278398 stress:11
+[28803291] [STRESS SYNC] allday stress:11 time:1791258540
+[28833983] Sleepdt:0,1,0.981054
+[28833999] [TIME]2026-10-6 9:20:58 week 2
+[28834005] [STRESS SYNC] allday stress:255 time:1791258600
+[28864702] Sleepdt:0,1,0.981054
+[28864758] [TIME]2026-10-6 9:21:58 week 2
+[28864763] [STRESS SYNC] allday stress:255 time:1791258660
+[28895423] Sleepdt:0,1,0.980752
+[28895481] [TIME]2026-10-6 9:22:58 week 2
+[28895486] [STRESS SYNC] allday stress:255 time:1791258720
+[28926143] Sleepdt:0,1,0.980752
+[28926163] [TIME]2026-10-6 9:23:58 week 2
+[28926168] [STRESS SYNC] allday stress:255 time:1791258780
+[28940567] hrv_stress,hrv=81.351371,stress=20,stress_sleep=6.250000
+[28956864] Sleepdt:0,1,0.980508
+[28956881] [TIME]2026-10-6 9:24:58 week 2
+[28956886] [ALG]aday pres time:1791278698 stress:6
+[28956886] [STRESS SYNC] allday stress:6 time:1791258840
+[28987582] Sleepdt:0,1,0.976174
+[28987603] [TIME]2026-10-6 9:25:58 week 2
+[28987609] [STRESS SYNC] allday stress:255 time:1791258900
+[28988358][BX CHANNEL]I: receive from app 0x00 module 0x32 session id 228 size 1 ok 
+[28988358] [BX_SLEEPDATA] receive data size: 1
+[28988358] handle_query_version_cmd ==> ver: 1 
+[28988358][BX CHANNEL]I: sending to app 0x00 session 253 module 0x32 size 2
+[28988363][BX CHANNEL]I: send to app 0x00 module 0x32 session 253 size 2 ok 
+[28988458][BX CHANNEL]I: receive from app 0x00 module 0x32 session id 229 size 1 ok 
+[28988458] [BX_SLEEPDATA] receive data size: 1
+[28988458] handle_query_config_info ==> max_day: 16 func:0 
+[28988458][BX CHANNEL]I: sending to app 0x00 session 254 module 0x32 size 6
+[28988459][BX CHANNEL]I: send to app 0x00 module 0x32 session 254 size 6 ok 
+[28988565][BX CHANNEL]I: receive from app 0x00 module 0x32 session id 230 size 1 ok 
+[28988565] [BX_SLEEPDATA] receive data size: 1
+[28988566][BX CHANNEL]I: sending to app 0x00 session 255 module 0x32 size 6
+[28988566][BX CHANNEL]I: send to app 0x00 module 0x32 session 255 size 6 ok 
+[29018302] Sleepdt:0,1,0.974739
+[29018319] [TIME]2026-10-6 9:26:58 week 2
+[29018325] [STRESS SYNC] allday stress:255 time:1791258960
+[29049063] Sleepdt:0,1,0.968718
+[29049080] [TIME]2026-10-6 9:27:58 week 2
+[29049085] [STRESS SYNC] allday stress:255 time:1791259020
+[29079745] Sleepdt:0,1,0.965394
+[29079808] [TIME]2026-10-6 9:28:58 week 2
+[29079814] [STRESS SYNC] allday stress:255 time:1791259080
+[29094368] hrv_stress,hrv=96.119476,stress=14,stress_sleep=2.499999
+[29110462] Sleepdt:0,1,0.965394
+[29110479] [TIME]2026-10-6 9:29:58 week 2
+[29110485] [ALG]aday pres time:1791278998 stress:2
+[29110485] [STRESS SYNC] allday stress:2 time:1791259140
+[29141183] Sleepdt:0,1,0.965356
+[29141200] [TIME]2026-10-6 9:30:58 week 2
+[29141245] [STRESS SYNC] allday stress:255 time:1791259200
+[29171902] Sleepdt:0,1,0.930573
+[29171924] [TIME]2026-10-6 9:31:58 week 2
+[29171929] [STRESS SYNC] allday stress:255 time:1791259260
+[29202623] Sleepdt:0,1,0.930573
+[29202645] [TIME]2026-10-6 9:32:58 week 2
+[29202651] [STRESS SYNC] allday stress:255 time:1791259320
+[29233344] Sleepdt:0,1,0.944177
+[29233364] [TIME]2026-10-6 9:33:58 week 2
+[29233370] [STRESS SYNC] allday stress:255 time:1791259380
+[29247765] hrv_stress,hrv=78.300674,stress=21,stress_sleep=6.874999
+[29264106] Sleepdt:0,1,0.956451
+[29264124] [TIME]2026-10-6 9:34:58 week 2
+[29264129] [ALG]aday pres time:1791279298 stress:6
+[29264130] [STRESS SYNC] allday stress:6 time:1791259440
+[29294783] Sleepdt:0,1,0.957326
+[29294841] [TIME]2026-10-6 9:35:58 week 2
+[29294854] [STRESS SYNC] allday stress:255 time:1791259500
+[29325510] Sleepdt:0,1,0.957326
+[29325528] [TIME]2026-10-6 9:36:58 week 2
+[29325534] [STRESS SYNC] allday stress:255 time:1791259560
+[29356014] Sleepdt:0,1,0.965218
+[29356036] [TIME]2026-10-6 9:37:58 week 2
+[29356042] [STRESS SYNC] allday stress:255 time:1791259620
+[29359182] [STRESS SYNC]len:9 start_addr:df000 start_time:1791202740
+[29359396] [STRESS SYNC]len:940 start_addr:df009 start_time:1791203280
+[29359631] [STRESS SYNC]len:0 start_addr:0 start_time:1791259680
+[29386733] Sleepdt:0,1,0.965218
+[29386754] [TIME]2026-10-6 9:38:58 week 2
+[29386760] [STRESS SYNC] allday stress:255 time:1791259680
+[29400100] [STRESS SYNC]len:70 start_addr:df370 start_time:1791255540
+[29417454] Sleepdt:0,1,0.959687
+[29417519] [TIME]2026-10-6 9:39:58 week 2
+[29417522] [STRESS SYNC] allday stress:255 time:1791259740
+[29448173] Sleepdt:0,1,0.856669
+[29448190] [TIME]2026-10-6 9:40:58 week 2
+[29448192] [STRESS SYNC] allday stress:255 time:1791259800
+[29478893] Sleepdt:0,1,0.742295
+[29478905] [TIME]2026-10-6 9:41:58 week 2
+[29478908] [STRESS SYNC] allday stress:255 time:1791259860
+[29509831] Sleepdt:0,1,0.339559
+[29509841] [TIME]2026-10-6 9:42:58 week 2
+[29509848] [STRESS SYNC] allday stress:255 time:1791259920
+[29515176][BX CHANNEL]I: receive from app 0x00 module 0x32 session id 245 size 1 ok 
+[29515176] [BX_SLEEPDATA] receive data size: 1
+[29515176] handle_query_version_cmd ==> ver: 1 
+[29515177][BX CHANNEL]I: sending to app 0x00 session 4 module 0x32 size 2
+[29515178][BX CHANNEL]I: send to app 0x00 module 0x32 session 4 size 2 ok 
+[29515179] [STRESS SYNC]len:9 start_addr:df000 start_time:1791202740
+[29515237][BX CHANNEL]I: receive from app 0x00 module 0x32 session id 246 size 1 ok 
+[29515237] [BX_SLEEPDATA] receive data size: 1
+[29515237] handle_query_config_info ==> max_day: 16 func:0 
+[29515237][BX CHANNEL]I: sending to app 0x00 session 5 module 0x32 size 6
+[29515238][BX CHANNEL]I: send to app 0x00 module 0x32 session 5 size 6 ok 
+[29515391][BX CHANNEL]I: receive from app 0x00 module 0x32 session id 247 size 1 ok 
+[29515391] [BX_SLEEPDATA] receive data size: 1
+[29515393][BX CHANNEL]I: sending to app 0x00 session 6 module 0x32 size 6
+[29515394][BX CHANNEL]I: send to app 0x00 module 0x32 session 6 size 6 ok 
+[29515399] [STRESS SYNC]len:945 start_addr:df009 start_time:1791203280
+[29515660] [STRESS SYNC]len:0 start_addr:0 start_time:1791259980
+[29540532] Sleepdt:0,1,0.213286
+[29540547] [TIME]2026-10-6 9:43:58 week 2
+[29540549] [STRESS SYNC] allday stress:255 time:1791259980
+[29571253] Sleepdt:0,0,0.122954
+[29571265] [TIME]2026-10-6 9:44:58 week 2
+[29571315] [STRESS SYNC] allday stress:255 time:1791260040
+[29601975] Sleepdt:0,0,0.101368
+[29602025] [TIME]2026-10-6 9:45:58 week 2
+[29602028] [STRESS SYNC] allday stress:255 time:1791260100
+[29632694] Sleepdt:0,0,0.119114
+[29632747] [TIME]2026-10-6 9:46:58 week 2
+[29632749] [STRESS SYNC] allday stress:255 time:1791260160
+[29663412] Sleepdt:0,0,0.069767
+[29663425] [TIME]2026-10-6 9:47:58 week 2
+[29663428] [STRESS SYNC] allday stress:255 time:1791260220
+[29694133] Sleepdt:0,0,0.062660
+[29694148] [TIME]2026-10-6 9:48:58 week 2
+[29694151] [STRESS SYNC] allday stress:255 time:1791260280
+[29696800] [STRESS SYNC]len:10 start_addr:df3b6 start_time:1791259740
+[29721434] [STRESS SYNC]len:9 start_addr:df000 start_time:1791202740
+[29724854] Sleepdt:0,0,0.045356
+[29724866] [TIME]2026-10-6 9:49:58 week 2
+[29724869] [STRESS SYNC] allday stress:255 time:1791260340
+[29755574] Sleepdt:0,0,0.035275
+[29755586] [TIME]2026-10-6 9:50:58 week 2
+[29755589] [STRESS SYNC] allday stress:255 time:1791260400
+[29786293] Sleepdt:0,0,0.032248
+[29786309] [TIME]2026-10-6 9:51:58 week 2
+[29786312] [STRESS SYNC] allday stress:255 time:1791260460
+[29816805] Sleepdt:0,0,0.025488
+[29816822] [TIME]2026-10-6 9:52:58 week 2
+[29816825] [STRESS SYNC] allday stress:255 time:1791260520
+[29821008] [STRESS SYNC]len:9 start_addr:df000 start_time:1791202740
+[29821238] [STRESS SYNC]len:955 start_addr:df009 start_time:1791203280
+[29821460] [STRESS SYNC]len:0 start_addr:0 start_time:1791260580
+[29847525] Sleepdt:0,0,0.019173
+[29847535] science_sleep_disable
+[29847542] [TIME]2026-10-6 9:53:58 week 2
+[29847551] [STRESS SYNC] allday stress:255 time:1791260580
+[29862494][BX CHANNEL]I: receive from app 0x00 module 0x90 session id 4 size 5 ok [ENC]
+[29862585][BX CHANNEL]I: receive from app 0x00 module 0x90 session id 5 size 5 ok [ENC]
+[29865644] [STRESS SYNC]len:9 start_addr:df000 start_time:1791202740
+[29865889] [STRESS SYNC]len:956 start_addr:df009 start_time:1791203280
+[29866216] [STRESS SYNC]len:0 start_addr:0 start_time:1791260640
+[29866987][BX CHANNEL]I: receive from app 0x00 module 0x90 session id 6 size 5 ok [ENC]
+[29866987] set allday heart: 1
+[29867125][BX CHANNEL]I: receive from app 0x00 module 0x90 session id 7 size 5 ok [ENC]
+[29867225][BX CHANNEL]I: receive from app 0x00 module 0x90 session id 8 size 5 ok [ENC]
+[29867225] ECF_SET_SCIENTIFIC_SLEEP_SWITCH: 1
+[29867285][BX CHANNEL]I: receive from app 0x00 module 0x90 session id 9 size 5 ok [ENC]
+[29867508][BX CHANNEL]I: receive from app 0x00 module 0x90 session id 11 size 5 ok [ENC]
+[29867685][BX CHANNEL]I: receive from app 0x00 module 0x90 session id 12 size 5 ok [ENC]
+[29868276][BX CHANNEL]I: receive from app 0x00 module 0x32 session id 15 size 1 ok 
+[29868276] [BX_SLEEPDATA] receive data size: 1
+[29868276] handle_query_version_cmd ==> ver: 1 
+[29868276][BX CHANNEL]I: sending to app 0x00 session 28 module 0x32 size 2
+[29868277][BX CHANNEL]I: send to app 0x00 module 0x32 session 28 size 2 ok 
+[29868415][BX CHANNEL]I: receive from app 0x00 module 0x32 session id 16 size 1 ok 
+[29868415] [BX_SLEEPDATA] receive data size: 1
+[29868415] handle_query_config_info ==> max_day: 16 func:0 
+[29868415][BX CHANNEL]I: sending to app 0x00 session 29 module 0x32 size 6
+[29868416][BX CHANNEL]I: send to app 0x00 module 0x32 session 29 size 6 ok 
+[29868514][BX CHANNEL]I: receive from app 0x00 module 0x32 session id 17 size 1 ok 
+[29868514] [BX_SLEEPDATA] receive data size: 1
+[29868515][BX CHANNEL]I: sending to app 0x00 session 30 module 0x32 size 6
+[29868515][BX CHANNEL]I: send to app 0x00 module 0x32 session 30 size 6 ok 
+[29878026] Sleepdt:0,0,0.014067
+[29878071] [TIME]2026-10-6 9:54:58 week 2
+[29878075] [STRESS SYNC] allday stress:255 time:1791260640
+[29879312][BX CHANNEL]I: receive from app 0x00 module 0x90 session id 26 size 5 ok [ENC]
+[29879358][BX CHANNEL]I: receive from app 0x00 module 0x90 session id 27 size 5 ok [ENC]
+[29882262] [STRESS SYNC]len:9 start_addr:df000 start_time:1791202740
+[29882500] [STRESS SYNC]len:957 start_addr:df009 start_time:1791203280
+[29882892] [STRESS SYNC]len:0 start_addr:0 start_time:1791260700
+[29883820][BX CHANNEL]I: receive from app 0x00 module 0x32 session id 30 size 1 ok 
+[29883820] [BX_SLEEPDATA] receive data size: 1
+[29883820] handle_query_version_cmd ==> ver: 1 
+[29883820][BX CHANNEL]I: sending to app 0x00 session 43 module 0x32 size 2
+[29883820][BX CHANNEL]I: send to app 0x00 module 0x32 session 43 size 2 ok 
+[29883921][BX CHANNEL]I: receive from app 0x00 module 0x32 session id 31 size 1 ok 
+[29883921] [BX_SLEEPDATA] receive data size: 1
+[29883963] handle_query_config_info ==> max_day: 16 func:0 
+[29883963][BX CHANNEL]I: sending to app 0x00 session 44 module 0x32 size 6
+[29883964][BX CHANNEL]I: send to app 0x00 module 0x32 session 44 size 6 ok 
+[29884028][BX CHANNEL]I: receive from app 0x00 module 0x32 session id 32 size 1 ok 
+[29884029] [BX_SLEEPDATA] receive data size: 1
+[29884029][BX CHANNEL]I: sending to app 0x00 session 45 module 0x32 size 6
+[29884030][BX CHANNEL]I: send to app 0x00 module 0x32 session 45 size 6 ok 
+[29909146] Sleepdt:0,0,0.008741
+[29909157] [TIME]2026-10-6 9:55:58 week 2
+[29909160] [STRESS SYNC] allday stress:255 time:1791260700
+[29923424][BX CHANNEL]I: receive from app 0x00 module 0x90 session id 39 size 5 ok [ENC]
+[29923564][BX CHANNEL]I: receive from app 0x00 module 0x90 session id 40 size 5 ok [ENC]
+[29926540] [STRESS SYNC]len:9 start_addr:df000 start_time:1791202740
+[29926742] [STRESS SYNC]len:958 start_addr:df009 start_time:1791203280
+[29927091] [STRESS SYNC]len:0 start_addr:0 start_time:1791260760
+[29928871][BX CHANNEL]I: receive from app 0x00 module 0x32 session id 45 size 1 ok 
+[29928871] [BX_SLEEPDATA] receive data size: 1
+[29928872] handle_query_version_cmd ==> ver: 1 
+[29928872][BX CHANNEL]I: sending to app 0x00 session 58 module 0x32 size 2
+[29928872][BX CHANNEL]I: send to app 0x00 module 0x32 session 58 size 2 ok 
+[29928971][BX CHANNEL]I: receive from app 0x00 module 0x32 session id 46 size 1 ok 
+[29928971] [BX_SLEEPDATA] receive data size: 1
+[29928972] handle_query_config_info ==> max_day: 16 func:0 
+[29928972][BX CHANNEL]I: sending to app 0x00 session 59 module 0x32 size 6
+[29928972][BX CHANNEL]I: send to app 0x00 module 0x32 session 59 size 6 ok 
+[29929071][BX CHANNEL]I: receive from app 0x00 module 0x32 session id 47 size 1 ok 
+[29929111] [BX_SLEEPDATA] receive data size: 1
+[29929112][BX CHANNEL]I: sending to app 0x00 session 60 module 0x32 size 6
+[29929112][BX CHANNEL]I: send to app 0x00 module 0x32 session 60 size 6 ok 
+[29939446] Sleepdt:0,0,0.008741
+[29939453] [TIME]2026-10-6 9:56:58 week 2
+[29939456] [STRESS SYNC] allday stress:255 time:1791260760
+[29954630][BX CHANNEL]I: receive from app 0x00 module 0x90 session id 54 size 5 ok [ENC]
+[29954722][BX CHANNEL]I: receive from app 0x00 module 0x90 session id 55 size 5 ok [ENC]
+[29957764] [STRESS SYNC]len:9 start_addr:df000 start_time:1791202740
+[29957958] [STRESS SYNC]len:959 start_addr:df009 start_time:1791203280
+[29958286] [STRESS SYNC]len:0 start_addr:0 start_time:1791260820
+[29959629][BX CHANNEL]I: receive from app 0x00 module 0x32 session id 58 size 1 ok 
+[29959667] [BX_SLEEPDATA] receive data size: 1
+[29959667] handle_query_version_cmd ==> ver: 1 
+[29959667][BX CHANNEL]I: sending to app 0x00 session 71 module 0x32 size 2
+[29959667][BX CHANNEL]I: send to app 0x00 module 0x32 session 71 size 2 ok 
+[29959806][BX CHANNEL]I: receive from app 0x00 module 0x32 session id 59 size 1 ok 
+[29959807] [BX_SLEEPDATA] receive data size: 1
+[29959807] handle_query_config_info ==> max_day: 16 func:0 
+[29959807][BX CHANNEL]I: sending to app 0x00 session 72 module 0x32 size 6
+[29959808][BX CHANNEL]I: send to app 0x00 module 0x32 session 72 size 6 ok 
+[29959868][BX CHANNEL]I: receive from app 0x00 module 0x32 session id 60 size 1 ok 
+[29959868] [BX_SLEEPDATA] receive data size: 1
+[29959868][BX CHANNEL]I: sending to app 0x00 session 73 module 0x32 size 6
+[29959869][BX CHANNEL]I: send to app 0x00 module 0x32 session 73 size 6 ok 
+[29970157] Sleepdt:0,0,0.014234
+[29970166] [TIME]2026-10-6 9:57:58 week 2
+[29970170] [STRESS SYNC] allday stress:255 time:1791260820
+[30000878] Sleepdt:0,0,0.016256
+[30000892] [TIME]2026-10-6 9:58:58 week 2
+[30000896] [STRESS SYNC] allday stress:255 time:1791260880
+[30031598] Sleepdt:0,0,0.018907
+[30031642] [TIME]2026-10-6 9:59:58 week 2
+[30031646] [STRESS SYNC] allday stress:255 time:1791260940
+[30062316] Sleepdt:0,0,0.018907
+[30062323] [TIME]2026-10-6 10:0:58 week 2
+[30062327] [STRESS SYNC] allday stress:255 time:1791261000
+[30083993][BX CHANNEL]I: receive from app 0x00 module 0x90 session id 6 size 5 ok [ENC]
+[30084055][BX CHANNEL]I: receive from app 0x00 module 0x90 session id 7 size 5 ok [ENC]
+[30086037] [STRESS SYNC]len:9 start_addr:df000 start_time:1791202740
+[30086083] [STRESS SYNC]len:963 start_addr:df009 start_time:1791203280
+[30086159] [STRESS SYNC]len:0 start_addr:0 start_time:1791261060
+[30086527][BX CHANNEL]I: receive from app 0x00 module 0x90 session id 8 size 5 ok [ENC]
+[30086528] set allday heart: 1
+[30086596][BX CHANNEL]I: receive from app 0x00 module 0x90 session id 9 size 5 ok [ENC]
+[30086613][BX CHANNEL]I: receive from app 0x00 module 0x90 session id 10 size 5 ok [ENC]
+[30086613] ECF_SET_SCIENTIFIC_SLEEP_SWITCH: 1
+[30086643][BX CHANNEL]I: receive from app 0x00 module 0x90 session id 11 size 5 ok [ENC]
+[30086689][BX CHANNEL]I: receive from app 0x00 module 0x90 session id 13 size 5 ok [ENC]
+[30086719][BX CHANNEL]I: receive from app 0x00 module 0x90 session id 14 size 5 ok [ENC]
+[30092187][BX CHANNEL]I: receive from app 0x00 module 0x90 session id 25 size 5 ok [ENC]
+[30092287][BX CHANNEL]I: receive from app 0x00 module 0x90 session id 26 size 5 ok [ENC]
+[30093425] Sleepdt:0,0,0.012211
+[30093429] [TIME]2026-10-6 10:1:58 week 2
+[30093434] [STRESS SYNC] allday stress:255 time:1791261060
+[30095483] [STRESS SYNC]len:13 start_addr:df3c0 start_time:1791260340
+[30124136] Sleepdt:0,0,0.008600
+[30124142] [TIME]2026-10-6 10:2:58 week 2
+[30124146] [STRESS SYNC] allday stress:255 time:1791261120
+[30154853] Sleepdt:0,0,0.008600
+[30154858] [TIME]2026-10-6 10:3:58 week 2
+[30154861] [STRESS SYNC] allday stress:255 time:1791261180
+[30185573] Sleepdt:0,0,0.044568
+[30185616] [TIME]2026-10-6 10:4:58 week 2
+[30185620] [STRESS SYNC] allday stress:255 time:1791261240
+[30216294] Sleepdt:0,0,0.071432
+[30216298] [TIME]2026-10-6 10:5:58 week 2
+[30216302] [STRESS SYNC] allday stress:255 time:1791261300
+[30247014] Sleepdt:0,0,0.110207
+[30247019] [TIME]2026-10-6 10:6:58 week 2
+[30247023] [STRESS SYNC] allday stress:255 time:1791261360
+[30277734] Sleepdt:0,1,0.186099
+[30277738] [TIME]2026-10-6 10:7:58 week 2
+[30277742] [STRESS SYNC] allday stress:255 time:1791261420
+[30308453] Sleepdt:0,1,0.248164
+[30308463] [TIME]2026-10-6 10:8:58 week 2
+[30308466] [STRESS SYNC] allday stress:255 time:1791261480
+[30339173] Sleepdt:0,1,0.423358
+[30339178] [TIME]2026-10-6 10:9:58 week 2
+[30339182] [STRESS SYNC] allday stress:255 time:1791261540
+[30369896] Sleepdt:0,1,0.531152
+[30369901] [TIME]2026-10-6 10:10:58 week 2
+[30369904] [STRESS SYNC] allday stress:255 time:1791261600
+[30400616] Sleepdt:0,1,0.602751
+[30400621] [TIME]2026-10-6 10:11:58 week 2
+[30400624] [STRESS SYNC] allday stress:255 time:1791261660
+[30431371] Sleepdt:0,1,0.669065
+[30431376] [TIME]2026-10-6 10:12:58 week 2
+[30431380] [STRESS SYNC] allday stress:255 time:1791261720
+[30462053] Sleepdt:0,1,0.711220
+[30462063] [TIME]2026-10-6 10:13:58 week 2
+[30462067] [STRESS SYNC] allday stress:255 time:1791261780
+[30492774] Sleepdt:0,1,0.787587
+[30492780] [TIME]2026-10-6 10:14:58 week 2
+[30492784] [STRESS SYNC] allday stress:255 time:1791261840
+[30523495] Sleepdt:0,1,0.879680
+[30523500] [TIME]2026-10-6 10:15:58 week 2
+[30523504] [STRESS SYNC] allday stress:255 time:1791261900
+[30554218] Sleepdt:0,1,0.882821
+[30554223] [TIME]2026-10-6 10:16:58 week 2
+[30554227] [STRESS SYNC] allday stress:255 time:1791261960
+[30584934] Sleepdt:0,1,0.887481
+[30584976] [TIME]2026-10-6 10:17:58 week 2
+[30584980] [STRESS SYNC] allday stress:255 time:1791262020
+[30615693] Sleepdt:0,1,0.924831
+[30615704] [TIME]2026-10-6 10:18:58 week 2
+[30615708] [STRESS SYNC] allday stress:255 time:1791262080
+[30646378] Sleepdt:0,1,0.924831
+[30646387] [TIME]2026-10-6 10:19:58 week 2
+[30646396] [STRESS SYNC] allday stress:255 time:1791262140
+[30677143] Sleepdt:0,1,0.437306
+[30677156] [TIME]2026-10-6 10:20:58 week 2
+[30677160] [STRESS SYNC] allday stress:255 time:1791262200
+[30707815] Sleepdt:0,1,0.182539
+[30707864] [TIME]2026-10-6 10:21:58 week 2
+[30707868] [STRESS SYNC] allday stress:255 time:1791262260
+[30738535] Sleepdt:0,0,0.138850
+[30738543] [TIME]2026-10-6 10:22:58 week 2
+[30738547] [STRESS SYNC] allday stress:255 time:1791262320
+[30769257] Sleepdt:0,0,0.075217
+[30769263] [TIME]2026-10-6 10:23:58 week 2
+[30769272] [STRESS SYNC] allday stress:255 time:1791262380
+[30799976] Sleepdt:0,0,0.075217
+[30799985] [TIME]2026-10-6 10:24:58 week 2
+[30799989] [STRESS SYNC] allday stress:255 time:1791262440
+[30830695] Sleepdt:0,0,0.046544
+[30830743] [TIME]2026-10-6 10:25:58 week 2
+[30830747] [STRESS SYNC] allday stress:255 time:1791262500
+[30861412] Sleepdt:0,0,0.020580
+[30861417] [TIME]2026-10-6 10:26:58 week 2
+[30861465] [STRESS SYNC] allday stress:255 time:1791262560
+[30892140] Sleepdt:0,0,0.026606
+[30892149] [TIME]2026-10-6 10:27:58 week 2
+[30892153] [STRESS SYNC] allday stress:255 time:1791262620
+[30922877] Sleepdt:0,0,0.026606
+[30922884] [TIME]2026-10-6 10:28:58 week 2
+[30922932] [STRESS SYNC] allday stress:255 time:1791262680
+[30953576] Sleepdt:0,0,0.026606
+[30953633] [TIME]2026-10-6 10:29:58 week 2
+[30953638] [STRESS SYNC] allday stress:255 time:1791262740
+[30984295] Sleepdt:0,0,0.011432
+[30984304] [TIME]2026-10-6 10:30:58 week 2
+[30984308] [STRESS SYNC] allday stress:255 time:1791262800
+[31015014] Sleepdt:0,0,0.011432
+[31015030] [TIME]2026-10-6 10:31:58 week 2
+[31015035] [STRESS SYNC] allday stress:255 time:1791262860
+[31045736] Sleepdt:0,0,0.011432
+[31045750] [TIME]2026-10-6 10:32:58 week 2
+[31045755] [STRESS SYNC] allday stress:255 time:1791262920
+[31076457] Sleepdt:0,0,0.005360
+[31076468] [TIME]2026-10-6 10:33:58 week 2
+[31076477] [STRESS SYNC] allday stress:255 time:1791262980
+[31107175] Sleepdt:0,0,0.004368
+[31107183] [TIME]2026-10-6 10:34:58 week 2
+[31107192] [STRESS SYNC] allday stress:255 time:1791263040
+[31137894] Sleepdt:0,0,0.004368
+[31137903] [TIME]2026-10-6 10:35:58 week 2
+[31137912] [STRESS SYNC] allday stress:255 time:1791263100
+[31168615] Sleepdt:0,0,0.006597
+[31168622] [TIME]2026-10-6 10:36:58 week 2
+[31168627] [STRESS SYNC] allday stress:255 time:1791263160
+[31199337] Sleepdt:0,0,0.020179
+[31199343] [TIME]2026-10-6 10:37:58 week 2
+[31199348] [STRESS SYNC] allday stress:255 time:1791263220
+[31230056] Sleepdt:0,0,0.060707
+[31230067] [TIME]2026-10-6 10:38:58 week 2
+[31230072] [STRESS SYNC] allday stress:255 time:1791263280
+[31260774] Sleepdt:0,0,0.080566
+[31260781] [TIME]2026-10-6 10:39:58 week 2
+[31260786] [STRESS SYNC] allday stress:255 time:1791263340
+[31291494] Sleepdt:0,0,0.108633
+[31291501] [TIME]2026-10-6 10:40:58 week 2
+[31291506] [STRESS SYNC] allday stress:255 time:1791263400
+[31322259] Sleepdt:0,1,0.239762
+[31322266] [TIME]2026-10-6 10:41:58 week 2
+[31322271] [STRESS SYNC] allday stress:255 time:1791263460
+[31352934] Sleepdt:0,1,0.439280
+[31352984] [TIME]2026-10-6 10:42:58 week 2
+[31352988] [STRESS SYNC] allday stress:255 time:1791263520
+[31383654] Sleepdt:0,1,0.556039
+[31383661] [TIME]2026-10-6 10:43:58 week 2
+[31383667] [STRESS SYNC] allday stress:255 time:1791263580
+[31414374] Sleepdt:0,1,0.638558
+[31414382] [TIME]2026-10-6 10:44:58 week 2
+[31414386] [STRESS SYNC] allday stress:255 time:1791263640
+[31445097] Sleepdt:0,1,0.638558
+[31445141] [TIME]2026-10-6 10:45:58 week 2
+[31445146] [STRESS SYNC] allday stress:255 time:1791263700
+[31475816] Sleepdt:0,1,0.653841
+[31475824] [TIME]2026-10-6 10:46:58 week 2
+[31475829] [STRESS SYNC] allday stress:255 time:1791263760
+[31506534] Sleepdt:0,1,0.780980
+[31506542] [TIME]2026-10-6 10:47:58 week 2
+[31506546] [STRESS SYNC] allday stress:255 time:1791263820
+[31537254] Sleepdt:0,1,0.916091
+[31537303] [TIME]2026-10-6 10:48:58 week 2
+[31537342] [STRESS SYNC] allday stress:255 time:1791263880
+[31567975] Sleepdt:0,1,0.916091
+[31567983] [TIME]2026-10-6 10:49:58 week 2
+[31567987] [STRESS SYNC] allday stress:255 time:1791263940
+[31598695] Sleepdt:0,1,0.910363
+[31598704] [TIME]2026-10-6 10:50:58 week 2
+[31598708] [STRESS SYNC] allday stress:255 time:1791264000
+[31629455] Sleepdt:0,1,0.910363
+[31629463] [TIME]2026-10-6 10:51:58 week 2
+[31629468] [STRESS SYNC] allday stress:255 time:1791264060
+[31660134] Sleepdt:0,1,0.928892
+[31660142] [TIME]2026-10-6 10:52:58 week 2
+[31660230] [STRESS SYNC] allday stress:255 time:1791264120
+[31690855] Sleepdt:0,1,0.958402
+[31690863] [TIME]2026-10-6 10:53:58 week 2
+[31690868] [STRESS SYNC] allday stress:255 time:1791264180
+[31721615] Sleepdt:0,1,0.973773
+[31721623] [TIME]2026-10-6 10:54:58 week 2
+[31721628] [STRESS SYNC] allday stress:255 time:1791264240
+[31752294] Sleepdt:0,1,0.978858
+[31752302] [TIME]2026-10-6 10:55:58 week 2
+[31752311] [STRESS SYNC] allday stress:255 time:1791264300
+[31783014] Sleepdt:0,1,0.981828
+[31783022] [TIME]2026-10-6 10:56:58 week 2
+[31783027] [STRESS SYNC] allday stress:255 time:1791264360
+[31813734] Sleepdt:0,1,0.982344
+[31813742] [TIME]2026-10-6 10:57:58 week 2
+[31813751] [STRESS SYNC] allday stress:255 time:1791264420
+[31844455] Sleepdt:0,1,0.983522
+[31844463] [TIME]2026-10-6 10:58:58 week 2
+[31844468] [STRESS SYNC] allday stress:255 time:1791264480
+[31875174] Sleepdt:0,1,0.983522
+[31875220] [TIME]2026-10-6 10:59:58 week 2
+[31875225] [STRESS SYNC] allday stress:255 time:1791264540
+[31905898] Sleepdt:0,1,0.983522
+[31905907] [TIME]2026-10-6 11:0:58 week 2
+[31905912] [STRESS SYNC] allday stress:255 time:1791264600
+[31936614] Sleepdt:0,1,0.983522
+[31936623] [TIME]2026-10-6 11:1:58 week 2
+[31936670] [STRESS SYNC] allday stress:255 time:1791264660
+[31967337] Sleepdt:0,1,0.981828
+[31967346] [TIME]2026-10-6 11:2:58 week 2
+[31967351] [STRESS SYNC] allday stress:255 time:1791264720
+[31998060] Sleepdt:0,1,0.983522
+[31998068] [TIME]2026-10-6 11:3:58 week 2
+[31998073] [STRESS SYNC] allday stress:255 time:1791264780
+[32028774] Sleepdt:0,1,0.981828
+[32028874] [TIME]2026-10-6 11:4:58 week 2
+[32028876] [STRESS SYNC] allday stress:255 time:1791264840
+[32059494] Sleepdt:0,1,0.981828
+[32059497] [TIME]2026-10-6 11:5:58 week 2
+[32059500] [STRESS SYNC] allday stress:255 time:1791264900
+[32090215] Sleepdt:0,1,0.980103
+[32090218] [TIME]2026-10-6 11:6:58 week 2
+[32090221] [STRESS SYNC] allday stress:255 time:1791264960
+[32120935] Sleepdt:0,1,0.977959
+[32120977] [TIME]2026-10-6 11:7:58 week 2
+[32120980] [STRESS SYNC] allday stress:255 time:1791265020
+[32151654] Sleepdt:0,1,0.971475
+[32151657] [TIME]2026-10-6 11:8:58 week 2
+[32151660] [STRESS SYNC] allday stress:255 time:1791265080
+[32182374] Sleepdt:0,1,0.971475
+[32182378] [TIME]2026-10-6 11:9:58 week 2
+[32182381] [STRESS SYNC] allday stress:255 time:1791265140
+[32213097] Sleepdt:0,1,0.970993
+[32213143] [TIME]2026-10-6 11:10:58 week 2
+[32213146] [STRESS SYNC] allday stress:255 time:1791265200
+[32243816] Sleepdt:0,1,0.975327
+[32243824] [TIME]2026-10-6 11:11:58 week 2
+[32243826] [STRESS SYNC] allday stress:255 time:1791265260
+[32274534] Sleepdt:0,1,0.989245
+[32274578] [TIME]2026-10-6 11:12:58 week 2
+[32274581] [STRESS SYNC] allday stress:255 time:1791265320
+[32305255] Sleepdt:0,1,0.989245
+[32305303] [TIME]2026-10-6 11:13:58 week 2
+[32305306] [STRESS SYNC] allday stress:255 time:1791265380
+[32319621] hrv_stress,hrv=78.280204,stress=21
+[32335976] Sleepdt:0,1,0.957880
+[32335982] [TIME]2026-10-6 11:14:58 week 2
+[32335985] [ALG]aday pres time:1791285298 stress:21
+[32335985] [STRESS SYNC] allday stress:21 time:1791265440
+[32366700] Sleepdt:0,1,0.866953
+[32366709] [TIME]2026-10-6 11:15:58 week 2
+[32366712] [STRESS SYNC] allday stress:255 time:1791265500
+[32397415] Sleepdt:0,1,0.781673
+[32397421] [TIME]2026-10-6 11:16:58 week 2
+[32397424] [STRESS SYNC] allday stress:255 time:1791265560
+[32428135] Sleepdt:0,1,0.560000
+[32428141] [TIME]2026-10-6 11:17:58 week 2
+[32428144] [STRESS SYNC] allday stress:255 time:1791265620
+[32458856] Sleepdt:0,1,0.359797
+[32458865] [TIME]2026-10-6 11:18:58 week 2
+[32458868] [STRESS SYNC] allday stress:255 time:1791265680
+[32473341] hrv_stress,hrv=60.965057,stress=29
+[32489577] Sleepdt:0,1,0.241770
+[32489624] [TIME]2026-10-6 11:19:58 week 2
+[32489626] [ALG]aday pres time:1791285598 stress:29
+[32489627] [STRESS SYNC] allday stress:29 time:1791265740
+[32520295] Sleepdt:0,0,0.110428
+[32520343] [TIME]2026-10-6 11:20:58 week 2
+[32520346] [STRESS SYNC] allday stress:255 time:1791265800
+[32551015] Sleepdt:0,0,0.110428
+[32551022] [TIME]2026-10-6 11:21:58 week 2
+[32551025] [STRESS SYNC] allday stress:255 time:1791265860
+[32581734] Sleepdt:0,0,0.110428
+[32581741] [TIME]2026-10-6 11:22:58 week 2
+[32581744] [STRESS SYNC] allday stress:255 time:1791265920
+[32612456] Sleepdt:0,0,0.107131
+[32612469] [TIME]2026-10-6 11:23:58 week 2
+[32612473] [STRESS SYNC] allday stress:255 time:1791265980
+[32643175] Sleepdt:0,0,0.033174
+[32643186] [TIME]2026-10-6 11:24:58 week 2
+[32643189] [STRESS SYNC] allday stress:255 time:1791266040
+[32673938] Sleepdt:0,0,0.033174
+[32673946] [TIME]2026-10-6 11:25:58 week 2
+[32673949] [STRESS SYNC] allday stress:255 time:1791266100
+[32704615] Sleepdt:0,0,0.041975
+[32704658] science_sleep_enable
+[32704663] [TIME]2026-10-6 11:26:58 week 2
+[32704666] [STRESS SYNC] allday stress:255 time:1791266160
+[32735338] Sleepdt:0,0,0.041975
+[32735352] [TIME]2026-10-6 11:27:58 week 2
+[32735355] [STRESS SYNC] allday stress:255 time:1791266220
+[32766058] Sleepdt:0,0,0.015274
+[32766074] [TIME]2026-10-6 11:28:58 week 2
+[32766078] [STRESS SYNC] allday stress:255 time:1791266280
+[32780528] hrv_stress,hrv=60.383167,stress=30,stress_sleep=12.500000
+[32796776] Sleepdt:0,0,0.015274
+[32796789] science_sleep_disable
+[32796794] [TIME]2026-10-6 11:29:58 week 2
+[32796797] [ALG]aday pres time:1791286198 stress:12
+[32796797] [STRESS SYNC] allday stress:12 time:1791266340
+[32827495] Sleepdt:0,0,0.024513
+[32827540] [TIME]2026-10-6 11:30:58 week 2
+[32827543] [STRESS SYNC] allday stress:255 time:1791266400
+[32858215] Sleepdt:0,0,0.031045
+[32858262] [TIME]2026-10-6 11:31:58 week 2
+[32858265] [STRESS SYNC] allday stress:255 time:1791266460
+[32888937] Sleepdt:0,0,0.024513
+[32888982] [TIME]2026-10-6 11:32:58 week 2
+[32888986] [STRESS SYNC] allday stress:255 time:1791266520
+[32919655] Sleepdt:0,0,0.007126
+[32919704] [TIME]2026-10-6 11:33:58 week 2
+[32919708] [STRESS SYNC] allday stress:255 time:1791266580
+[32950375] Sleepdt:0,0,0.007126
+[32950383] [TIME]2026-10-6 11:34:58 week 2
+[32950386] [STRESS SYNC] allday stress:255 time:1791266640
+[32981095] Sleepdt:0,0,0.009673
+[32981103] [TIME]2026-10-6 11:35:58 week 2
+[32981107] [STRESS SYNC] allday stress:255 time:1791266700
+[33011817] Sleepdt:0,0,0.009673
+[33011825] [TIME]2026-10-6 11:36:58 week 2
+[33011828] [STRESS SYNC] allday stress:255 time:1791266760
+[33042536] Sleepdt:0,0,0.009174
+[33042548] [TIME]2026-10-6 11:37:58 week 2
+[33042552] [STRESS SYNC] allday stress:255 time:1791266820
+[33073255] Sleepdt:0,0,0.009050
+[33073270] [TIME]2026-10-6 11:38:58 week 2
+[33073273] [STRESS SYNC] allday stress:255 time:1791266880
+[33087633] hrv_stress,hrv=53.738811,stress=33
+[33103975] Sleepdt:0,0,0.005920
+[33103987] [TIME]2026-10-6 11:39:58 week 2
+[33103991] [ALG]aday pres time:1791286798 stress:33
+[33103991] [STRESS SYNC] allday stress:33 time:1791266940
+[33134696] Sleepdt:0,0,0.005920
+[33134704] [TIME]2026-10-6 11:40:58 week 2
+[33134708] [STRESS SYNC] allday stress:255 time:1791267000
+[33165416] Sleepdt:0,0,0.005283
+[33165429] [TIME]2026-10-6 11:41:58 week 2
+[33165432] [STRESS SYNC] allday stress:255 time:1791267060
+[33196135] Sleepdt:0,0,0.008424
+[33196143] [TIME]2026-10-6 11:42:58 week 2
+[33196147] [STRESS SYNC] allday stress:255 time:1791267120
+[33226855] Sleepdt:0,0,0.011506
+[33226870] [TIME]2026-10-6 11:43:58 week 2
+[33226874] [STRESS SYNC] allday stress:255 time:1791267180
+[33241350] hrv_stress,hrv=73.696929,stress=23
+[33257577] Sleepdt:0,0,0.013884
+[33257585] [TIME]2026-10-6 11:44:58 week 2
+[33257589] [ALG]aday pres time:1791287098 stress:23
+[33257589] [STRESS SYNC] allday stress:23 time:1791267240
+[33288298] Sleepdt:0,0,0.013884
+[33288346] [TIME]2026-10-6 11:45:58 week 2
+[33288349] [STRESS SYNC] allday stress:255 time:1791267300
+[33319014] Sleepdt:0,0,0.011269
+[33319025] [TIME]2026-10-6 11:46:58 week 2
+[33319029] [STRESS SYNC] allday stress:255 time:1791267360
+[33349735] Sleepdt:0,0,0.011269
+[33349748] [TIME]2026-10-6 11:47:58 week 2
+[33349752] [STRESS SYNC] allday stress:255 time:1791267420
+[33380455] Sleepdt:0,0,0.011172
+[33380469] [TIME]2026-10-6 11:48:58 week 2
+[33380473] [STRESS SYNC] allday stress:255 time:1791267480
+[33411176] Sleepdt:0,0,0.012921
+[33411185] [TIME]2026-10-6 11:49:58 week 2
+[33411189] [STRESS SYNC] allday stress:255 time:1791267540
+[33441895] Sleepdt:0,0,0.017239
+[33441949] [TIME]2026-10-6 11:50:58 week 2
+[33441952] [STRESS SYNC] allday stress:255 time:1791267600
+[33472615] Sleepdt:0,0,0.041669
+[33472624] [TIME]2026-10-6 11:51:58 week 2
+[33472628] [STRESS SYNC] allday stress:255 time:1791267660
+[33503335] Sleepdt:0,0,0.048136
+[33503348] [TIME]2026-10-6 11:52:58 week 2
+[33503352] [STRESS SYNC] allday stress:255 time:1791267720
+[33534057] Sleepdt:0,0,0.059045
+[33534069] [TIME]2026-10-6 11:53:58 week 2
+[33534073] [STRESS SYNC] allday stress:255 time:1791267780
+[33564776] Sleepdt:0,0,0.089243
+[33564824] [TIME]2026-10-6 11:54:58 week 2
+[33564828] [STRESS SYNC] allday stress:255 time:1791267840
+[33595495] Sleepdt:0,0,0.089243
+[33595504] [TIME]2026-10-6 11:55:58 week 2
+[33595508] [STRESS SYNC] allday stress:255 time:1791267900
+[33626215] Sleepdt:0,0,0.040053
+[33626228] [TIME]2026-10-6 11:56:58 week 2
+[33626233] [STRESS SYNC] allday stress:255 time:1791267960
+[33656936] Sleepdt:0,0,0.040053
+[33656945] [TIME]2026-10-6 11:57:58 week 2
+[33656949] [STRESS SYNC] allday stress:255 time:1791268020
+[33687656] Sleepdt:0,0,0.057420
+[33687668] [TIME]2026-10-6 11:58:58 week 2
+[33687714] [STRESS SYNC] allday stress:255 time:1791268080
+[33718375] Sleepdt:0,0,0.062051
+[33718421] [TIME]2026-10-6 11:59:58 week 2
+[33718426] [STRESS SYNC] allday stress:255 time:1791268140
+[33749095] Sleepdt:0,0,0.068738
+[33749105] [TIME]2026-10-6 12:0:58 week 2
+[33749114] [STRESS SYNC] allday stress:255 time:1791268200
+[33779816] Sleepdt:0,0,0.079286
+[33779825] [TIME]2026-10-6 12:1:58 week 2
+[33779830] [STRESS SYNC] allday stress:255 time:1791268260
+[33810577] Sleepdt:0,0,0.085917
+[33810586] [TIME]2026-10-6 12:2:58 week 2
+[33810591] [STRESS SYNC] allday stress:255 time:1791268320
+[33841254] Sleepdt:0,0,0.079286
+[33841267] [TIME]2026-10-6 12:3:58 week 2
+[33841272] [STRESS SYNC] allday stress:255 time:1791268380
+[33871975] Sleepdt:0,0,0.035189
+[33871983] [TIME]2026-10-6 12:4:58 week 2
+[33871988] [STRESS SYNC] allday stress:255 time:1791268440
+[33902695] Sleepdt:0,0,0.035189
+[33902705] [TIME]2026-10-6 12:5:58 week 2
+[33902710] [STRESS SYNC] allday stress:255 time:1791268500
+[33933416] Sleepdt:0,0,0.034582
+[33933426] [TIME]2026-10-6 12:6:58 week 2
+[33933431] [STRESS SYNC] allday stress:255 time:1791268560
+[33964176] Sleepdt:0,0,0.034582
+[33964186] [TIME]2026-10-6 12:7:58 week 2
+[33964191] [STRESS SYNC] allday stress:255 time:1791268620
+[33994855] Sleepdt:0,0,0.027697
+[33994867] [TIME]2026-10-6 12:8:58 week 2
+[33994872] [STRESS SYNC] allday stress:255 time:1791268680
+[34025575] Sleepdt:0,0,0.027697
+[34025585] [TIME]2026-10-6 12:9:58 week 2
+[34025590] [STRESS SYNC] allday stress:255 time:1791268740
+[34056301] Sleepdt:0,0,0.022836
+[34056311] [TIME]2026-10-6 12:10:58 week 2
+[34056317] [STRESS SYNC] allday stress:255 time:1791268800
+[34087017] Sleepdt:0,0,0.018305
+[34087032] [TIME]2026-10-6 12:11:58 week 2
+[34087037] [STRESS SYNC] allday stress:255 time:1791268860
+[34117734] Sleepdt:0,0,0.018305
+[34117748] [TIME]2026-10-6 12:12:58 week 2
+[34117753] [STRESS SYNC] allday stress:255 time:1791268920
+[34148454] Sleepdt:0,0,0.026475
+[34148468] [TIME]2026-10-6 12:13:58 week 2
+[34148473] [STRESS SYNC] allday stress:255 time:1791268980
+[34163014] hrv_stress,hrv=49.095600,stress=36
+[34179174] Sleepdt:0,0,0.033006
+[34179227] [TIME]2026-10-6 12:14:58 week 2
+[34179233] [ALG]aday pres time:1791288898 stress:36
+[34179233] [STRESS SYNC] allday stress:36 time:1791269040
+[34209896] Sleepdt:0,0,0.033006
+[34209907] [TIME]2026-10-6 12:15:58 week 2
+[34209912] [STRESS SYNC] allday stress:255 time:1791269100
+[34240614] Sleepdt:0,0,0.033006
+[34240625] [TIME]2026-10-6 12:16:58 week 2
+[34240631] [STRESS SYNC] allday stress:255 time:1791269160
+[34271334] Sleepdt:0,0,0.031265
+[34271349] [TIME]2026-10-6 12:17:58 week 2
+[34271355] [STRESS SYNC] allday stress:255 time:1791269220
+[34302055] Sleepdt:0,0,0.031265
+[34302068] [TIME]2026-10-6 12:18:58 week 2
+[34302074] [STRESS SYNC] allday stress:255 time:1791269280
+[34332777] Sleepdt:0,0,0.031927
+[34332829] [TIME]2026-10-6 12:19:58 week 2
+[34332835] [STRESS SYNC] allday stress:255 time:1791269340
+[34363497] Sleepdt:0,0,0.031927
+[34363552] [TIME]2026-10-6 12:20:58 week 2
+[34363558] [STRESS SYNC] allday stress:255 time:1791269400
+[34394214] Sleepdt:0,0,0.023989
+[34394266] [TIME]2026-10-6 12:21:58 week 2
+[34394272] [STRESS SYNC] allday stress:255 time:1791269460
+[34424934] Sleepdt:0,0,0.023989
+[34424945] [TIME]2026-10-6 12:22:58 week 2
+[34424951] [STRESS SYNC] allday stress:255 time:1791269520
+[34455656] Sleepdt:0,0,0.017909
+[34455670] [TIME]2026-10-6 12:23:58 week 2
+[34455680] [STRESS SYNC] allday stress:255 time:1791269580
+[34486375] Sleepdt:0,0,0.017909
+[34486391] [TIME]2026-10-6 12:24:58 week 2
+[34486397] [STRESS SYNC] allday stress:255 time:1791269640
+[34517133] Sleepdt:0,0,0.024770
+[34517144] [TIME]2026-10-6 12:25:58 week 2
+[34517150] [STRESS SYNC] allday stress:255 time:1791269700
+[34547815] Sleepdt:0,0,0.030585
+[34547866] [TIME]2026-10-6 12:26:58 week 2
+[34547872] [STRESS SYNC] allday stress:255 time:1791269760
+[34578535] Sleepdt:0,0,0.030585
+[34578546] [TIME]2026-10-6 12:27:58 week 2
+[34578552] [STRESS SYNC] allday stress:255 time:1791269820
+[34609259] Sleepdt:0,0,0.024912
+[34609277] [TIME]2026-10-6 12:28:58 week 2
+[34609283] [STRESS SYNC] allday stress:255 time:1791269880
+[34639978] Sleepdt:0,0,0.011824
+[34640041] [TIME]2026-10-6 12:29:58 week 2
+[34640045] [STRESS SYNC] allday stress:255 time:1791269940
+[34670695] Sleepdt:0,0,0.011824
+[34670701] [TIME]2026-10-6 12:30:58 week 2
+[34670704] [STRESS SYNC] allday stress:255 time:1791270000
+[34701415] Sleepdt:0,0,0.011824
+[34701460] [TIME]2026-10-6 12:31:58 week 2
+[34701463] [STRESS SYNC] allday stress:255 time:1791270060
+[34732136] Sleepdt:0,0,0.013409
+[34732180] [TIME]2026-10-6 12:32:58 week 2
+[34732183] [STRESS SYNC] allday stress:255 time:1791270120
+[34762855] Sleepdt:0,0,0.013409
+[34762864] [TIME]2026-10-6 12:33:58 week 2
+[34762867] [STRESS SYNC] allday stress:255 time:1791270180
+[34777237] hrv_stress,hrv=50.583370,stress=35
+[34793579] Sleepdt:0,0,0.016022
+[34793585] [TIME]2026-10-6 12:34:58 week 2
+[34793587] [ALG]aday pres time:1791290098 stress:35
+[34793588] [STRESS SYNC] allday stress:35 time:1791270240
+[34824295] Sleepdt:0,0,0.026256
+[34824301] [TIME]2026-10-6 12:35:58 week 2
+[34824304] [STRESS SYNC] allday stress:255 time:1791270300
+[34855015] Sleepdt:0,0,0.026256
+[34855026] [TIME]2026-10-6 12:36:58 week 2
+[34855029] [STRESS SYNC] allday stress:255 time:1791270360
+[34885736] Sleepdt:0,0,0.026256
+[34885747] [TIME]2026-10-6 12:37:58 week 2
+[34885750] [STRESS SYNC] allday stress:255 time:1791270420
+[34916454] Sleepdt:0,0,0.022576
+[34916463] [TIME]2026-10-6 12:38:58 week 2
+[34916466] [STRESS SYNC] allday stress:255 time:1791270480
+[34947174] Sleepdt:0,0,0.008469
+[34947180] [TIME]2026-10-6 12:39:58 week 2
+[34947183] [STRESS SYNC] allday stress:255 time:1791270540
+[34977895] Sleepdt:0,0,0.008469
+[34977905] [TIME]2026-10-6 12:40:58 week 2
+[34977908] [STRESS SYNC] allday stress:255 time:1791270600
+[35008615] Sleepdt:0,0,0.008469
+[35008622] [TIME]2026-10-6 12:41:58 week 2
+[35008625] [STRESS SYNC] allday stress:255 time:1791270660
+[35039335] Sleepdt:0,0,0.008876
+[35039342] [TIME]2026-10-6 12:42:58 week 2
+[35039345] [STRESS SYNC] allday stress:255 time:1791270720
+[35070054] Sleepdt:0,0,0.029567
+[35070104] [TIME]2026-10-6 12:43:58 week 2
+[35070107] [STRESS SYNC] allday stress:255 time:1791270780
+[35084660] hrv_stress,hrv=90.687866,stress=16
+[35100775] Sleepdt:0,0,0.029567
+[35100821] [TIME]2026-10-6 12:44:58 week 2
+[35100824] [ALG]aday pres time:1791290698 stress:16
+[35100824] [STRESS SYNC] allday stress:16 time:1791270840
+[35131497] Sleepdt:0,0,0.029567
+[35131504] [TIME]2026-10-6 12:45:58 week 2
+[35131507] [STRESS SYNC] allday stress:255 time:1791270900
+[35162217] Sleepdt:0,0,0.043435
+[35162229] [TIME]2026-10-6 12:46:58 week 2
+[35162232] [STRESS SYNC] allday stress:255 time:1791270960
+[35192934] Sleepdt:0,0,0.044715
+[35192941] [TIME]2026-10-6 12:47:58 week 2
+[35192945] [STRESS SYNC] allday stress:255 time:1791271020
+[35223654] Sleepdt:0,0,0.044715
+[35223664] [TIME]2026-10-6 12:48:58 week 2
+[35223667] [STRESS SYNC] allday stress:255 time:1791271080
+[35238058] hrv_stress,hrv=63.449069,stress=28
+[35254375] Sleepdt:0,0,0.017894
+[35254383] [TIME]2026-10-6 12:49:58 week 2
+[35254386] [ALG]aday pres time:1791290998 stress:28
+[35254386] [STRESS SYNC] allday stress:28 time:1791271140
+[35285096] Sleepdt:0,0,0.017894
+[35285141] [TIME]2026-10-6 12:50:58 week 2
+[35285144] [STRESS SYNC] allday stress:255 time:1791271200
+[35315814] Sleepdt:0,0,0.037834
+[35315822] [TIME]2026-10-6 12:51:58 week 2
+[35315825] [STRESS SYNC] allday stress:255 time:1791271260
+[35346534] Sleepdt:0,0,0.037834
+[35346546] [TIME]2026-10-6 12:52:58 week 2
+[35346549] [STRESS SYNC] allday stress:255 time:1791271320
+[35377255] Sleepdt:0,0,0.029751
+[35377265] [TIME]2026-10-6 12:53:58 week 2
+[35377274] [STRESS SYNC] allday stress:255 time:1791271380
+[35407977] Sleepdt:0,0,0.029751
+[35408026] [TIME]2026-10-6 12:54:58 week 2
+[35408029] [STRESS SYNC] allday stress:255 time:1791271440
+[35438696] Sleepdt:0,0,0.021949
+[35438704] [TIME]2026-10-6 12:55:58 week 2
+[35438746] [STRESS SYNC] allday stress:255 time:1791271500
+[35469415] Sleepdt:0,0,0.021095
+[35469422] [TIME]2026-10-6 12:56:58 week 2
+[35469426] [STRESS SYNC] allday stress:255 time:1791271560
+[35500134] Sleepdt:0,0,0.021095
+[35500146] [TIME]2026-10-6 12:57:58 week 2
+[35500150] [STRESS SYNC] allday stress:255 time:1791271620
+[35530855] Sleepdt:0,0,0.016860
+[35530866] [TIME]2026-10-6 12:58:58 week 2
+[35530869] [STRESS SYNC] allday stress:255 time:1791271680
+[35561576] Sleepdt:0,0,0.013969
+[35561625] [TIME]2026-10-6 12:59:58 week 2
+[35561628] [STRESS SYNC] allday stress:255 time:1791271740
+[35592294] Sleepdt:0,0,0.012236
+[35592302] [TIME]2026-10-6 13:0:58 week 2
+[35592306] [STRESS SYNC] allday stress:255 time:1791271800
+[35623015] Sleepdt:0,0,0.013969
+[35623064] [TIME]2026-10-6 13:1:58 week 2
+[35623068] [STRESS SYNC] allday stress:255 time:1791271860
+[35653735] Sleepdt:0,0,0.015381
+[35653743] [TIME]2026-10-6 13:2:58 week 2
+[35653747] [STRESS SYNC] allday stress:255 time:1791271920
+[35684457] Sleepdt:0,0,0.021106
+[35684472] [TIME]2026-10-6 13:3:58 week 2
+[35684476] [STRESS SYNC] allday stress:255 time:1791271980
+[35698930] hrv_stress,hrv=40.066028,stress=43
+[35715177] Sleepdt:0,0,0.050078
+[35715186] [TIME]2026-10-6 13:4:58 week 2
+[35715190] [ALG]aday pres time:1791291898 stress:43
+[35715190] [STRESS SYNC] allday stress:43 time:1791272040
+[35745895] Sleepdt:0,0,0.064860
+[35745903] [TIME]2026-10-6 13:5:58 week 2
+[35745907] [STRESS SYNC] allday stress:255 time:1791272100
+[35776614] Sleepdt:0,0,0.086786
+[35776623] [TIME]2026-10-6 13:6:58 week 2
+[35776627] [STRESS SYNC] allday stress:255 time:1791272160
+[35807335] Sleepdt:0,0,0.088138
+[35807349] [TIME]2026-10-6 13:7:58 week 2
+[35807352] [STRESS SYNC] allday stress:255 time:1791272220
+[35838055] Sleepdt:0,0,0.088138
+[35838067] [TIME]2026-10-6 13:8:58 week 2
+[35838070] [STRESS SYNC] allday stress:255 time:1791272280
+[35868774] Sleepdt:0,0,0.088138
+[35868787] [TIME]2026-10-6 13:9:58 week 2
+[35868791] [STRESS SYNC] allday stress:255 time:1791272340
+[35899495] Sleepdt:0,0,0.082666
+[35899545] [TIME]2026-10-6 13:10:58 week 2
+[35899549] [STRESS SYNC] allday stress:255 time:1791272400
+[35930215] Sleepdt:0,0,0.050394
+[35930221] [TIME]2026-10-6 13:11:58 week 2
+[35930230] [STRESS SYNC] allday stress:255 time:1791272460
+[35960937] Sleepdt:0,0,0.037658
+[35960946] [TIME]2026-10-6 13:12:58 week 2
+[35960955] [STRESS SYNC] allday stress:255 time:1791272520
+[35991656] Sleepdt:0,0,0.035460
+[35991668] [TIME]2026-10-6 13:13:58 week 2
+[35991677] [STRESS SYNC] allday stress:255 time:1791272580
+[36022392] Sleepdt:0,0,0.032536
+[36022403] [TIME]2026-10-6 13:14:58 week 2
+[36022413] [STRESS SYNC] allday stress:255 time:1791272640
+[36053095] Sleepdt:0,0,0.011299
+[36053142] [TIME]2026-10-6 13:15:58 week 2
+[36053146] [STRESS SYNC] allday stress:255 time:1791272700
+[36083816] Sleepdt:0,0,0.009127
+[36083874] [TIME]2026-10-6 13:16:58 week 2
+[36083878] [STRESS SYNC] allday stress:255 time:1791272760
+[36114535] Sleepdt:0,0,0.009127
+[36114544] [TIME]2026-10-6 13:17:58 week 2
+[36114549] [STRESS SYNC] allday stress:255 time:1791272820
+[36145254] Sleepdt:0,0,0.008876
+[36145266] [TIME]2026-10-6 13:18:58 week 2
+[36145271] [STRESS SYNC] allday stress:255 time:1791272880
+[36175974] Sleepdt:0,0,0.008655
+[36175983] [TIME]2026-10-6 13:19:58 week 2
+[36175988] [STRESS SYNC] allday stress:255 time:1791272940
+[36206736] Sleepdt:0,0,0.008655
+[36206745] [TIME]2026-10-6 13:20:58 week 2
+[36206749] [STRESS SYNC] allday stress:255 time:1791273000
+[36237417] Sleepdt:0,0,0.008655
+[36237426] [TIME]2026-10-6 13:21:58 week 2
+[36237431] [STRESS SYNC] allday stress:255 time:1791273060
+[36268136] Sleepdt:0,0,0.006527
+[36268187] [TIME]2026-10-6 13:22:58 week 2
+[36268191] [STRESS SYNC] allday stress:255 time:1791273120
+[36298855] Sleepdt:0,0,0.006527
+[36298867] [TIME]2026-10-6 13:23:58 week 2
+[36298871] [STRESS SYNC] allday stress:255 time:1791273180
+[36329574] Sleepdt:0,0,0.031790
+[36329584] [TIME]2026-10-6 13:24:58 week 2
+[36329589] [STRESS SYNC] allday stress:255 time:1791273240
+[36360296] Sleepdt:0,0,0.031790
+[36360305] [TIME]2026-10-6 13:25:58 week 2
+[36360310] [STRESS SYNC] allday stress:255 time:1791273300
+[36391015] Sleepdt:0,0,0.027231
+[36391066] [TIME]2026-10-6 13:26:58 week 2
+[36391071] [STRESS SYNC] allday stress:255 time:1791273360
+[36421735] Sleepdt:0,0,0.026277
+[36421746] [TIME]2026-10-6 13:27:58 week 2
+[36421751] [STRESS SYNC] allday stress:255 time:1791273420
+[36452454] Sleepdt:0,0,0.027231
+[36452471] [TIME]2026-10-6 13:28:58 week 2
+[36452476] [STRESS SYNC] allday stress:255 time:1791273480
+[36483176] Sleepdt:0,0,0.069523
+[36483190] [TIME]2026-10-6 13:29:58 week 2
+[36483195] [STRESS SYNC] allday stress:255 time:1791273540
+[36513897] Sleepdt:0,0,0.069523
+[36513907] [TIME]2026-10-6 13:30:58 week 2
+[36513912] [STRESS SYNC] allday stress:255 time:1791273600
+[36544616] Sleepdt:0,0,0.069523
+[36544665] [TIME]2026-10-6 13:31:58 week 2
+[36544670] [STRESS SYNC] allday stress:255 time:1791273660
+[36575335] Sleepdt:0,0,0.085570
+[36575345] [TIME]2026-10-6 13:32:58 week 2
+[36575395] [STRESS SYNC] allday stress:255 time:1791273720
+[36606059] Sleepdt:0,1,0.151077
+[36606072] [TIME]2026-10-6 13:33:58 week 2
+[36606078] [STRESS SYNC] allday stress:255 time:1791273780
+[36636776] Sleepdt:0,0,0.108420
+[36636786] [TIME]2026-10-6 13:34:58 week 2
+[36636791] [STRESS SYNC] allday stress:255 time:1791273840
+[36667500] Sleepdt:0,0,0.108420
+[36667511] [TIME]2026-10-6 13:35:58 week 2
+[36667516] [STRESS SYNC] allday stress:255 time:1791273900
+[36698214] Sleepdt:0,0,0.108420
+[36698224] [TIME]2026-10-6 13:36:58 week 2
+[36698230] [STRESS SYNC] allday stress:255 time:1791273960
+[36728934] Sleepdt:0,0,0.126268
+[36728985] [TIME]2026-10-6 13:37:58 week 2
+[36728990] [STRESS SYNC] allday stress:255 time:1791274020
+[36759655] Sleepdt:0,0,0.138306
+[36759668] [TIME]2026-10-6 13:38:58 week 2
+[36759674] [STRESS SYNC] allday stress:255 time:1791274080
+[36774013] hrv_stress,hrv=42.150657,stress=42
+[36790377] Sleepdt:0,0,0.134991
+[36790392] [TIME]2026-10-6 13:39:58 week 2
+[36790397] [ALG]aday pres time:1791293998 stress:42
+[36790398] [STRESS SYNC] allday stress:42 time:1791274140
+[36821094] Sleepdt:0,1,0.154833
+[36821105] [TIME]2026-10-6 13:40:58 week 2
+[36821110] [STRESS SYNC] allday stress:255 time:1791274200
+[36851814] Sleepdt:0,1,0.154833
+[36851867] [TIME]2026-10-6 13:41:58 week 2
+[36851872] [STRESS SYNC] allday stress:255 time:1791274260
+[36882534] Sleepdt:0,1,0.154833
+[36882545] [TIME]2026-10-6 13:42:58 week 2
+[36882551] [STRESS SYNC] allday stress:255 time:1791274320
+[36913255] Sleepdt:0,0,0.143104
+[36913274] [TIME]2026-10-6 13:43:58 week 2
+[36913279] [STRESS SYNC] allday stress:255 time:1791274380
+[36943975] Sleepdt:0,0,0.061647
+[36943986] [TIME]2026-10-6 13:44:58 week 2
+[36943992] [STRESS SYNC] allday stress:255 time:1791274440
+[36974695] Sleepdt:0,0,0.061647
+[36974710] [TIME]2026-10-6 13:45:58 week 2
+[36974716] [STRESS SYNC] allday stress:255 time:1791274500
+[37005415] Sleepdt:0,1,0.181942
+[37005426] [TIME]2026-10-6 13:46:58 week 2
+[37005431] [STRESS SYNC] allday stress:255 time:1791274560
+[37036137] Sleepdt:0,1,0.191136
+[37036152] [TIME]2026-10-6 13:47:58 week 2
+[37036158] [STRESS SYNC] allday stress:255 time:1791274620
+[37066901] Sleepdt:0,1,0.191136
+[37067070] [TIME]2026-10-6 13:48:58 week 2
+[37067075] [STRESS SYNC] allday stress:255 time:1791274680
+[37097574] Sleepdt:0,0,0.146081
+[37097585] [TIME]2026-10-6 13:49:58 week 2
+[37097591] [STRESS SYNC] allday stress:255 time:1791274740
+[37128335] Sleepdt:0,0,0.142340
+[37128346] [TIME]2026-10-6 13:50:58 week 2
+[37128352] [STRESS SYNC] allday stress:255 time:1791274800
+[37159016] Sleepdt:0,0,0.130368
+[37159071] [TIME]2026-10-6 13:51:58 week 2
+[37159077] [STRESS SYNC] allday stress:255 time:1791274860
+[37189736] Sleepdt:0,0,0.116450
+[37189748] [TIME]2026-10-6 13:52:58 week 2
+[37189754] [STRESS SYNC] allday stress:255 time:1791274920
+[37220454] Sleepdt:0,0,0.130368
+[37220473] [TIME]2026-10-6 13:53:58 week 2
+[37220479] [STRESS SYNC] allday stress:255 time:1791274980
+[37234871] hrv_stress,hrv=71.855819,stress=24
+[37251179] Sleepdt:0,0,0.140076
+[37251238] [TIME]2026-10-6 13:54:58 week 2
+[37251240] [ALG]aday pres time:1791294898 stress:24
+[37251241] [STRESS SYNC] allday stress:24 time:1791275040
+[37281896] Sleepdt:0,0,0.140076
+[37281902] [TIME]2026-10-6 13:55:58 week 2
+[37281909] [STRESS SYNC] allday stress:255 time:1791275100
+[37312618] Sleepdt:0,0,0.092691
+[37312624] [TIME]2026-10-6 13:56:58 week 2
+[37312627] [STRESS SYNC] allday stress:255 time:1791275160
+[37329369][BX CHANNEL]I: receive from app 0x00 module 0x90 session id 8 size 5 ok [ENC]
+[37329891][BX CHANNEL]I: receive from app 0x00 module 0x90 session id 11 size 5 ok [ENC]
+[37330177][BX CHANNEL]I: receive from app 0x00 module 0x90 session id 13 size 5 ok [ENC]
+[37330178] set allday heart: 30
+[37330184] hrm_set_interval intv=30 mode=43
+[37330508][BX CHANNEL]I: receive from app 0x00 module 0x90 session id 15 size 5 ok [ENC]
+[37330744][BX CHANNEL]I: receive from app 0x00 module 0x90 session id 18 size 5 ok [ENC]
+[37331497][BX CHANNEL]I: receive from app 0x00 module 0x90 session id 22 size 5 ok [ENC]
+[37332734] [STRESS SYNC]len:8 start_addr:df001 start_time:1791202800
+[37332788] [STRESS SYNC]len:1199 start_addr:df009 start_time:1791203280
+[37332864] [STRESS SYNC]len:0 start_addr:0 start_time:1791275220
+[37333501][BX CHANNEL]I: receive from app 0x00 module 0x32 session id 29 size 1 ok 
+[37333501] [BX_SLEEPDATA] receive data size: 1
+[37333502] handle_query_version_cmd ==> ver: 1 
+[37333502][BX CHANNEL]I: sending to app 0x00 session 131 module 0x32 size 2
+[37333503][BX CHANNEL]I: send to app 0x00 module 0x32 session 131 size 2 ok 
+[37333516][BX CHANNEL]I: receive from app 0x00 module 0x32 session id 30 size 1 ok 
+[37333516] [BX_SLEEPDATA] receive data size: 1
+[37333517] handle_query_config_info ==> max_day: 16 func:0 
+[37333517][BX CHANNEL]I: sending to app 0x00 session 132 module 0x32 size 6
+[37333518][BX CHANNEL]I: send to app 0x00 module 0x32 session 132 size 6 ok 
+[37333532][BX CHANNEL]I: receive from app 0x00 module 0x32 session id 31 size 1 ok 
+[37333536] [BX_SLEEPDATA] receive data size: 1
+[37333537][BX CHANNEL]I: sending to app 0x00 session 133 module 0x32 size 6
+[37333538][BX CHANNEL]I: send to app 0x00 module 0x32 session 133 size 6 ok 
+[37333563][BX CHANNEL]I: receive from app 0x00 module 0x32 session id 32 size 20 ok 
+[37333563] [BX_SLEEPDATA] receive data size: 20
+[37333595] [BX_SLEEPDATA] buffer: 08, 01
+[37333595][BX CHANNEL]I: sending to app 0x00 session 134 module 0x32 size 2
+[37333597][BX CHANNEL]I: send to app 0x00 module 0x32 session 134 size 2 ok 
+[37335000][BX CHANNEL]I: receive from app 0x00 module 0x90 session id 33 size 5 ok [ENC]
+[37337626] [STRESS SYNC]len:837 start_addr:df173 start_time:1791225000
+[37337733] [STRESS SYNC]len:0 start_addr:0 start_time:1791275220
+[37338217][BX CHANNEL]I: receive from app 0x00 module 0x32 session id 40 size 1 ok 
+[37338217] [BX_SLEEPDATA] receive data size: 1
+[37338217] handle_query_version_cmd ==> ver: 1 
+[37338217][BX CHANNEL]I: sending to app 0x00 session 142 module 0x32 size 2
+[37338218][BX CHANNEL]I: send to app 0x00 module 0x32 session 142 size 2 ok 
+[37338239][BX CHANNEL]I: receive from app 0x00 module 0x32 session id 41 size 1 ok 
+[37338240] [BX_SLEEPDATA] receive data size: 1
+[37338240] handle_query_config_info ==> max_day: 16 func:0 
+[37338240][BX CHANNEL]I: sending to app 0x00 session 143 module 0x32 size 6
+[37338241][BX CHANNEL]I: send to app 0x00 module 0x32 session 143 size 6 ok 
+[37338255][BX CHANNEL]I: receive from app 0x00 module 0x32 session id 42 size 1 ok 
+[37338255] [BX_SLEEPDATA] receive data size: 1
+[37338256][BX CHANNEL]I: sending to app 0x00 session 144 module 0x32 size 6
+[37338257][BX CHANNEL]I: send to app 0x00 module 0x32 session 144 size 6 ok 
+[37338278][BX CHANNEL]I: receive from app 0x00 module 0x32 session id 43 size 20 ok 
+[37338278] [BX_SLEEPDATA] receive data size: 20
+[37338351] [BX_SLEEPDATA] buffer: 08, 01
+[37338351][BX CHANNEL]I: sending to app 0x00 session 145 module 0x32 size 2
+[37338353][BX CHANNEL]I: send to app 0x00 module 0x32 session 145 size 2 ok 
+[37343319] Sleepdt:0,0,0.049167
+[37343323] [TIME]2026-10-6 13:57:58 week 2
+[37343326] [STRESS SYNC] allday stress:255 time:1791275220
+[37374039] Sleepdt:0,0,0.029568
+[37374045] [TIME]2026-10-6 13:58:58 week 2
+[37374048] [STRESS SYNC] allday stress:255 time:1791275280
+[37404760] Sleepdt:0,0,0.028203
+[37404800] [TIME]2026-10-6 13:59:58 week 2
+[37404802] [STRESS SYNC] allday stress:255 time:1791275340
+[37435481] Sleepdt:0,0,0.020781
+[37435484] [TIME]2026-10-6 14:0:58 week 2
+[37435487] [STRESS SYNC] allday stress:255 time:1791275400
+[37466200] Sleepdt:0,0,0.018616
+[37466207] [TIME]2026-10-6 14:1:58 week 2
+[37466210] [STRESS SYNC] allday stress:255 time:1791275460
+[37496919] Sleepdt:0,0,0.011992
+[37496923] [TIME]2026-10-6 14:2:58 week 2
+[37496926] [STRESS SYNC] allday stress:255 time:1791275520
+[37527640] Sleepdt:0,0,0.011174
+[37527646] [TIME]2026-10-6 14:3:58 week 2
+[37527649] [STRESS SYNC] allday stress:255 time:1791275580
+[37555940][BX CHANNEL]I: receive from app 0x00 module 0x90 session id 33 size 5 ok [ENC]
+[37555993][BX CHANNEL]I: receive from app 0x00 module 0x90 session id 34 size 5 ok [ENC]
+[37558145] Sleepdt:0,0,0.011174
+[37558154] [TIME]2026-10-6 14:4:58 week 2
+[37558157] [STRESS SYNC] allday stress:255 time:1791275640
+[37559097] [STRESS SYNC]len:9 start_addr:df000 start_time:1791202740
+[37559258] [STRESS SYNC]len:1207 start_addr:df009 start_time:1791203280
+[37559596] [STRESS SYNC]len:0 start_addr:0 start_time:1791275700
+[37560571][BX CHANNEL]I: receive from app 0x00 module 0x90 session id 35 size 5 ok [ENC]
+[37560571] set allday heart: 1
+[37560613] hrm_set_interval intv=1 mode=43
+[37560825][BX CHANNEL]I: receive from app 0x00 module 0x90 session id 36 size 5 ok [ENC]
+[37560886][BX CHANNEL]I: receive from app 0x00 module 0x90 session id 37 size 5 ok [ENC]
+[37560886] ECF_SET_SCIENTIFIC_SLEEP_SWITCH: 1
+[37560947][BX CHANNEL]I: receive from app 0x00 module 0x90 session id 38 size 5 ok [ENC]
+[37561124][BX CHANNEL]I: receive from app 0x00 module 0x90 session id 40 size 5 ok [ENC]
+[37561193][BX CHANNEL]I: receive from app 0x00 module 0x90 session id 41 size 5 ok [ENC]
+[37563136][BX CHANNEL]I: receive from app 0x00 module 0x32 session id 49 size 1 ok 
+[37563136] [BX_SLEEPDATA] receive data size: 1
+[37563136] handle_query_version_cmd ==> ver: 1 
+[37563136][BX CHANNEL]I: sending to app 0x00 session 168 module 0x32 size 2
+[37563137][BX CHANNEL]I: send to app 0x00 module 0x32 session 168 size 2 ok 
+[37563313][BX CHANNEL]I: receive from app 0x00 module 0x32 session id 50 size 1 ok 
+[37563313] [BX_SLEEPDATA] receive data size: 1
+[37563313] handle_query_config_info ==> max_day: 16 func:0 
+[37563313][BX CHANNEL]I: sending to app 0x00 session 169 module 0x32 size 6
+[37563314][BX CHANNEL]I: send to app 0x00 module 0x32 session 169 size 6 ok 
+[37563412][BX CHANNEL]I: receive from app 0x00 module 0x32 session id 51 size 1 ok 
+[37563412] [BX_SLEEPDATA] receive data size: 1
+[37563413][BX CHANNEL]I: sending to app 0x00 session 170 module 0x32 size 6
+[37563451][BX CHANNEL]I: send to app 0x00 module 0x32 session 170 size 6 ok 
+[37577767] [STRESS SYNC]len:9 start_addr:df000 start_time:1791202740
+[37582237] [STRESS SYNC]len:1207 start_addr:df009 start_time:1791203280
+[37588634] [STRESS SYNC]len:0 start_addr:0 start_time:1791275700
+[37588688] Sleepdt:0,0,0.011173
+[37588694] [TIME]2026-10-6 14:5:58 week 2
+[37588697] [STRESS SYNC] allday stress:255 time:1791275700
+[37619374] Sleepdt:0,0,0.011137
+[37619380] [TIME]2026-10-6 14:6:58 week 2
+[37619383] [STRESS SYNC] allday stress:255 time:1791275760
+[37650089] Sleepdt:0,0,0.009340
+[37650096] [TIME]2026-10-6 14:7:58 week 2
+[37650099] [STRESS SYNC] allday stress:255 time:1791275820
+[37680809] Sleepdt:0,0,0.009340
+[37680859] [TIME]2026-10-6 14:8:58 week 2
+[37680862] [STRESS SYNC] allday stress:255 time:1791275880
+[37695371] hrv_stress,hrv=25.719175,stress=58
+[37711531] Sleepdt:0,0,0.005758
+[37711578] [TIME]2026-10-6 14:9:58 week 2
+[37711581] [ALG]aday pres time:1791295798 stress:58
+[37711582] [STRESS SYNC] allday stress:58 time:1791275940
+[37742252] Sleepdt:0,0,0.005485
+[37742259] [TIME]2026-10-6 14:10:58 week 2
+[37742262] [STRESS SYNC] allday stress:255 time:1791276000
+[37772969] Sleepdt:0,0,0.005485
+[37772976] [TIME]2026-10-6 14:11:58 week 2
+[37772979] [STRESS SYNC] allday stress:255 time:1791276060
+[37803689] Sleepdt:0,0,0.006006
+[37803696] [TIME]2026-10-6 14:12:58 week 2
+[37803699] [STRESS SYNC] allday stress:255 time:1791276120
+[37834410] Sleepdt:0,0,0.007325
+[37834420] [TIME]2026-10-6 14:13:58 week 2
+[37834461] [STRESS SYNC] allday stress:255 time:1791276180
+[37848769] hrv_stress,hrv=38.909900,stress=44
+[37865130] Sleepdt:0,0,0.007325
+[37865138] [TIME]2026-10-6 14:14:58 week 2
+[37865141] [ALG]aday pres time:1791296098 stress:44
+[37865141] [STRESS SYNC] allday stress:44 time:1791276240
+[37895849] Sleepdt:0,0,0.006275
+[37895856] [TIME]2026-10-6 14:15:58 week 2
+[37895864] [STRESS SYNC] allday stress:255 time:1791276300
+[37926607] Sleepdt:0,0,0.006275
+[37926614] [TIME]2026-10-6 14:16:58 week 2
+[37926618] [STRESS SYNC] allday stress:255 time:1791276360
+[37957289] Sleepdt:0,0,0.006275
+[37957296] [TIME]2026-10-6 14:17:58 week 2
+[37957300] [STRESS SYNC] allday stress:255 time:1791276420
+[37988012] Sleepdt:0,0,0.006275
+[37988026] [TIME]2026-10-6 14:18:58 week 2
+[37988029] [STRESS SYNC] allday stress:255 time:1791276480
+[38002510] hrv_stress,hrv=22.915729,stress=62
+[38018731] Sleepdt:0,0,0.005999
+[38018738] [TIME]2026-10-6 14:19:58 week 2
+[38018746] [ALG]aday pres time:1791296398 stress:62
+[38018746] [STRESS SYNC] allday stress:62 time:1791276540
+[38049449] Sleepdt:0,0,0.005999
+[38049457] [TIME]2026-10-6 14:20:58 week 2
+[38049460] [STRESS SYNC] allday stress:255 time:1791276600
+[38080169] Sleepdt:0,0,0.005999
+[38080181] [TIME]2026-10-6 14:21:58 week 2
+[38080185] [STRESS SYNC] allday stress:255 time:1791276660
+[38110891] Sleepdt:0,0,0.005125
+[38110898] [TIME]2026-10-6 14:22:58 week 2
+[38110902] [STRESS SYNC] allday stress:255 time:1791276720
+[38141609] Sleepdt:0,0,0.005125
+[38141624] [TIME]2026-10-6 14:23:58 week 2
+[38141627] [STRESS SYNC] allday stress:255 time:1791276780
+[38172333] Sleepdt:0,0,0.004514
+[38172341] [TIME]2026-10-6 14:24:58 week 2
+[38172344] [STRESS SYNC] allday stress:255 time:1791276840
+[38203050] Sleepdt:0,0,0.004728
+[38203058] [TIME]2026-10-6 14:25:58 week 2
+[38203061] [STRESS SYNC] allday stress:255 time:1791276900
+[38233772] Sleepdt:0,0,0.004606
+[38233780] [TIME]2026-10-6 14:26:58 week 2
+[38233783] [STRESS SYNC] allday stress:255 time:1791276960
+[38243968] [STRESS SYNC]len:22 start_addr:df4c0 start_time:1791275700
+[38264492] Sleepdt:0,0,0.004606
+[38264504] [TIME]2026-10-6 14:27:58 week 2
+[38264508] [STRESS SYNC] allday stress:255 time:1791277020
+[38274515] [STRESS SYNC]len:1 start_addr:df4d6 start_time:1791277020
+[38295209] Sleepdt:0,0,0.004606
+[38295220] [TIME]2026-10-6 14:28:58 week 2
+[38295273] [STRESS SYNC] allday stress:255 time:1791277080
+[38309644] hrv_stress,hrv=41.987289,stress=42
+[38325929] Sleepdt:0,0,0.005349
+[38325938] [TIME]2026-10-6 14:29:58 week 2
+[38325942] [ALG]aday pres time:1791296998 stress:42
+[38325942] [STRESS SYNC] allday stress:42 time:1791277140
+[38356650] Sleepdt:0,0,0.029332
+[38356663] [TIME]2026-10-6 14:30:58 week 2
+[38356667] [STRESS SYNC] allday stress:255 time:1791277200
+[38387370] Sleepdt:0,0,0.029332
+[38387378] [TIME]2026-10-6 14:31:58 week 2
+[38387382] [STRESS SYNC] allday stress:255 time:1791277260
+[38418089] Sleepdt:0,0,0.027152
+[38418102] [TIME]2026-10-6 14:32:58 week 2
+[38418106] [STRESS SYNC] allday stress:255 time:1791277320
+[38448809] Sleepdt:0,0,0.027152
+[38448820] [TIME]2026-10-6 14:33:58 week 2
+[38448824] [STRESS SYNC] allday stress:255 time:1791277380
+[38463345] hrv_stress,hrv=43.066024,stress=41
+[38479530] Sleepdt:0,0,0.046710
+[38479581] [TIME]2026-10-6 14:34:58 week 2
+[38479585] [ALG]aday pres time:1791297298 stress:41
+[38479585] [STRESS SYNC] allday stress:41 time:1791277440
+[38510252] Sleepdt:0,0,0.066942
+[38510260] [TIME]2026-10-6 14:35:58 week 2
+[38510310] [STRESS SYNC] allday stress:255 time:1791277500
+[38540969] Sleepdt:0,0,0.066942
+[38540982] [TIME]2026-10-6 14:36:58 week 2
+[38540986] [STRESS SYNC] allday stress:255 time:1791277560
+[38571689] Sleepdt:0,0,0.044767
+[38571698] [TIME]2026-10-6 14:37:58 week 2
+[38571702] [STRESS SYNC] allday stress:255 time:1791277620
+[38602409] Sleepdt:0,0,0.044767
+[38602463] [TIME]2026-10-6 14:38:58 week 2
+[38602475] [STRESS SYNC] allday stress:255 time:1791277680
+[38633130] Sleepdt:0,0,0.100400
+[38633139] [TIME]2026-10-6 14:39:58 week 2
+[38633143] [STRESS SYNC] allday stress:255 time:1791277740
+[38663849] Sleepdt:0,0,0.137609
+[38663862] [TIME]2026-10-6 14:40:58 week 2
+[38663866] [STRESS SYNC] allday stress:255 time:1791277800
+[38694569] Sleepdt:0,0,0.137609
+[38694578] [TIME]2026-10-6 14:41:58 week 2
+[38694582] [STRESS SYNC] allday stress:255 time:1791277860
+[38725289] Sleepdt:0,0,0.080844
+[38725298] [TIME]2026-10-6 14:42:58 week 2
+[38725302] [STRESS SYNC] allday stress:255 time:1791277920
+[38756011] Sleepdt:0,0,0.080844
+[38756023] [TIME]2026-10-6 14:43:58 week 2
+[38756027] [STRESS SYNC] allday stress:255 time:1791277980
+[38786731] Sleepdt:0,1,0.151771
+[38786741] [TIME]2026-10-6 14:44:58 week 2
+[38786745] [STRESS SYNC] allday stress:255 time:1791278040
+[38817449] Sleepdt:0,1,0.151771
+[38817462] [TIME]2026-10-6 14:45:58 week 2
+[38817467] [STRESS SYNC] allday stress:255 time:1791278100
+[38848169] Sleepdt:0,0,0.108511
+[38848178] [TIME]2026-10-6 14:46:58 week 2
+[38848183] [STRESS SYNC] allday stress:255 time:1791278160
+[38878890] Sleepdt:0,0,0.098336
+[38878948] [TIME]2026-10-6 14:47:58 week 2
+[38878953] [STRESS SYNC] allday stress:255 time:1791278220
+[38909610] Sleepdt:0,0,0.076982
+[38909623] [TIME]2026-10-6 14:48:58 week 2
+[38909628] [STRESS SYNC] allday stress:255 time:1791278280
+[38929271] [STRESS SYNC]len:21 start_addr:df4d7 start_time:1791277080
+[38940329] Sleepdt:0,0,0.053939
+[38940343] [TIME]2026-10-6 14:49:58 week 2
+[38940348] [STRESS SYNC] allday stress:255 time:1791278340
+[38971049] Sleepdt:0,0,0.043186
+[38971059] [TIME]2026-10-6 14:50:58 week 2
+[38971068] [STRESS SYNC] allday stress:255 time:1791278400
+[39001770] Sleepdt:0,0,0.043186
+[39001783] [TIME]2026-10-6 14:51:58 week 2
+[39001788] [STRESS SYNC] allday stress:255 time:1791278460
+[39032495] Sleepdt:0,0,0.043186
+[39032505] [TIME]2026-10-6 14:52:58 week 2
+[39032510] [STRESS SYNC] allday stress:255 time:1791278520
+[39050540] [STRESS SYNC]len:4 start_addr:df4ec start_time:1791278340
+[39063209] Sleepdt:0,0,0.027389
+[39063222] [TIME]2026-10-6 14:53:58 week 2
+[39063227] [STRESS SYNC] allday stress:255 time:1791278580
+[39093929] Sleepdt:0,0,0.015906
+[39093943] [TIME]2026-10-6 14:54:58 week 2
+[39093948] [STRESS SYNC] allday stress:255 time:1791278640
+[39124649] Sleepdt:0,0,0.015906
+[39124659] [TIME]2026-10-6 14:55:58 week 2
+[39124665] [STRESS SYNC] allday stress:255 time:1791278700
+[39155370] Sleepdt:0,0,0.016134
+[39155425] [TIME]2026-10-6 14:56:58 week 2
+[39155430] [STRESS SYNC] allday stress:255 time:1791278760
+[39186089] Sleepdt:0,0,0.016134
+[39186099] [TIME]2026-10-6 14:57:58 week 2
+[39186104] [STRESS SYNC] allday stress:255 time:1791278820
+[39216809] Sleepdt:0,0,0.015831
+[39216826] [TIME]2026-10-6 14:58:58 week 2
+[39216831] [STRESS SYNC] allday stress:255 time:1791278880
+[39247529] Sleepdt:0,0,0.011788
+[39247581] [TIME]2026-10-6 14:59:58 week 2
+[39247586] [STRESS SYNC] allday stress:255 time:1791278940
+[39278251] Sleepdt:0,0,0.011788
+[39278262] [TIME]2026-10-6 15:0:58 week 2
+[39278267] [STRESS SYNC] allday stress:255 time:1791279000
+[39308971] Sleepdt:0,0,0.030510
+[39308981] [TIME]2026-10-6 15:1:58 week 2
+[39309033] [STRESS SYNC] allday stress:255 time:1791279060
+[39339689] Sleepdt:0,0,0.042719
+[39339704] [TIME]2026-10-6 15:2:58 week 2
+[39339709] [STRESS SYNC] allday stress:255 time:1791279120
+[39370409] Sleepdt:0,0,0.030510
+[39370422] [TIME]2026-10-6 15:3:58 week 2
+[39370432] [STRESS SYNC] allday stress:255 time:1791279180
+[39384428] hrv_stress,hrv=45.395557,stress=39
+[39401130] Sleepdt:0,0,0.026245
+[39401140] [TIME]2026-10-6 15:4:58 week 2
+[39401180] [ALG]aday pres time:1791299098 stress:39
+[39401180] [STRESS SYNC] allday stress:39 time:1791279240
+[39420123] [STRESS SYNC]len:12 start_addr:df4f0 start_time:1791278580
+[39428556] [STRESS SYNC]len:0 start_addr:0 start_time:1791279300
+[39431850] Sleepdt:0,0,0.019663
+[39431905] [TIME]2026-10-6 15:5:58 week 2
+[39431910] [STRESS SYNC] allday stress:255 time:1791279300
+[39451577] [STRESS SYNC]len:1 start_addr:df4fc start_time:1791279300
+[39462569] Sleepdt:0,0,0.016161
+[39462620] [TIME]2026-10-6 15:6:58 week 2
+[39462625] [STRESS SYNC] allday stress:255 time:1791279360
+[39493289] Sleepdt:0,0,0.012103
+[39493342] [TIME]2026-10-6 15:7:58 week 2
+[39493347] [STRESS SYNC] allday stress:255 time:1791279420
+[39524010] Sleepdt:0,0,0.011110
+[39524023] [TIME]2026-10-6 15:8:58 week 2
+[39524029] [STRESS SYNC] allday stress:255 time:1791279480
+[39538503] hrv_stress,hrv=50.768119,stress=35
+[39554731] Sleepdt:0,0,0.011110
+[39554746] [TIME]2026-10-6 15:9:58 week 2
+[39554752] [ALG]aday pres time:1791299398 stress:35
+[39554752] [STRESS SYNC] allday stress:35 time:1791279540
+[39585451] Sleepdt:0,0,0.009857
+[39585466] [TIME]2026-10-6 15:10:58 week 2
+[39585471] [STRESS SYNC] allday stress:255 time:1791279600
+[39616169] Sleepdt:0,0,0.009857
+[39616181] [TIME]2026-10-6 15:11:58 week 2
+[39616187] [STRESS SYNC] allday stress:255 time:1791279660
+[39646889] Sleepdt:0,0,0.024412
+[39646943] [TIME]2026-10-6 15:12:58 week 2
+[39646949] [STRESS SYNC] allday stress:255 time:1791279720
+[39677610] Sleepdt:0,0,0.027981
+[39677624] [TIME]2026-10-6 15:13:58 week 2
+[39677629] [STRESS SYNC] allday stress:255 time:1791279780
+[39692210] hrv_stress,hrv=37.417423,stress=45
+[39708329] Sleepdt:0,0,0.033799
+[39708344] [TIME]2026-10-6 15:14:58 week 2
+[39708350] [ALG]aday pres time:1791299698 stress:45
+[39708350] [STRESS SYNC] allday stress:45 time:1791279840
+[39739049] Sleepdt:0,0,0.033799
+[39739064] [TIME]2026-10-6 15:15:58 week 2
+[39739070] [STRESS SYNC] allday stress:255 time:1791279900
+[39769769] Sleepdt:0,0,0.033799
+[39769780] [TIME]2026-10-6 15:16:58 week 2
+[39769786] [STRESS SYNC] allday stress:255 time:1791279960
+[39800491] Sleepdt:0,0,0.024767
+[39800503] [TIME]2026-10-6 15:17:58 week 2
+[39800508] [STRESS SYNC] allday stress:255 time:1791280020
+[39831211] Sleepdt:0,0,0.018489
+[39831271] [TIME]2026-10-6 15:18:58 week 2
+[39831276] [STRESS SYNC] allday stress:255 time:1791280080
+[39861929] Sleepdt:0,0,0.016880
+[39862029] [TIME]2026-10-6 15:19:58 week 2
+[39862032] [STRESS SYNC] allday stress:255 time:1791280140
+[39892649] Sleepdt:0,0,0.014837
+[39892655] [TIME]2026-10-6 15:20:58 week 2
+[39892657] [STRESS SYNC] allday stress:255 time:1791280200
+[39923370] Sleepdt:0,0,0.016880
+[39923376] [TIME]2026-10-6 15:21:58 week 2
+[39923378] [STRESS SYNC] allday stress:255 time:1791280260
+[39954090] Sleepdt:0,0,0.016261
+[39954096] [TIME]2026-10-6 15:22:58 week 2
+[39954098] [STRESS SYNC] allday stress:255 time:1791280320
+[39984809] Sleepdt:0,0,0.016261
+[39984822] [TIME]2026-10-6 15:23:58 week 2
+[39984824] [STRESS SYNC] allday stress:255 time:1791280380
+[40015528] Sleepdt:0,0,0.014292
+[40015534] [TIME]2026-10-6 15:24:58 week 2
+[40015537] [STRESS SYNC] allday stress:255 time:1791280440
+[40046248] Sleepdt:0,0,0.012719
+[40046259] [TIME]2026-10-6 15:25:58 week 2
+[40046262] [STRESS SYNC] allday stress:255 time:1791280500
+[40076971] Sleepdt:0,0,0.008916
+[40076977] [TIME]2026-10-6 15:26:58 week 2
+[40076980] [STRESS SYNC] allday stress:255 time:1791280560
+[40107736] Sleepdt:0,0,0.008916
+[40107742] [TIME]2026-10-6 15:27:58 week 2
+[40107745] [STRESS SYNC] allday stress:255 time:1791280620
+[40138409] Sleepdt:0,0,0.033015
+[40138418] [TIME]2026-10-6 15:28:58 week 2
+[40138420] [STRESS SYNC] allday stress:255 time:1791280680
+[40152728] hrv_stress,hrv=39.228633,stress=44
+[40169133] Sleepdt:0,0,0.068561
+[40169140] [TIME]2026-10-6 15:29:58 week 2
+[40169143] [ALG]aday pres time:1791300598 stress:44
+[40169143] [STRESS SYNC] allday stress:44 time:1791280740
+[40199850] Sleepdt:0,0,0.102501
+[40199856] [TIME]2026-10-6 15:30:58 week 2
+[40199859] [STRESS SYNC] allday stress:255 time:1791280800
+[40230570] Sleepdt:0,1,0.186099
+[40230622] [TIME]2026-10-6 15:31:58 week 2
+[40230625] [STRESS SYNC] allday stress:255 time:1791280860
+[40261293] Sleepdt:0,1,0.295351
+[40261300] [TIME]2026-10-6 15:32:58 week 2
+[40261303] [STRESS SYNC] allday stress:255 time:1791280920
+[40292009] Sleepdt:0,1,0.379395
+[40292018] [TIME]2026-10-6 15:33:58 week 2
+[40292026] [STRESS SYNC] allday stress:255 time:1791280980
+[40306456] hrv_stress,hrv=24.453556,stress=60
+[40322730] Sleepdt:0,1,0.488316
+[40322736] [TIME]2026-10-6 15:34:58 week 2
+[40322744] [ALG]aday pres time:1791300898 stress:60
+[40322744] [STRESS SYNC] allday stress:60 time:1791281040
+[40353451] Sleepdt:0,1,0.517286
+[40353498] [TIME]2026-10-6 15:35:58 week 2
+[40353501] [STRESS SYNC] allday stress:255 time:1791281100
+[40384169] Sleepdt:0,1,0.634791
+[40384176] [TIME]2026-10-6 15:36:58 week 2
+[40384221] [STRESS SYNC] allday stress:255 time:1791281160
+[40414893] Sleepdt:0,1,0.640731
+[40414900] [TIME]2026-10-6 15:37:58 week 2
+[40414903] [STRESS SYNC] allday stress:255 time:1791281220
+[40445609] Sleepdt:0,1,0.634791
+[40445618] [TIME]2026-10-6 15:38:58 week 2
+[40445622] [STRESS SYNC] allday stress:255 time:1791281280
+[40460162] hrv_stress,hrv=44.620861,stress=40
+[40476376] Sleepdt:0,1,0.692613
+[40476383] [TIME]2026-10-6 15:39:58 week 2
+[40476386] [ALG]aday pres time:1791301198 stress:40
+[40476386] [STRESS SYNC] allday stress:40 time:1791281340
+[40507049] Sleepdt:0,1,0.815069
+[40507057] [TIME]2026-10-6 15:40:58 week 2
+[40507060] [STRESS SYNC] allday stress:255 time:1791281400
+[40537769] Sleepdt:0,1,0.857408
+[40537781] [TIME]2026-10-6 15:41:58 week 2
+[40537784] [STRESS SYNC] allday stress:255 time:1791281460
+[40568489] Sleepdt:0,1,0.880975
+[40568492] science_sleep_enable
+[40568497] [TIME]2026-10-6 15:42:58 week 2
+[40568500] [STRESS SYNC] allday stress:255 time:1791281520
+[40599212] Sleepdt:0,1,0.926183
+[40599271] [TIME]2026-10-6 15:43:58 week 2
+[40599274] [STRESS SYNC] allday stress:255 time:1791281580
+[40613879] hrv_stress,hrv=48.863506,stress=37,stress_sleep=16.875000
+[40629931] Sleepdt:0,1,0.948787
+[40629988] [TIME]2026-10-6 15:44:58 week 2
+[40629991] [ALG]aday pres time:1791301498 stress:16
+[40629991] [STRESS SYNC] allday stress:16 time:1791281640
+[40660650] Sleepdt:0,1,0.936988
+[40660664] [TIME]2026-10-6 15:45:58 week 2
+[40660667] [STRESS SYNC] allday stress:255 time:1791281700
+[40691370] Sleepdt:0,1,0.936988
+[40691388] [TIME]2026-10-6 15:46:58 week 2
+[40691391] [STRESS SYNC] allday stress:255 time:1791281760
+[40722091] Sleepdt:0,1,0.932751
+[40722105] [TIME]2026-10-6 15:47:58 week 2
+[40722113] [STRESS SYNC] allday stress:255 time:1791281820
+[40752859] Sleepdt:0,1,0.932751
+[40752876] [TIME]2026-10-6 15:48:58 week 2
+[40752879] [STRESS SYNC] allday stress:255 time:1791281880
+[40767281] hrv_stress,hrv=46.556343,stress=38,stress_sleep=17.500000
+[40783531] Sleepdt:0,1,0.928415
+[40783588] [TIME]2026-10-6 15:49:58 week 2
+[40783591] [ALG]aday pres time:1791301798 stress:17
+[40783591] [STRESS SYNC] allday stress:17 time:1791281940
+[40814250] Sleepdt:0,1,0.928415
+[40814264] [TIME]2026-10-6 15:50:58 week 2
+[40814267] [STRESS SYNC] allday stress:255 time:1791282000
+[40844971] Sleepdt:0,1,0.898467
+[40844989] [TIME]2026-10-6 15:51:58 week 2
+[40844993] [STRESS SYNC] allday stress:255 time:1791282060
+[40875692] Sleepdt:0,1,0.898467
+[40875711] [TIME]2026-10-6 15:52:58 week 2
+[40875714] [STRESS SYNC] allday stress:255 time:1791282120
+[40906410] Sleepdt:0,1,0.904212
+[40906427] [TIME]2026-10-6 15:53:58 week 2
+[40906430] [STRESS SYNC] allday stress:255 time:1791282180
+[40920987] hrv_stress,hrv=31.361995,stress=51,stress_sleep=25.625000
+[40937130] Sleepdt:0,1,0.934749
+[40937191] [TIME]2026-10-6 15:54:58 week 2
+[40937194] [ALG]aday pres time:1791302098 stress:25
+[40937194] [STRESS SYNC] allday stress:25 time:1791282240
+[40967850] Sleepdt:0,1,0.934749
+[40967865] [TIME]2026-10-6 15:55:58 week 2
+[40967915] [STRESS SYNC] allday stress:255 time:1791282300
+[40998571] Sleepdt:0,1,0.939978
+[40998590] [TIME]2026-10-6 15:56:58 week 2
+[40998593] [STRESS SYNC] allday stress:255 time:1791282360
+[41029290] Sleepdt:0,1,0.939978
+[41029309] [TIME]2026-10-6 15:57:58 week 2
+[41029312] [STRESS SYNC] allday stress:255 time:1791282420
+[41060010] Sleepdt:0,1,0.946020
+[41060027] [TIME]2026-10-6 15:58:58 week 2
+[41060031] [STRESS SYNC] allday stress:255 time:1791282480
+[41074398] hrv_stress,hrv=44.679473,stress=40,stress_sleep=18.750000
+[41090730] Sleepdt:0,1,0.946020
+[41090781] [TIME]2026-10-6 15:59:58 week 2
+[41090784] [ALG]aday pres time:1791302398 stress:18
+[41090785] [STRESS SYNC] allday stress:18 time:1791282540
+[41121453] Sleepdt:0,1,0.947749
+[41121467] [TIME]2026-10-6 16:0:58 week 2
+[41121471] [STRESS SYNC] allday stress:255 time:1791282600
+[41152172] Sleepdt:0,1,0.957998
+[41152230] [TIME]2026-10-6 16:1:58 week 2
+[41152233] [STRESS SYNC] allday stress:255 time:1791282660
+[41182890] Sleepdt:0,1,0.965093
+[41182905] [TIME]2026-10-6 16:2:58 week 2
+[41182951] [STRESS SYNC] allday stress:255 time:1791282720
+[41213610] Sleepdt:0,1,0.965093
+[41213632] [TIME]2026-10-6 16:3:58 week 2
+[41213636] [STRESS SYNC] allday stress:255 time:1791282780
+[41228120] hrv_stress,hrv=37.474037,stress=45,stress_sleep=21.875000
+[41244330] Sleepdt:0,1,0.920158
+[41244350] [TIME]2026-10-6 16:4:58 week 2
+[41244353] [ALG]aday pres time:1791302698 stress:21
+[41244354] [STRESS SYNC] allday stress:21 time:1791282840
+[41275051] Sleepdt:0,1,0.920158
+[41275071] [TIME]2026-10-6 16:5:58 week 2
+[41275075] [STRESS SYNC] allday stress:255 time:1791282900
+[41305770] Sleepdt:0,1,0.958402
+[41305785] [TIME]2026-10-6 16:6:58 week 2
+[41305789] [STRESS SYNC] allday stress:255 time:1791282960
+[41336533] Sleepdt:0,1,0.974040
+[41336548] [TIME]2026-10-6 16:7:58 week 2
+[41336552] [STRESS SYNC] allday stress:255 time:1791283020
+[41367213] Sleepdt:0,1,0.977789
+[41367271] [TIME]2026-10-6 16:8:58 week 2
+[41367275] [STRESS SYNC] allday stress:255 time:1791283080
+[41381826] hrv_stress,hrv=45.775394,stress=39,stress_sleep=18.125000
+[41397932] Sleepdt:0,1,0.981642
+[41397948] [TIME]2026-10-6 16:9:58 week 2
+[41397952] [ALG]aday pres time:1791302998 stress:18
+[41397953] [STRESS SYNC] allday stress:18 time:1791283140
+[41428655] Sleepdt:0,1,0.981707
+[41428670] [TIME]2026-10-6 16:10:58 week 2
+[41428674] [STRESS SYNC] allday stress:255 time:1791283200
+[41459370] Sleepdt:0,1,0.983522
+[41459385] [TIME]2026-10-6 16:11:58 week 2
+[41459395] [STRESS SYNC] allday stress:255 time:1791283260
+[41490090] Sleepdt:0,1,0.983522
+[41490105] [TIME]2026-10-6 16:12:58 week 2
+[41490110] [STRESS SYNC] allday stress:255 time:1791283320
+[41520811] Sleepdt:0,1,0.983522
+[41520829] [TIME]2026-10-6 16:13:58 week 2
+[41520833] [STRESS SYNC] allday stress:255 time:1791283380
+[41535225] hrv_stress,hrv=47.932849,stress=37,stress_sleep=16.875000
+[41551530] Sleepdt:0,1,0.983522
+[41551546] [TIME]2026-10-6 16:14:58 week 2
+[41551551] [ALG]aday pres time:1791303298 stress:16
+[41551551] [STRESS SYNC] allday stress:16 time:1791283440
+[41582250] Sleepdt:0,1,0.983522
+[41582308] [TIME]2026-10-6 16:15:58 week 2
+[41582313] [STRESS SYNC] allday stress:255 time:1791283500
+[41612970] Sleepdt:0,1,0.982687
+[41612986] [TIME]2026-10-6 16:16:58 week 2
+[41612991] [STRESS SYNC] allday stress:255 time:1791283560
+[41643692] Sleepdt:0,1,0.981236
+[41643748] [TIME]2026-10-6 16:17:58 week 2
+[41643753] [STRESS SYNC] allday stress:255 time:1791283620
+[41674412] Sleepdt:0,1,0.918431
+[41674473] [TIME]2026-10-6 16:18:58 week 2
+[41674478] [STRESS SYNC] allday stress:255 time:1791283680
+[41688936] hrv_stress,hrv=35.144104,stress=48,stress_sleep=23.750001
+[41705130] Sleepdt:0,1,0.591923
+[41705145] [TIME]2026-10-6 16:19:58 week 2
+[41705191] [ALG]aday pres time:1791303598 stress:23
+[41705191] [STRESS SYNC] allday stress:23 time:1791283740
+[41735850] Sleepdt:0,1,0.591923
+[41735866] [TIME]2026-10-6 16:20:58 week 2
+[41735871] [STRESS SYNC] allday stress:255 time:1791283800
+[41766571] Sleepdt:0,1,0.641547
+[41766587] [TIME]2026-10-6 16:21:58 week 2
+[41766592] [STRESS SYNC] allday stress:255 time:1791283860
+[41797291] Sleepdt:0,1,0.641547
+[41797307] [TIME]2026-10-6 16:22:58 week 2
+[41797312] [STRESS SYNC] allday stress:255 time:1791283920
+[41828010] Sleepdt:0,1,0.435537
+[41828029] [TIME]2026-10-6 16:23:58 week 2
+[41828038] [STRESS SYNC] allday stress:255 time:1791283980
+[41858730] Sleepdt:0,1,0.231465
+[41858750] [TIME]2026-10-6 16:24:58 week 2
+[41858755] [STRESS SYNC] allday stress:255 time:1791284040
+[41889493] Sleepdt:0,1,0.203003
+[41889509] [TIME]2026-10-6 16:25:58 week 2
+[41889515] [STRESS SYNC] allday stress:255 time:1791284100
+[41920172] Sleepdt:0,1,0.231465
+[41920232] [TIME]2026-10-6 16:26:58 week 2
+[41920237] [STRESS SYNC] allday stress:255 time:1791284160
+[41950892] Sleepdt:0,1,0.199220
+[41950908] [TIME]2026-10-6 16:27:58 week 2
+[41950954] [STRESS SYNC] allday stress:255 time:1791284220
+[41981610] Sleepdt:0,0,0.115211
+[41981629] [TIME]2026-10-6 16:28:58 week 2
+[41981635] [STRESS SYNC] allday stress:255 time:1791284280
+[42012332] Sleepdt:0,0,0.068446
+[42012389] [TIME]2026-10-6 16:29:58 week 2
+[42012394] [STRESS SYNC] allday stress:255 time:1791284340
+[42043052] Sleepdt:0,0,0.059803
+[42043110] [TIME]2026-10-6 16:30:58 week 2
+[42043116] [STRESS SYNC] allday stress:255 time:1791284400
+[42073771] Sleepdt:0,0,0.016424
+[42073831] [TIME]2026-10-6 16:31:58 week 2
+[42073837] [STRESS SYNC] allday stress:255 time:1791284460
+[42104490] Sleepdt:0,0,0.007785
+[42104548] [TIME]2026-10-6 16:32:58 week 2
+[42104554] [STRESS SYNC] allday stress:255 time:1791284520
+[42135210] Sleepdt:0,0,0.010669
+[42135268] [TIME]2026-10-6 16:33:58 week 2
+[42135273] [STRESS SYNC] allday stress:255 time:1791284580
+[42149788] hrv_stress,hrv=56.205638,stress=32,stress_sleep=13.750000
+[42165931] Sleepdt:0,0,0.007518
+[42165948] [TIME]2026-10-6 16:34:58 week 2
+[42165953] [ALG]aday pres time:1791304498 stress:13
+[42165999] [STRESS SYNC] allday stress:13 time:1791284640
+[42196652] Sleepdt:0,0,0.010669
+[42196669] [TIME]2026-10-6 16:35:58 week 2
+[42196675] [STRESS SYNC] allday stress:255 time:1791284700
+[42227370] Sleepdt:0,0,0.008020
+[42227430] [TIME]2026-10-6 16:36:58 week 2
+[42227435] [STRESS SYNC] allday stress:255 time:1791284760
+[42258090] Sleepdt:0,0,0.008020
+[42258141] science_sleep_disable
+[42258149] [TIME]2026-10-6 16:37:58 week 2
+[42258155] [STRESS SYNC] allday stress:255 time:1791284820
+[42281600] [STRESS SYNC]len:92 start_addr:df4fd start_time:1791279360
+[42288809] Sleepdt:0,0,0.008020
+[42288823] [TIME]2026-10-6 16:38:58 week 2
+[42288829] [STRESS SYNC] allday stress:255 time:1791284880
+[42319526] Sleepdt:0,0,0.017305
+[42319530] [TIME]2026-10-6 16:39:58 week 2
+[42319532] [STRESS SYNC] allday stress:255 time:1791284940
+[42334411] hrv_stress,hrv=50.837398,stress=35
+[42346352] hrv_stress,hrv=57.260799,stress=31
+[42348778] [STRESS SYNC]len:2 start_addr:df559 start_time:1791284880
+[42350248] Sleepdt:0,0,0.022390
+[42350304] [TIME]2026-10-6 16:40:58 week 2
+[42350309] [ALG]aday pres time:1791304858 stress:33
+[42350310] [STRESS SYNC] allday stress:33 time:1791285000
+[42352689] [STRESS SYNC]len:1 start_addr:df55b start_time:1791285000
+[42380969] Sleepdt:0,0,0.026133
+[42380980] [TIME]2026-10-6 16:41:58 week 2
+[42381023] [STRESS SYNC] allday stress:255 time:1791285060
+[42411689] Sleepdt:0,0,0.026133
+[42411700] [TIME]2026-10-6 16:42:58 week 2
+[42411706] [STRESS SYNC] allday stress:255 time:1791285120
+[42436416][BX CHANNEL]I: receive from app 0x00 module 0x90 session id 6 size 5 ok [ENC]
+[42436554][BX CHANNEL]I: receive from app 0x00 module 0x90 session id 7 size 5 ok [ENC]
+[42441255] [STRESS SYNC]len:1003 start_addr:df173 start_time:1791225000
+[42441440] [STRESS SYNC]len:0 start_addr:0 start_time:1791285180
+[42442084][BX CHANNEL]I: receive from app 0x00 module 0x90 session id 8 size 5 ok [ENC]
+[42442084] set allday heart: 1
+[42442130][BX CHANNEL]I: receive from app 0x00 module 0x90 session id 9 size 5 ok [ENC]
+[42442199][BX CHANNEL]I: receive from app 0x00 module 0x90 session id 10 size 5 ok [ENC]
+[42442199] ECF_SET_SCIENTIFIC_SLEEP_SWITCH: 1
+[42442245][BX CHANNEL]I: receive from app 0x00 module 0x90 session id 11 size 5 ok [ENC]
+[42442383][BX CHANNEL]I: receive from app 0x00 module 0x90 session id 13 size 5 ok [ENC]
+[42442430][BX CHANNEL]I: receive from app 0x00 module 0x90 session id 14 size 5 ok [ENC]
+[42442859] Sleepdt:0,0,0.021080
+[42442917] [TIME]2026-10-6 16:43:58 week 2
+[42442923] [STRESS SYNC] allday stress:255 time:1791285180
+[42444226][BX CHANNEL]I: receive from app 0x00 module 0x32 session id 22 size 1 ok 
+[42444226] [BX_SLEEPDATA] receive data size: 1
+[42444227] handle_query_version_cmd ==> ver: 1 
+[42444227][BX CHANNEL]I: sending to app 0x00 session 221 module 0x32 size 2
+[42444227][BX CHANNEL]I: send to app 0x00 module 0x32 session 221 size 2 ok 
+[42444272][BX CHANNEL]I: receive from app 0x00 module 0x32 session id 23 size 1 ok 
+[42444273] [BX_SLEEPDATA] receive data size: 1
+[42444317] handle_query_config_info ==> max_day: 16 func:0 
+[42444317][BX CHANNEL]I: sending to app 0x00 session 222 module 0x32 size 6
+[42444319][BX CHANNEL]I: send to app 0x00 module 0x32 session 222 size 6 ok 
+[42444364][BX CHANNEL]I: receive from app 0x00 module 0x32 session id 24 size 1 ok 
+[42444364] [BX_SLEEPDATA] receive data size: 1
+[42444365][BX CHANNEL]I: sending to app 0x00 session 223 module 0x32 size 6
+[42444366][BX CHANNEL]I: send to app 0x00 module 0x32 session 223 size 6 ok 
+[42444872][BX CHANNEL]I: receive from app 0x00 module 0x90 session id 27 size 5 ok [ENC]
+[42449063] [STRESS SYNC]len:1004 start_addr:df173 start_time:1791225000
+[42449250] [STRESS SYNC]len:0 start_addr:0 start_time:1791285240
+[42449986][BX CHANNEL]I: receive from app 0x00 module 0x32 session id 30 size 1 ok 
+[42449986] [BX_SLEEPDATA] receive data size: 1
+[42449987] handle_query_version_cmd ==> ver: 1 
+[42449987][BX CHANNEL]I: sending to app 0x00 session 229 module 0x32 size 2
+[42449987][BX CHANNEL]I: send to app 0x00 module 0x32 session 229 size 2 ok 
+[42450032][BX CHANNEL]I: receive from app 0x00 module 0x32 session id 31 size 1 ok 
+[42450032] [BX_SLEEPDATA] receive data size: 1
+[42450033] handle_query_config_info ==> max_day: 16 func:0 
+[42450033][BX CHANNEL]I: sending to app 0x00 session 230 module 0x32 size 6
+[42450082][BX CHANNEL]I: send to app 0x00 module 0x32 session 230 size 6 ok 
+[42450124][BX CHANNEL]I: receive from app 0x00 module 0x32 session id 32 size 1 ok 
+[42450124] [BX_SLEEPDATA] receive data size: 1
+[42450125][BX CHANNEL]I: sending to app 0x00 session 231 module 0x32 size 6
+[42450127][BX CHANNEL]I: send to app 0x00 module 0x32 session 231 size 6 ok 
+[42454526] [STRESS SYNC]len:3 start_addr:df55c start_time:1791285060
+[42473117] Sleepdt:0,0,0.018098
+[42473177] [TIME]2026-10-6 16:44:58 week 2
+[42473179] [STRESS SYNC] allday stress:255 time:1791285240

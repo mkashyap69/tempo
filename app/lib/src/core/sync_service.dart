@@ -160,7 +160,10 @@ class SyncService {
   }
 
   /// Writes HR interval, sleep assist, stress and wrist (plus time and
-  /// profile) whenever they differ from what this band last confirmed.
+  /// profile) on every sync, and logs it when they differ from what this
+  /// band last confirmed. Every sync, because another app can change them
+  /// behind our back: on 6 Oct the band's log shows a second app (likely
+  /// Mi Fitness) set HR to every 30 min at 13:56 on reconnect.
   /// Without it a band paired elsewhere keeps HR every 30 min and
   /// motion-only sleep detection: late sleep onsets and no stages
   /// (capture android-2026-10-04T12-33-07 has no settings write at all).
@@ -181,7 +184,7 @@ class SyncService {
       profile.weightKg,
       profile.male,
     ].join('|');
-    if (await db.setting(Keys.bandConfigured) == want) return;
+    final same = await db.setting(Keys.bandConfigured) == want;
     try {
       final failed = await band.configure(
         profile.band,
@@ -191,6 +194,7 @@ class SyncService {
         wornLeft: profile.wornLeft,
       );
       if (failed.isEmpty) {
+        if (same) return;
         await db.putSetting(Keys.bandConfigured, want);
         await db.logSync(
           'Band settings written · HR every ${every == 1 ? 'minute' : '$every min'}${sleepAssist ? ' · sleep assist' : ''}${stress ? ' · stress' : ''}',
@@ -251,104 +255,112 @@ class SyncService {
     DateTime? earliest;
     var gap = 0;
     for (final type in syncedTypes) {
-      final cursor = await db.cursor(band.id, type.key);
-      final since = cursor ?? DateTime.now().subtract(firstSyncWindow);
-      final r = await band.fetch(
-        type,
-        since,
-        onProgress: type == FetchType.activity && onProgress != null
-            ? (bytes, records) =>
-                  onProgress(bytes ~/ activityRecordSize, records)
-            : null,
-      );
-      final start = r.start;
-      if (start == null || r.data.isEmpty) {
-        counts[type.key] = 0;
-        continue;
-      }
-      // The band starts from the oldest record it still has. Later than
-      // our cursor means it overwrote minutes we never fetched.
-      if (type == FetchType.activity) gap = activityGapMinutes(cursor, start);
-      DateTime? last;
-      switch (type) {
-        case FetchType.activity:
-          final recs = parseActivity(r.data, start);
-          await db.appendMinutes([
-            for (final a in recs)
-              MinuteSamplesCompanion.insert(
-                ts: Value(toTs(a.ts)),
-                steps: a.steps,
-                intensity: a.intensity,
-                kind: a.kind,
-                hr: Value(a.hr),
-                aux: Value(a.aux),
-              ),
-          ]);
-          counts[type.key] = recs.length;
-          if (recs.isNotEmpty) last = recs.last.ts;
-        case FetchType.stress:
-          final recs = parseStress(r.data, start);
-          await db.appendStress([
-            for (final s in recs)
-              StressSamplesCompanion.insert(
-                ts: Value(toTs(s.ts)),
-                value: s.value,
-              ),
-          ]);
-          counts[type.key] = recs.length;
-          // Stress is one byte per minute including empty ones.
-          last = start.add(Duration(minutes: r.data.length - 1));
-        case FetchType.spo2:
-          final recs = parseSpo2(r.data);
-          await db.appendSpo2([
-            for (final s in recs)
-              Spo2SamplesCompanion.insert(
-                ts: Value(toTs(s.ts)),
-                value: s.value,
-              ),
-          ]);
-          counts[type.key] = recs.length;
-          if (recs.isNotEmpty) last = recs.last.ts;
-        case FetchType.spo2Minutes:
-          final recs = parseSpo2Minutes(r.data);
-          await db.appendSpo2([
-            for (final s in recs)
-              if (s.avg > 0)
+      // A fetch stops at the end of the band's current block (stress on
+      // V1.0.6.20: a fetch from before 17:58 on 5 Oct got only the 9 minutes
+      // up to it), so fetch again from the new cursor until nothing is newer.
+      for (var round = 0; round < maxFetchRounds; round++) {
+        final cursor = await db.cursor(band.id, type.key);
+        final since = cursor ?? DateTime.now().subtract(firstSyncWindow);
+        final r = await band.fetch(
+          type,
+          since,
+          onProgress: type == FetchType.activity && onProgress != null
+              ? (bytes, records) =>
+                    onProgress(bytes ~/ activityRecordSize, records)
+              : null,
+        );
+        final start = r.start;
+        if (start == null || r.data.isEmpty) {
+          counts[type.key] ??= 0;
+          break;
+        }
+        // The band starts from the oldest record it still has. Later than
+        // our cursor means it overwrote minutes we never fetched.
+        if (type == FetchType.activity) {
+          gap += activityGapMinutes(cursor, start);
+        }
+        DateTime? last;
+        switch (type) {
+          case FetchType.activity:
+            final recs = parseActivity(r.data, start);
+            await db.appendMinutes([
+              for (final a in recs)
+                MinuteSamplesCompanion.insert(
+                  ts: Value(toTs(a.ts)),
+                  steps: a.steps,
+                  intensity: a.intensity,
+                  kind: a.kind,
+                  hr: Value(a.hr),
+                  aux: Value(a.aux),
+                ),
+            ]);
+            counts[type.key] = (counts[type.key] ?? 0) + recs.length;
+            if (recs.isNotEmpty) last = recs.last.ts;
+          case FetchType.stress:
+            final recs = parseStress(r.data, start);
+            await db.appendStress([
+              for (final s in recs)
+                StressSamplesCompanion.insert(
+                  ts: Value(toTs(s.ts)),
+                  value: s.value,
+                ),
+            ]);
+            counts[type.key] = (counts[type.key] ?? 0) + recs.length;
+            // Stress is one byte per minute including empty ones.
+            last = start.add(Duration(minutes: r.data.length - 1));
+          case FetchType.spo2:
+            final recs = parseSpo2(r.data);
+            await db.appendSpo2([
+              for (final s in recs)
                 Spo2SamplesCompanion.insert(
                   ts: Value(toTs(s.ts)),
-                  value: s.avg,
-                  quality: Value(s.quality),
+                  value: s.value,
                 ),
-          ]);
-          counts[type.key] = recs.length;
-          if (recs.isNotEmpty) last = recs.last.ts;
-        case FetchType.odEvents:
-          final recs = parseOdEvents(r.data);
-          await db.appendOdEvents([
-            for (final e in recs)
-              OdEventsCompanion.insert(
-                ts: Value(toTs(e.ts)),
-                drop: e.drop,
-                spo2: hex(e.spo2),
-                hr: hex(e.hr),
-              ),
-          ]);
-          counts[type.key] = recs.length;
-          if (recs.isNotEmpty) last = recs.last.ts;
-        case FetchType.pai || FetchType.workouts:
-          break; // workouts: fetched one summary at a time below
-      }
-      if (last != null) {
-        // Per-minute types resume at the next minute; event types (SpO₂,
-        // desaturations: seconds apart) right after the last record.
-        final perMinute =
-            type == FetchType.activity || type == FetchType.stress;
-        await db.setCursor(
-          band.id,
-          type.key,
-          last.add(Duration(seconds: perMinute ? 60 : 1)),
-        );
-        if (earliest == null || start.isBefore(earliest)) earliest = start;
+            ]);
+            counts[type.key] = (counts[type.key] ?? 0) + recs.length;
+            if (recs.isNotEmpty) last = recs.last.ts;
+          case FetchType.spo2Minutes:
+            final recs = parseSpo2Minutes(r.data);
+            await db.appendSpo2([
+              for (final s in recs)
+                if (s.avg > 0)
+                  Spo2SamplesCompanion.insert(
+                    ts: Value(toTs(s.ts)),
+                    value: s.avg,
+                    quality: Value(s.quality),
+                  ),
+            ]);
+            counts[type.key] = (counts[type.key] ?? 0) + recs.length;
+            if (recs.isNotEmpty) last = recs.last.ts;
+          case FetchType.odEvents:
+            final recs = parseOdEvents(r.data);
+            await db.appendOdEvents([
+              for (final e in recs)
+                OdEventsCompanion.insert(
+                  ts: Value(toTs(e.ts)),
+                  drop: e.drop,
+                  spo2: hex(e.spo2),
+                  hr: hex(e.hr),
+                ),
+            ]);
+            counts[type.key] = (counts[type.key] ?? 0) + recs.length;
+            if (recs.isNotEmpty) last = recs.last.ts;
+          case FetchType.pai || FetchType.workouts:
+            break; // workouts: fetched one summary at a time below
+        }
+        if (last != null) {
+          // Per-minute types resume at the next minute; event types (SpO₂,
+          // desaturations: seconds apart) right after the last record.
+          final perMinute =
+              type == FetchType.activity || type == FetchType.stress;
+          await db.setCursor(
+            band.id,
+            type.key,
+            last.add(Duration(seconds: perMinute ? 60 : 1)),
+          );
+          if (earliest == null || start.isBefore(earliest)) earliest = start;
+        }
+        if (!fetchAgain(type, cursor, last, DateTime.now())) break;
       }
     }
     // Workouts recorded with the band's Workout app. The summary format is
@@ -406,6 +418,24 @@ class SyncService {
     );
   }
 }
+
+/// Fetches per data type in one sync, at most.
+const maxFetchRounds = 8;
+
+/// Whether to fetch [type] again after a batch that ended at [last]: only
+/// per-minute stores, which the band splits into blocks, and only when the
+/// batch stopped more than a few minutes before [now] and moved past the
+/// [cursor] it was fetched from (so a band that repeats itself can't loop).
+bool fetchAgain(
+  FetchType type,
+  DateTime? cursor,
+  DateTime? last,
+  DateTime now,
+) =>
+    (type == FetchType.activity || type == FetchType.stress) &&
+    last != null &&
+    (cursor == null || last.isAfter(cursor)) &&
+    now.difference(last).inMinutes > 5;
 
 /// Minutes lost between [cursor] and the first record the band sent; a
 /// couple of minutes of slack for clock rounding. 0 on the first sync.

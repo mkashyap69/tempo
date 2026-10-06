@@ -7,7 +7,8 @@
 /// 5: a quiet wake (≤ 90 min, ≤ 30 steps) stays inside the night; deep
 ///    judged against the night's HR drift; band walking code (0x01).
 /// 6: quiet minutes the band flags awake inside the night are staged.
-const algoVersion = 6;
+/// 7: a quiet wake only joins sleep while the band is worn.
+const algoVersion = 7;
 
 enum Stage { wake, light, deep, rem, unknown }
 
@@ -25,6 +26,7 @@ final class Minute {
     this.stage = Stage.unknown,
     this.motion = 0,
     this.bandWalking = false,
+    this.offWrist = false,
   });
 
   /// Start of the minute.
@@ -41,6 +43,9 @@ final class Minute {
   /// The band's own activity code said walking this minute.
   final bool bandWalking;
 
+  /// The band said it was not worn this minute.
+  final bool offWrist;
+
   Minute withStage(Stage s) => Minute(
     ts,
     hr: hr,
@@ -48,5 +53,6 @@ final class Minute {
     stage: s,
     motion: motion,
     bandWalking: bandWalking,
+    offWrist: offWrist,
   );
 }
