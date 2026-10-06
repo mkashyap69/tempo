@@ -22,6 +22,10 @@ import 'package:tempo/src/screens/coach_settings.dart';
 import 'package:tempo/src/screens/data_health.dart';
 import 'package:tempo/src/screens/feel.dart';
 import 'package:tempo/src/screens/goal.dart';
+import 'package:tempo/src/screens/goal_setup.dart';
+import 'package:tempo/src/screens/nav.dart' show present;
+import 'package:tempo/src/core/format.dart' show dayShort;
+import 'package:tempo/src/design/components.dart' show Pressable;
 import 'package:tempo/src/screens/day_timeline.dart';
 import 'package:tempo/src/screens/insight_detail.dart';
 import 'package:tempo/src/screens/journal.dart';
@@ -129,22 +133,111 @@ void main() {
   }
 
   group('Training goal', () {
+    Future<void> half(TempoDb db) => saveBlock(
+      db,
+      sc.BlockGoal.half,
+      event: mondayOf(DateTime.now()).add(const Duration(days: 7 * 11 + 6)),
+    );
+
     for (final b in Brightness.values) {
-      testWidgets('no goal, then a half marathon (${b.name})', (t) async {
+      testWidgets('card: no goal, then a half marathon (${b.name})', (t) async {
         final db = (await t.runAsync(() => seededDb(days: 30)))!;
         await render(t, db, const GoalCard(), b: b);
         expect(find.text('No training goal'), findsOneWidget);
-        await t.runAsync(
-          () => saveBlock(
-            db,
-            sc.BlockGoal.half,
-            event: mondayOf(DateTime.now())
-                .add(const Duration(days: 7 * 11 + 6)),
-          ),
-        );
+        await t.runAsync(() => half(db));
         await settle(t);
         expect(find.textContaining('Half marathon'), findsOneWidget);
         expect(find.textContaining('Week 1 of 12 · Base'), findsOneWidget);
+        expect(find.textContaining('to go'), findsOneWidget);
+        await teardown(t, db);
+      });
+
+      testWidgets('goal screen (${b.name})', (t) async {
+        final db = (await t.runAsync(() async {
+          final db = await seededDb(days: 30);
+          await half(db);
+          final b = (await loadBlock(db))!;
+          await addTuneUp(
+            db,
+            sc.TuneUp(
+              goal: sc.BlockGoal.run10k,
+              date: b.start.add(const Duration(days: 7 * 5 + 6)),
+            ),
+          );
+          return db;
+        }))!;
+        await render(t, db, const GoalScreen(), b: b, h: 3200);
+        expect(find.text('Half marathon'), findsOneWidget);
+        expect(find.text('Base starts'), findsOneWidget);
+        expect(find.text('THE BLOCK'), findsOneWidget);
+        expect(find.textContaining('THIS WEEK ·'), findsOneWidget);
+        expect(find.text('Sessions'), findsOneWidget);
+        expect(find.text('ALSO ON YOUR PLAN'), findsOneWidget);
+        expect(find.textContaining('10K tune-up'), findsOneWidget);
+        await t.tap(find.text('How the plan grows'));
+        await settle(t);
+        expect(
+          find.text('You earn each step.', findRichText: true),
+          findsNothing,
+        );
+        expect(
+          find.textContaining('You earn each step.', findRichText: true),
+          findsOneWidget,
+        );
+        await t.tap(find.text('Got it'));
+        await settle(t);
+        expect(find.text('Base starts'), findsNothing);
+        expect(t.takeException(), isNull);
+        await teardown(t, db);
+      });
+
+      testWidgets('setting a goal in three steps (${b.name})', (t) async {
+        final db = (await t.runAsync(() => seededDb(days: 30)))!;
+        await render(
+          t,
+          db,
+          Builder(
+            builder: (context) => Center(
+              child: TextButton(
+                onPressed: () => present<GoalSetupResult>(
+                  context,
+                  const GoalSetupScreen(mode: SetupMode.newGoal),
+                ),
+                child: const Text('open'),
+              ),
+            ),
+          ),
+          b: b,
+          h: 1400,
+        );
+        await t.tap(find.text('open'));
+        await settle(t);
+        expect(find.text('What are you training for?'), findsOneWidget);
+        await t.tap(find.text('10K'));
+        await settle(t);
+        await t.tap(find.text('Choose race day'));
+        await settle(t);
+        expect(find.text('When is the race?'), findsOneWidget);
+        final race = mondayOf(
+          DateTime.now(),
+        ).add(Duration(days: 7 * sc.recommendedWeeks(sc.BlockGoal.run10k) - 1));
+        await t.tap(
+          find.byWidgetPredicate(
+            (w) => w is Pressable && w.label == dayShort(race),
+          ),
+        );
+        await settle(t);
+        expect(find.textContaining('8 weeks. Enough time'), findsOneWidget);
+        await t.tap(find.text('Preview plan'));
+        await settle(t);
+        expect(find.text('Your 8-week plan'), findsOneWidget);
+        await t.tap(find.text('Start plan'));
+        await settle(t);
+        expect(find.text('open'), findsOneWidget);
+        final saved = (await t.runAsync(() => loadBlock(db)))!;
+        expect(saved.goal, sc.BlockGoal.run10k);
+        expect(saved.weeks, 8);
+        expect(t.takeException(), isNull);
         await teardown(t, db);
       });
     }

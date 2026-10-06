@@ -53,6 +53,8 @@ abstract final class Keys {
   static const lastBackup = 'last_backup'; // ISO|folder label
   static const realignDismissed = 'coach_realign_dismissed'; // date
   static const coachBlock = 'coach_block'; // JSON TrainingBlock, or empty
+  static const coachNext = 'coach_next'; // JSON {goal, event}, or empty
+  static const coachPhaseSeen = 'coach_phase_seen'; // block start|week
 }
 
 /// Everything the user tells Tempo in onboarding and Profile.

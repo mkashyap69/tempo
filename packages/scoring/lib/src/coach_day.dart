@@ -535,6 +535,82 @@ int? moveTarget(
   return null;
 }
 
+/// A week rearranged around a missed key session.
+final class Realign {
+  const Realign(this.week, this.changed);
+  final List<Session> week;
+
+  /// Days (0 = Monday) whose session changed.
+  final List<int> changed;
+}
+
+bool _heavy(Session s) =>
+    s.isHard || s.key.startsWith('long_') || s.key == 'race';
+
+/// Fits the missed key session on day [missed] into the rest of the week,
+/// from day [from] on, without two heavy days (hard, long or race) back to
+/// back and without adding a session: it takes an easy day's place. When
+/// the only easy day sits right before the long session, the long session
+/// moves to a later free day and that easy session takes its slot. Null
+/// when nothing fits. [available] uses 1 = Monday.
+Realign? realignWeek(
+  List<Session> week,
+  int missed,
+  int from, {
+  Set<int> available = const {1, 2, 3, 4, 5, 6, 7},
+}) {
+  final s = week[missed];
+  final w = [...week];
+  bool heavyAt(int i) => i >= 0 && i < 7 && i != missed && _heavy(w[i]);
+  bool easy(int i) =>
+      !w[i].isRest &&
+      w[i].intensity == Intensity.easy &&
+      w[i].sport != Sport.strength;
+  for (var j = max(from, missed + 1); j < 7; j++) {
+    if (!available.contains(j + 1) || !easy(j)) continue;
+    if (!heavyAt(j - 1) && !heavyAt(j + 1)) {
+      w[j] = s;
+      return Realign(w, [j]);
+    }
+  }
+  for (var j = max(from, missed + 1); j < 6; j++) {
+    if (!available.contains(j + 1) || !easy(j) || heavyAt(j - 1)) continue;
+    if (!w[j + 1].key.startsWith('long_')) continue;
+    for (var k = j + 2; k < 7; k++) {
+      if (!available.contains(k + 1) || _heavy(w[k]) || heavyAt(k + 1)) {
+        continue;
+      }
+      if (w[k].sport == Sport.strength) continue;
+      final long = w[j + 1];
+      w[j + 1] = w[j];
+      w[j] = s;
+      w[k] = long;
+      return Realign(w, [j, j + 1, k]);
+    }
+  }
+  return null;
+}
+
+/// Makes the rest of the week easy from day [from]: hard sessions become
+/// their easier version, long sessions lose a quarter. Races stay.
+Realign easeRest(List<Session> week, int from) {
+  final w = [...week];
+  final changed = <int>[];
+  for (var i = from; i < 7; i++) {
+    final s = w[i];
+    if (s.key == 'race' || s.isRest) continue;
+    if (s.isHard) {
+      w[i] = sessionTemplate(easierKeyFor(s));
+    } else if (s.key.startsWith('long_')) {
+      w[i] = scaled(s, .75);
+    } else {
+      continue;
+    }
+    changed.add(i);
+  }
+  return Realign(w, changed);
+}
+
 String sportName(Sport? s) => switch (s) {
   Sport.running => 'Run',
   Sport.cycling => 'Ride',

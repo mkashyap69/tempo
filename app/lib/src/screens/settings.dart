@@ -509,12 +509,13 @@ class SettingsScreen extends ConsumerWidget {
         ]),
         group('Training', [
           ListRow(
-            'Goal',
+            'Priority',
+            sub: 'What workouts lean toward. Race goals are on Weekly plan.',
             value: goalLabel(p.goal),
             onTap: () async {
               final g = await pickOption<sc.Goal>(
                 context,
-                title: 'What are you training for?',
+                title: 'What matters most?',
                 options: sc.Goal.values,
                 label: goalLabel,
                 selected: p.goal,

@@ -331,4 +331,51 @@ void main() {
       expect(a.first.title, '20′ in Zone 2+ today');
     });
   });
+
+  group('realignWeek', () {
+    Session t(String k) => sessionTemplate(k);
+    // Mon easy, Tue tempo (missed), Wed easy, Thu rest, Fri easy,
+    // Sat long, Sun rest.
+    final week = [
+      t('easy_run'),
+      t('threshold_run'),
+      t('easy_run'),
+      t('rest'),
+      t('easy_run'),
+      t('long_run'),
+      t('rest'),
+    ];
+
+    test('moves the long run to make room, never back to back', () {
+      final r = realignWeek(week, 1, 3)!;
+      expect(
+        [for (final s in r.week.skip(4)) s.key],
+        ['threshold_run', 'easy_run', 'long_run'],
+      );
+      expect(r.changed, [4, 5, 6]);
+    });
+
+    test('uses a free easy day when there is one', () {
+      final w = [...week]
+        ..[5] = t('easy_run')
+        ..[6] = t('long_run');
+      final r = realignWeek(w, 1, 3)!;
+      // Friday sits next to nothing heavy (Sat easy).
+      expect(r.week[4].key, 'threshold_run');
+      expect(r.changed, [4]);
+    });
+
+    test('null when Sunday is not available', () {
+      expect(realignWeek(week, 1, 3, available: {1, 2, 3, 4, 5, 6}), isNull);
+    });
+
+    test('easeRest softens hard and long sessions, keeps races', () {
+      final w = [...week]..[6] = raceSession(BlockGoal.run5k, tuneUp: true);
+      final r = easeRest(w, 1);
+      expect(r.week[1].isHard, isFalse);
+      expect(r.week[5].minutes, lessThan(week[5].minutes));
+      expect(r.week[6].key, 'race');
+      expect(r.changed, [1, 5]);
+    });
+  });
 }

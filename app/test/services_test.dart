@@ -235,6 +235,190 @@ void main() {
       await saveBlock(d, null);
       expect(await loadBlock(d), isNull);
     });
+
+    group('goal view', () {
+      // Half marathon from Mon 7 Sep to Sun 22 Nov; Thu 8 Oct is week 5.
+      final at = DateTime(2026, 10, 8, 12);
+      final mon = DateTime(2026, 10, 5);
+      DateTime day(int i) => mon.add(Duration(days: i));
+      Future<void> week() async {
+        await db.putSetting(
+          Keys.coachBlock,
+          jsonEncode(
+            sc.TrainingBlock(
+              goal: sc.BlockGoal.half,
+              start: DateTime(2026, 9, 7),
+              event: DateTime(2026, 11, 22),
+            ).toJson(),
+          ),
+        );
+        await plan(day(0), 'easy_run', status: 'done');
+        await plan(day(1), 'threshold_run'); // missed
+        await plan(day(2), 'easy_run', status: 'done');
+        await plan(day(3), 'rest');
+        await plan(day(4), 'easy_run');
+        await plan(day(5), 'long_run');
+        await plan(day(6), 'rest');
+      }
+
+      test('scorecard, forecast and the missed session', () async {
+        await week();
+        final v = (await loadGoalView(db, at: at))!;
+        expect(v.week!.index, 4);
+        expect(v.week!.phase, sc.Phase.build);
+        expect(v.week!.newPhase, isTrue);
+        expect(v.phaseSeen, isFalse);
+        expect(v.soFar.planned, 5);
+        expect(v.soFar.done, 2);
+        expect(v.left, 2);
+        expect(v.forecast.toStepUp, 2);
+        expect(v.weeks.length, 11);
+        expect(v.history.length, 4);
+        expect(v.missed, 1);
+        expect(v.realign!.changed, [4, 5, 6]);
+        expect(v.ease, isNull);
+        await dismissPhase(db, v.block, 4);
+        expect((await loadGoalView(db, at: at))!.phaseSeen, isTrue);
+      });
+
+      test('rearranging fits the session in and lets the day go', () async {
+        await week();
+        await db.putSetting(
+          Keys.carried,
+          jsonEncode(sc.sessionTemplate('threshold_run').toJson()),
+        );
+        await rearrangeWeek(db, (await loadGoalView(db, at: at))!);
+        final rows = await db.planBetween(day(0), day(6));
+        expect(
+          [for (final r in rows.skip(4)) jsonDecode(r.session)['key']],
+          ['threshold_run', 'easy_run', 'long_run'],
+        );
+        expect(rows[1].status, 'skipped');
+        expect(rows[4].reason, contains('Rearranged'));
+        expect(rows[4].original, isNotNull);
+        expect(await db.setting(Keys.carried), '');
+        final v = (await loadGoalView(db, at: at))!;
+        expect(v.missed, isNull);
+        expect(v.left, 3);
+      });
+
+      test('letting it go adds nothing', () async {
+        await week();
+        await letGo(db, (await loadGoalView(db, at: at))!);
+        final v = (await loadGoalView(db, at: at))!;
+        expect(v.missed, isNull);
+        expect(v.soFar.planned, 5);
+        expect(v.forecast.toStepUp, 2); // both left: 4 of 5
+      });
+
+      test('low feel offers an easy rest of the week', () async {
+        await week();
+        for (final i in [0, 1, 2]) {
+          await db.setFeel(day(i), 2);
+        }
+        var v = (await loadGoalView(db, at: at))!;
+        expect(v.forecast.bodySaysBack, isTrue);
+        expect(v.ease!.changed, [5]);
+        await letGo(db, v);
+        v = (await loadGoalView(db, at: at))!;
+        await easeWeek(db, v);
+        final sat = (await db.planDay(day(5)))!;
+        final s = sc.Session.fromJson(
+          jsonDecode(sat.session) as Map<String, dynamic>,
+        );
+        expect(s.minutes, lessThan(sc.sessionTemplate('long_run').minutes));
+        expect(sat.reason, contains('Easy rest of the week'));
+      });
+    });
+
+    test('tune-ups go in their week and the plan races them', () async {
+      final d = await seededDb(days: 30);
+      addTearDown(d.close);
+      final m = mondayOf(DateTime.now());
+      await saveBlock(
+        d,
+        sc.BlockGoal.half,
+        event: m.add(const Duration(days: 7 * 11 + 6)),
+      );
+      final race = m.add(const Duration(days: 7 * 4 + 6));
+      await addTuneUp(d, sc.TuneUp(goal: sc.BlockGoal.run10k, date: race));
+      // A second one in the same week doesn't fit.
+      await addTuneUp(
+        d,
+        sc.TuneUp(
+          goal: sc.BlockGoal.run5k,
+          date: race.subtract(const Duration(days: 2)),
+        ),
+      );
+      expect((await loadBlock(d))!.tuneUps.single.goal, sc.BlockGoal.run10k);
+      final rows = await CoachService(d).ensureWeek(race);
+      final sun = sc.Session.fromJson(
+        jsonDecode(rows.last.session) as Map<String, dynamic>,
+      );
+      expect(sun.title, 'Tune-up · 10K');
+      await removeTuneUp(d, (await loadBlock(d))!.tuneUps.single);
+      expect((await loadBlock(d))!.tuneUps, isEmpty);
+    });
+
+    test('moving the race keeps the start and tune-ups that fit', () async {
+      final d = await seededDb(days: 30);
+      addTearDown(d.close);
+      final m = mondayOf(DateTime.now());
+      await saveBlock(
+        d,
+        sc.BlockGoal.half,
+        event: m.add(const Duration(days: 7 * 11 + 6)),
+      );
+      await addTuneUp(
+        d,
+        sc.TuneUp(
+          goal: sc.BlockGoal.run5k,
+          date: m.add(const Duration(days: 7 * 7 + 6)),
+        ),
+      );
+      await changeEvent(d, m.add(const Duration(days: 7 * 8 + 6)));
+      final b = (await loadBlock(d))!;
+      expect(b.weeks, 9);
+      expect(b.start, m);
+      expect(b.tuneUps, isEmpty); // now inside the last two weeks
+    });
+
+    test('the next goal takes over after a recovery week', () async {
+      await db.putSetting(
+        Keys.coachBlock,
+        jsonEncode(
+          sc.TrainingBlock(
+            goal: sc.BlockGoal.half,
+            start: DateTime(2026, 6, 1),
+            event: DateTime(2026, 8, 23),
+          ).toJson(),
+        ),
+      );
+      await saveNext(db, NextGoal(sc.BlockGoal.run10k, DateTime(2026, 10, 25)));
+      expect(
+        (await loadBlock(db, now: DateTime(2026, 8, 30)))!.goal,
+        sc.BlockGoal.half,
+      );
+      final b = (await loadBlock(db, now: DateTime(2026, 8, 31)))!;
+      expect(b.goal, sc.BlockGoal.run10k);
+      expect(b.start, DateTime(2026, 8, 31));
+      expect(b.weeks, 8);
+      expect(await loadNext(db), isNull);
+    });
+
+    test('undo puts the old goal back', () async {
+      final d = await seededDb(days: 30);
+      addTearDown(d.close);
+      final m = mondayOf(DateTime.now());
+      await saveBlock(d, sc.BlockGoal.open);
+      final before = await saveBlock(
+        d,
+        sc.BlockGoal.run5k,
+        event: m.add(const Duration(days: 7 * 6 + 6)),
+      );
+      await restoreBlock(d, before);
+      expect((await loadBlock(d))!.goal, sc.BlockGoal.open);
+    });
   });
 
   group('coach', () {
