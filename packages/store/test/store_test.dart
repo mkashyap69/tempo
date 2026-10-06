@@ -203,7 +203,12 @@ void main() {
         'settings': [
           {'key': 'x', 'value': 'ignored'},
         ],
+        // "drop" is an SQL keyword; restore used to fail on it.
+        'od_events': [
+          {'ts': 300, 'drop': 4, 'spo2': '00', 'hr': '00'},
+        ],
       });
+      expect(n['od_events'], 1);
       expect(n['minute_samples'], 1);
       expect(n['daily_scores'], 1);
       expect(n['workouts'], 1);

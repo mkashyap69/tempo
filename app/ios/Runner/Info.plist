@@ -7,6 +7,11 @@
 		<string>tempo.sync</string>
 		<string>com.pravera.flutter_foreground_task.refresh</string>
 	</array>
+	<!-- Files → On My iPhone → Tempo: backups (Backups/), packet logs. -->
+	<key>UIFileSharingEnabled</key>
+	<true/>
+	<key>LSSupportsOpeningDocumentsInPlace</key>
+	<true/>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>

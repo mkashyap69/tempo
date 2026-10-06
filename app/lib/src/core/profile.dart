@@ -50,6 +50,7 @@ abstract final class Keys {
   static const stepsNow = 'steps_now'; // ISO|steps, band's own total
   /// Band's metres ÷ steps for the day, once it counted 1000+ steps.
   static const bandStride = 'band_stride';
+  static const lastBackup = 'last_backup'; // ISO|folder label
   static const realignDismissed = 'coach_realign_dismissed'; // date
   static const coachBlock = 'coach_block'; // JSON TrainingBlock, or empty
 }

@@ -11,6 +11,7 @@ import '../design/meter.dart';
 import '../design/tokens.dart';
 import '../design/type.dart';
 import '../state/providers.dart';
+import 'backups.dart' show RestorePanel;
 import 'nav.dart';
 import 'pairing.dart';
 
@@ -83,6 +84,18 @@ class _OnboardingState extends ConsumerState<OnboardingScreen> {
       weightKg: metric ? w.toDouble() : w / 2.2046,
       maxHr: () => _maxEdited ? int.tryParse(_mx.text) : null,
     );
+  }
+
+  /// A backup with settings brings the profile and "onboarded" back, and
+  /// Root moves on by itself. A plain export has no profile: carry on.
+  Future<void> _restored() async {
+    final db = ref.read(dbProvider);
+    if (await db.setting(Keys.onboarded) == '1') return;
+    if (await loadAppProfile(db) != null) {
+      await db.putSetting(Keys.onboarded, '1');
+    } else if (mounted) {
+      setState(() => _step = _Step.profile);
+    }
   }
 
   Future<void> _finish({required bool pair}) async {
@@ -294,6 +307,21 @@ class _OnboardingState extends ConsumerState<OnboardingScreen> {
           ),
           'Know how ready you are, every morning.',
           'Recovery, strain and sleep from your Mi Band 6, measured against your own normal — not anyone else’s.',
+          extra: TempoCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text('Used Tempo before?', style: TempoType.label.c(c.text1)),
+                const SizedBox(height: 4),
+                Text(
+                  'Bring your history back from a backup.',
+                  style: TempoType.bodyS.c(c.text2),
+                ),
+                const SizedBox(height: 12),
+                RestorePanel(onboarding: true, onRestored: _restored),
+              ],
+            ),
+          ),
         );
       case _Step.value2:
         return _hero(
