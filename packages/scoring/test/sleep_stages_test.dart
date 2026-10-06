@@ -96,4 +96,32 @@ void main() {
     expect((c[Stage.light] ?? 0) / total, greaterThan(.3));
     expect(c[Stage.wake], greaterThan(0));
   });
+
+  test('deep is found early even when HR drifts down all night', () {
+    // HR falls 6 bpm over 6 h; a deep dip of 4 bpm below the drift sits in
+    // the first cycle. Without detrending the late, lower HR wins.
+    final m = <Minute>[];
+    for (var i = 0; i < 360; i++) {
+      final drift = 56 - 6 * i / 360;
+      final dip = i >= 60 && i < 100 ? 4 : 0;
+      m.add(
+        Minute(
+          t0.add(Duration(minutes: i)),
+          hr: (drift - dip + (i % 2)).round(),
+          stage: Stage.light,
+          motion: i >= 60 && i < 100 ? 0 : 3,
+        ),
+      );
+    }
+    final early = (StagedSleep s) =>
+        s.minutes.skip(60).take(40).where((x) => x.stage == Stage.deep).length;
+    expect(early(stageSleep(m)), greaterThan(20));
+    // The drift alone (last 2 h, no dip) isn't read as deep any more.
+    final late = (StagedSleep s) =>
+        s.minutes.skip(240).where((x) => x.stage == Stage.deep).length;
+    expect(
+      late(stageSleep(m, const StageParams(detrend: false))),
+      greaterThan(late(stageSleep(m))),
+    );
+  });
 }

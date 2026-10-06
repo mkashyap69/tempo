@@ -16,6 +16,7 @@ Minute minuteOf(st.MinuteSample m) => Minute(
   steps: m.steps,
   motion: m.intensity,
   stage: stageForKind(m.kind),
+  bandWalking: kindWalking(m.kind),
 );
 
 /// Decoded minutes, with every sleep (night or nap) in them staged from

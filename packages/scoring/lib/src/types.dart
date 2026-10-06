@@ -4,7 +4,9 @@
 ///    naps count against debt; strength sessions use sRPE.
 /// 4: sleep from the band's sleep flag (V1.0.6.20 bit field), stages
 ///    estimated from HR and motion (sleep_stages.dart).
-const algoVersion = 4;
+/// 5: a quiet wake (≤ 90 min, ≤ 30 steps) stays inside the night; deep
+///    judged against the night's HR drift; band walking code (0x01).
+const algoVersion = 5;
 
 enum Stage { wake, light, deep, rem, unknown }
 
@@ -21,6 +23,7 @@ final class Minute {
     this.steps = 0,
     this.stage = Stage.unknown,
     this.motion = 0,
+    this.bandWalking = false,
   });
 
   /// Start of the minute.
@@ -34,6 +37,15 @@ final class Minute {
   /// The band's per-minute movement intensity (0 = perfectly still).
   final int motion;
 
-  Minute withStage(Stage s) =>
-      Minute(ts, hr: hr, steps: steps, stage: s, motion: motion);
+  /// The band's own activity code said walking this minute.
+  final bool bandWalking;
+
+  Minute withStage(Stage s) => Minute(
+    ts,
+    hr: hr,
+    steps: steps,
+    stage: s,
+    motion: motion,
+    bandWalking: bandWalking,
+  );
 }

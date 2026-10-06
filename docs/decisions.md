@@ -76,3 +76,13 @@
 - 2026-10-05 · Text alerts on the band via SIG New Alert 0x2A46 (category, count, UTF-8 text ≤ 20 bytes) are built but TODO(verify): only Band explorer → "Send a test alert" uses them until a shared log shows the Band 6 displays the text. Coach does not send them yet.
 - 2026-10-05 · Session home-screen widget (Android TempoSessionWidget, iOS kind TempoSessionWidget in a WidgetBundle): today's session, status and a Start link (tempo://start opens the guided workout). Native layouts are unbuilt here — confirm on device.
 - 2026-10-05 · Research notes and the Tempo Coach report moved to docs/research/.
+- 2026-10-06 · From the 5–6 Oct capture (docs/packets/ios-2026-10-06T02-51-37, serial and system id redacted), scoring algo 5:
+  - **Night merge.** A wake gap up to 90 min with ≤ 30 steps stays inside the night; the 30-min rule still applies to active gaps. That night: 31 min awake at 05:28 with 0 steps had split a 7 h 22 m night into 5 h 02 m plus a 2 h 20 m "nap", moving wake time, slept hours, recovery's window and the strain day.
+  - **Deep detrending.** Deep is now judged against a straight line fitted through the night's sleeping HR, because HR drifted 54 → 48 bpm and the old night-wide quantile put deep mostly after 03:00.
+  - **Band walking code.** Kind 0x01 marked every minute of a 52-min walk and nothing else. It now counts as active and names the sport walking. TODO(verify) for running and cycling codes.
+- 2026-10-06 · Breathing: flat low SpO₂ plateaus are left out as likely sensor or arm-position artifacts. A plateau is ≥ 8 low minutes, each ≥ 4 points under the night's median, with low minutes ≤ 3 min apart, ≥ 80 % of the span low and SD ≤ 2.5; dips within 3 min of its edges don't count either. On 5–6 Oct this removed 114 of 370 minutes (84–89 % for 11–39 min, abrupt edges, no HR response) and moved the score from 38 to 79. The 4–5 Oct night (no plateaus) still matches Mi Fitness, 62 vs 61. The Sleep screen says how long was left out. TODO(verify): compare with Mi Fitness for 5–6 Oct and more nights.
+- 2026-10-06 · Also seen in that capture:
+  - SpO₂ quality reaches 80–87, so it isn't a 0–64 scale. The ≥ 40 filter stays; the scale is TODO(verify).
+  - The PAI record (0x0d) holds float32s equal to the debug log's pai_add values (0.003049, 0.978192); it is not decoded further yet.
+  - Firmware PAI inputs: rhr 65, mhr 175, gender 0.
+  - The debug log's `[ALG]act=` line equals our 8-byte minute record.

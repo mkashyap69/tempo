@@ -25,6 +25,7 @@ final class StageParams {
     this.minRunMinutes = 5,
     this.smoothWindow = 5,
     this.varWindow = 9,
+    this.detrend = true,
   });
 
   /// Share of asleep minutes that need an HR reading; below it (HR only
@@ -36,6 +37,12 @@ final class StageParams {
   /// Smoothed HR at or below this quantile of the night can be deep.
   final double deepQuantile;
   final int remDelayMinutes, minRunMinutes, smoothWindow, varWindow;
+
+  /// Sleeping HR drifts down through the night (6 Oct: ~54 → 48 bpm), so
+  /// "lowest HR of the night" lands late. With [detrend], deep is judged
+  /// against a straight line fitted through the night's asleep HR (a
+  /// rolling median would swallow long deep blocks).
+  final bool detrend;
 }
 
 /// Result of [stageSleep]: the same minutes with stages, and whether there
@@ -93,7 +100,24 @@ StagedSleep stageSleep(
   final vary = window(p.varWindow, sd);
   final asleepSmooth = [for (final i in idx) smooth[i]];
   final asleepVary = [for (final i in idx) vary[i]];
-  final lo = quantile(asleepSmooth, p.deepQuantile)!;
+  // Deep: low HR relative to the night's downward drift.
+  var slope = 0.0, icept = 0.0;
+  if (p.detrend && idx.length > 1) {
+    final mx = idx.fold<double>(0, (a, i) => a + i) / idx.length;
+    final my = mean(asleepSmooth);
+    var num = 0.0, den = 0.0;
+    for (final i in idx) {
+      num += (i - mx) * (smooth[i] - my);
+      den += (i - mx) * (i - mx);
+    }
+    slope = den == 0 ? 0 : num / den;
+    icept = my - slope * mx;
+  }
+  final rel = [
+    for (var i = 0; i < n; i++)
+      p.detrend ? smooth[i] - (icept + slope * i) : smooth[i],
+  ];
+  final relLo = quantile([for (final i in idx) rel[i]], p.deepQuantile)!;
   final med = quantile(asleepSmooth, .5)!;
   final sdLo = quantile(asleepVary, .5)!;
   final sdHi = quantile(asleepVary, .5)!;
@@ -108,7 +132,7 @@ StagedSleep stageSleep(
         m.steps > 0 ||
         smooth[i] > med + p.wakeHrAbove) {
       stages[i] = Stage.wake;
-    } else if (still && smooth[i] <= lo && vary[i] <= sdLo) {
+    } else if (still && rel[i] <= relLo && vary[i] <= sdLo) {
       stages[i] = Stage.deep;
     } else if (still &&
         sinceOnset >= p.remDelayMinutes &&

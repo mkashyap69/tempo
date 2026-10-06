@@ -12,6 +12,10 @@ final class BreathingParams {
     this.minQuality = 40,
     this.minMinutes = 60,
     this.minDrop = 3,
+    this.plateauDrop = 4,
+    this.plateauMinutes = 8,
+    this.plateauMaxSd = 2.5,
+    this.plateauEdge = 3,
   });
 
   /// Minutes with lower confidence are left out (band quality 0–64).
@@ -22,6 +26,17 @@ final class BreathingParams {
 
   /// Drops smaller than this (SpO₂ points) don't count as events.
   final int minDrop;
+
+  /// Flat low plateaus: at least [plateauMinutes] minutes ≥ [plateauDrop]
+  /// points under the night's median, varying by at most [plateauMaxSd],
+  /// read as a sensor or arm-position artifact rather than breathing.
+  /// 6 Oct: 114 of 370 minutes sat in five such steps (84–89 % for 11–39
+  /// min, abrupt edges, no heart-rate response) while the real dip
+  /// clusters came at 94–96 %. Events within [plateauEdge] minutes of a
+  /// plateau are the step itself and don't count. TODO(verify) against
+  /// Mi Fitness for more nights.
+  final int plateauDrop, plateauMinutes, plateauEdge;
+  final double plateauMaxSd;
 }
 
 /// A night's breathing from the band's sleep SpO₂ and desaturation
@@ -35,7 +50,11 @@ final class BreathingNight {
     required this.events,
     required this.eventsPerHour,
     required this.score,
+    this.artifactMinutes = 0,
   });
+
+  /// Minutes left out as flat low plateaus (likely the band, not you).
+  final int artifactMinutes;
 
   /// Minutes of good SpO₂ used.
   final int minutes;
@@ -92,23 +111,71 @@ BreathingNight? breathingNight({
           s.avg >= 70 &&
           s.avg <= 100 &&
           (s.quality == null || s.quality! >= p.minQuality))
-        s.avg,
+        s,
+  ]..sort((a, b) => a.ts.compareTo(b.ts));
+  if (good.isEmpty || sleptHours <= 0) return null;
+
+  // Flat low plateaus → spans to leave out.
+  final sorted = [for (final g in good) g.avg]..sort();
+  final base = sorted[sorted.length ~/ 2];
+  final spans = <(DateTime, DateTime)>[];
+  var run = <Spo2Point>[];
+  void closeRun() {
+    if (run.length >= p.plateauMinutes) {
+      // Judge the whole span, bumps included: mostly low and flat.
+      final v = [
+        for (final g in good)
+          if (!g.ts.isBefore(run.first.ts) && !g.ts.isAfter(run.last.ts)) g.avg,
+      ];
+      if (run.length < .8 * v.length) {
+        run = [];
+        return;
+      }
+      final m = v.reduce((a, b) => a + b) / v.length;
+      final sd = sqrt(
+        v.fold<double>(0, (a, x) => a + (x - m) * (x - m)) / v.length,
+      );
+      if (sd <= p.plateauMaxSd) {
+        final edge = Duration(minutes: p.plateauEdge);
+        spans.add((run.first.ts.subtract(edge), run.last.ts.add(edge)));
+      }
+    }
+    run = [];
+  }
+
+  // Low minutes up to 3 min apart form one run (a brief bump back up
+  // inside a plateau doesn't end it).
+  for (final g in good) {
+    if (g.avg > base - p.plateauDrop) continue;
+    if (run.isNotEmpty && g.ts.difference(run.last.ts).inMinutes > 3) {
+      closeRun();
+    }
+    run.add(g);
+  }
+  closeRun();
+  bool artifact(DateTime t) =>
+      spans.any((s) => !t.isBefore(s.$1) && !t.isAfter(s.$2));
+
+  final kept = [
+    for (final g in good)
+      if (!artifact(g.ts)) g.avg,
   ];
-  if (good.length < p.minMinutes || sleptHours <= 0) return null;
+  if (kept.length < p.minMinutes) return null;
   final n = [
     for (final e in events)
-      if (inside(e.ts) && e.drop >= p.minDrop) e,
+      if (inside(e.ts) && e.drop >= p.minDrop && !artifact(e.ts)) e,
   ].length;
   final rate = n / sleptHours;
-  final below = good.where((v) => v < 90).length / good.length;
-  final avg = good.reduce((a, b) => a + b) / good.length;
+  final below = kept.where((v) => v < 90).length / kept.length;
+  final avg = kept.reduce((a, b) => a + b) / kept.length;
   final score = (scoreForRate(rate) - 150 * below - 2 * max(0.0, 95 - avg))
       .clamp(0, 100)
       .round();
   return BreathingNight(
-    minutes: good.length,
+    minutes: kept.length,
     avgSpo2: avg,
-    lowestSpo2: good.reduce(min),
+    lowestSpo2: kept.reduce(min),
+    artifactMinutes: good.length - kept.length,
     belowNinety: below,
     events: n,
     eventsPerHour: rate,

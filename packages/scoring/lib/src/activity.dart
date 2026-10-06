@@ -52,7 +52,9 @@ List<DetectedActivity> detectActivities(
 }) {
   bool active(Minute m) =>
       !m.stage.asleep &&
-      ((m.hr != null && m.hr! >= p.hrPct * hrMax) || m.steps >= p.minSteps);
+      ((m.hr != null && m.hr! >= p.hrPct * hrMax) ||
+          m.steps >= p.minSteps ||
+          m.bandWalking);
 
   final out = <DetectedActivity>[];
   int? start, last;
@@ -88,9 +90,12 @@ DetectedActivity _describe(List<Minute> run, int hrMax) {
   final maxHr = hrs.isEmpty ? null : hrs.reduce(max);
   final spm = run.fold<int>(0, (a, m) => a + m.steps) / run.length;
   final hrShare = avgHr == null ? 0 : avgHr / hrMax;
+  // The band marks walking minutes itself; half the run marked is enough,
+  // even when cadence is uneven (stops at crossings).
+  final bandWalk = run.where((m) => m.bandWalking).length >= run.length / 2;
   final Sport? sport = spm >= 130 && hrShare >= 0.7
       ? Sport.running
-      : spm >= 80
+      : spm >= 80 || bandWalk
       ? Sport.walking
       : spm < 30 && hrShare >= 0.6
       ? Sport.cycling

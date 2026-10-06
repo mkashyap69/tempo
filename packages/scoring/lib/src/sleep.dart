@@ -24,6 +24,8 @@ final class SleepParams {
     this.strainFactor = 0.03,
     this.debtCapHours = 2,
     this.maxWakeGapMinutes = 30,
+    this.maxQuietGapMinutes = 90,
+    this.quietGapMaxSteps = 30,
     this.minSessionMinutes = 60,
     this.minNapMinutes = 20,
     this.learnNights = 14,
@@ -35,6 +37,12 @@ final class SleepParams {
   final double strainFactor;
   final double debtCapHours;
   final int maxWakeGapMinutes;
+
+  /// A longer wake still belongs to the same sleep when it's quiet: up to
+  /// [maxQuietGapMinutes] with at most [quietGapMaxSteps] steps (lying
+  /// awake). Seen 6 Oct: 31 min awake at 05:28 with 0 steps split a
+  /// 7 h 22 m night into 5 h + a "nap".
+  final int maxQuietGapMinutes, quietGapMaxSteps;
   final int minSessionMinutes;
 
   /// Daytime sleep at least this long counts as a nap.
@@ -51,30 +59,43 @@ List<SleepSession> detectSessions(
   List<Minute> minutes, [
   SleepParams p = const SleepParams(),
 ]) {
-  final out = <SleepSession>[];
-  int? start, lastAsleep;
-  void close() {
-    if (start != null && lastAsleep != null) {
-      final s = SleepSession(minutes.sublist(start!, lastAsleep! + 1));
-      if (s.asleep.inMinutes >= p.minSessionMinutes) out.add(s);
-    }
-    start = lastAsleep = null;
-  }
-
+  // Runs of asleep minutes: [first, last] indices.
+  final runs = <(int, int)>[];
   for (var i = 0; i < minutes.length; i++) {
-    final m = minutes[i];
-    if (lastAsleep != null &&
-        m.ts.difference(minutes[lastAsleep!].ts).inMinutes >
-            p.maxWakeGapMinutes) {
-      close();
+    if (!minutes[i].stage.asleep) continue;
+    if (runs.isNotEmpty) {
+      final (a, b) = runs.last;
+      if (minutes[i].ts.difference(minutes[b].ts).inMinutes <= 1) {
+        runs[runs.length - 1] = (a, i);
+        continue;
+      }
     }
-    if (m.stage.asleep) {
-      start ??= i;
-      lastAsleep = i;
-    }
+    runs.add((i, i));
   }
-  close();
-  return out;
+  // Merge across short wakes, or longer quiet ones.
+  final merged = <(int, int)>[];
+  for (final r in runs) {
+    if (merged.isNotEmpty) {
+      final (a, b) = merged.last;
+      final gap = minutes[r.$1].ts.difference(minutes[b].ts).inMinutes;
+      var steps = 0;
+      for (var k = b + 1; k < r.$1; k++) {
+        steps += minutes[k].steps;
+      }
+      if (gap <= p.maxWakeGapMinutes ||
+          (gap <= p.maxQuietGapMinutes && steps <= p.quietGapMaxSteps)) {
+        merged[merged.length - 1] = (a, r.$2);
+        continue;
+      }
+    }
+    merged.add(r);
+  }
+  return [
+    for (final (a, b) in merged)
+      if (SleepSession(minutes.sublist(a, b + 1)).asleep.inMinutes >=
+          p.minSessionMinutes)
+        SleepSession(minutes.sublist(a, b + 1)),
+  ];
 }
 
 /// One past night for the debt calculation.

@@ -706,7 +706,7 @@ class BreathingCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            'From the band’s overnight SpO₂: ${b.events} oxygen dips of 3 points or more. A wellness signal, not a sleep-apnea test; talk to a doctor if you snore loudly or wake unrefreshed.',
+            'From the band’s overnight SpO₂: ${b.events} oxygen dips of 3 points or more.${b.artifactMinutes >= 10 ? ' ${hmShort(b.artifactMinutes / 60)} of flat, steady low readings were left out — that pattern usually comes from lying on the band, not your breathing.' : ''} A wellness signal, not a sleep-apnea test; talk to a doctor if you snore loudly or wake unrefreshed.',
             style: TempoType.caption.c(c.text3),
           ),
         ],

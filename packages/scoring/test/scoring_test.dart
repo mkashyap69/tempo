@@ -3,12 +3,19 @@ import 'dart:math';
 import 'package:scoring/scoring.dart';
 import 'package:test/test.dart';
 
-List<Minute> run(DateTime from, int n, {int? hr, Stage stage = Stage.wake}) => [
+List<Minute> run(
+  DateTime from,
+  int n, {
+  int? hr,
+  Stage stage = Stage.wake,
+  int steps = 0,
+}) => [
   for (var i = 0; i < n; i++)
     Minute(
       from.add(Duration(minutes: i)),
       hr: hr,
       stage: stage,
+      steps: steps,
     ),
 ];
 
@@ -131,12 +138,12 @@ void main() {
 
   group('sleep', () {
     final t = DateTime(2026, 1, 1, 23);
-    test('merges short wake gaps, splits long ones', () {
+    test('merges short wake gaps, splits long active ones', () {
       final m = [
         ...run(t, 120, stage: Stage.light),
         ...run(t.add(const Duration(minutes: 120)), 20),
         ...run(t.add(const Duration(minutes: 140)), 120, stage: Stage.deep),
-        ...run(t.add(const Duration(minutes: 260)), 60),
+        ...run(t.add(const Duration(minutes: 260)), 60, steps: 5),
         ...run(t.add(const Duration(minutes: 320)), 90, stage: Stage.rem),
       ];
       final s = detectSessions(m);
@@ -145,6 +152,32 @@ void main() {
       expect(s[0].inBed.inMinutes, 260);
       expect(s[0].efficiency, closeTo(240 / 260, 1e-9));
       expect(s[1].stage(Stage.rem).inMinutes, 90);
+    });
+    test('a quiet wake up to 90 minutes stays inside the night', () {
+      // 6 Oct: asleep 00:07–05:28, awake 31 min with 0 steps, asleep to 08:18.
+      final a = DateTime(2026, 10, 6, 0, 7);
+      final m = [
+        ...run(a, 321, stage: Stage.light),
+        ...run(a.add(const Duration(minutes: 321)), 31),
+        ...run(a.add(const Duration(minutes: 352)), 140, stage: Stage.light),
+      ];
+      final s = detectSessions(m);
+      expect(s.length, 1);
+      expect(s.single.asleep.inMinutes, 461);
+      // The same gap with walking around splits it.
+      final walked = [
+        ...run(a, 321, stage: Stage.light),
+        ...run(a.add(const Duration(minutes: 321)), 31, steps: 3),
+        ...run(a.add(const Duration(minutes: 352)), 140, stage: Stage.light),
+      ];
+      expect(detectSessions(walked).length, 2);
+      // A quiet gap over 90 minutes splits too.
+      final long = [
+        ...run(a, 200, stage: Stage.light),
+        ...run(a.add(const Duration(minutes: 200)), 95),
+        ...run(a.add(const Duration(minutes: 295)), 120, stage: Stage.light),
+      ];
+      expect(detectSessions(long).length, 2);
     });
     test('drops sessions shorter than the minimum', () {
       expect(detectSessions(run(t, 30, stage: Stage.light)), isEmpty);
@@ -374,5 +407,29 @@ void main() {
       expect(s.sleepPerf, isNull);
       expect(s.recovery, isNull);
     });
+  });
+
+  test('band-marked walking names the sport despite uneven cadence', () {
+    final t = DateTime(2026, 10, 5, 18, 39);
+    final mins = [
+      for (var i = 0; i < 30; i++)
+        Minute(
+          t.add(Duration(minutes: i)),
+          hr: 100,
+          steps: i.isEven ? 105 : 40, // stops at crossings: avg ~72/min
+          stage: Stage.wake,
+          bandWalking: true,
+        ),
+    ];
+    final a = detectActivities(mins, hrMax: 175).single;
+    expect(a.sport, Sport.walking);
+    final unmarked = [
+      for (final m in mins)
+        Minute(m.ts, hr: m.hr, steps: m.steps, stage: m.stage),
+    ];
+    expect(
+      detectActivities(unmarked, hrMax: 175).single.sport,
+      isNot(Sport.walking),
+    );
   });
 }

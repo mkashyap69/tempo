@@ -84,4 +84,49 @@ void main() {
       isNull,
     );
   });
+
+  test('a flat low plateau is left out as an artifact', () {
+    // 400 min at ~96 %, with 40 min stuck at 84–85 % (abrupt, flat).
+    int v(int i) => i >= 100 && i < 140 ? 84 + i % 2 : 96;
+    final n = breathingNight(
+      start: a,
+      end: b,
+      sleptHours: 8,
+      spo2: mins(400, v),
+      events: [
+        (ts: a.add(const Duration(minutes: 99)), drop: 10), // the step down
+        ...drops(8),
+      ],
+    )!;
+    expect(n.artifactMinutes, 40 + 6); // plus 3 min either side
+    expect(n.belowNinety, 0);
+    expect(n.avgSpo2, 96);
+    expect(n.events, lessThan(9));
+  });
+
+  test('real dips (sawtooth, not flat) still count', () {
+    // Cycling 96 → 88 → 96 every 4 minutes for an hour: not a plateau.
+    int v(int i) => i >= 100 && i < 160 ? [96, 92, 88, 92][i % 4] : 96;
+    final n = breathingNight(
+      start: a,
+      end: b,
+      sleptHours: 8,
+      spo2: mins(400, v),
+      events: drops(20),
+    )!;
+    expect(n.artifactMinutes, 0);
+    expect(n.belowNinety, greaterThan(0));
+  });
+
+  test('a short low stretch is not a plateau', () {
+    int v(int i) => i >= 100 && i < 106 ? 85 : 96;
+    final n = breathingNight(
+      start: a,
+      end: b,
+      sleptHours: 8,
+      spo2: mins(400, v),
+      events: const [],
+    )!;
+    expect(n.artifactMinutes, 0);
+  });
 }

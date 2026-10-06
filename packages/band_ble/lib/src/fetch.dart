@@ -315,6 +315,11 @@ bool kindAsleep(int kind) => kind & 0x80 != 0 && !kindNotWorn(kind);
 /// See [kindAsleep].
 bool kindNotWorn(int kind) => kind & 0x0f == 0x03;
 
+/// Kind 0x01 marked every minute of a 52-min walk (89–109 steps/min) in
+/// ios-2026-10-06T02-51-37 and nothing else. TODO(verify): running and
+/// cycling codes are not seen yet.
+bool kindWalking(int kind) => kind == 0x01;
+
 /// A workout recorded by the band's own Workout app.
 final class BandWorkout {
   const BandWorkout({
