@@ -3,6 +3,16 @@ import 'package:drift/native.dart';
 import 'package:store/store.dart';
 import 'package:test/test.dart';
 
+/// daily_scores as it stood in schema 9 (every older fixture has it).
+const v9Scores =
+    'CREATE TABLE daily_scores (date TEXT NOT NULL PRIMARY KEY, '
+    'strain REAL NOT NULL, trimp REAL NOT NULL, '
+    'hr_max INTEGER NOT NULL, sleep_perf REAL, slept_hours REAL, '
+    'need_hours REAL, nap_hours REAL NOT NULL DEFAULT 0.0, '
+    'base_need REAL, sleep_start INTEGER, sleep_end INTEGER, '
+    'recovery REAL, rhr REAL, hrv_proxy REAL, '
+    'calibrating INTEGER NOT NULL, algo_version INTEGER NOT NULL)';
+
 void main() {
   late TempoDb db;
   setUp(() => db = TempoDb(NativeDatabase.memory()));
@@ -341,6 +351,7 @@ void main() {
           raw.execute(
             "INSERT INTO plan_days VALUES ('2026-10-05', '{}', NULL, NULL, NULL, 0)",
           );
+          raw.execute(v9Scores);
           raw.execute('PRAGMA user_version = 7');
         },
       ),
@@ -382,6 +393,7 @@ void main() {
           raw.execute(
             "INSERT INTO journal VALUES ('2026-10-05', 'alcohol', 1)",
           );
+          raw.execute(v9Scores);
           raw.execute('PRAGMA user_version = 8');
         },
       ),
@@ -389,6 +401,164 @@ void main() {
     expect((await old.journalFor(DateTime(2026, 10, 5))).single.tag, 'alcohol');
     await old.setFeel(DateTime(2026, 10, 6), 3);
     expect((await old.feelSince(DateTime(2026, 10, 1))).single.feel, 3);
+    await old.close();
+  });
+
+  group('Health sources', () {
+    HealthRecordsCompanion rec(
+      String key,
+      int startMs,
+      int endMs, {
+      String kind = 'heartRate',
+      double value = 60,
+    }) => HealthRecordsCompanion.insert(
+      key: key,
+      uuid: 'u',
+      kind: kind,
+      startMs: startMs,
+      endMs: endMs,
+      value: value,
+      sourceApp: 'w',
+      fetchedAt: 0,
+    );
+    DateTime ms(int x) => DateTime.fromMillisecondsSinceEpoch(x);
+
+    test('records append-only; tombstones hide them', () async {
+      await db.appendHealthRecords([
+        rec('a', 1000, 1000),
+        rec('b', 2000, 2000),
+      ]);
+      await db.appendHealthRecords([rec('a', 1000, 1000, value: 99)]);
+      var rows = await db.healthRecordsBetween(ms(0), ms(5000));
+      expect(rows.map((r) => r.value), [60, 60]);
+      await db.addHealthDeletions(['a']);
+      await db.addHealthDeletions(['a']); // twice is fine
+      rows = await db.healthRecordsBetween(ms(0), ms(5000));
+      expect(rows.single.key, 'b');
+      expect((await db.healthRecordsStarting(ms(0), ms(5000))).single.key, 'b');
+      expect(
+        () => db.customStatement("DELETE FROM health_records WHERE key = 'b'"),
+        throwsA(anything),
+      );
+      expect(
+        () =>
+            db.customStatement("DELETE FROM health_deletions WHERE key = 'a'"),
+        throwsA(anything),
+      );
+    });
+
+    test('range query finds records overlapping the range', () async {
+      // A sleep session from 22:00 to 06:00, asked about 05:00–07:00.
+      const h = 3600 * 1000;
+      await db.appendHealthRecords([
+        rec('s', 22 * h, 30 * h, kind: 'sleepSession'),
+        rec('x', 40 * h, 41 * h),
+      ]);
+      final rows = await db.healthRecordsBetween(ms(29 * h), ms(31 * h));
+      expect(rows.single.key, 's');
+      expect(
+        await db.healthRecordsBetween(
+          ms(29 * h),
+          ms(31 * h),
+          kinds: ['heartRate'],
+        ),
+        isEmpty,
+      );
+      final span = (await db.healthRecordSpan())!;
+      expect(span.$1, ms(22 * h));
+      expect(span.$2, ms(41 * h));
+    });
+
+    test('health minutes replace a window and answer aggregates', () async {
+      HealthMinutesCompanion hm(int ts, {int steps = 0, int? hr}) =>
+          HealthMinutesCompanion.insert(
+            ts: Value(ts),
+            steps: steps,
+            hr: Value(hr),
+            hrMeasured: hr != null,
+          );
+      await db.replaceHealthMinutes(fromTs(0), fromTs(300), [
+        hm(0),
+        hm(60, steps: 10, hr: 70),
+        hm(120, steps: 5),
+      ]);
+      await db.appendMinutes([m(60, hr: 80, steps: 1000)]);
+      expect(await db.stepsBetween(fromTs(0), fromTs(300), health: true), 15);
+      expect(await db.stepsBetween(fromTs(0), fromTs(300)), 1000);
+      expect(
+        await db.hrMinutesBetween(fromTs(0), fromTs(300), health: true),
+        1,
+      );
+      expect(await db.firstMinute(health: true), fromTs(60));
+      expect(await db.lastMinute(health: true), fromTs(120));
+      await db.replaceHealthMinutes(fromTs(100), fromTs(300), [hm(180)]);
+      expect(
+        (await db.healthMinutesBetween(
+          fromTs(0),
+          fromTs(300),
+        )).map((r) => r.ts),
+        [0, 60, 180],
+      );
+      expect(
+        await db.watchSteps(fromTs(0), fromTs(300), health: true).first,
+        10,
+      );
+    });
+
+    test('stale scores by source', () async {
+      Future<void> put(String date, String source) => db.upsertScore(
+        DailyScoresCompanion.insert(
+          date: date,
+          strain: 0,
+          trimp: 0,
+          hrMax: 190,
+          calibrating: true,
+          algoVersion: 1,
+          source: Value(source),
+        ),
+      );
+      await put('2026-10-01', 'band');
+      await put('2026-10-02', 'apple_health');
+      expect(await db.staleScores(2), hasLength(2));
+      expect(
+        (await db.staleScores(2, source: 'apple_health')).single.date,
+        '2026-10-02',
+      );
+    });
+  });
+
+  test('v9 → v10 adds Health tables and tags old scores band', () async {
+    final old = TempoDb(
+      NativeDatabase.memory(
+        setup: (raw) {
+          raw.execute(v9Scores);
+          raw.execute(
+            "INSERT INTO daily_scores (date, strain, trimp, hr_max, "
+            "calibrating, algo_version) VALUES ('2026-10-05', 9, 90, 190, 0, 7)",
+          );
+          raw.execute('PRAGMA user_version = 9');
+        },
+      ),
+    );
+    final s = (await old.scoreFor(DateTime(2026, 10, 5)))!;
+    expect(s.source, 'band');
+    expect(s.hrv, isNull);
+    await old.appendHealthRecords([
+      HealthRecordsCompanion.insert(
+        key: 'k',
+        uuid: 'u',
+        kind: 'steps',
+        startMs: 0,
+        endMs: 60000,
+        value: 10,
+        sourceApp: 'w',
+        fetchedAt: 0,
+      ),
+    ]);
+    expect(
+      () => old.customStatement('UPDATE health_records SET value = 1'),
+      throwsA(anything),
+    );
     await old.close();
   });
 }

@@ -6,7 +6,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:store/store.dart' as st;
 
 import '../core/band_link.dart';
+import '../core/data_source.dart';
 import '../core/db.dart';
+import '../core/health_sync.dart';
 import '../core/home_widgets.dart';
 import '../core/profile.dart';
 import '../core/sync_service.dart';
@@ -28,9 +30,19 @@ final settingProvider = StreamProvider.family<String?, String>(
   (ref, key) => ref.watch(dbProvider).watchSetting(key),
 );
 
-/// Paired band id, or null.
+/// The active data source (band unless a Health source was chosen).
+final dataSourceProvider = Provider<DataSource>(
+  (ref) => resolveDataSource(ref.watch(settingProvider(Keys.dataSource)).value),
+);
+
+/// Paired band id, or null. With a Health source there is no band to pair:
+/// the source itself counts as connected.
 final pairedProvider = Provider<AsyncValue<String?>>((ref) {
+  final src = ref.watch(settingProvider(Keys.dataSource));
   final v = ref.watch(settingProvider(deviceIdKey));
+  if (src.hasValue && resolveDataSource(src.value).isHealth) {
+    return AsyncData(resolveDataSource(src.value).key);
+  }
   return v.whenData((id) => id == null || id.isEmpty ? null : id);
 });
 
@@ -63,7 +75,16 @@ final adapterProvider = StreamProvider<BluetoothAdapterState>(
   (ref) => FlutterBluePlus.adapterState,
 );
 
-enum SyncProblem { none, disconnected, failed, busy, noPermission }
+enum SyncProblem {
+  none,
+  disconnected,
+  failed,
+  busy,
+  noPermission,
+
+  /// Health read failed: every type unreadable (iOS: phone locked).
+  healthUnreadable,
+}
 
 class SyncStatus {
   const SyncStatus({
@@ -98,9 +119,14 @@ class SyncController extends Notifier<SyncStatus> {
       if (raw == null || state.running) return;
       final p = raw.split('|');
       state = SyncStatus(
-        problem: p.first == 'failed'
-            ? SyncProblem.failed
-            : SyncProblem.disconnected,
+        problem: switch (p.first) {
+          'failed' => SyncProblem.failed,
+          'health_access' => SyncProblem.noPermission,
+          'health_unreadable' => SyncProblem.healthUnreadable,
+          // Some types unreadable: the rest synced; no banner.
+          'health_partial' => SyncProblem.none,
+          _ => SyncProblem.disconnected,
+        },
         failedPct: p.first == 'failed' && p.length > 1
             ? int.tryParse(p[1])
             : null,
@@ -112,6 +138,7 @@ class SyncController extends Notifier<SyncStatus> {
   Future<SyncStatus> syncNow() async {
     if (state.running) return state;
     final db = ref.read(dbProvider);
+    if ((await loadDataSource(db)).isHealth) return _syncHealth(db);
     if (await db.setting(deviceIdKey) case null || '') {
       return state = const SyncStatus();
     }
@@ -159,6 +186,41 @@ class SyncController extends Notifier<SyncStatus> {
         );
       }
       return state = const SyncStatus(problem: SyncProblem.disconnected);
+    }
+  }
+
+  Future<SyncStatus> _syncHealth(st.TempoDb db) async {
+    state = const SyncStatus(running: true);
+    try {
+      final r = await HealthSyncService(db).run(
+        onProgress: (f) => state = SyncStatus(
+          running: true,
+          read: (f * 100).round(),
+          total: 100,
+        ),
+      );
+      await afterSync(db);
+      final w = r.newWorkouts;
+      final nights = r.sleepRecords;
+      final parts = [
+        if (w > 0) '$w ${w == 1 ? 'workout' : 'workouts'}',
+        if (nights > 0) 'sleep',
+      ];
+      return state = SyncStatus(
+        message: r.firstImport
+            ? 'Imported ${r.records} records from Health'
+            : parts.isEmpty
+            ? 'Synced · up to date'
+            : 'Synced · ${parts.join(' and ')} added',
+      );
+    } on HealthBusyException {
+      return state = const SyncStatus(problem: SyncProblem.busy);
+    } on HealthAccessException {
+      return state = const SyncStatus(problem: SyncProblem.noPermission);
+    } on HealthUnreadableException {
+      return state = const SyncStatus(problem: SyncProblem.healthUnreadable);
+    } catch (_) {
+      return state = const SyncStatus(problem: SyncProblem.failed);
     }
   }
 

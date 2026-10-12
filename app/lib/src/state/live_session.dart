@@ -11,6 +11,7 @@ import 'package:store/store.dart' as st;
 import '../core/band_link.dart';
 import '../core/coach_service.dart';
 import '../core/background_guard.dart';
+import '../core/data_source.dart';
 import '../core/score_service.dart' show saveRpe;
 import '../core/profile.dart';
 import 'providers.dart';
@@ -37,6 +38,7 @@ class LiveState {
     this.avgHr,
     this.maxHr,
     this.startedAt,
+    this.timerOnly = false,
   });
 
   final LivePhase phase;
@@ -55,6 +57,11 @@ class LiveState {
   final int? workoutId;
   final int? avgHr, maxHr;
   final DateTime? startedAt;
+
+  /// A Health source gives no live heart rate: the session is timed only,
+  /// and its heart rate and strain are filled in from Health after the
+  /// next read (ScoreService._activities).
+  final bool timerOnly;
 
   bool get guided => plan != null && plan!.segments.isNotEmpty;
   int get zone => bpm == null ? 0 : sc.zoneFor(bpm!, hrMax);
@@ -98,6 +105,7 @@ class LiveState {
     zoneSeconds: zoneSeconds ?? this.zoneSeconds,
     hrMax: hrMax,
     dayTrimpBefore: dayTrimpBefore,
+    timerOnly: timerOnly,
     target: target,
     error: error ?? this.error,
     workoutId: workoutId ?? this.workoutId,
@@ -151,6 +159,25 @@ class LiveSession extends Notifier<LiveState?> {
     );
     _beats.clear();
     _lastBuzzSegment = -1;
+    if ((await loadDataSource(db)).isHealth) {
+      final now = DateTime.now();
+      HapticFeedback.mediumImpact();
+      state = LiveState(
+        phase: LivePhase.live,
+        sport: plan?.sport ?? sport,
+        title:
+            plan?.title ?? '${sportName(plan?.sport ?? sport)} · open session',
+        plan: plan,
+        hrMax: hrMax,
+        dayTrimpBefore: today?.trimp ?? 0,
+        target: t,
+        startedAt: now,
+        timerOnly: true,
+      );
+      _lastTick = now;
+      _clock = Timer.periodic(const Duration(seconds: 1), (_) => _tick());
+      return;
+    }
     state = LiveState(
       phase: LivePhase.connecting,
       sport: plan?.sport ?? sport,
@@ -207,8 +234,9 @@ class LiveSession extends Notifier<LiveState?> {
     _lastTick = now;
     if (s.phase != LivePhase.live) return;
     final lost =
-        _lastBeat == null ||
-        now.difference(_lastBeat!) > const Duration(seconds: 10);
+        !s.timerOnly &&
+        (_lastBeat == null ||
+            now.difference(_lastBeat!) > const Duration(seconds: 10));
     var trimp = s.trimp;
     final zones = [...s.zoneSeconds];
     if (!lost && s.bpm != null) {
@@ -301,6 +329,8 @@ class LiveSession extends Notifier<LiveState?> {
             plan: Value(s.plan == null ? null : jsonEncode(s.plan!.toJson())),
           ),
         );
+    // Timed only: the watch's heart rate for it arrives with the next read.
+    if (s.timerOnly) unawaited(ref.read(syncProvider.notifier).syncNow());
     state = s.copyWith(
       phase: LivePhase.ended,
       workoutId: id,

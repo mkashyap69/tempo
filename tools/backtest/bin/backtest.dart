@@ -9,6 +9,7 @@ import 'dart:io';
 import 'package:args/args.dart';
 import 'package:backtest/calibrate.dart';
 import 'package:backtest/health_export.dart';
+import 'package:health_source/health_source.dart';
 import 'package:scoring/scoring.dart';
 
 Future<void> main(List<String> argv) async {
@@ -21,7 +22,7 @@ Future<void> main(List<String> argv) async {
     ..addOption(
       'fill',
       defaultsTo: '10',
-      help: 'forward-fill HR gaps up to N minutes',
+      help: 'interpolate HR across gaps up to N minutes',
     )
     ..addOption('from', help: 'YYYY-MM-DD')
     ..addOption('to', help: 'YYYY-MM-DD')
@@ -37,16 +38,18 @@ Future<void> main(List<String> argv) async {
     stderr.writeln('usage: backtest <export.xml> [options]\n${parser.usage}');
     exit(64);
   }
-  final grid = await readExport(
+  final fill = int.parse(args['fill'] as String);
+  final data = await readExport(
     fileLines(args.rest.single),
     RegExp(args['source'] as String),
+    params: GridParams(maxHrGapMinutes: fill),
   );
+  final grid = data.grid;
   final first = grid.first, last = grid.last;
   if (first == null || last == null) {
-    stderr.writeln('No matching heart-rate records.');
+    stderr.writeln('No matching records.');
     exit(1);
   }
-  final fill = int.parse(args['fill'] as String);
   final calibrating = args['calibrate'] as bool;
   final params = args['hr-max'] == null
       ? const ScoringParams()
@@ -67,16 +70,25 @@ Future<void> main(List<String> argv) async {
   final history = <DailyScore>[];
   String f(double? v, [int d = 1]) => v == null ? '' : v.toStringAsFixed(d);
   while (!day.isAfter(end)) {
-    final minutes = grid.range(
-      day.subtract(const Duration(hours: 12)),
-      day.add(const Duration(hours: 36)),
-      fillMinutes: fill,
-    );
+    final minutes = scoringMinutes(
+      grid.minutes(
+        day.subtract(const Duration(hours: 12)),
+        day.add(const Duration(hours: 36)),
+      ),
+    ).minutes;
+    final night = daySleep(date: day, minutes: minutes).night;
+    final hrv = night == null
+        ? null
+        : nightHrv(data.vitals, night.start, night.end);
     final s = scoreDay(
       date: day,
       minutes: minutes,
       history: history,
       p: params,
+      source: 'apple_health',
+      hrv: hrv?.ms,
+      hrvKind: hrv?.kind.name,
+      sourceRhr: sourceRestingHr(data.vitals, day),
     );
     history.insert(0, s);
     if (history.length > 60) history.removeLast();

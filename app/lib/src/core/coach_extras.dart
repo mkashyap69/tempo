@@ -4,6 +4,7 @@ import 'package:scoring/scoring.dart' as sc;
 import 'package:store/store.dart' as st;
 
 import 'coach_service.dart';
+import 'data_source.dart';
 import 'longevity_service.dart';
 import 'profile.dart';
 import 'today.dart';
@@ -183,9 +184,13 @@ Future<CoachExtras> loadCoachExtras(st.TempoDb db, TodayData t) async {
 DateTime parseKey(String k) => DateTime.parse(k);
 
 /// Today's steps: the band's own running total when it was read today
-/// (current to the minute of the last sync), else the synced minutes.
+/// (current to the minute of the last sync), else the synced minutes. A
+/// Health source has only the synced minutes.
 Future<int> stepsToday(st.TempoDb db, DateTime now) async {
   final day = DateTime(now.year, now.month, now.day);
+  if ((await loadDataSource(db)).isHealth) {
+    return db.stepsBetween(day, now, health: true);
+  }
   final synced = await db.stepsBetween(day, now);
   final raw = await db.setting(Keys.stepsNow);
   if (raw == null || !raw.contains('|')) return synced;

@@ -55,6 +55,11 @@ abstract final class Keys {
   static const coachBlock = 'coach_block'; // JSON TrainingBlock, or empty
   static const coachNext = 'coach_next'; // JSON {goal, event}, or empty
   static const coachPhaseSeen = 'coach_phase_seen'; // block start|week
+  // Data source (see data_source.dart).
+  static const dataSource =
+      'data_source'; // band | apple_health | health_connect
+  static const healthDeepRead = 'health_deep_read'; // ISO, last 10-day re-read
+  static const healthFound = 'health_found'; // JSON, what the last read saw
 }
 
 /// Everything the user tells Tempo in onboarding and Profile.

@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:scoring/scoring.dart' as sc;
 
 import '../core/coach_service.dart';
+import '../core/data_source.dart';
+import '../core/health_reader.dart';
 import '../core/notifications.dart';
 import '../core/profile.dart';
 import '../design/components.dart';
@@ -23,6 +25,7 @@ enum _Step {
   goals,
   workouts,
   availability,
+  source,
   permissions,
 }
 
@@ -35,6 +38,10 @@ class OnboardingScreen extends ConsumerStatefulWidget {
 class _OnboardingState extends ConsumerState<OnboardingScreen> {
   var _step = _Step.value1;
   var _p = const Profile();
+
+  /// The Mi Band 6, or this phone's Health store (decisions.md 2026-10-06).
+  var _source = DataSource.band;
+  bool _connecting = false;
   final _age = TextEditingController(text: '31');
   final _ht = TextEditingController(text: '176');
   final _wt = TextEditingController(text: '74');
@@ -98,6 +105,41 @@ class _OnboardingState extends ConsumerState<OnboardingScreen> {
     }
   }
 
+  /// Health path: save the choice, ask for read access, finish. The first
+  /// read (90 days) runs once Today opens, with progress on its sync pill.
+  /// When Health can't be used at all the user stays here to pick the band.
+  Future<void> _finishHealth({required bool connect}) async {
+    final db = ref.read(dbProvider);
+    if (connect) {
+      setState(() => _connecting = true);
+      HealthConnectResult res;
+      try {
+        res = await PluginHealthReader().connect();
+      } catch (_) {
+        res = HealthConnectResult.unavailable;
+      }
+      if (mounted) setState(() => _connecting = false);
+      if (!mounted) return;
+      final why = switch (res) {
+        HealthConnectResult.ok => null,
+        HealthConnectResult.denied => 'Tempo needs heart rate, sleep and steps. Allow them, or choose “Not now” and allow them later from Today.',
+        HealthConnectResult.needsInstall => 'Install or update Health Connect from the Play Store, then tap Connect again.',
+        HealthConnectResult.unavailable => 'Health Connect isn’t available on this phone. Go back and choose the Mi Band 6.',
+      };
+      if (why != null) {
+        showTempoToast(context, why);
+        return;
+      }
+    }
+    await saveAppProfile(db, _p);
+    await CoachService(db).ensureWeek(DateTime.now(), rebuild: true);
+    await saveDataSource(db, _source);
+    try {
+      await TempoNotifications.instance.requestPermission();
+    } catch (_) {} // optional; never blocks finishing
+    await db.putSetting(Keys.onboarded, '1');
+  }
+
   Future<void> _finish({required bool pair}) async {
     final db = ref.read(dbProvider);
     await saveAppProfile(db, _p);
@@ -122,6 +164,10 @@ class _OnboardingState extends ConsumerState<OnboardingScreen> {
       _Step.profile => ('Continue', _profileValid),
       _Step.workouts => ('Continue', _p.likes.isNotEmpty),
       _Step.availability => ('Continue', _p.days.isNotEmpty),
+      _Step.permissions when _source.isHealth => (
+        _connecting ? 'Connecting…' : 'Connect ${_source.label}',
+        !_connecting,
+      ),
       _Step.permissions => ('Allow Bluetooth', true),
       _ => ('Continue', true),
     };
@@ -213,7 +259,11 @@ class _OnboardingState extends ConsumerState<OnboardingScreen> {
                       : () {
                           if (_step == _Step.profile) _readProfile();
                           if (_step == _Step.permissions) {
-                            _finish(pair: true);
+                            if (_source.isHealth) {
+                              _finishHealth(connect: true);
+                            } else {
+                              _finish(pair: true);
+                            }
                           } else {
                             _go(1);
                           }
@@ -222,10 +272,14 @@ class _OnboardingState extends ConsumerState<OnboardingScreen> {
                 if (_step == _Step.permissions) ...[
                   const SizedBox(height: 4),
                   TempoButton(
-                    'Not now — I’ll pair later',
+                    _source.isHealth
+                        ? 'Not now — I’ll connect later'
+                        : 'Not now — I’ll pair later',
                     kind: ButtonKind.text,
                     expand: true,
-                    onTap: () => _finish(pair: false),
+                    onTap: () => _source.isHealth
+                        ? _finishHealth(connect: false)
+                        : _finish(pair: false),
                   ),
                 ],
               ],
@@ -306,7 +360,7 @@ class _OnboardingState extends ConsumerState<OnboardingScreen> {
             ),
           ),
           'Know how ready you are, every morning.',
-          'Recovery, strain and sleep from your Mi Band 6, measured against your own normal — not anyone else’s.',
+          'Recovery, strain and sleep from your Mi Band 6 — or the watch you already wear, through ${DataSource.platformHealth.label} — measured against your own normal, not anyone else’s.',
           extra: TempoCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -580,6 +634,153 @@ class _OnboardingState extends ConsumerState<OnboardingScreen> {
         return AvailabilityEditor(
           profile: _p,
           onChanged: (p) => setState(() => _p = p),
+        );
+      case _Step.source:
+        final health = DataSource.platformHealth;
+        Widget option(DataSource src, String title, String sub) => Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: Pressable(
+            selected: _source == src,
+            label: title,
+            onTap: () => setState(() => _source = src),
+            child: AnimatedContainer(
+              duration: TempoMotion.fast,
+              constraints: const BoxConstraints(minHeight: 72),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                color: c.surface1,
+                borderRadius: BorderRadius.circular(TempoRadii.lg),
+                border: Border.all(
+                  color: _source == src ? c.text1 : Colors.transparent,
+                  width: 1.5,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          style: TempoType.label.copyWith(
+                            fontSize: 15,
+                            color: c.text1,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(sub, style: TempoType.bodyS.c(c.text2)),
+                      ],
+                    ),
+                  ),
+                  AnimatedContainer(
+                    duration: TempoMotion.fast,
+                    width: 22,
+                    height: 22,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: c.text1,
+                        width: _source == src ? 7 : 1.5,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _title(
+              'Where does your data come from?',
+              'Pick one. You can switch later in Profile; your scores stay.',
+            ),
+            const SizedBox(height: 24),
+            option(
+              DataSource.band,
+              'Mi Band 6',
+              'Tempo talks to the band directly over Bluetooth. Every-minute heart rate, sleep, stress and live workouts.',
+            ),
+            option(
+              health,
+              health.label,
+              health == DataSource.appleHealth
+                  ? 'Any watch or ring that writes to Apple Health (Apple Watch, Oura, Garmin…). Heart rate, sleep stages, HRV, steps and workouts, read-only.'
+                  : 'Any watch or ring that writes to Health Connect (Pixel Watch, Fitbit, Galaxy Watch, Garmin…). Heart rate, sleep stages, HRV, steps and workouts, read-only.',
+            ),
+            const SizedBox(height: 14),
+            PrivacyNote(
+              _source.isHealth
+                  ? 'Tempo reads Health on this phone. Nothing is uploaded, and what it reads is never written back.'
+                  : 'All data stays on this phone.',
+            ),
+          ],
+        );
+      case _Step.permissions when _source.isHealth:
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _title(
+              'Connect ${_source.label}',
+              'Tempo only reads. There’s no account and nothing is uploaded.',
+            ),
+            const SizedBox(height: 24),
+            CardList(
+              children: [
+                for (final (icon, t, body) in [
+                  (
+                    TempoIcons.heartRate,
+                    'Heart rate and HRV',
+                    'For strain, resting heart rate and recovery. Every reading your watch saved.',
+                  ),
+                  (
+                    TempoIcons.sleep,
+                    'Sleep',
+                    'Your nights and their stages, as your watch recorded them.',
+                  ),
+                  (
+                    TempoIcons.steps,
+                    'Steps, workouts and SpO₂',
+                    'For activity, Coach and Tempo Age.',
+                  ),
+                  (
+                    TempoIcons.bell,
+                    'Notifications · optional',
+                    'One message a morning with your call for the day, and a bedtime nudge.',
+                  ),
+                ])
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        TempoIcon(icon, size: 20, color: c.text1),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(t, style: TempoType.label.c(c.text1)),
+                              const SizedBox(height: 4),
+                              Text(body, style: TempoType.bodyS.c(c.text2)),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              _source == DataSource.appleHealth
+                  ? 'Turn on every category in the next screen. Apple doesn’t tell apps what you allowed, so if something’s missing later, check Settings → Health → Data Access & Devices → Tempo.'
+                  : 'Allow every category, plus past data and background access, so Tempo can learn from your history and stay current while closed.',
+              style: TempoType.caption.c(c.text3),
+            ),
+          ],
         );
       case _Step.permissions:
         Widget perm(String icon, String t, String req, String body) => Padding(

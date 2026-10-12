@@ -10,6 +10,7 @@ import 'package:store/store.dart' as st;
 import '../core/coach_service.dart';
 import '../core/score_service.dart' show dismissBandWorkout, saveRpe;
 import '../core/format.dart';
+import '../core/minutes.dart';
 import '../core/profile.dart';
 import '../design/chart.dart';
 import '../design/components.dart';
@@ -100,7 +101,7 @@ final _activityProvider = FutureProvider.family<_ActivityData?, int>((
   final w = await db.workout(id);
   if (w == null) return null;
   final a = st.fromTs(w.start), b = st.fromTs(w.end);
-  final rows = await db.minutesBetween(a, b);
+  final rows = await loadMinuteRows(db, a, b);
   var hr = <(DateTime, int)>[
     for (final m in rows)
       if (m.hr != null) (st.fromTs(m.ts), m.hr!),

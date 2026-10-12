@@ -431,6 +431,99 @@ void main() {
       expect(s.baseNeedHours, 8.5);
     });
 
+    group('data sources', () {
+      DailyScore past(int i, {String source = bandSource, double? hrv}) =>
+          DailyScore(
+            date: day.subtract(Duration(days: i)),
+            strain: 10,
+            trimp: 100,
+            hrMax: 190,
+            sleptHours: 7,
+            needHours: 7.5,
+            sleepPerf: 90 + (i % 3).toDouble(),
+            rhr: 55 + (i % 3).toDouble(),
+            source: source,
+            hrv: hrv,
+            hrvKind: hrv == null ? null : 'sdnn',
+          );
+
+      test('baselines and calibration use only the same source', () {
+        final band = [for (var i = 1; i <= 20; i++) past(i)];
+        final s = scoreDay(
+          date: day,
+          minutes: fullDay(),
+          history: band,
+          source: 'apple_health',
+        );
+        expect(s.source, 'apple_health');
+        expect(s.calibrating, isTrue);
+        expect(s.recovery, isNull);
+        // Strain and sleep need still use yesterday whatever its source.
+        expect(s.needHours, closeTo(7.5 + 0.5 * 2 + 0.03 * 10, 1e-9));
+      });
+
+      test('real HRV above its baseline lifts recovery', () {
+        final hist = [
+          for (var i = 1; i <= 20; i++)
+            past(i, source: 'apple_health', hrv: 40 + (i % 3) * 5),
+        ];
+        double rec(double hrv) => scoreDay(
+          date: day,
+          minutes: fullDay(),
+          history: hist,
+          source: 'apple_health',
+          hrv: hrv,
+          hrvKind: 'sdnn',
+        ).recovery!;
+        expect(rec(70), greaterThan(rec(45)));
+        expect(rec(25), lessThan(rec(45)));
+        final s = scoreDay(
+          date: day,
+          minutes: fullDay(),
+          history: hist,
+          source: 'apple_health',
+          hrv: 70,
+          hrvKind: 'sdnn',
+        );
+        expect(s.hrv, 70);
+        expect(s.hrvKind, 'sdnn');
+        expect(s.hrvProxy, isNull);
+      });
+
+      test('HRV of another kind has no baseline and drops out', () {
+        final hist = [
+          for (var i = 1; i <= 20; i++)
+            past(i, source: 'health_connect', hrv: 40 + (i % 3) * 5),
+        ];
+        final withRmssd = scoreDay(
+          date: day,
+          minutes: fullDay(),
+          history: hist,
+          source: 'health_connect',
+          hrv: 90,
+          hrvKind: 'rmssd',
+        );
+        final without = scoreDay(
+          date: day,
+          minutes: fullDay(),
+          history: hist,
+          source: 'health_connect',
+        );
+        expect(withRmssd.recovery, closeTo(without.recovery!, 1e-9));
+      });
+
+      test("the source's resting HR stands in when the night has no HR", () {
+        final m = [
+          ...run(bed, 480, stage: Stage.light),
+          ...run(wake, 600, hr: 70),
+        ];
+        expect(scoreDay(date: day, minutes: m).rhr, isNull);
+        expect(scoreDay(date: day, minutes: m, sourceRhr: 51).rhr, 51);
+        // Ours wins when the night has HR.
+        expect(scoreDay(date: day, minutes: fullDay(), sourceRhr: 40).rhr, 52);
+      });
+    });
+
     test('no sleep data → no sleep scores', () {
       final s = scoreDay(
         date: day,

@@ -9,9 +9,9 @@ We build a Flutter app for Android and iOS that talks to the Mi Band 6 directly 
 Decisions locked:
 
 - **Stack:** Flutter, one codebase for Android and iOS.
-- **Data path:** direct BLE. Our app owns the band; Mi Fitness is used once, only to obtain the auth key.
+- **Data path:** direct BLE. Our app owns the band; Mi Fitness is used once, only to obtain the auth key. Or, without a band, read-only from Apple Health / Health Connect (decided 2026-10-06; one source per install, see `docs/research/Health connectors plan.md`).
 - **Storage:** fully on-device, no backend. Raw data is immutable; scores are recomputed from it whenever the algorithm changes. Backups via data export in Settings.
-- **Hardware:** Mi Band 6 only. No Polar H10 or other sensors.
+- **Hardware:** Mi Band 6 over BLE. Any other watch or ring only through what it writes to Apple Health / Health Connect. No Polar H10 or other direct sensors.
 - **Audience:** personal tool. Pairing takes a pasted auth key (no guided key extraction), sideloaded builds, no multi-user accounts in v1.
 
 The honest ceiling: Mi Band 6 gives per-minute heart rate, steps, sleep stages (light, deep, REM) and a stress index, but not raw beat-to-beat (RR) intervals. Strain and Sleep can match Whoop's logic closely; Recovery uses the band's stress index as an HRV proxy.
@@ -47,6 +47,8 @@ Huami protocol       (Dart) AES auth, fetch commands, record parsers
    │
 Sync service         per-type cursors, WorkManager, iOS state restoration
    │
+   │      Apple Health / Health Connect ─► health plugin ─► health_source (Dart)
+   │                                    (read-only; one source per install)
 Local database  ◄──► Scoring engine (pure Dart): Strain, Sleep, Recovery
    │                 reads raw samples, writes daily_scores
 State + UI           Riverpod; Today, details, trends, live workout
@@ -183,6 +185,11 @@ Only one app can hold the band, so Mi Fitness must not be running.
 | P1 · Goals and progression | — | Training goal (event or open-ended), phases, earned weekly volume steps, lighter every 4th week, taper and race day | A block run for 4+ weeks where each week's step up / hold / step back matches how the week actually went |
 | P2 · Goal screen and more goals | — | Goal screen (block timeline, this-week scorecard and forecast, phase explainer, history, how-it-works), rearrange or let go a missed key session, easy rest of week on low recovery/feel, guided setup with race-day calendar and preview, tune-up races, a queued next goal, habits alongside | Same 4-week block check as P1, plus every scorecard verdict matching the week's actual call |
 | N1 · Navigation | — | Tabs Today / Coach / Trends / Longevity / Profile; Coach as goal strip + Today / Week / Goal; Journal on Today; Trends with shortcuts and cardio load | A week of use where the goal and Trends are each reached in one tap |
+| H0 · Health seam | — | Decisions logged; `packages/health_source`; backtest reads export.xml through it | Backtest runs; package tests pass |
+| H1 · Store + scoring | — | Schema 10 (`health_records`, tombstones, `health_minutes`, score source/HRV); algo 8 (per-source baselines, real HRV, source RHR fallback) | Store and scoring tests pass |
+| H2 · Apple Health | — | Read access, Health sync, echo guard, onboarding choice, band-only screens hidden | 7 days on an iPhone + watch with no band: scores ready on opening each morning, nights match the Health app |
+| H3 · Health Connect | — | Same on Android, history and background permissions, reconcile against silent empty reads | 7 days on an Android phone + watch: background job keeps scores current without opening Tempo |
+| H4 · Switch and polish | — | Profile → Data source, timer-only live workouts, restore rebuilds Health minutes | Band → Health → band on one install with no lost scores |
 
 Phase 0 is the go/no-go. Week counts assume one engineer part-time.
 
@@ -197,3 +204,5 @@ Phase 0 is the go/no-go. Week counts assume one engineer part-time.
 | iOS background limits | Scores late some mornings | Sync on open; show last sync time |
 | Wrist optical HR lags in intervals/lifting | Strain under-counts | Label workout strain as an estimate |
 | Naming and claims | Trademark issues | No "Whoop" or "Mi" in the app name; wellness wording only |
+| Sparse or late Health data | Strain low, scores change after the morning | Interpolate HR gaps ≤ 15 min; re-read 3 days (10 once a day) and rescore |
+| Health read fails silently (empty list) | Records wrongly removed | Tombstone only when the re-read found at least half as many records |

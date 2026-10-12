@@ -85,7 +85,7 @@ class _WorkoutsState extends ConsumerState<WorkoutsScreen> {
           ),
         if (shown.isEmpty)
           const TempoEmpty(
-            'No workouts yet. Workouts you record on the band arrive with the next sync; ones you start with the play button, and walks or rides Tempo spots, show here too.',
+            'No workouts yet. Workouts your band or watch records arrive with the next sync; ones you start with the play button, and walks or rides Tempo spots, show here too.',
           )
         else
           for (final e in weeks.entries)

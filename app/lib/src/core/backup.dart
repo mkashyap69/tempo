@@ -8,6 +8,8 @@ import 'package:store/store.dart';
 
 import 'band_link.dart' show deviceIdKey, deviceNameKey;
 import 'export.dart' show restoreJson;
+import 'health_sync.dart' show rebuildHealthMinutes;
+import 'minutes.dart' show firstDataMinute;
 import 'profile.dart' show Keys;
 import 'score_service.dart';
 
@@ -45,6 +47,7 @@ const _notBackedUp = {
   Keys.batteryPrompted,
   Keys.healthExportedTo,
   Keys.lastBackup,
+  Keys.healthDeepRead,
   deviceIdKey,
   deviceNameKey,
 };
@@ -285,7 +288,10 @@ Future<RestoreResult> restoreBackup(TempoDb db, List<int> bytes) async {
       settings++;
     }
   }
-  final first = await db.firstMinute();
+  // Health minutes are derived, so they are rebuilt, not restored.
+  final span = await db.healthRecordSpan();
+  if (span != null) await rebuildHealthMinutes(db, span.$1, DateTime.now());
+  final first = await firstDataMinute(db);
   if (first != null) await ScoreService(db).recomputeFrom(first);
   return RestoreResult(rows, settings);
 }
@@ -351,7 +357,7 @@ class BackupService {
       (await db.setting(Keys.lastBackup) ?? '').split('|').first,
     );
     if (last != null && at.difference(last) < backupEvery) return;
-    if (await db.firstMinute() == null) return; // nothing worth keeping yet
+    if (await firstDataMinute(db) == null) return; // nothing worth keeping yet
     try {
       BackupEntry e;
       try {

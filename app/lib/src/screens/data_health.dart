@@ -8,6 +8,7 @@ import 'package:store/store.dart' as st;
 import '../core/background_guard.dart';
 import '../core/battery.dart';
 import '../core/coach_service.dart';
+import '../core/data_source.dart';
 import '../core/format.dart';
 import '../core/profile.dart';
 
@@ -38,6 +39,7 @@ class _Health {
     this.batteryDays,
     this.batteryExempt,
     this.lastCharge,
+    this.source,
   );
   final List<(DateTime, List<(int, int)>)> days;
   final List<st.SyncLogData> log;
@@ -49,6 +51,7 @@ class _Health {
   final double? batteryDays;
   final bool batteryExempt;
   final DateTime? lastCharge;
+  final DataSource source;
 }
 
 final _healthProvider = FutureProvider<_Health>((ref) async {
@@ -59,14 +62,35 @@ final _healthProvider = FutureProvider<_Health>((ref) async {
   final days = <(DateTime, List<(int, int)>)>[];
   var worn = 0, expected = 0, notWorn = 0;
   final gaps = <(DateTime, int)>[];
-  final last = await db.lastMinute();
+  final health = (await loadDataSource(db)).isHealth;
+  final last = await db.lastMinute(health: health);
   for (var i = 0; i < 7; i++) {
     final d = today.subtract(Duration(days: i));
-    final mins = await db.minutesBetween(d, d.add(const Duration(days: 1)));
     final byMin = List<int>.filled(1440, 2); // default: gap (no record)
-    for (final m in mins) {
-      final t = st.fromTs(m.ts);
-      byMin[t.hour * 60 + t.minute] = kindNotWorn(m.kind) ? 1 : 0;
+    var any = false;
+    if (health) {
+      // Health has no worn flag: a minute with heart rate or sleep counts
+      // as worn, one with only steps as phone-only, nothing as a gap.
+      for (final m in await db.healthMinutesBetween(
+        d,
+        d.add(const Duration(days: 1)),
+      )) {
+        final t = st.fromTs(m.ts);
+        final v = m.hr != null || m.sleep != null
+            ? 0
+            : m.steps > 0
+            ? 1
+            : 2;
+        byMin[t.hour * 60 + t.minute] = v;
+        any |= v != 2;
+      }
+    } else {
+      final mins = await db.minutesBetween(d, d.add(const Duration(days: 1)));
+      for (final m in mins) {
+        final t = st.fromTs(m.ts);
+        byMin[t.hour * 60 + t.minute] = kindNotWorn(m.kind) ? 1 : 0;
+      }
+      any = mins.isNotEmpty;
     }
     final end = i == 0
         ? (last != null && DateUtils.isSameDay(last, d)
@@ -83,7 +107,7 @@ final _healthProvider = FutureProvider<_Health>((ref) async {
     }
     if (end < 1440) runs.add((1440 - end, -1));
     for (var m = 0, k = 0; k < runs.length; m += runs[k].$1, k++) {
-      if (runs[k].$2 == 2 && runs[k].$1 >= 15 && mins.isNotEmpty) {
+      if (runs[k].$2 == 2 && runs[k].$1 >= 15 && any && !health) {
         gaps.add((d.add(Duration(minutes: m)), runs[k].$1));
       }
     }
@@ -99,7 +123,7 @@ final _healthProvider = FutureProvider<_Health>((ref) async {
     );
     if (await f.exists()) size = await f.length();
   } catch (_) {}
-  final first = await db.firstMinute();
+  final first = await db.firstMinute(health: health);
   final bat = await db.setting(Keys.battery),
       batAt = await db.setting(Keys.batteryAt),
       ls = await db.setting(Keys.lastSync);
@@ -119,6 +143,7 @@ final _healthProvider = FutureProvider<_Health>((ref) async {
     DateTime.tryParse(
       (await db.setting(Keys.lastCharge) ?? '').split('|').first,
     ),
+    await loadDataSource(db),
   );
 });
 
@@ -138,13 +163,15 @@ class DataHealthScreen extends ConsumerWidget {
           child: Row(
             children: [
               Expanded(
-                child: Stat(
-                  'Battery',
-                  h.battery == null ? '—' : '${h.battery}%',
-                  sub: h.battery == null
-                      ? 'not read yet'
-                      : '${batteryLeftLabel(h.batteryDays)}${h.lastCharge == null ? '' : ' · charged ${dm(h.lastCharge!)}'}',
-                ),
+                child: h.source.isHealth
+                    ? Stat('Source', h.source.label, sub: 'read-only')
+                    : Stat(
+                        'Battery',
+                        h.battery == null ? '—' : '${h.battery}%',
+                        sub: h.battery == null
+                            ? 'not read yet'
+                            : '${batteryLeftLabel(h.batteryDays)}${h.lastCharge == null ? '' : ' · charged ${dm(h.lastCharge!)}'}',
+                      ),
               ),
               Expanded(
                 child: Stat(
@@ -165,11 +192,15 @@ class DataHealthScreen extends ConsumerWidget {
             ],
           ),
         ),
-        if (!h.batteryExempt)
+        // Apple Health is read on open and by iOS's own schedule; there is
+        // no battery setting to change.
+        if (!h.batteryExempt && h.source != DataSource.appleHealth)
           StatusBanner(
             icon: TempoIcons.alert,
             title: 'Background sync is restricted',
-            body: 'Battery optimisation can stop overnight syncs, which leaves gaps when the band’s memory fills.',
+            body: h.source.isHealth
+                ? 'Battery optimisation can stop background reads, so scores wait until you open Tempo.'
+                : 'Battery optimisation can stop overnight syncs, which leaves gaps when the band’s memory fills.',
             action: 'Allow',
             onAction: () async {
               await BackgroundGuard.requestBatteryExemption();
@@ -240,7 +271,7 @@ class DataHealthScreen extends ConsumerWidget {
                   Legend(c.text2, 'Worn', width: 12, height: 8),
                   Legend(
                     c.lineStrong,
-                    'Not worn',
+                    h.source.isHealth ? 'Steps only' : 'Not worn',
                     width: 12,
                     height: 8,
                     outline: true,
@@ -255,7 +286,7 @@ class DataHealthScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 10),
               Text(
-                'Not worn: ${hmSpaced(h.notWornMin / 60)} this week.${h.gaps.isEmpty ? ' No data gaps.' : ' ${h.gaps.length} ${h.gaps.length == 1 ? 'gap' : 'gaps'} — e.g. ${dayShort(h.gaps.first.$1).substring(0, 3)} ${clockOf(h.gaps.first.$1)}, ${h.gaps.first.$2} min.'} Tempo fills nothing in; affected scores say so.',
+                '${h.source.isHealth ? 'Steps only (no heart rate)' : 'Not worn'}: ${hmSpaced(h.notWornMin / 60)} this week.${h.gaps.isEmpty ? ' No data gaps.' : ' ${h.gaps.length} ${h.gaps.length == 1 ? 'gap' : 'gaps'} — e.g. ${dayShort(h.gaps.first.$1).substring(0, 3)} ${clockOf(h.gaps.first.$1)}, ${h.gaps.first.$2} min.'} Tempo fills nothing in; affected scores say so.',
                 style: TempoType.bodyS.c(c.text2),
               ),
             ],
@@ -313,7 +344,7 @@ class DataHealthScreen extends ConsumerWidget {
                   ],
                 ),
         ),
-        if (h.lastSync != null)
+        if (h.lastSync != null && h.source.can.bandControls)
           Wrap(
             alignment: WrapAlignment.center,
             spacing: 8,

@@ -1,11 +1,13 @@
 /// Streaming reader for Apple Health `export.xml`. Records are one per line
-/// in practice, so a line regex avoids loading a multi-GB DOM.
+/// in practice, so a line regex avoids loading a multi-GB DOM. Records go
+/// through the same `health_source` mapping the app uses when it reads
+/// Apple Health directly, so the backtest scores what the app would.
 library;
 
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:scoring/scoring.dart';
+import 'package:health_source/health_source.dart';
 
 final _attr = RegExp(r'(\w+)="([^"]*)"');
 
@@ -21,98 +23,80 @@ DateTime parseHealthDate(String s) {
   return DateTime.utc(g(1), g(2), g(3), g(4), g(5), g(6)).subtract(off);
 }
 
-Stage? sleepStage(String value) => switch (value) {
+/// export.xml sleep value → kind. In bed is a container (see HealthGrid).
+HealthKind? sleepKind(String value) => switch (value) {
+  'HKCategoryValueSleepAnalysisInBed' => HealthKind.sleepInBed,
   'HKCategoryValueSleepAnalysisAsleep' ||
-  'HKCategoryValueSleepAnalysisAsleepUnspecified' ||
-  'HKCategoryValueSleepAnalysisAsleepCore' => Stage.light,
-  'HKCategoryValueSleepAnalysisAsleepDeep' => Stage.deep,
-  'HKCategoryValueSleepAnalysisAsleepREM' => Stage.rem,
-  'HKCategoryValueSleepAnalysisAwake' => Stage.wake,
-  _ => null, // InBed carries no stage
+  'HKCategoryValueSleepAnalysisAsleepUnspecified' => HealthKind.sleepAsleep,
+  'HKCategoryValueSleepAnalysisAsleepCore' => HealthKind.sleepLight,
+  'HKCategoryValueSleepAnalysisAsleepDeep' => HealthKind.sleepDeep,
+  'HKCategoryValueSleepAnalysisAsleepREM' => HealthKind.sleepRem,
+  'HKCategoryValueSleepAnalysisAwake' => HealthKind.sleepAwake,
+  _ => null,
 };
 
-/// Per-minute accumulator keyed by minutes since epoch (local time).
-class MinuteGrid {
-  final hrSum = <int, int>{};
-  final hrN = <int, int>{};
-  final stage = <int, Stage>{};
+const _quantity = {
+  'HKQuantityTypeIdentifierHeartRate': HealthKind.heartRate,
+  'HKQuantityTypeIdentifierStepCount': HealthKind.steps,
+  'HKQuantityTypeIdentifierHeartRateVariabilitySDNN': HealthKind.hrvSdnn,
+  'HKQuantityTypeIdentifierRestingHeartRate': HealthKind.restingHr,
+  'HKQuantityTypeIdentifierOxygenSaturation': HealthKind.spo2,
+};
 
-  static int key(DateTime t) => t.toLocal().millisecondsSinceEpoch ~/ 60000;
-
-  void addHr(DateTime t, int bpm) {
-    final k = key(t);
-    hrSum[k] = (hrSum[k] ?? 0) + bpm;
-    hrN[k] = (hrN[k] ?? 0) + 1;
+/// One export.xml `<Record …/>` line as a record, or null for other types.
+HealthRecord? recordFromXml(String line) {
+  if (!line.contains('<Record ')) return null;
+  final a = {for (final m in _attr.allMatches(line)) m.group(1)!: m.group(2)!};
+  final type = a['type'];
+  if (type == null) return null;
+  final start = a['startDate'], end = a['endDate'];
+  if (start == null || end == null) return null;
+  HealthKind? kind;
+  var value = 0.0;
+  if (type == 'HKCategoryTypeIdentifierSleepAnalysis') {
+    kind = sleepKind(a['value'] ?? '');
+  } else {
+    kind = _quantity[type];
+    final v = double.tryParse(a['value'] ?? '');
+    if (v == null) return null;
+    value = v;
   }
-
-  void addStage(DateTime start, DateTime end, Stage s) {
-    for (var k = key(start); k < key(end); k++) {
-      // A real sleep stage beats "awake" when sources overlap.
-      if (stage[k] == null || stage[k] == Stage.wake) stage[k] = s;
-    }
-  }
-
-  /// Minutes in [from, to). Gaps in HR up to [fillMinutes] are forward-filled
-  /// because Mi Fit wrote HR to Health only every few minutes.
-  List<Minute> range(DateTime from, DateTime to, {int fillMinutes = 0}) {
-    final out = <Minute>[];
-    int? last;
-    var lastAt = -1 << 40;
-    for (var k = key(from); k < key(to); k++) {
-      final n = hrN[k];
-      int? hr;
-      if (n != null) {
-        hr = (hrSum[k]! / n).round();
-        last = hr;
-        lastAt = k;
-      } else if (last != null && k - lastAt <= fillMinutes) {
-        hr = last;
-      }
-      out.add(
-        Minute(
-          DateTime.fromMillisecondsSinceEpoch(k * 60000),
-          hr: hr,
-          stage: stage[k] ?? Stage.unknown,
-        ),
-      );
-    }
-    return out;
-  }
-
-  DateTime? get first => hrN.isEmpty
-      ? null
-      : DateTime.fromMillisecondsSinceEpoch(
-          hrN.keys.reduce((a, b) => a < b ? a : b) * 60000,
-        );
-  DateTime? get last => hrN.isEmpty
-      ? null
-      : DateTime.fromMillisecondsSinceEpoch(
-          hrN.keys.reduce((a, b) => a > b ? a : b) * 60000,
-        );
+  if (kind == null) return null;
+  final from = parseHealthDate(start), to = parseHealthDate(end);
+  return HealthRecord(
+    uuid: '${a['sourceName']}|$start',
+    kind: kind,
+    start: from,
+    end: to,
+    value: kind.isSleep ? to.difference(from).inSeconds / 60 : value,
+    sourceApp: a['sourceName'] ?? '',
+  );
 }
 
-/// Reads HR and sleep records whose sourceName matches [source].
-Future<MinuteGrid> readExport(Stream<String> lines, RegExp source) async {
-  final grid = MinuteGrid();
+/// The per-minute grid, plus HRV and resting-HR records (few, kept whole).
+final class ExportData {
+  ExportData(this.grid);
+  final HealthGrid grid;
+  final vitals = <HealthRecord>[];
+}
+
+/// Reads records whose sourceName matches [source].
+Future<ExportData> readExport(
+  Stream<String> lines,
+  RegExp source, {
+  GridParams params = const GridParams(),
+}) async {
+  final out = ExportData(HealthGrid(params));
   await for (final line in lines) {
-    if (!line.contains('<Record ')) continue;
-    final isHr = line.contains('"HKQuantityTypeIdentifierHeartRate"');
-    final isSleep = line.contains('"HKCategoryTypeIdentifierSleepAnalysis"');
-    if (!isHr && !isSleep) continue;
-    final a = {
-      for (final m in _attr.allMatches(line)) m.group(1)!: m.group(2)!,
-    };
-    if (!source.hasMatch(a['sourceName'] ?? '')) continue;
-    final start = parseHealthDate(a['startDate']!);
-    if (isHr) {
-      final v = double.tryParse(a['value'] ?? '');
-      if (v != null) grid.addHr(start, v.round());
+    final r = recordFromXml(line);
+    if (r == null || !source.hasMatch(r.sourceApp)) continue;
+    if (r.kind == HealthKind.hrvSdnn || r.kind == HealthKind.restingHr) {
+      out.vitals.add(r);
     } else {
-      final s = sleepStage(a['value'] ?? '');
-      if (s != null) grid.addStage(start, parseHealthDate(a['endDate']!), s);
+      out.grid.add(r);
     }
   }
-  return grid;
+  return out;
 }
 
 Stream<String> fileLines(String path) =>

@@ -40,7 +40,11 @@ class BandLink {
     final key = await (keys ?? KeyStore()).load();
     if (id == null || key == null) throw NotPairedException();
     final docs = await getApplicationDocumentsDirectory();
-    final lock = await _acquireLock(File('${docs.path}/band.lock'), wait);
+    final lock = await acquireFileLock(
+      File('${docs.path}/band.lock'),
+      wait,
+      onBusy: BandBusyException.new,
+    );
     final log = await PacketFileLog.open();
     final band = MiBand.fromId(id, log: log);
     try {
@@ -55,7 +59,7 @@ class BandLink {
         await band.disconnect();
       } catch (_) {}
       await log.close();
-      await _releaseLock(lock);
+      await releaseFileLock(lock);
       rethrow;
     }
   }
@@ -65,13 +69,18 @@ class BandLink {
       await band.disconnect();
     } finally {
       await log.close();
-      await _releaseLock(_lock);
+      await releaseFileLock(_lock);
     }
   }
 }
 
 /// Exclusive create. flock() did not keep the background job off the radio.
-Future<File> _acquireLock(File f, Duration wait) async {
+/// A lock older than 3 minutes is stale (a killed process) and taken over.
+Future<File> acquireFileLock(
+  File f,
+  Duration wait, {
+  required Exception Function() onBusy,
+}) async {
   final deadline = DateTime.now().add(wait);
   while (true) {
     try {
@@ -90,13 +99,13 @@ Future<File> _acquireLock(File f, Duration wait) async {
         } catch (_) {}
         continue;
       }
-      if (!DateTime.now().isBefore(deadline)) throw BandBusyException();
+      if (!DateTime.now().isBefore(deadline)) throw onBusy();
       await Future<void>.delayed(const Duration(milliseconds: 400));
     }
   }
 }
 
-Future<void> _releaseLock(File f) async {
+Future<void> releaseFileLock(File f) async {
   try {
     if (await f.exists()) await f.delete();
   } catch (_) {}

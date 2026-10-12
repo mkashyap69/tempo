@@ -4,7 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:scoring/scoring.dart' as sc;
 import 'package:store/store.dart' as st;
 
+import '../core/data_source.dart';
 import '../core/feel.dart';
+import '../core/health_reader.dart';
 import '../core/format.dart';
 import '../core/pause.dart';
 import '../core/today.dart';
@@ -38,7 +40,8 @@ class TodayScreen extends ConsumerWidget {
     if (t == null) return Scaffold(backgroundColor: context.c.bg);
     final sync = ref.watch(syncProvider);
     final paired = ref.watch(pairedProvider).value != null;
-    final adapter = ref.watch(adapterProvider).value;
+    final source = ref.watch(dataSourceProvider);
+    final adapter = source.isHealth ? null : ref.watch(adapterProvider).value;
     ref.watch(minuteClockProvider);
     final noPermission =
         adapter == BluetoothAdapterState.unauthorized ||
@@ -58,6 +61,7 @@ class TodayScreen extends ConsumerWidget {
         sync: sync,
         paired: paired,
         noPermission: noPermission,
+        source: source,
       ),
     );
   }
@@ -72,6 +76,7 @@ abstract final class TodayBody {
     required SyncStatus sync,
     required bool paired,
     required bool noPermission,
+    DataSource source = DataSource.band,
   }) {
     final c = context.c;
     final noData = !paired || noPermission;
@@ -81,6 +86,7 @@ abstract final class TodayBody {
       t,
       noBand: !paired,
       noPermission: noPermission,
+      health: source.isHealth,
     );
     final adds = planAdds(t);
     // Asked before the call and the rings, so the score can't sway it.
@@ -102,6 +108,8 @@ abstract final class TodayBody {
       syncText = 'Syncing…';
     } else if (sync.problem == SyncProblem.failed) {
       syncText = 'Sync failed';
+    } else if (sync.problem == SyncProblem.healthUnreadable) {
+      syncText = 'Health locked';
     } else if (sync.problem == SyncProblem.disconnected ||
         sync.problem == SyncProblem.busy) {
       syncText = 'Not connected';
@@ -117,7 +125,58 @@ abstract final class TodayBody {
     final asOf = t.lastSync == null
         ? ''
         : ' Showing data from ${clockOf(t.lastSync!)}.';
-    if (!paired) {
+    if (source.isHealth && noPermission) {
+      banner = StatusBanner(
+        icon: TempoIcons.alert,
+        title: '${source.label} access needed',
+        body: source == DataSource.appleHealth
+            ? 'Tempo reads heart rate, sleep and steps from Apple Health. Turn them on in Settings → Health → Data Access & Devices → Tempo.'
+            : 'Tempo reads heart rate, sleep and steps from Health Connect. Allow them, and Tempo reads again.',
+        action: 'Allow',
+        onAction: () async {
+          await PluginHealthReader().connect();
+          await ref.read(syncProvider.notifier).syncNow();
+        },
+      );
+    } else if (source.isHealth &&
+        sync.problem == SyncProblem.healthUnreadable &&
+        !sync.running) {
+      banner = StatusBanner(
+        icon: TempoIcons.alert,
+        title: '${source.label} couldn’t be read',
+        body: source == DataSource.appleHealth
+            ? 'iPhone keeps Health data locked while the phone is locked.$asOf'
+            : 'Health Connect didn’t answer.$asOf',
+        action: 'Retry',
+        onAction: () => ref.read(syncProvider.notifier).syncNow(),
+      );
+    } else if (source.isHealth &&
+        (sync.problem == SyncProblem.failed ||
+            sync.problem == SyncProblem.busy) &&
+        !sync.running) {
+      banner = StatusBanner(
+        icon: TempoIcons.alert,
+        title: sync.problem == SyncProblem.busy
+            ? 'Already reading ${source.label}'
+            : 'Couldn’t read ${source.label}',
+        body: sync.problem == SyncProblem.busy
+            ? 'Another read is running. Try again in a moment.'
+            : 'Something went wrong reading Health.$asOf',
+        action: 'Retry',
+        onAction: () => ref.read(syncProvider.notifier).syncNow(),
+      );
+    } else if (source.isHealth && t.stale && !sync.running) {
+      banner = StatusBanner(
+        icon: TempoIcons.clock,
+        title: 'Scores are ${t.syncAge!.inHours} hours old',
+        body:
+            'Last read ${clockOf(t.lastSync!)} ${_dayWord(t.lastSync!)}. Make sure your watch has synced to ${source.label}.',
+        action: 'Read now',
+        onAction: () => ref.read(syncProvider.notifier).syncNow(),
+      );
+    } else if (source.isHealth) {
+      // Bluetooth and pairing banners are for the band.
+    } else if (!paired) {
       banner = StatusBanner(
         icon: TempoIcons.bluetooth,
         title: 'No band paired',

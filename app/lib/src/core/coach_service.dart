@@ -5,6 +5,7 @@ import 'package:scoring/scoring.dart' as sc;
 import 'package:store/store.dart' as st;
 
 import 'block_service.dart';
+import 'data_source.dart';
 import 'longevity_service.dart' show loadFocus;
 import 'pause.dart';
 import 'profile.dart';
@@ -28,6 +29,7 @@ Future<List<double?>> dailyTrimp(
   if (rows.isEmpty) return [];
   final first = DateTime.parse(rows.first.date);
   final pauses = await loadPauses(db);
+  final health = (await loadDataSource(db)).isHealth;
   final out = <double?>[];
   for (
     var d = dayOf(day);
@@ -39,7 +41,8 @@ Future<List<double?>> dailyTrimp(
     final known =
         t != null &&
         !isPaused(pauses, d) &&
-        await db.hrMinutesBetween(d, next) >= sc.loadMinWornMinutes;
+        await db.hrMinutesBetween(d, next, health: health) >=
+            sc.loadMinWornMinutes;
     out.add(known ? t : null);
   }
   return out;
@@ -221,10 +224,14 @@ class CoachService {
   ) async {
     final history = await db.scoresBefore(day, limit: 60);
     final pauses = await loadPauses(db);
+    // A watch's resting HR sits on a different level from the band's, so
+    // only days of today's source make the baseline.
+    final source = score?.source ?? (await loadDataSource(db)).key;
     final flag = sc.rhrFlag([
       score?.rhr,
       for (final d in history)
-        if (!isPaused(pauses, DateTime.parse(d.date))) d.rhr,
+        if (!isPaused(pauses, DateTime.parse(d.date)) && d.source == source)
+          d.rhr,
     ]);
     final short = sc.shortSleep(score?.sleptHours, score?.needHours);
     final base = sc.dayState(

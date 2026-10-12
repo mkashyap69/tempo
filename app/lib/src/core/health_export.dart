@@ -4,12 +4,18 @@ import 'package:health/health.dart';
 import 'package:scoring/scoring.dart' as sc;
 import 'package:store/store.dart';
 
+import 'data_source.dart';
+import 'minutes.dart';
 import 'profile.dart' show Keys;
-import 'stages.dart';
 
 /// Writes finished workouts and nights to Apple Health / Health Connect.
-/// Write-only: Tempo never reads Health data. Off unless the user turns it
-/// on in Profile; everything stays on the phone either way.
+/// Off unless the user turns it on in Profile; everything stays on the
+/// phone either way.
+///
+/// With Health as the data source, only workouts recorded live in Tempo are
+/// written: nights and other apps' workouts came from Health, and writing
+/// them back would count them twice (Tempo also drops its own records when
+/// it reads, see health_source `tempoAppId`).
 class HealthExport {
   HealthExport(this.db);
   final TempoDb db;
@@ -62,6 +68,7 @@ class HealthExport {
         DateTime.tryParse(await db.setting(Keys.healthExportedTo) ?? '') ??
         DateTime.now().subtract(const Duration(days: 7));
     final now = DateTime.now();
+    final fromHealth = (await loadDataSource(db)).isHealth;
     var n = 0, until = since;
     try {
       await _h.configure();
@@ -69,6 +76,8 @@ class HealthExport {
         final end = fromTs(w.end);
         if (!end.isAfter(since)) continue;
         if (w.source == 'auto' && !w.confirmed) continue;
+        if (w.source == 'health') continue; // read from Health
+        if (fromHealth && w.source != 'live') continue;
         if (await _h.writeWorkoutData(
           activityType: activityFor(w.sport),
           start: fromTs(w.start),
@@ -79,12 +88,14 @@ class HealthExport {
         }
         if (end.isAfter(until)) until = end;
       }
-      final nights = await db.sleepSessionsBetween(since, now);
+      final nights = fromHealth
+          ? const <SleepSession>[]
+          : await db.sleepSessionsBetween(since, now);
       for (final s in nights) {
         final start = fromTs(s.start), end = fromTs(s.end);
         if (!end.isAfter(since)) continue;
         await _write(types[1], start, end);
-        final mins = decodeMinutes(await db.minutesBetween(start, end)).minutes;
+        final mins = (await loadMinutes(db, start, end)).minutes;
         // One record per run of the same stage.
         DateTime? runStart;
         sc.Stage? stage;

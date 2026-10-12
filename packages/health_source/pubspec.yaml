@@ -1,0 +1,11 @@
+name: health_source
+description: Apple Health / Health Connect records to Tempo minutes. Pure Dart.
+publish_to: none
+resolution: workspace
+environment:
+  sdk: ^3.13.0
+dependencies:
+  scoring:
+    path: ../scoring
+dev_dependencies:
+  test: ^1.25.0

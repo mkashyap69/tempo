@@ -299,7 +299,7 @@ class CoachScreen extends ConsumerWidget {
       return (
         'First day.',
         c.text1,
-        ' Wear the band tonight; the plan stays general and moderate until Tempo knows you.',
+        ' Wear your ${t.source == sc.bandSource ? 'band' : 'watch'} tonight; the plan stays general and moderate until Tempo knows you.',
       );
     }
     if (t.calibrating) {
@@ -314,7 +314,9 @@ class CoachScreen extends ConsumerWidget {
       return (
         'Waiting for last night.',
         c.text1,
-        ' Sync near your band to adapt today’s plan.',
+        t.source == sc.bandSource
+            ? ' Sync near your band to adapt today’s plan.'
+            : ' Once your watch syncs to Health, today’s plan adapts.',
       );
     }
     if (t.rhrFlag == sc.RhrFlag.illness) {

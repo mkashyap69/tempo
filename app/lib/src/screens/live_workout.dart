@@ -53,6 +53,8 @@ class _Live extends ConsumerWidget {
     String pill;
     if (connecting) {
       pill = 'Connecting to band…';
+    } else if (s.timerOnly) {
+      pill = 'Timing · HR from Health later';
     } else if (s.signalLost) {
       pill = 'Signal lost — timer keeps running';
     } else if (z == 0) {
@@ -102,11 +104,13 @@ class _Live extends ConsumerWidget {
               SizedBox(
                 width: 44,
                 child: Semantics(
-                  label: s.signalLost || connecting
+                  label: s.timerOnly
+                      ? 'Timer only'
+                      : s.signalLost || connecting
                       ? 'Band not streaming'
                       : 'Band connected',
                   child: TempoIcon(
-                    TempoIcons.band,
+                    s.timerOnly ? TempoIcons.clock : TempoIcons.band,
                     size: 18,
                     color: s.signalLost ? sc0.recLow : c.text2,
                   ),

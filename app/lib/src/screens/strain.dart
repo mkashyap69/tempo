@@ -8,6 +8,7 @@ import 'package:scoring/scoring.dart' as sc;
 import 'package:store/store.dart' as st;
 
 import '../core/format.dart';
+import '../core/minutes.dart';
 import '../core/profile.dart';
 import '../design/chart.dart';
 import '../design/components.dart';
@@ -69,7 +70,7 @@ final strainDayProvider = FutureProvider.family<StrainDay, DateTime>((
   ref.watch(dbTickProvider);
   final db = ref.watch(dbProvider);
   final s = await db.scoreFor(day);
-  final mins = await db.minutesBetween(day, day.add(const Duration(days: 1)));
+  final mins = await loadMinuteRows(db, day, day.add(const Duration(days: 1)));
   final profile = await loadAppProfile(db) ?? const Profile();
   return StrainDay(
     day,

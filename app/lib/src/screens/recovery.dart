@@ -49,7 +49,10 @@ class RecoveryScreen extends ConsumerWidget {
     final complete = t.history
         .take(30)
         .where(
-          (d) => d.rhr != null && d.hrvProxy != null && d.sleepPerf != null,
+          (d) =>
+              d.rhr != null &&
+              (d.hrvProxy != null || d.hrv != null) &&
+              d.sleepPerf != null,
         )
         .length;
     final today = t.target;
@@ -127,7 +130,7 @@ class RecoveryScreen extends ConsumerWidget {
                   label: x.name,
                   onTap: () => push(context, switch (x.key) {
                     'stress' => const StressScreen(),
-                    'rhr' => const BaselinesScreen(),
+                    'rhr' || 'hrv' => const BaselinesScreen(),
                     _ => const SleepScreen(),
                   }),
                   child: Padding(

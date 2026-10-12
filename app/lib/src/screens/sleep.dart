@@ -17,7 +17,7 @@ import '../core/band_link.dart' show deviceIdKey;
 import '../core/format.dart';
 import '../core/home_widgets.dart';
 import '../core/profile.dart';
-import '../core/stages.dart';
+import '../core/minutes.dart';
 import '../core/today.dart';
 import '../design/chart.dart';
 import '../design/components.dart';
@@ -94,8 +94,10 @@ final nightProvider = FutureProvider.family<Night, DateTime>((
   final a = st.fromTs(s!.sleepStart!), b = st.fromTs(s.sleepEnd!);
   // Decode the hour before and the night together so the night is staged
   // exactly as scoring staged it.
-  final decoded = decodeMinutes(
-    await db.minutesBetween(a.subtract(const Duration(minutes: 60)), b),
+  final decoded = await loadMinutes(
+    db,
+    a.subtract(const Duration(minutes: 60)),
+    b,
   );
   final mins = [
     for (final m in decoded.minutes)
@@ -111,7 +113,7 @@ final nightProvider = FutureProvider.family<Night, DateTime>((
   );
   // Low-confidence SpO₂ minutes (band quality < 40 of 64) are left out.
   final spo2 = [
-    for (final x in await db.spo2Between(a, b))
+    for (final x in await loadSpo2(db, a, b))
       if (x.quality == null || x.quality! >= 40) x,
   ];
   final typical = <sc.Stage, double>{};
@@ -152,7 +154,7 @@ final nightProvider = FutureProvider.family<Night, DateTime>((
           (ts: st.fromTs(x.ts), avg: x.value, quality: x.quality),
       ],
       events: [
-        for (final e in await db.odEventsBetween(a, b))
+        for (final e in await loadOdEvents(db, a, b))
           (ts: st.fromTs(e.ts), drop: e.drop),
       ],
     ),
@@ -175,11 +177,12 @@ final napsProvider = FutureProvider.family<List<sc.SleepSession>, DateTime>((
 ) async {
   ref.watch(dbTickProvider);
   final db = ref.watch(dbProvider);
-  final raw = await db.minutesBetween(
+  final mins = await loadMinutes(
+    db,
     morning.subtract(const Duration(hours: 12)),
     morning.add(const Duration(hours: 36)),
   );
-  return sc.daySleep(date: morning, minutes: decodeMinutes(raw).minutes).naps;
+  return sc.daySleep(date: morning, minutes: mins.minutes).naps;
 });
 
 /// Each nap with its times, stages and heart rate. Hidden without naps.
@@ -588,36 +591,40 @@ class SleepScreen extends ConsumerWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 10),
-              const Hair(),
-              Pressable(
-                label: 'Smart alarm',
-                onTap: () => pickSmartAlarm(context, ref, t),
-                child: SizedBox(
-                  height: 44,
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          'Smart alarm',
-                          style: TempoType.body.c(c.text1),
+              // The smart alarm buzzes the band; there is no band to buzz
+              // with a Health source.
+              if (ref.watch(dataSourceProvider).can.bandControls) ...[
+                const SizedBox(height: 10),
+                const Hair(),
+                Pressable(
+                  label: 'Smart alarm',
+                  onTap: () => pickSmartAlarm(context, ref, t),
+                  child: SizedBox(
+                    height: 44,
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'Smart alarm',
+                            style: TempoType.body.c(c.text1),
+                          ),
                         ),
-                      ),
-                      Text(
-                        t.smartAlarm == null
-                            ? 'Off'
-                            : 'By ${clock12(t.smartAlarm!)} · light sleep',
-                        style: TempoType.bodyS.c(c.text2).tnum,
-                      ),
-                    ],
+                        Text(
+                          t.smartAlarm == null
+                              ? 'Off'
+                              : 'By ${clock12(t.smartAlarm!)} · light sleep',
+                          style: TempoType.bodyS.c(c.text2).tnum,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
+              ],
             ],
           ),
         ),
         Text(
-          'The band marks when you sleep; Tempo estimates the stages from your heart rate and movement, so treat them as a guide. Need starts at 7 h 30 m; after 14 scored nights it learns from the nights you recover best after, then adjusts to strain and debt.${strainYesterday > 0 ? '' : ''}',
+          '${ref.watch(dataSourceProvider).isHealth ? 'Your watch marks when you sleep and its stages, as it wrote them to Health; treat them as a guide.' : 'The band marks when you sleep; Tempo estimates the stages from your heart rate and movement, so treat them as a guide.'} Need starts at 7 h 30 m; after 14 scored nights it learns from the nights you recover best after, then adjusts to strain and debt.${strainYesterday > 0 ? '' : ''}',
           style: TempoType.caption.c(c.text3),
         ),
       ],

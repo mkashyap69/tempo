@@ -4,59 +4,89 @@ import 'dart:math' as math;
 import 'package:band_ble/band_ble.dart' show bandSportNames, bandSportTitles;
 
 import 'package:drift/drift.dart';
+import 'package:health_source/health_source.dart' as hs;
 import 'package:scoring/scoring.dart' as sc;
 import 'package:store/store.dart' as st;
 
+import 'data_source.dart';
+import 'minutes.dart';
 import 'pause.dart';
 import 'profile.dart' show Keys, sportLabel;
-import 'stages.dart';
 
 const hrMaxKey = 'hr_max';
 
 /// Minutes between all-day HR samples. 1, 10 or 30. See [SettingsCommands].
 const hrIntervalKey = 'hr_interval';
 
-/// Derives sleep sessions, daily scores and baselines from raw samples.
+/// Derives sleep sessions, daily scores and baselines from raw samples of
+/// the active data source (see data_source.dart).
 class ScoreService {
   ScoreService(this.db);
   final st.TempoDb db;
 
   /// Recomputes every day from [from] (local date) to today, in order, since
-  /// each day's history feeds the next.
+  /// each day's history feeds the next. Never before the active source's
+  /// first data: earlier days keep the scores another source gave them.
   Future<int> recomputeFrom(DateTime from) async {
     final params = sc.ScoringParams(
       defaultHrMax: int.tryParse(await db.setting(hrMaxKey) ?? '') ?? 190,
     );
+    final source = await loadDataSource(db);
+    final first = await firstDataMinute(db, source: source);
     final today = _day(DateTime.now());
     _pauses = await loadPauses(db);
     var day = _day(from);
+    if (first != null && day.isBefore(_day(first))) day = _day(first);
     var n = 0;
     while (!day.isAfter(today)) {
-      await _scoreOne(day, params);
+      await _scoreOne(day, params, source);
       n++;
       day = DateTime(day.year, day.month, day.day + 1);
     }
-    await _baselines(today);
+    await _baselines(today, source);
     return n;
   }
 
-  /// Full recompute when the algorithm version changed.
+  /// Full recompute when the algorithm version changed. Only days of the
+  /// active source count: another source's days can't be rescored (their
+  /// data isn't read any more) and stay as they were.
   Future<void> recomputeIfStale() async {
-    final stale = await db.staleScores(sc.algoVersion);
+    final source = await loadDataSource(db);
+    final first = await firstDataMinute(db, source: source);
+    if (first == null) return;
+    final stale = [
+      for (final d in await db.staleScores(sc.algoVersion, source: source.key))
+        if (!parseDateKey(d.date).isBefore(_day(first))) d,
+    ];
     if (stale.isEmpty) return;
-    final first = await db.firstMinute();
-    if (first != null) await recomputeFrom(first);
+    await recomputeFrom(first);
   }
 
   List<Pause> _pauses = const [];
 
-  Future<void> _scoreOne(DateTime day, sc.ScoringParams p) async {
+  Future<void> _scoreOne(
+    DateTime day,
+    sc.ScoringParams p,
+    DataSource source,
+  ) async {
     final from = day.subtract(const Duration(hours: 12));
     final to = day.add(const Duration(hours: 36));
-    final raw = await db.minutesBetween(from, to);
-    final minutes = decodeMinutes(raw).minutes;
+    // A day the active source has nothing for keeps a score another source
+    // gave it (switching back to the band must not blank the Health weeks).
+    final existing = await db.scoreFor(day);
+    if (existing != null &&
+        existing.source != source.key &&
+        !await hasDataBetween(
+          db,
+          day,
+          day.add(const Duration(days: 1)),
+          source: source,
+        )) {
+      return;
+    }
+    final minutes = (await loadMinutes(db, from, to, source: source)).minutes;
     final stress = [
-      for (final s in await db.stressBetween(from, to))
+      for (final s in await loadStress(db, from, to, source: source))
         sc.StressReading(st.fromTs(s.ts), s.value),
     ];
     // Paused days (ill, travelling) don't shape baselines or calibration.
@@ -64,6 +94,19 @@ class ScoreService {
       for (final d in await db.scoresBefore(day, limit: 90))
         if (!isPaused(_pauses, parseDateKey(d.date))) toScoring(d),
     ];
+    double? hrv, sourceRhr;
+    String? hrvKind;
+    var records = const <hs.HealthRecord>[];
+    if (source.isHealth) {
+      records = await loadHealthRecords(db, from, to);
+      final night = sc.daySleep(date: day, minutes: minutes).night;
+      if (night != null) {
+        final h = hs.nightHrv(records, night.start, night.end);
+        hrv = h?.ms;
+        hrvKind = h?.kind.name;
+      }
+      sourceRhr = hs.sourceRestingHr(records, day);
+    }
     final s = sc.scoreDay(
       date: day,
       minutes: minutes,
@@ -71,9 +114,13 @@ class ScoreService {
       history: history,
       p: p,
       extraTrimp: await _strengthExtra(day),
+      source: source.key,
+      hrv: hrv,
+      hrvKind: hrvKind,
+      sourceRhr: sourceRhr,
     );
     await db.upsertScore(fromScoring(s));
-    await _activities(day, s, minutes);
+    await _activities(day, s, minutes, source: source, records: records);
 
     if (s.sleepStart != null && s.sleepEnd != null) {
       final night = sc.SleepSession(
@@ -120,8 +167,10 @@ class ScoreService {
   Future<void> _activities(
     DateTime day,
     sc.DailyScore s,
-    List<sc.Minute> all,
-  ) async {
+    List<sc.Minute> all, {
+    required DataSource source,
+    List<hs.HealthRecord> records = const [],
+  }) async {
     final end = day.add(const Duration(days: 1));
     final mins = [
       for (final m in all)
@@ -144,10 +193,72 @@ class ScoreService {
         if (!m.ts.isBefore(a) && m.ts.isBefore(b)) m.hr,
     ];
 
-    // Workouts recorded on the band come first: confirmed, and auto
-    // detection then skips anything overlapping them.
+    // Workouts recorded on the band (or another app, via Health) come
+    // first: confirmed, and auto detection then skips anything overlapping
+    // them.
     final dismissed = await dismissedBandWorkouts(db);
-    for (final b in await db.bandWorkoutsBetween(day, end)) {
+    if (source.isHealth) {
+      final ws = [
+        for (final w in hs.healthWorkouts(records))
+          if (!w.start.isBefore(day) &&
+              w.start.isBefore(end) &&
+              !dismissed.contains(st.toTs(w.start)))
+            w,
+      ];
+      for (final w in ws) {
+        final hrs = hrIn(w.start, w.end).whereType<int>().toList();
+        final t0 = trimpTo(w.start), t1 = trimpTo(w.end);
+        await db.upsertBandWorkout(
+          st.WorkoutsCompanion.insert(
+            start: st.toTs(w.start),
+            end: st.toTs(w.end),
+            sport: Value(w.sport?.name),
+            title: w.sport == null ? w.title : sportLabel(w.sport),
+            source: 'health',
+            confirmed: const Value(true),
+            strain: sc.strainFromTrimp(t1) - sc.strainFromTrimp(t0),
+            trimp: t1 - t0,
+            avgHr: Value(
+              hrs.isEmpty
+                  ? null
+                  : (hrs.reduce((x, y) => x + y) / hrs.length).round(),
+            ),
+            maxHr: Value(hrs.isEmpty ? null : hrs.reduce(math.max)),
+            zones: jsonEncode(sc.timeInZones(hrIn(w.start, w.end), s.hrMax)),
+          ),
+        );
+      }
+      // Deleted in Health (or dismissed): its derived row goes too.
+      await db.removeHealthWorkoutsExcept(day, end, {
+        for (final w in ws) st.toTs(w.start),
+      });
+      // Sessions timed in Tempo with no live heart rate (a Health source
+      // has none): heart rate and strain come from the watch's minutes,
+      // and are refreshed as late readings arrive.
+      for (final w in await db.workoutsBetween(day, end)) {
+        if (w.source != 'live') continue;
+        final a = st.fromTs(w.start), z = st.fromTs(w.end);
+        final live = await db.hrLiveSince(a);
+        if (live.any((h) => h.ts < w.end)) continue;
+        final hrs = hrIn(a, z).whereType<int>().toList();
+        if (hrs.isEmpty) continue;
+        final t0 = trimpTo(a), t1 = trimpTo(z);
+        await db.updateWorkout(
+          w.id,
+          st.WorkoutsCompanion(
+            strain: Value(sc.strainFromTrimp(t1) - sc.strainFromTrimp(t0)),
+            trimp: Value(t1 - t0),
+            avgHr: Value((hrs.reduce((x, y) => x + y) / hrs.length).round()),
+            maxHr: Value(hrs.reduce(math.max)),
+            zones: Value(jsonEncode(sc.timeInZones(hrIn(a, z), s.hrMax))),
+          ),
+        );
+      }
+    }
+    for (final b
+        in source.isHealth
+            ? const <st.BandWorkoutRow>[]
+            : await db.bandWorkoutsBetween(day, end)) {
       if (dismissed.contains(b.start)) continue;
       final a = st.fromTs(b.start), z = st.fromTs(b.end);
       final hrs = hrIn(a, z).whereType<int>().toList();
@@ -198,13 +309,14 @@ class ScoreService {
     await db.replaceAutoWorkouts(day, end, rows);
   }
 
-  Future<void> _baselines(DateTime today) async {
+  Future<void> _baselines(DateTime today, DataSource source) async {
     final recent = [
       for (final d in await db.scoresBefore(
         today.add(const Duration(days: 1)),
-        limit: 60,
+        limit: 90,
       ))
-        if (!isPaused(_pauses, parseDateKey(d.date))) d,
+        if (!isPaused(_pauses, parseDateKey(d.date)) && d.source == source.key)
+          d,
     ].take(30).toList();
     void put(String metric, Iterable<double?> xs) {
       final b = sc.Baseline.of(xs);
@@ -213,6 +325,7 @@ class ScoreService {
 
     put('rhr', recent.map((d) => d.rhr));
     put('hrv_proxy', recent.map((d) => d.hrvProxy));
+    put('hrv', recent.map((d) => d.hrv));
     put('sleep_perf', recent.map((d) => d.sleepPerf));
     put('strain', recent.map((d) => d.strain));
   }
@@ -269,6 +382,9 @@ sc.DailyScore toScoring(st.DailyScore d) => sc.DailyScore(
   recovery: d.recovery,
   calibrating: d.calibrating,
   algoVersion: d.algoVersion,
+  source: d.source,
+  hrv: d.hrv,
+  hrvKind: d.hrvKind,
 );
 
 st.DailyScoresCompanion fromScoring(sc.DailyScore s) =>
@@ -289,4 +405,7 @@ st.DailyScoresCompanion fromScoring(sc.DailyScore s) =>
       hrvProxy: Value(s.hrvProxy),
       calibrating: s.calibrating,
       algoVersion: s.algoVersion,
+      source: Value(s.source),
+      hrv: Value(s.hrv),
+      hrvKind: Value(s.hrvKind),
     );

@@ -13,7 +13,13 @@ const rawTables = [
   'spo2_samples',
   'band_workouts',
   'od_events',
+  'health_records',
+  'health_deletions',
 ];
+
+/// health_records rows are never longer than this (longer ones are
+/// dropped on read), so range queries can use the start index.
+const maxHealthRecordMs = 26 * 3600 * 1000;
 
 int toTs(DateTime t) => t.millisecondsSinceEpoch ~/ 1000;
 DateTime fromTs(int s) => DateTime.fromMillisecondsSinceEpoch(s * 1000);
@@ -40,13 +46,16 @@ String dateKey(DateTime d) =>
     Longevity,
     NudgeLog,
     MorningFeel,
+    HealthRecords,
+    HealthDeletions,
+    HealthMinutes,
   ],
 )
 class TempoDb extends _$TempoDb {
   TempoDb(super.e);
 
   @override
-  int get schemaVersion => 9;
+  int get schemaVersion => 10;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -56,6 +65,7 @@ class TempoDb extends _$TempoDb {
         await _appendOnly(t);
       }
       await _appendOnly('nudge_log');
+      await _healthIndexes();
     },
     onUpgrade: (m, from, to) async {
       if (from < 2) {
@@ -97,7 +107,23 @@ class TempoDb extends _$TempoDb {
         await m.createTable(odEvents);
         await _appendOnly('od_events');
       }
+      if (from < 10) {
+        await m.addColumn(dailyScores, dailyScores.source);
+        await m.addColumn(dailyScores, dailyScores.hrv);
+        await m.addColumn(dailyScores, dailyScores.hrvKind);
+        await m.createTable(healthRecords);
+        await m.createTable(healthDeletions);
+        await m.createTable(healthMinutes);
+        await _appendOnly('health_records');
+        await _appendOnly('health_deletions');
+        await _healthIndexes();
+      }
     },
+  );
+
+  Future<void> _healthIndexes() => customStatement(
+    'CREATE INDEX IF NOT EXISTS health_records_start '
+    'ON health_records (start_ms)',
   );
 
   Future<void> _appendOnly(String t) async {
@@ -211,10 +237,14 @@ class TempoDb extends _$TempoDb {
           .get();
 
   /// Minutes with a heart-rate reading in [from, to): how long the band
-  /// was worn.
-  Future<int> hrMinutesBetween(DateTime from, DateTime to) async {
+  /// (or, with [health], the watch) was worn.
+  Future<int> hrMinutesBetween(
+    DateTime from,
+    DateTime to, {
+    bool health = false,
+  }) async {
     final r = await customSelect(
-      'SELECT COUNT(*) AS n FROM minute_samples '
+      'SELECT COUNT(*) AS n FROM ${_minuteTable(health)} '
       'WHERE ts >= ? AND ts < ? AND hr IS NOT NULL',
       variables: [Variable.withInt(toTs(from)), Variable.withInt(toTs(to))],
     ).getSingle();
@@ -222,28 +252,146 @@ class TempoDb extends _$TempoDb {
   }
 
   /// Steps in [from, to).
-  Future<int> stepsBetween(DateTime from, DateTime to) async {
+  Future<int> stepsBetween(
+    DateTime from,
+    DateTime to, {
+    bool health = false,
+  }) async {
     final r = await customSelect(
-      'SELECT COALESCE(SUM(steps), 0) AS s FROM minute_samples '
+      'SELECT COALESCE(SUM(steps), 0) AS s FROM ${_minuteTable(health)} '
       'WHERE ts >= ? AND ts < ?',
       variables: [Variable.withInt(toTs(from)), Variable.withInt(toTs(to))],
     ).getSingle();
     return r.read<int>('s');
   }
 
-  Future<DateTime?> firstMinute() async {
-    final r = await customSelect('SELECT MIN(ts) AS t FROM minute_samples')
-        .getSingle();
+  static String _minuteTable(bool health) =>
+      health ? 'health_minutes' : 'minute_samples';
+
+  /// First stored minute. With [health], the first derived Health minute
+  /// that has any data.
+  Future<DateTime?> firstMinute({bool health = false}) async {
+    final r = await customSelect(
+      health
+          ? 'SELECT MIN(ts) AS t FROM health_minutes WHERE $_healthHasData'
+          : 'SELECT MIN(ts) AS t FROM minute_samples',
+    ).getSingle();
     final t = r.read<int?>('t');
     return t == null ? null : fromTs(t);
   }
 
   /// Step count in [from, to). Local day bounds, same clock as [dateKey].
-  Stream<int> watchSteps(DateTime from, DateTime to) => customSelect(
-    'SELECT COALESCE(SUM(steps), 0) AS steps FROM minute_samples WHERE ts >= ? AND ts < ?',
-    variables: [Variable.withInt(toTs(from)), Variable.withInt(toTs(to))],
-    readsFrom: {minuteSamples},
-  ).watchSingle().map((r) => r.read<int>('steps'));
+  Stream<int> watchSteps(DateTime from, DateTime to, {bool health = false}) =>
+      customSelect(
+        'SELECT COALESCE(SUM(steps), 0) AS steps FROM ${_minuteTable(health)} '
+        'WHERE ts >= ? AND ts < ?',
+        variables: [Variable.withInt(toTs(from)), Variable.withInt(toTs(to))],
+        readsFrom: {health ? healthMinutes : minuteSamples},
+      ).watchSingle().map((r) => r.read<int>('steps'));
+
+  static const _healthHasData =
+      '(hr IS NOT NULL OR steps > 0 OR sleep IS NOT NULL OR spo2 IS NOT NULL)';
+
+  // ---- Health sources (Apple Health / Health Connect) ---------------------
+
+  /// Stores records; ones already stored (same key) are ignored.
+  Future<void> appendHealthRecords(List<HealthRecordsCompanion> rows) => batch(
+    (b) => b.insertAll(healthRecords, rows, mode: InsertMode.insertOrIgnore),
+  );
+
+  /// Tombstones records found gone from Health.
+  Future<void> addHealthDeletions(Iterable<String> keys) {
+    final now = toTs(DateTime.now());
+    return batch(
+      (b) => b.insertAll(healthDeletions, [
+        for (final k in keys)
+          HealthDeletionsCompanion.insert(key: k, seenAt: now),
+      ], mode: InsertMode.insertOrIgnore),
+    );
+  }
+
+  /// Live (not tombstoned) records overlapping [from, to), optionally only
+  /// some kinds, oldest first.
+  Future<List<HealthRecordRow>> healthRecordsBetween(
+    DateTime from,
+    DateTime to, {
+    Iterable<String>? kinds,
+  }) {
+    final a = from.millisecondsSinceEpoch, b = to.millisecondsSinceEpoch;
+    final q = select(healthRecords)
+      ..where(
+        (r) =>
+            r.startMs.isBiggerOrEqualValue(a - maxHealthRecordMs) &
+            r.startMs.isSmallerThanValue(b) &
+            r.endMs.isBiggerOrEqualValue(a) &
+            r.key.isNotInQuery(
+              selectOnly(healthDeletions)..addColumns([healthDeletions.key]),
+            ),
+      )
+      ..orderBy([(r) => OrderingTerm.asc(r.startMs)]);
+    if (kinds != null) q.where((r) => r.kind.isIn(kinds));
+    return q.get();
+  }
+
+  /// Live records starting in [from, to): what a re-read of that window
+  /// should find again (see health_source `reconcile`).
+  Future<List<HealthRecordRow>> healthRecordsStarting(
+    DateTime from,
+    DateTime to,
+  ) =>
+      (select(healthRecords)..where(
+            (r) =>
+                r.startMs.isBetweenValues(
+                  from.millisecondsSinceEpoch,
+                  to.millisecondsSinceEpoch - 1,
+                ) &
+                r.key.isNotInQuery(
+                  selectOnly(healthDeletions)
+                    ..addColumns([healthDeletions.key]),
+                ),
+          ))
+          .get();
+
+  /// Earliest and latest live record start, or null with none.
+  Future<(DateTime, DateTime)?> healthRecordSpan() async {
+    final r = await customSelect(
+      'SELECT MIN(start_ms) AS a, MAX(end_ms) AS b FROM health_records '
+      'WHERE key NOT IN (SELECT key FROM health_deletions)',
+      readsFrom: {healthRecords, healthDeletions},
+    ).getSingle();
+    final a = r.read<int?>('a'), b = r.read<int?>('b');
+    if (a == null || b == null) return null;
+    return (
+      DateTime.fromMillisecondsSinceEpoch(a),
+      DateTime.fromMillisecondsSinceEpoch(b),
+    );
+  }
+
+  /// Replaces derived Health minutes in [from, to) with [rows].
+  Future<void> replaceHealthMinutes(
+    DateTime from,
+    DateTime to,
+    List<HealthMinutesCompanion> rows,
+  ) => transaction(() async {
+    await (delete(
+      healthMinutes,
+    )..where((m) => m.ts.isBetweenValues(toTs(from), toTs(to) - 1))).go();
+    await batch(
+      (b) => b.insertAll(healthMinutes, rows, mode: InsertMode.insertOrReplace),
+    );
+  });
+
+  /// Drops every derived Health minute (before a full rebuild).
+  Future<void> clearHealthMinutes() => delete(healthMinutes).go();
+
+  Future<List<HealthMinuteRow>> healthMinutesBetween(
+    DateTime from,
+    DateTime to,
+  ) =>
+      (select(healthMinutes)
+            ..where((m) => m.ts.isBetweenValues(toTs(from), toTs(to) - 1))
+            ..orderBy([(m) => OrderingTerm.asc(m.ts)]))
+          .get();
 
   // ---- derived -----------------------------------------------------------
 
@@ -273,9 +421,13 @@ class TempoDb extends _$TempoDb {
           .watch();
 
   /// Scores computed by an older algorithm, for recompute on upgrade.
-  Future<List<DailyScore>> staleScores(int currentAlgo) => (select(
-    dailyScores,
-  )..where((d) => d.algoVersion.isNotValue(currentAlgo))).get();
+  /// With [source], only days scored from that source.
+  Future<List<DailyScore>> staleScores(int currentAlgo, {String? source}) {
+    final q = select(dailyScores)
+      ..where((d) => d.algoVersion.isNotValue(currentAlgo));
+    if (source != null) q.where((d) => d.source.equals(source));
+    return q.get();
+  }
 
   Future<void> replaceSleepSessions(
     DateTime from,
@@ -406,16 +558,26 @@ class TempoDb extends _$TempoDb {
   Stream<List<SleepSession>> watchSleepSessions() =>
       select(sleepSessions).watch();
 
-  Future<DateTime?> lastMinute() async {
-    final r = await customSelect('SELECT MAX(ts) AS t FROM minute_samples')
-        .getSingle();
+  Future<DateTime?> lastMinute({bool health = false}) async {
+    final r = await customSelect(
+      health
+          ? 'SELECT MAX(ts) AS t FROM health_minutes WHERE $_healthHasData'
+          : 'SELECT MAX(ts) AS t FROM minute_samples',
+    ).getSingle();
     final t = r.read<int?>('t');
     return t == null ? null : fromTs(t);
   }
 
-  Future<int> minuteCount(DateTime from, DateTime to) async {
+  Future<int> minuteCount(
+    DateTime from,
+    DateTime to, {
+    bool health = false,
+  }) async {
     final r = await customSelect(
-      'SELECT COUNT(*) AS n FROM minute_samples WHERE ts >= ? AND ts < ?',
+      health
+          ? 'SELECT COUNT(*) AS n FROM health_minutes '
+                'WHERE ts >= ? AND ts < ? AND $_healthHasData'
+          : 'SELECT COUNT(*) AS n FROM minute_samples WHERE ts >= ? AND ts < ?',
       variables: [Variable.withInt(toTs(from)), Variable.withInt(toTs(to))],
     ).getSingle();
     return r.read<int>('n');
@@ -449,14 +611,16 @@ class TempoDb extends _$TempoDb {
             ..orderBy([(x) => OrderingTerm.asc(x.start)]))
           .watch();
 
-  /// Inserts or refreshes the derived row for a band workout (matched on
-  /// source 'band' and start). Keeps the user's RPE, title and sport edits.
+  /// Inserts or refreshes the derived row for a band or Health workout
+  /// (matched on its source and start). Keeps the user's RPE, title and
+  /// sport edits.
   Future<void> upsertBandWorkout(WorkoutsCompanion row) => transaction(
     () async {
       final existing =
           await (select(workouts)..where(
                 (x) =>
-                    x.source.equals('band') & x.start.equals(row.start.value),
+                    x.source.equals(row.source.value) &
+                    x.start.equals(row.start.value),
               ))
               .getSingleOrNull();
       if (existing == null) {
@@ -475,6 +639,21 @@ class TempoDb extends _$TempoDb {
       }
     },
   );
+
+  /// Removes derived Health workouts starting in [from, to) other than
+  /// those starting at [keep] (Unix s): deleted in Health, or dismissed.
+  Future<void> removeHealthWorkoutsExcept(
+    DateTime from,
+    DateTime to,
+    Set<int> keep,
+  ) =>
+      (delete(workouts)..where(
+            (x) =>
+                x.source.equals('health') &
+                x.start.isBetweenValues(toTs(from), toTs(to) - 1) &
+                x.start.isNotIn(keep),
+          ))
+          .go();
 
   /// Every workout, newest first, optionally only one sport.
   Stream<List<Workout>> watchAllWorkouts({String? sport, int limit = 500}) {

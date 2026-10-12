@@ -6,6 +6,7 @@ import 'package:scoring/scoring.dart' as sc;
 import 'package:store/store.dart' as st;
 
 import '../core/format.dart';
+import '../core/minutes.dart';
 import '../core/today.dart';
 import '../design/chart.dart';
 import '../design/components.dart';
@@ -166,10 +167,7 @@ final _nightStressProvider =
       final db = ref.watch(dbProvider);
       final s = await db.scoreFor(day);
       if (s?.sleepStart == null) return const [];
-      return db.stressBetween(
-        st.fromTs(s!.sleepStart!),
-        st.fromTs(s.sleepEnd!),
-      );
+      return loadStress(db, st.fromTs(s!.sleepStart!), st.fromTs(s.sleepEnd!));
     });
 
 /// Full-screen pager of six 350 × 600 cards, each with this morning's numbers.
