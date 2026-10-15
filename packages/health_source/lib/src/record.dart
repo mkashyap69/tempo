@@ -29,6 +29,10 @@ enum HealthKind {
   /// SpO₂ as stored: iOS gives a fraction (0.97), Health Connect a percent.
   spo2,
   workout,
+
+  /// Breaths per minute (Apple Watch and most Health Connect watches write
+  /// it during sleep).
+  respiratoryRate,
 }
 
 extension HealthKindX on HealthKind {

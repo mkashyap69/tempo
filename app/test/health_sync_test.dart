@@ -84,6 +84,25 @@ void main() {
     expect(await loadStress(db, y, day0), isEmpty);
   });
 
+  test('a kind added by an update is backfilled and asked for once', () async {
+    final r = FakeReader(watchData(20));
+    await service(r).run();
+    expect(r.connects, 0);
+    expect(
+      (await db.setting(Keys.healthKinds))!.split(','),
+      containsAll(r.kinds.map((k) => k.name)),
+    );
+    // Pretend this install only ever read heart rate.
+    await db.putSetting(Keys.healthKinds, 'heartRate');
+    final rep = await service(r).run();
+    expect(r.connects, 1);
+    // Workouts from 19 days ago come back (normal window: 10 days).
+    expect(rep.count([HealthKind.workout]), greaterThanOrEqualTo(18));
+    expect(rep.count([HealthKind.heartRate]), lessThan(20 * 300));
+    await service(r).run();
+    expect(r.connects, 1);
+  });
+
   test('a re-read tombstones records deleted in Health', () async {
     final data = watchData(3);
     final r = FakeReader(data);

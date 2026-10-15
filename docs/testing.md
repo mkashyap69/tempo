@@ -59,3 +59,13 @@ and Profile → Export (JSON) when something's off.
 | H9 | iPhone locked overnight | No banner in the morning; the open reads fine. Sync log may show "could not be read (phone locked?)" lines from the night |
 | H10 | Android background (close Tempo 3+ h) | A new "Health Connect · …" line in the Sync log without opening Tempo; if "background reads not allowed", allow it in Health Connect → Tempo |
 | H11 | Profile → Data source → Mi Band 6 → back to Health | No scores lost; Recovery recalibrates only if the new source has under 14 nights |
+
+## Everyday metrics
+
+| # | Check | Pass when |
+| --- | --- | --- |
+| E1 | Sleep → Rhythm after 7 days | Regularity is high on a steady week and drops after a late weekend; social jetlag matches your weekend mid-sleep shift within ~15 min |
+| E2 | Recovery → Body signals | Each row shows last night against "usual"; after a drink or a late meal at most one row is flagged; Today shows a card only when two or more are |
+| E3 | Strain → Movement today | Brisk minutes ≈ minutes of purposeful walking; longest still stretch matches a long desk session on the day timeline; "needs heart rate" on a phone-only Health source |
+| E4 | Activity after a hard run | Heart-rate recovery appears when you stood or walked easy for 2 min after stopping; none for an easy session |
+| E5 | Health: breathing rate | After the update, one permission sheet asks for breathing rate; Recovery shows it after 14 nights (90 days are backfilled) |

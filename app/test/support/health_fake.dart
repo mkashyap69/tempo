@@ -33,8 +33,13 @@ class FakeReader implements HealthReader {
     HealthKind.workout,
   };
 
+  int connects = 0;
+
   @override
-  Future<HealthConnectResult> connect() async => HealthConnectResult.ok;
+  Future<HealthConnectResult> connect() async {
+    connects++;
+    return HealthConnectResult.ok;
+  }
 
   @override
   Future<bool> hasAccess() async => access;

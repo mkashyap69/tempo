@@ -55,6 +55,25 @@ Future<TrendSeries> loadSeries(
   for (final r in rows) {
     steps[r.read<String>('d')] = r.read<int>('s').toDouble();
   }
+  // Brisk minutes: 100+ steps (sc.briskCadence), days with steps only.
+  final brisk = <String, double>{};
+  for (final r
+      in await db
+          .customSelect(
+            "SELECT date(ts, 'unixepoch', 'localtime') AS d, "
+            'SUM(CASE WHEN steps >= ? THEN 1 ELSE 0 END) AS b, SUM(steps) AS s '
+            'FROM $table WHERE ts >= ? AND ts < ? GROUP BY d',
+            variables: [
+              Variable.withInt(sc.briskCadence),
+              Variable.withInt(st.toTs(from)),
+              Variable.withInt(st.toTs(to.add(const Duration(days: 1)))),
+            ],
+          )
+          .get()) {
+    if ((r.read<int?>('s') ?? 0) > 0) {
+      brisk[r.read<String>('d')] = r.read<int>('b').toDouble();
+    }
+  }
   final spo2 = await loadSpo2(
     db,
     from.subtract(const Duration(hours: 12)),
@@ -87,6 +106,7 @@ Future<TrendSeries> loadSeries(
       'hrv',
       'spo2',
       'steps',
+      'brisk',
     ])
       k: [],
   };
@@ -100,6 +120,7 @@ Future<TrendSeries> loadSeries(
     m['hrv']!.add(s?.hrv);
     m['spo2']!.add(nightSpo2(s));
     m['steps']!.add(steps[st.dateKey(d)]);
+    m['brisk']!.add(brisk[st.dateKey(d)]);
   }
   return TrendSeries(days, m);
 }
@@ -240,6 +261,18 @@ final _specs = <_Spec>[
     () => const DayTimelineScreen(),
     pbLabel: 'Best',
     color: (c, v) => c.c.text3,
+  ),
+  _Spec(
+    'brisk',
+    'Brisk minutes',
+    'avg / day · 100+ steps/min',
+    _Kind.bar,
+    0,
+    90,
+    (a) => '${a.round()}',
+    () => const StrainScreen(),
+    pbLabel: 'Best',
+    color: (c, v) => v >= sc.briskTarget ? c.s.recHigh : c.c.text3,
   ),
 ];
 

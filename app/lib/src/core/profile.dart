@@ -60,6 +60,7 @@ abstract final class Keys {
       'data_source'; // band | apple_health | health_connect
   static const healthDeepRead = 'health_deep_read'; // ISO, last 10-day re-read
   static const healthFound = 'health_found'; // JSON, what the last read saw
+  static const healthKinds = 'health_kinds'; // kinds read at least once, CSV
 }
 
 /// Everything the user tells Tempo in onboarding and Profile.

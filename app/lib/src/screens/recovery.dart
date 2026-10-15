@@ -16,6 +16,7 @@ import '../state/providers.dart';
 import 'baselines.dart';
 import 'calendar.dart';
 import 'coach.dart';
+import 'everyday_cards.dart';
 import 'feel.dart';
 import 'learn.dart';
 import 'nav.dart';
@@ -195,6 +196,7 @@ class RecoveryScreen extends ConsumerWidget {
             ],
           ),
         ),
+        const BodySignalsSection(),
         TempoCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,

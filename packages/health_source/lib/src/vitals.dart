@@ -65,3 +65,26 @@ double? sourceRestingHr(Iterable<HealthRecord> records, DateTime day) {
   if (xs.isEmpty) return null;
   return xs.reduce((x, y) => x + y) / xs.length;
 }
+
+/// Mean breathing rate over one night (readings from 30 min before [start]
+/// to 30 min after [end]), 6–40 breaths/min; null with none.
+double? nightRespiratoryRate(
+  Iterable<HealthRecord> records,
+  DateTime start,
+  DateTime end, {
+  Duration slack = const Duration(minutes: 30),
+}) {
+  final a = start.subtract(slack), b = end.add(slack);
+  final xs = [
+    for (final r in records)
+      if (r.kind == HealthKind.respiratoryRate &&
+          !r.fromTempo &&
+          !r.start.isBefore(a) &&
+          r.start.isBefore(b) &&
+          r.value >= 6 &&
+          r.value <= 40)
+        r.value,
+  ];
+  if (xs.isEmpty) return null;
+  return xs.reduce((x, y) => x + y) / xs.length;
+}

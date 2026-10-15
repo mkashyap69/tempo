@@ -19,6 +19,7 @@ import '../design/meter.dart';
 import '../design/tokens.dart';
 import '../design/type.dart';
 import '../state/providers.dart';
+import 'everyday_cards.dart';
 import 'strain.dart' show changeActivity;
 
 @immutable
@@ -403,6 +404,7 @@ class ActivityDetailScreen extends ConsumerWidget {
               ],
             ),
           ),
+        RecoveryHrCard(workoutId: w.id),
         if (data.similar.length > 1)
           Section(
             title: 'Compared with similar ${w.title.toLowerCase()}',

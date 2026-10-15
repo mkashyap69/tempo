@@ -18,6 +18,7 @@ import '../design/type.dart';
 import '../state/providers.dart';
 import 'coach_parts.dart' show statusLabel, statusColor;
 import 'calendar.dart';
+import 'everyday_cards.dart';
 import 'feel.dart';
 import 'goal.dart' show TodayGoalLine;
 import 'journal.dart' show JournalNudge, JournalScreen;
@@ -309,6 +310,8 @@ abstract final class TodayBody {
       ),
       if (sync.running) _SyncProgress(sync: sync),
       ?banner,
+      // Quiet unless several overnight signals are off together.
+      BodySignalsAlert(onOpen: () => push(context, const RecoveryScreen())),
       if (askFeel) FeelCard(day: t.day),
       if (!noData && !t.firstDay) const JournalNudge(),
       Pressable(

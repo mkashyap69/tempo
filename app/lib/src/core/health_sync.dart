@@ -204,6 +204,27 @@ class HealthSyncService {
         : cursor.subtract(deep ? deepWindow : recentWindow);
     final to = t0;
     final kinds = reader.kinds;
+    // A kind this install hasn't read before (one added by an update) is
+    // read from [firstWindow] back, and in the foreground its permission
+    // is asked once; the rest keep the normal window.
+    final known = (await db.setting(Keys.healthKinds) ?? '')
+        .split(',')
+        .where((k) => k.isNotEmpty)
+        .toSet();
+    final newKinds = firstImport
+        ? const <HealthKind>{}
+        : {
+            for (final k in kinds)
+              if (!known.contains(k.name)) k,
+          };
+    if (newKinds.isNotEmpty && !background) {
+      try {
+        await reader.connect();
+      } catch (e) {
+        debugPrint('health connect for new kinds: $e');
+      }
+    }
+    final readFrom = newKinds.isEmpty ? from : t0.subtract(firstWindow);
 
     final counts = <HealthKind, int>{};
     final failed = <HealthKind>{};
@@ -211,7 +232,7 @@ class HealthSyncService {
     // Kept only for a re-read, to compare against what is stored.
     final fresh = <HealthRecord>[];
     final chunks = <(DateTime, DateTime)>[];
-    for (var a = from; a.isBefore(to); a = a.add(chunk)) {
+    for (var a = readFrom; a.isBefore(to); a = a.add(chunk)) {
       final b = a.add(chunk);
       chunks.add((a, b.isAfter(to) ? to : b));
     }
@@ -219,6 +240,10 @@ class HealthSyncService {
     var done = 0;
     for (final (a, b) in chunks) {
       for (final kind in kinds) {
+        if (!b.isAfter(from) && !newKinds.contains(kind)) {
+          done++;
+          continue; // before the normal window: only new kinds go back
+        }
         List<HealthRecord> rs;
         try {
           rs = await reader.read(kind, a, b);
@@ -292,6 +317,15 @@ class HealthSyncService {
     )).length;
 
     // Only a complete read moves the window on; a partial one is re-read.
+    if (newKinds.difference(failed).isNotEmpty || firstImport) {
+      await db.putSetting(
+        Keys.healthKinds,
+        [
+          for (final k in kinds)
+            if (!failed.contains(k) || known.contains(k.name)) k.name,
+        ].join(','),
+      );
+    }
     if (failed.isEmpty) {
       await db.setCursor(device, cursorType, to);
       if (deep) await db.putSetting(Keys.healthDeepRead, to.toIso8601String());

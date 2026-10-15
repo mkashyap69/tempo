@@ -59,6 +59,23 @@ void main() {
     });
   });
 
+  test('night breathing rate: mean of plausible readings in the night', () {
+    expect(
+      nightRespiratoryRate(
+        [
+          r(HealthKind.respiratoryRate, DateTime(2026, 10, 2, 2), 14),
+          r(HealthKind.respiratoryRate, DateTime(2026, 10, 2, 4), 15),
+          r(HealthKind.respiratoryRate, DateTime(2026, 10, 2, 5), 90),
+          r(HealthKind.respiratoryRate, DateTime(2026, 10, 2, 13), 20),
+        ],
+        night0,
+        night1,
+      ),
+      14.5,
+    );
+    expect(nightRespiratoryRate(const [], night0, night1), isNull);
+  });
+
   test('source resting HR is that day only, plausible only', () {
     final day = DateTime(2026, 10, 2);
     expect(

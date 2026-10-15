@@ -25,6 +25,7 @@ import '../design/meter.dart';
 import '../design/tokens.dart';
 import '../design/type.dart';
 import '../state/providers.dart';
+import 'everyday_cards.dart';
 import 'learn.dart';
 import 'nav.dart';
 import 'night_detail.dart';
@@ -623,6 +624,7 @@ class SleepScreen extends ConsumerWidget {
             ],
           ),
         ),
+        const RhythmCard(),
         Text(
           '${ref.watch(dataSourceProvider).isHealth ? 'Your watch marks when you sleep and its stages, as it wrote them to Health; treat them as a guide.' : 'The band marks when you sleep; Tempo estimates the stages from your heart rate and movement, so treat them as a guide.'} Need starts at 7 h 30 m; after 14 scored nights it learns from the nights you recover best after, then adjusts to strain and debt.${strainYesterday > 0 ? '' : ''}',
           style: TempoType.caption.c(c.text3),

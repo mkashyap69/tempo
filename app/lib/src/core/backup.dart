@@ -48,6 +48,7 @@ const _notBackedUp = {
   Keys.healthExportedTo,
   Keys.lastBackup,
   Keys.healthDeepRead,
+  Keys.healthKinds, // a new phone asks for and backfills every kind
   deviceIdKey,
   deviceNameKey,
 };

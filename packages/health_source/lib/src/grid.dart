@@ -185,6 +185,7 @@ class HealthGrid {
       case HealthKind.hrvSdnn ||
           HealthKind.hrvRmssd ||
           HealthKind.restingHr ||
+          HealthKind.respiratoryRate ||
           HealthKind.workout:
         break; // read per night / per day, see vitals.dart, workouts.dart
     }

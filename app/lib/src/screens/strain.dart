@@ -18,6 +18,7 @@ import '../design/tokens.dart';
 import '../design/type.dart';
 import '../state/providers.dart';
 import 'activity_detail.dart';
+import 'everyday_cards.dart';
 import 'learn.dart';
 import 'nav.dart';
 import 'shared.dart';
@@ -312,6 +313,7 @@ class StrainScreen extends ConsumerWidget {
             ],
           ),
         ),
+        const MovementCard(),
         Section(
           title: 'Activities today',
           trailing: Pressable(
