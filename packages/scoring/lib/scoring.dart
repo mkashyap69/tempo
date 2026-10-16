@@ -27,6 +27,7 @@ export 'src/sleep.dart';
 export 'src/sleep_plan.dart';
 export 'src/sleep_stages.dart';
 export 'src/strain.dart';
+export 'src/strength.dart';
 export 'src/stress_day.dart';
 export 'src/types.dart';
 export 'src/zones.dart';

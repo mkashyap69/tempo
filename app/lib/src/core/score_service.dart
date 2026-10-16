@@ -8,6 +8,7 @@ import 'package:health_source/health_source.dart' as hs;
 import 'package:scoring/scoring.dart' as sc;
 import 'package:store/store.dart' as st;
 
+import 'strength.dart' show strengthExtraTrimp;
 import 'data_source.dart';
 import 'minutes.dart';
 import 'pause.dart';
@@ -145,22 +146,9 @@ class ScoreService {
     }
   }
 
-  /// HR undercounts lifting: confirmed strength sessions with an RPE count
-  /// as at least their session-RPE load (see sc.strengthCorrection).
-  Future<double> _strengthExtra(DateTime day) async {
-    final ws = await db.workoutsBetween(day, day.add(const Duration(days: 1)));
-    var extra = 0.0;
-    for (final w in ws) {
-      if (w.sport != sc.Sport.strength.name || w.rpe == null) continue;
-      if (w.source == 'auto' && !w.confirmed) continue;
-      extra += sc.strengthCorrection(
-        hrTrimp: w.trimp,
-        rpe: w.rpe!,
-        minutes: ((w.end - w.start) / 60).round(),
-      );
-    }
-    return extra;
-  }
+  /// HR undercounts lifting: strength sessions count as at least their
+  /// session-RPE load or the load of their logged sets (core/strength.dart).
+  Future<double> _strengthExtra(DateTime day) => strengthExtraTrimp(db, day);
 
   /// Auto-detects workouts on [day] and stores them as unconfirmed 'auto'
   /// rows. Live sessions and confirmed rows are kept.

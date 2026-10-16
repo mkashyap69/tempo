@@ -5,6 +5,7 @@ import 'package:store/store.dart' as st;
 
 import 'coach_service.dart';
 import 'everyday.dart' show loadBodySignals;
+import 'strength.dart';
 import 'today.dart';
 
 /// Today's three picks (scoring/picks.dart), from everything Tempo knows:
@@ -27,7 +28,7 @@ Future<List<sc.Pick>> loadPicks(
   for (final r in t.week) {
     if (r.date == st.dateKey(tomorrow)) tomorrowPlan = _session(r.session);
   }
-  return sc.dailyPicks(
+  final picks = sc.dailyPicks(
     sc.PickContext(
       today: t.day,
       state: t.state,
@@ -44,8 +45,27 @@ Future<List<sc.Pick>> loadPicks(
       planned: t.plan == null || t.plan!.isRest ? null : t.plan,
       tomorrow: tomorrowPlan,
       recent: await recentSessions(db, t.day),
+      freshness: await loadFreshness(db, now: at),
     ),
   );
+  // Your weights on the strength pick, from what you logged before.
+  final day = await liftDay(db, t.state);
+  return [
+    for (final p in picks)
+      if (p.session.detail case final sc.StrengthDetail d)
+        p.withDetail(
+          sc.StrengthDetail(
+            d.focus,
+            exercises: await withTargets(db, d.exercises, day),
+            effort: d.effort,
+            purpose: d.purpose,
+            circuit: d.circuit,
+            warmup: d.warmup,
+          ),
+        )
+      else
+        p,
+  ];
 }
 
 sc.Session? _session(String json) {

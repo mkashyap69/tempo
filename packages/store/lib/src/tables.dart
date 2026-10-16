@@ -277,3 +277,19 @@ class HealthMinutes extends Table {
   @override
   Set<Column> get primaryKey => {ts};
 }
+
+/// Logged strength sets (schema 12). User input, editable: a set can be
+/// corrected or removed. Sets belong to a workout by time, not by id, so
+/// logging works with or without a live session.
+@DataClassName('StrengthSetRow')
+class StrengthSets extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get ts => integer()(); // when the set was ticked, seconds
+  TextColumn get exercise => text()(); // scoring exercise id
+  IntColumn get setNo => integer()();
+  RealColumn get kg => real().withDefault(const Constant(0.0))();
+  IntColumn get reps => integer().withDefault(const Constant(0))();
+  IntColumn get seconds => integer().withDefault(const Constant(0))();
+  IntColumn get rir => integer().nullable()(); // reps in reserve
+  TextColumn get superset => text().nullable()(); // group label, e.g. "A"
+}

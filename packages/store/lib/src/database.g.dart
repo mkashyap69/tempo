@@ -8565,6 +8565,525 @@ class HealthMinutesCompanion extends UpdateCompanion<HealthMinuteRow> {
   }
 }
 
+class $StrengthSetsTable extends StrengthSets
+    with TableInfo<$StrengthSetsTable, StrengthSetRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $StrengthSetsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _tsMeta = const VerificationMeta('ts');
+  @override
+  late final GeneratedColumn<int> ts = GeneratedColumn<int>(
+    'ts',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _exerciseMeta = const VerificationMeta(
+    'exercise',
+  );
+  @override
+  late final GeneratedColumn<String> exercise = GeneratedColumn<String>(
+    'exercise',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _setNoMeta = const VerificationMeta('setNo');
+  @override
+  late final GeneratedColumn<int> setNo = GeneratedColumn<int>(
+    'set_no',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _kgMeta = const VerificationMeta('kg');
+  @override
+  late final GeneratedColumn<double> kg = GeneratedColumn<double>(
+    'kg',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0.0),
+  );
+  static const VerificationMeta _repsMeta = const VerificationMeta('reps');
+  @override
+  late final GeneratedColumn<int> reps = GeneratedColumn<int>(
+    'reps',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _secondsMeta = const VerificationMeta(
+    'seconds',
+  );
+  @override
+  late final GeneratedColumn<int> seconds = GeneratedColumn<int>(
+    'seconds',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _rirMeta = const VerificationMeta('rir');
+  @override
+  late final GeneratedColumn<int> rir = GeneratedColumn<int>(
+    'rir',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _supersetMeta = const VerificationMeta(
+    'superset',
+  );
+  @override
+  late final GeneratedColumn<String> superset = GeneratedColumn<String>(
+    'superset',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    ts,
+    exercise,
+    setNo,
+    kg,
+    reps,
+    seconds,
+    rir,
+    superset,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'strength_sets';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<StrengthSetRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('ts')) {
+      context.handle(_tsMeta, ts.isAcceptableOrUnknown(data['ts']!, _tsMeta));
+    } else if (isInserting) {
+      context.missing(_tsMeta);
+    }
+    if (data.containsKey('exercise')) {
+      context.handle(
+        _exerciseMeta,
+        exercise.isAcceptableOrUnknown(data['exercise']!, _exerciseMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_exerciseMeta);
+    }
+    if (data.containsKey('set_no')) {
+      context.handle(
+        _setNoMeta,
+        setNo.isAcceptableOrUnknown(data['set_no']!, _setNoMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_setNoMeta);
+    }
+    if (data.containsKey('kg')) {
+      context.handle(_kgMeta, kg.isAcceptableOrUnknown(data['kg']!, _kgMeta));
+    }
+    if (data.containsKey('reps')) {
+      context.handle(
+        _repsMeta,
+        reps.isAcceptableOrUnknown(data['reps']!, _repsMeta),
+      );
+    }
+    if (data.containsKey('seconds')) {
+      context.handle(
+        _secondsMeta,
+        seconds.isAcceptableOrUnknown(data['seconds']!, _secondsMeta),
+      );
+    }
+    if (data.containsKey('rir')) {
+      context.handle(
+        _rirMeta,
+        rir.isAcceptableOrUnknown(data['rir']!, _rirMeta),
+      );
+    }
+    if (data.containsKey('superset')) {
+      context.handle(
+        _supersetMeta,
+        superset.isAcceptableOrUnknown(data['superset']!, _supersetMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  StrengthSetRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return StrengthSetRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      ts: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}ts'],
+      )!,
+      exercise: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}exercise'],
+      )!,
+      setNo: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}set_no'],
+      )!,
+      kg: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}kg'],
+      )!,
+      reps: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}reps'],
+      )!,
+      seconds: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}seconds'],
+      )!,
+      rir: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}rir'],
+      ),
+      superset: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}superset'],
+      ),
+    );
+  }
+
+  @override
+  $StrengthSetsTable createAlias(String alias) {
+    return $StrengthSetsTable(attachedDatabase, alias);
+  }
+}
+
+class StrengthSetRow extends DataClass implements Insertable<StrengthSetRow> {
+  final int id;
+  final int ts;
+  final String exercise;
+  final int setNo;
+  final double kg;
+  final int reps;
+  final int seconds;
+  final int? rir;
+  final String? superset;
+  const StrengthSetRow({
+    required this.id,
+    required this.ts,
+    required this.exercise,
+    required this.setNo,
+    required this.kg,
+    required this.reps,
+    required this.seconds,
+    this.rir,
+    this.superset,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['ts'] = Variable<int>(ts);
+    map['exercise'] = Variable<String>(exercise);
+    map['set_no'] = Variable<int>(setNo);
+    map['kg'] = Variable<double>(kg);
+    map['reps'] = Variable<int>(reps);
+    map['seconds'] = Variable<int>(seconds);
+    if (!nullToAbsent || rir != null) {
+      map['rir'] = Variable<int>(rir);
+    }
+    if (!nullToAbsent || superset != null) {
+      map['superset'] = Variable<String>(superset);
+    }
+    return map;
+  }
+
+  StrengthSetsCompanion toCompanion(bool nullToAbsent) {
+    return StrengthSetsCompanion(
+      id: Value(id),
+      ts: Value(ts),
+      exercise: Value(exercise),
+      setNo: Value(setNo),
+      kg: Value(kg),
+      reps: Value(reps),
+      seconds: Value(seconds),
+      rir: rir == null && nullToAbsent ? const Value.absent() : Value(rir),
+      superset: superset == null && nullToAbsent
+          ? const Value.absent()
+          : Value(superset),
+    );
+  }
+
+  factory StrengthSetRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return StrengthSetRow(
+      id: serializer.fromJson<int>(json['id']),
+      ts: serializer.fromJson<int>(json['ts']),
+      exercise: serializer.fromJson<String>(json['exercise']),
+      setNo: serializer.fromJson<int>(json['setNo']),
+      kg: serializer.fromJson<double>(json['kg']),
+      reps: serializer.fromJson<int>(json['reps']),
+      seconds: serializer.fromJson<int>(json['seconds']),
+      rir: serializer.fromJson<int?>(json['rir']),
+      superset: serializer.fromJson<String?>(json['superset']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'ts': serializer.toJson<int>(ts),
+      'exercise': serializer.toJson<String>(exercise),
+      'setNo': serializer.toJson<int>(setNo),
+      'kg': serializer.toJson<double>(kg),
+      'reps': serializer.toJson<int>(reps),
+      'seconds': serializer.toJson<int>(seconds),
+      'rir': serializer.toJson<int?>(rir),
+      'superset': serializer.toJson<String?>(superset),
+    };
+  }
+
+  StrengthSetRow copyWith({
+    int? id,
+    int? ts,
+    String? exercise,
+    int? setNo,
+    double? kg,
+    int? reps,
+    int? seconds,
+    Value<int?> rir = const Value.absent(),
+    Value<String?> superset = const Value.absent(),
+  }) => StrengthSetRow(
+    id: id ?? this.id,
+    ts: ts ?? this.ts,
+    exercise: exercise ?? this.exercise,
+    setNo: setNo ?? this.setNo,
+    kg: kg ?? this.kg,
+    reps: reps ?? this.reps,
+    seconds: seconds ?? this.seconds,
+    rir: rir.present ? rir.value : this.rir,
+    superset: superset.present ? superset.value : this.superset,
+  );
+  StrengthSetRow copyWithCompanion(StrengthSetsCompanion data) {
+    return StrengthSetRow(
+      id: data.id.present ? data.id.value : this.id,
+      ts: data.ts.present ? data.ts.value : this.ts,
+      exercise: data.exercise.present ? data.exercise.value : this.exercise,
+      setNo: data.setNo.present ? data.setNo.value : this.setNo,
+      kg: data.kg.present ? data.kg.value : this.kg,
+      reps: data.reps.present ? data.reps.value : this.reps,
+      seconds: data.seconds.present ? data.seconds.value : this.seconds,
+      rir: data.rir.present ? data.rir.value : this.rir,
+      superset: data.superset.present ? data.superset.value : this.superset,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('StrengthSetRow(')
+          ..write('id: $id, ')
+          ..write('ts: $ts, ')
+          ..write('exercise: $exercise, ')
+          ..write('setNo: $setNo, ')
+          ..write('kg: $kg, ')
+          ..write('reps: $reps, ')
+          ..write('seconds: $seconds, ')
+          ..write('rir: $rir, ')
+          ..write('superset: $superset')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, ts, exercise, setNo, kg, reps, seconds, rir, superset);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is StrengthSetRow &&
+          other.id == this.id &&
+          other.ts == this.ts &&
+          other.exercise == this.exercise &&
+          other.setNo == this.setNo &&
+          other.kg == this.kg &&
+          other.reps == this.reps &&
+          other.seconds == this.seconds &&
+          other.rir == this.rir &&
+          other.superset == this.superset);
+}
+
+class StrengthSetsCompanion extends UpdateCompanion<StrengthSetRow> {
+  final Value<int> id;
+  final Value<int> ts;
+  final Value<String> exercise;
+  final Value<int> setNo;
+  final Value<double> kg;
+  final Value<int> reps;
+  final Value<int> seconds;
+  final Value<int?> rir;
+  final Value<String?> superset;
+  const StrengthSetsCompanion({
+    this.id = const Value.absent(),
+    this.ts = const Value.absent(),
+    this.exercise = const Value.absent(),
+    this.setNo = const Value.absent(),
+    this.kg = const Value.absent(),
+    this.reps = const Value.absent(),
+    this.seconds = const Value.absent(),
+    this.rir = const Value.absent(),
+    this.superset = const Value.absent(),
+  });
+  StrengthSetsCompanion.insert({
+    this.id = const Value.absent(),
+    required int ts,
+    required String exercise,
+    required int setNo,
+    this.kg = const Value.absent(),
+    this.reps = const Value.absent(),
+    this.seconds = const Value.absent(),
+    this.rir = const Value.absent(),
+    this.superset = const Value.absent(),
+  }) : ts = Value(ts),
+       exercise = Value(exercise),
+       setNo = Value(setNo);
+  static Insertable<StrengthSetRow> custom({
+    Expression<int>? id,
+    Expression<int>? ts,
+    Expression<String>? exercise,
+    Expression<int>? setNo,
+    Expression<double>? kg,
+    Expression<int>? reps,
+    Expression<int>? seconds,
+    Expression<int>? rir,
+    Expression<String>? superset,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (ts != null) 'ts': ts,
+      if (exercise != null) 'exercise': exercise,
+      if (setNo != null) 'set_no': setNo,
+      if (kg != null) 'kg': kg,
+      if (reps != null) 'reps': reps,
+      if (seconds != null) 'seconds': seconds,
+      if (rir != null) 'rir': rir,
+      if (superset != null) 'superset': superset,
+    });
+  }
+
+  StrengthSetsCompanion copyWith({
+    Value<int>? id,
+    Value<int>? ts,
+    Value<String>? exercise,
+    Value<int>? setNo,
+    Value<double>? kg,
+    Value<int>? reps,
+    Value<int>? seconds,
+    Value<int?>? rir,
+    Value<String?>? superset,
+  }) {
+    return StrengthSetsCompanion(
+      id: id ?? this.id,
+      ts: ts ?? this.ts,
+      exercise: exercise ?? this.exercise,
+      setNo: setNo ?? this.setNo,
+      kg: kg ?? this.kg,
+      reps: reps ?? this.reps,
+      seconds: seconds ?? this.seconds,
+      rir: rir ?? this.rir,
+      superset: superset ?? this.superset,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (ts.present) {
+      map['ts'] = Variable<int>(ts.value);
+    }
+    if (exercise.present) {
+      map['exercise'] = Variable<String>(exercise.value);
+    }
+    if (setNo.present) {
+      map['set_no'] = Variable<int>(setNo.value);
+    }
+    if (kg.present) {
+      map['kg'] = Variable<double>(kg.value);
+    }
+    if (reps.present) {
+      map['reps'] = Variable<int>(reps.value);
+    }
+    if (seconds.present) {
+      map['seconds'] = Variable<int>(seconds.value);
+    }
+    if (rir.present) {
+      map['rir'] = Variable<int>(rir.value);
+    }
+    if (superset.present) {
+      map['superset'] = Variable<String>(superset.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('StrengthSetsCompanion(')
+          ..write('id: $id, ')
+          ..write('ts: $ts, ')
+          ..write('exercise: $exercise, ')
+          ..write('setNo: $setNo, ')
+          ..write('kg: $kg, ')
+          ..write('reps: $reps, ')
+          ..write('seconds: $seconds, ')
+          ..write('rir: $rir, ')
+          ..write('superset: $superset')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$TempoDb extends GeneratedDatabase {
   _$TempoDb(QueryExecutor e) : super(e);
   $TempoDbManager get managers => $TempoDbManager(this);
@@ -8591,6 +9110,7 @@ abstract class _$TempoDb extends GeneratedDatabase {
     this,
   );
   late final $HealthMinutesTable healthMinutes = $HealthMinutesTable(this);
+  late final $StrengthSetsTable strengthSets = $StrengthSetsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -8617,6 +9137,7 @@ abstract class _$TempoDb extends GeneratedDatabase {
     healthRecords,
     healthDeletions,
     healthMinutes,
+    strengthSets,
   ];
 }
 
@@ -8833,18 +9354,16 @@ typedef $$MinuteSamplesTableProcessedTableManager =
       MinuteSample,
       PrefetchHooks Function()
     >;
-typedef $$HrLiveTableCreateCompanionBuilder =
-    HrLiveCompanion Function({
-      Value<int> ts,
-      required int bpm,
-      Value<String> source,
-    });
-typedef $$HrLiveTableUpdateCompanionBuilder =
-    HrLiveCompanion Function({
-      Value<int> ts,
-      Value<int> bpm,
-      Value<String> source,
-    });
+typedef $$HrLiveTableCreateCompanionBuilder = HrLiveCompanion Function({
+  Value<int> ts,
+  required int bpm,
+  Value<String> source,
+});
+typedef $$HrLiveTableUpdateCompanionBuilder = HrLiveCompanion Function({
+  Value<int> ts,
+  Value<int> bpm,
+  Value<String> source,
+});
 
 class $$HrLiveTableFilterComposer extends Composer<_$TempoDb, $HrLiveTable> {
   $$HrLiveTableFilterComposer({
@@ -8939,18 +9458,16 @@ class $$HrLiveTableTableManager
               $$HrLiveTableOrderingComposer($db: db, $table: table),
           createComputedFieldComposer: () =>
               $$HrLiveTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback:
-              ({
-                Value<int> ts = const Value.absent(),
-                Value<int> bpm = const Value.absent(),
-                Value<String> source = const Value.absent(),
-              }) => HrLiveCompanion(ts: ts, bpm: bpm, source: source),
-          createCompanionCallback:
-              ({
-                Value<int> ts = const Value.absent(),
-                required int bpm,
-                Value<String> source = const Value.absent(),
-              }) => HrLiveCompanion.insert(ts: ts, bpm: bpm, source: source),
+          updateCompanionCallback: ({
+            Value<int> ts = const Value.absent(),
+            Value<int> bpm = const Value.absent(),
+            Value<String> source = const Value.absent(),
+          }) => HrLiveCompanion(ts: ts, bpm: bpm, source: source),
+          createCompanionCallback: ({
+            Value<int> ts = const Value.absent(),
+            required int bpm,
+            Value<String> source = const Value.absent(),
+          }) => HrLiveCompanion.insert(ts: ts, bpm: bpm, source: source),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
               .toList(),
@@ -9063,14 +9580,14 @@ class $$StressSamplesTableTableManager
               $$StressSamplesTableOrderingComposer($db: db, $table: table),
           createComputedFieldComposer: () =>
               $$StressSamplesTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback:
-              ({
-                Value<int> ts = const Value.absent(),
-                Value<int> value = const Value.absent(),
-              }) => StressSamplesCompanion(ts: ts, value: value),
-          createCompanionCallback:
-              ({Value<int> ts = const Value.absent(), required int value}) =>
-                  StressSamplesCompanion.insert(ts: ts, value: value),
+          updateCompanionCallback: ({
+            Value<int> ts = const Value.absent(),
+            Value<int> value = const Value.absent(),
+          }) => StressSamplesCompanion(ts: ts, value: value),
+          createCompanionCallback: ({
+            Value<int> ts = const Value.absent(),
+            required int value,
+          }) => StressSamplesCompanion.insert(ts: ts, value: value),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
               .toList(),
@@ -9207,13 +9724,11 @@ class $$Spo2SamplesTableTableManager
               $$Spo2SamplesTableOrderingComposer($db: db, $table: table),
           createComputedFieldComposer: () =>
               $$Spo2SamplesTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback:
-              ({
-                Value<int> ts = const Value.absent(),
-                Value<int> value = const Value.absent(),
-                Value<int?> quality = const Value.absent(),
-              }) =>
-                  Spo2SamplesCompanion(ts: ts, value: value, quality: quality),
+          updateCompanionCallback: ({
+            Value<int> ts = const Value.absent(),
+            Value<int> value = const Value.absent(),
+            Value<int?> quality = const Value.absent(),
+          }) => Spo2SamplesCompanion(ts: ts, value: value, quality: quality),
           createCompanionCallback:
               ({
                 Value<int> ts = const Value.absent(),
@@ -9440,20 +9955,18 @@ typedef $$BandWorkoutsTableProcessedTableManager =
       BandWorkoutRow,
       PrefetchHooks Function()
     >;
-typedef $$OdEventsTableCreateCompanionBuilder =
-    OdEventsCompanion Function({
-      Value<int> ts,
-      required int drop,
-      required String spo2,
-      required String hr,
-    });
-typedef $$OdEventsTableUpdateCompanionBuilder =
-    OdEventsCompanion Function({
-      Value<int> ts,
-      Value<int> drop,
-      Value<String> spo2,
-      Value<String> hr,
-    });
+typedef $$OdEventsTableCreateCompanionBuilder = OdEventsCompanion Function({
+  Value<int> ts,
+  required int drop,
+  required String spo2,
+  required String hr,
+});
+typedef $$OdEventsTableUpdateCompanionBuilder = OdEventsCompanion Function({
+  Value<int> ts,
+  Value<int> drop,
+  Value<String> spo2,
+  Value<String> hr,
+});
 
 class $$OdEventsTableFilterComposer
     extends Composer<_$TempoDb, $OdEventsTable> {
@@ -9563,13 +10076,12 @@ class $$OdEventsTableTableManager
               $$OdEventsTableOrderingComposer($db: db, $table: table),
           createComputedFieldComposer: () =>
               $$OdEventsTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback:
-              ({
-                Value<int> ts = const Value.absent(),
-                Value<int> drop = const Value.absent(),
-                Value<String> spo2 = const Value.absent(),
-                Value<String> hr = const Value.absent(),
-              }) => OdEventsCompanion(ts: ts, drop: drop, spo2: spo2, hr: hr),
+          updateCompanionCallback: ({
+            Value<int> ts = const Value.absent(),
+            Value<int> drop = const Value.absent(),
+            Value<String> spo2 = const Value.absent(),
+            Value<String> hr = const Value.absent(),
+          }) => OdEventsCompanion(ts: ts, drop: drop, spo2: spo2, hr: hr),
           createCompanionCallback:
               ({
                 Value<int> ts = const Value.absent(),
@@ -10271,24 +10783,22 @@ typedef $$DailyScoresTableProcessedTableManager =
       DailyScore,
       PrefetchHooks Function()
     >;
-typedef $$BaselinesTableCreateCompanionBuilder =
-    BaselinesCompanion Function({
-      required String metric,
-      required int window,
-      required double mean,
-      required double sd,
-      required int updatedAt,
-      Value<int> rowid,
-    });
-typedef $$BaselinesTableUpdateCompanionBuilder =
-    BaselinesCompanion Function({
-      Value<String> metric,
-      Value<int> window,
-      Value<double> mean,
-      Value<double> sd,
-      Value<int> updatedAt,
-      Value<int> rowid,
-    });
+typedef $$BaselinesTableCreateCompanionBuilder = BaselinesCompanion Function({
+  required String metric,
+  required int window,
+  required double mean,
+  required double sd,
+  required int updatedAt,
+  Value<int> rowid,
+});
+typedef $$BaselinesTableUpdateCompanionBuilder = BaselinesCompanion Function({
+  Value<String> metric,
+  Value<int> window,
+  Value<double> mean,
+  Value<double> sd,
+  Value<int> updatedAt,
+  Value<int> rowid,
+});
 
 class $$BaselinesTableFilterComposer
     extends Composer<_$TempoDb, $BaselinesTable> {
@@ -10465,22 +10975,20 @@ typedef $$BaselinesTableProcessedTableManager =
       Baseline,
       PrefetchHooks Function()
     >;
-typedef $$JournalTableCreateCompanionBuilder =
-    JournalCompanion Function({
-      required String date,
-      required String tag,
-      required bool value,
-      Value<double?> amount,
-      Value<int> rowid,
-    });
-typedef $$JournalTableUpdateCompanionBuilder =
-    JournalCompanion Function({
-      Value<String> date,
-      Value<String> tag,
-      Value<bool> value,
-      Value<double?> amount,
-      Value<int> rowid,
-    });
+typedef $$JournalTableCreateCompanionBuilder = JournalCompanion Function({
+  required String date,
+  required String tag,
+  required bool value,
+  Value<double?> amount,
+  Value<int> rowid,
+});
+typedef $$JournalTableUpdateCompanionBuilder = JournalCompanion Function({
+  Value<String> date,
+  Value<String> tag,
+  Value<bool> value,
+  Value<double?> amount,
+  Value<int> rowid,
+});
 
 class $$JournalTableFilterComposer extends Composer<_$TempoDb, $JournalTable> {
   $$JournalTableFilterComposer({
@@ -10639,20 +11147,18 @@ typedef $$JournalTableProcessedTableManager =
       JournalData,
       PrefetchHooks Function()
     >;
-typedef $$SyncStateTableCreateCompanionBuilder =
-    SyncStateCompanion Function({
-      required String device,
-      required String dataType,
-      required int lastTs,
-      Value<int> rowid,
-    });
-typedef $$SyncStateTableUpdateCompanionBuilder =
-    SyncStateCompanion Function({
-      Value<String> device,
-      Value<String> dataType,
-      Value<int> lastTs,
-      Value<int> rowid,
-    });
+typedef $$SyncStateTableCreateCompanionBuilder = SyncStateCompanion Function({
+  required String device,
+  required String dataType,
+  required int lastTs,
+  Value<int> rowid,
+});
+typedef $$SyncStateTableUpdateCompanionBuilder = SyncStateCompanion Function({
+  Value<String> device,
+  Value<String> dataType,
+  Value<int> lastTs,
+  Value<int> rowid,
+});
 
 class $$SyncStateTableFilterComposer
     extends Composer<_$TempoDb, $SyncStateTable> {
@@ -10801,18 +11307,16 @@ typedef $$SyncStateTableProcessedTableManager =
       SyncStateData,
       PrefetchHooks Function()
     >;
-typedef $$SettingsTableCreateCompanionBuilder =
-    SettingsCompanion Function({
-      required String key,
-      required String value,
-      Value<int> rowid,
-    });
-typedef $$SettingsTableUpdateCompanionBuilder =
-    SettingsCompanion Function({
-      Value<String> key,
-      Value<String> value,
-      Value<int> rowid,
-    });
+typedef $$SettingsTableCreateCompanionBuilder = SettingsCompanion Function({
+  required String key,
+  required String value,
+  Value<int> rowid,
+});
+typedef $$SettingsTableUpdateCompanionBuilder = SettingsCompanion Function({
+  Value<String> key,
+  Value<String> value,
+  Value<int> rowid,
+});
 
 class $$SettingsTableFilterComposer
     extends Composer<_$TempoDb, $SettingsTable> {
@@ -10896,22 +11400,16 @@ class $$SettingsTableTableManager
               $$SettingsTableOrderingComposer($db: db, $table: table),
           createComputedFieldComposer: () =>
               $$SettingsTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback:
-              ({
-                Value<String> key = const Value.absent(),
-                Value<String> value = const Value.absent(),
-                Value<int> rowid = const Value.absent(),
-              }) => SettingsCompanion(key: key, value: value, rowid: rowid),
-          createCompanionCallback:
-              ({
-                required String key,
-                required String value,
-                Value<int> rowid = const Value.absent(),
-              }) => SettingsCompanion.insert(
-                key: key,
-                value: value,
-                rowid: rowid,
-              ),
+          updateCompanionCallback: ({
+            Value<String> key = const Value.absent(),
+            Value<String> value = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) => SettingsCompanion(key: key, value: value, rowid: rowid),
+          createCompanionCallback: ({
+            required String key,
+            required String value,
+            Value<int> rowid = const Value.absent(),
+          }) => SettingsCompanion.insert(key: key, value: value, rowid: rowid),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
               .toList(),
@@ -10934,40 +11432,38 @@ typedef $$SettingsTableProcessedTableManager =
       Setting,
       PrefetchHooks Function()
     >;
-typedef $$WorkoutsTableCreateCompanionBuilder =
-    WorkoutsCompanion Function({
-      Value<int> id,
-      required int start,
-      required int end,
-      Value<String?> sport,
-      required String title,
-      required String source,
-      Value<bool> confirmed,
-      required double strain,
-      required double trimp,
-      Value<int?> avgHr,
-      Value<int?> maxHr,
-      required String zones,
-      Value<int?> rpe,
-      Value<String?> plan,
-    });
-typedef $$WorkoutsTableUpdateCompanionBuilder =
-    WorkoutsCompanion Function({
-      Value<int> id,
-      Value<int> start,
-      Value<int> end,
-      Value<String?> sport,
-      Value<String> title,
-      Value<String> source,
-      Value<bool> confirmed,
-      Value<double> strain,
-      Value<double> trimp,
-      Value<int?> avgHr,
-      Value<int?> maxHr,
-      Value<String> zones,
-      Value<int?> rpe,
-      Value<String?> plan,
-    });
+typedef $$WorkoutsTableCreateCompanionBuilder = WorkoutsCompanion Function({
+  Value<int> id,
+  required int start,
+  required int end,
+  Value<String?> sport,
+  required String title,
+  required String source,
+  Value<bool> confirmed,
+  required double strain,
+  required double trimp,
+  Value<int?> avgHr,
+  Value<int?> maxHr,
+  required String zones,
+  Value<int?> rpe,
+  Value<String?> plan,
+});
+typedef $$WorkoutsTableUpdateCompanionBuilder = WorkoutsCompanion Function({
+  Value<int> id,
+  Value<int> start,
+  Value<int> end,
+  Value<String?> sport,
+  Value<String> title,
+  Value<String> source,
+  Value<bool> confirmed,
+  Value<double> strain,
+  Value<double> trimp,
+  Value<int?> avgHr,
+  Value<int?> maxHr,
+  Value<String> zones,
+  Value<int?> rpe,
+  Value<String?> plan,
+});
 
 class $$WorkoutsTableFilterComposer
     extends Composer<_$TempoDb, $WorkoutsTable> {
@@ -11293,38 +11789,36 @@ typedef $$WorkoutsTableProcessedTableManager =
       Workout,
       PrefetchHooks Function()
     >;
-typedef $$PlanDaysTableCreateCompanionBuilder =
-    PlanDaysCompanion Function({
-      required String date,
-      required String session,
-      Value<String?> original,
-      Value<String?> reason,
-      Value<int?> adaptedAt,
-      required bool general,
-      Value<String?> slot,
-      Value<int?> plannedMinute,
-      Value<String> status,
-      Value<String?> statusSource,
-      Value<int?> statusAt,
-      Value<String?> algoVersion,
-      Value<int> rowid,
-    });
-typedef $$PlanDaysTableUpdateCompanionBuilder =
-    PlanDaysCompanion Function({
-      Value<String> date,
-      Value<String> session,
-      Value<String?> original,
-      Value<String?> reason,
-      Value<int?> adaptedAt,
-      Value<bool> general,
-      Value<String?> slot,
-      Value<int?> plannedMinute,
-      Value<String> status,
-      Value<String?> statusSource,
-      Value<int?> statusAt,
-      Value<String?> algoVersion,
-      Value<int> rowid,
-    });
+typedef $$PlanDaysTableCreateCompanionBuilder = PlanDaysCompanion Function({
+  required String date,
+  required String session,
+  Value<String?> original,
+  Value<String?> reason,
+  Value<int?> adaptedAt,
+  required bool general,
+  Value<String?> slot,
+  Value<int?> plannedMinute,
+  Value<String> status,
+  Value<String?> statusSource,
+  Value<int?> statusAt,
+  Value<String?> algoVersion,
+  Value<int> rowid,
+});
+typedef $$PlanDaysTableUpdateCompanionBuilder = PlanDaysCompanion Function({
+  Value<String> date,
+  Value<String> session,
+  Value<String?> original,
+  Value<String?> reason,
+  Value<int?> adaptedAt,
+  Value<bool> general,
+  Value<String?> slot,
+  Value<int?> plannedMinute,
+  Value<String> status,
+  Value<String?> statusSource,
+  Value<int?> statusAt,
+  Value<String?> algoVersion,
+  Value<int> rowid,
+});
 
 class $$PlanDaysTableFilterComposer
     extends Composer<_$TempoDb, $PlanDaysTable> {
@@ -11626,22 +12120,20 @@ typedef $$PlanDaysTableProcessedTableManager =
       PlanDay,
       PrefetchHooks Function()
     >;
-typedef $$SyncLogTableCreateCompanionBuilder =
-    SyncLogCompanion Function({
-      Value<int> id,
-      required int ts,
-      required String summary,
-      required String result,
-      Value<int?> durationMs,
-    });
-typedef $$SyncLogTableUpdateCompanionBuilder =
-    SyncLogCompanion Function({
-      Value<int> id,
-      Value<int> ts,
-      Value<String> summary,
-      Value<String> result,
-      Value<int?> durationMs,
-    });
+typedef $$SyncLogTableCreateCompanionBuilder = SyncLogCompanion Function({
+  Value<int> id,
+  required int ts,
+  required String summary,
+  required String result,
+  Value<int?> durationMs,
+});
+typedef $$SyncLogTableUpdateCompanionBuilder = SyncLogCompanion Function({
+  Value<int> id,
+  Value<int> ts,
+  Value<String> summary,
+  Value<String> result,
+  Value<int?> durationMs,
+});
 
 class $$SyncLogTableFilterComposer extends Composer<_$TempoDb, $SyncLogTable> {
   $$SyncLogTableFilterComposer({
@@ -11815,30 +12307,28 @@ typedef $$SyncLogTableProcessedTableManager =
       SyncLogData,
       PrefetchHooks Function()
     >;
-typedef $$LongevityTableCreateCompanionBuilder =
-    LongevityCompanion Function({
-      required String date,
-      required double tempoAge,
-      required double realAge,
-      required bool calibrating,
-      required String contributors,
-      required int algoVersion,
-      Value<double?> confidence,
-      Value<double?> halfRange,
-      Value<int> rowid,
-    });
-typedef $$LongevityTableUpdateCompanionBuilder =
-    LongevityCompanion Function({
-      Value<String> date,
-      Value<double> tempoAge,
-      Value<double> realAge,
-      Value<bool> calibrating,
-      Value<String> contributors,
-      Value<int> algoVersion,
-      Value<double?> confidence,
-      Value<double?> halfRange,
-      Value<int> rowid,
-    });
+typedef $$LongevityTableCreateCompanionBuilder = LongevityCompanion Function({
+  required String date,
+  required double tempoAge,
+  required double realAge,
+  required bool calibrating,
+  required String contributors,
+  required int algoVersion,
+  Value<double?> confidence,
+  Value<double?> halfRange,
+  Value<int> rowid,
+});
+typedef $$LongevityTableUpdateCompanionBuilder = LongevityCompanion Function({
+  Value<String> date,
+  Value<double> tempoAge,
+  Value<double> realAge,
+  Value<bool> calibrating,
+  Value<String> contributors,
+  Value<int> algoVersion,
+  Value<double?> confidence,
+  Value<double?> halfRange,
+  Value<int> rowid,
+});
 
 class $$LongevityTableFilterComposer
     extends Composer<_$TempoDb, $LongevityTable> {
@@ -12080,32 +12570,30 @@ typedef $$LongevityTableProcessedTableManager =
       LongevitySnapshot,
       PrefetchHooks Function()
     >;
-typedef $$NudgeLogTableCreateCompanionBuilder =
-    NudgeLogCompanion Function({
-      Value<int> id,
-      required int ts,
-      required String day,
-      required String kind,
-      required int notifId,
-      Value<int?> fireAt,
-      required String event,
-      Value<String?> action,
-      Value<String> payload,
-      required String algoVersion,
-    });
-typedef $$NudgeLogTableUpdateCompanionBuilder =
-    NudgeLogCompanion Function({
-      Value<int> id,
-      Value<int> ts,
-      Value<String> day,
-      Value<String> kind,
-      Value<int> notifId,
-      Value<int?> fireAt,
-      Value<String> event,
-      Value<String?> action,
-      Value<String> payload,
-      Value<String> algoVersion,
-    });
+typedef $$NudgeLogTableCreateCompanionBuilder = NudgeLogCompanion Function({
+  Value<int> id,
+  required int ts,
+  required String day,
+  required String kind,
+  required int notifId,
+  Value<int?> fireAt,
+  required String event,
+  Value<String?> action,
+  Value<String> payload,
+  required String algoVersion,
+});
+typedef $$NudgeLogTableUpdateCompanionBuilder = NudgeLogCompanion Function({
+  Value<int> id,
+  Value<int> ts,
+  Value<String> day,
+  Value<String> kind,
+  Value<int> notifId,
+  Value<int?> fireAt,
+  Value<String> event,
+  Value<String?> action,
+  Value<String> payload,
+  Value<String> algoVersion,
+});
 
 class $$NudgeLogTableFilterComposer
     extends Composer<_$TempoDb, $NudgeLogTable> {
@@ -13164,6 +13652,276 @@ typedef $$HealthMinutesTableProcessedTableManager =
       HealthMinuteRow,
       PrefetchHooks Function()
     >;
+typedef $$StrengthSetsTableCreateCompanionBuilder =
+    StrengthSetsCompanion Function({
+      Value<int> id,
+      required int ts,
+      required String exercise,
+      required int setNo,
+      Value<double> kg,
+      Value<int> reps,
+      Value<int> seconds,
+      Value<int?> rir,
+      Value<String?> superset,
+    });
+typedef $$StrengthSetsTableUpdateCompanionBuilder =
+    StrengthSetsCompanion Function({
+      Value<int> id,
+      Value<int> ts,
+      Value<String> exercise,
+      Value<int> setNo,
+      Value<double> kg,
+      Value<int> reps,
+      Value<int> seconds,
+      Value<int?> rir,
+      Value<String?> superset,
+    });
+
+class $$StrengthSetsTableFilterComposer
+    extends Composer<_$TempoDb, $StrengthSetsTable> {
+  $$StrengthSetsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get ts => $composableBuilder(
+    column: $table.ts,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get exercise => $composableBuilder(
+    column: $table.exercise,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get setNo => $composableBuilder(
+    column: $table.setNo,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get kg => $composableBuilder(
+    column: $table.kg,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get reps => $composableBuilder(
+    column: $table.reps,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get seconds => $composableBuilder(
+    column: $table.seconds,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get rir => $composableBuilder(
+    column: $table.rir,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get superset => $composableBuilder(
+    column: $table.superset,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$StrengthSetsTableOrderingComposer
+    extends Composer<_$TempoDb, $StrengthSetsTable> {
+  $$StrengthSetsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get ts => $composableBuilder(
+    column: $table.ts,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get exercise => $composableBuilder(
+    column: $table.exercise,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get setNo => $composableBuilder(
+    column: $table.setNo,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get kg => $composableBuilder(
+    column: $table.kg,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get reps => $composableBuilder(
+    column: $table.reps,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get seconds => $composableBuilder(
+    column: $table.seconds,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get rir => $composableBuilder(
+    column: $table.rir,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get superset => $composableBuilder(
+    column: $table.superset,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$StrengthSetsTableAnnotationComposer
+    extends Composer<_$TempoDb, $StrengthSetsTable> {
+  $$StrengthSetsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get ts =>
+      $composableBuilder(column: $table.ts, builder: (column) => column);
+
+  GeneratedColumn<String> get exercise =>
+      $composableBuilder(column: $table.exercise, builder: (column) => column);
+
+  GeneratedColumn<int> get setNo =>
+      $composableBuilder(column: $table.setNo, builder: (column) => column);
+
+  GeneratedColumn<double> get kg =>
+      $composableBuilder(column: $table.kg, builder: (column) => column);
+
+  GeneratedColumn<int> get reps =>
+      $composableBuilder(column: $table.reps, builder: (column) => column);
+
+  GeneratedColumn<int> get seconds =>
+      $composableBuilder(column: $table.seconds, builder: (column) => column);
+
+  GeneratedColumn<int> get rir =>
+      $composableBuilder(column: $table.rir, builder: (column) => column);
+
+  GeneratedColumn<String> get superset =>
+      $composableBuilder(column: $table.superset, builder: (column) => column);
+}
+
+class $$StrengthSetsTableTableManager
+    extends
+        RootTableManager<
+          _$TempoDb,
+          $StrengthSetsTable,
+          StrengthSetRow,
+          $$StrengthSetsTableFilterComposer,
+          $$StrengthSetsTableOrderingComposer,
+          $$StrengthSetsTableAnnotationComposer,
+          $$StrengthSetsTableCreateCompanionBuilder,
+          $$StrengthSetsTableUpdateCompanionBuilder,
+          (
+            StrengthSetRow,
+            BaseReferences<_$TempoDb, $StrengthSetsTable, StrengthSetRow>,
+          ),
+          StrengthSetRow,
+          PrefetchHooks Function()
+        > {
+  $$StrengthSetsTableTableManager(_$TempoDb db, $StrengthSetsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$StrengthSetsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$StrengthSetsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$StrengthSetsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> ts = const Value.absent(),
+                Value<String> exercise = const Value.absent(),
+                Value<int> setNo = const Value.absent(),
+                Value<double> kg = const Value.absent(),
+                Value<int> reps = const Value.absent(),
+                Value<int> seconds = const Value.absent(),
+                Value<int?> rir = const Value.absent(),
+                Value<String?> superset = const Value.absent(),
+              }) => StrengthSetsCompanion(
+                id: id,
+                ts: ts,
+                exercise: exercise,
+                setNo: setNo,
+                kg: kg,
+                reps: reps,
+                seconds: seconds,
+                rir: rir,
+                superset: superset,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int ts,
+                required String exercise,
+                required int setNo,
+                Value<double> kg = const Value.absent(),
+                Value<int> reps = const Value.absent(),
+                Value<int> seconds = const Value.absent(),
+                Value<int?> rir = const Value.absent(),
+                Value<String?> superset = const Value.absent(),
+              }) => StrengthSetsCompanion.insert(
+                id: id,
+                ts: ts,
+                exercise: exercise,
+                setNo: setNo,
+                kg: kg,
+                reps: reps,
+                seconds: seconds,
+                rir: rir,
+                superset: superset,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$StrengthSetsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$TempoDb,
+      $StrengthSetsTable,
+      StrengthSetRow,
+      $$StrengthSetsTableFilterComposer,
+      $$StrengthSetsTableOrderingComposer,
+      $$StrengthSetsTableAnnotationComposer,
+      $$StrengthSetsTableCreateCompanionBuilder,
+      $$StrengthSetsTableUpdateCompanionBuilder,
+      (
+        StrengthSetRow,
+        BaseReferences<_$TempoDb, $StrengthSetsTable, StrengthSetRow>,
+      ),
+      StrengthSetRow,
+      PrefetchHooks Function()
+    >;
 
 class $TempoDbManager {
   final _$TempoDb _db;
@@ -13210,4 +13968,6 @@ class $TempoDbManager {
       $$HealthDeletionsTableTableManager(_db, _db.healthDeletions);
   $$HealthMinutesTableTableManager get healthMinutes =>
       $$HealthMinutesTableTableManager(_db, _db.healthMinutes);
+  $$StrengthSetsTableTableManager get strengthSets =>
+      $$StrengthSetsTableTableManager(_db, _db.strengthSets);
 }

@@ -22,6 +22,7 @@ import 'dart:math';
 
 import 'coach.dart';
 import 'recovery.dart' show RecoveryColor;
+import 'strength.dart';
 
 enum PickKind { run, strength, play }
 
@@ -106,10 +107,28 @@ final class Exercise {
     this.home,
     this.restSeconds = 90,
     this.cue = '',
+    this.kg,
+    this.target,
   });
   final String name;
   final String? home;
   final int sets;
+
+  /// Suggested load from your history (strength.dart → nextTarget), and
+  /// why; null without logged sets.
+  final double? kg;
+  final String? target;
+
+  Exercise withTarget(double kg, int sets, String reps, String why) => Exercise(
+    name,
+    home: home,
+    sets: sets,
+    reps: reps,
+    restSeconds: restSeconds,
+    cue: cue,
+    kg: kg,
+    target: why,
+  );
 
   /// "8–10", "5", "30 s", "10 each side".
   final String reps;
@@ -123,6 +142,8 @@ final class Exercise {
     'r': reps,
     'rest': restSeconds,
     'c': cue,
+    if (kg != null) 'kg': kg,
+    if (target != null) 'tw': target,
   };
   static Exercise fromJson(Map<String, dynamic> j) => Exercise(
     j['n'] as String,
@@ -131,6 +152,8 @@ final class Exercise {
     reps: j['r'] as String,
     restSeconds: j['rest'] as int? ?? 90,
     cue: j['c'] as String? ?? '',
+    kg: (j['kg'] as num?)?.toDouble(),
+    target: j['tw'] as String?,
   );
 }
 
@@ -304,6 +327,7 @@ final class PickContext {
     this.planned,
     this.tomorrow,
     this.recent = const [],
+    this.freshness,
   });
 
   final DateTime today; // local midnight
@@ -330,6 +354,10 @@ final class PickContext {
 
   /// The last 14 days or so, any order.
   final List<RecentSession> recent;
+
+  /// Muscle freshness from logged sets (strength.dart); null when nothing
+  /// was logged lately, and focus falls back to days since.
+  final Map<Muscle, double>? freshness;
 }
 
 final class Pick {
@@ -352,6 +380,14 @@ final class Pick {
 
   Pick withRecommended(bool r) =>
       Pick(kind: kind, session: session, why: why, recommended: r);
+
+  /// The same pick with a new detail (e.g. your weights filled in).
+  Pick withDetail(PickDetail d) => Pick(
+    kind: kind,
+    session: _withDetail(session, d),
+    why: why,
+    recommended: recommended,
+  );
 }
 
 /// The level today allows: 0 easy only, 1 moderate at most, 2 hard.
@@ -946,14 +982,36 @@ Pick _strengthPick(PickContext c, int level) {
       );
   StrengthFocus focus = StrengthFocus.upper;
   var best = -1;
-  for (final f in candidates) {
-    // Full body is the default only when both halves are equally due.
-    final d = f == StrengthFocus.full
-        ? min(since(StrengthFocus.lower), since(StrengthFocus.upper)) - 1
-        : since(f);
-    if (d > best) {
-      best = d;
-      focus = f;
+  final fr = c.freshness;
+  String? freshWhy;
+  if (fr != null) {
+    // Freshest half first; full body only when both are fresh.
+    final lo = lowerFreshness(fr), up = upperFreshness(fr);
+    var score = -1.0;
+    for (final f in candidates) {
+      final v = switch (f) {
+        StrengthFocus.lower => lo,
+        StrengthFocus.upper => up,
+        _ => min(lo, up) >= 80 ? min(lo, up) + 1 : -1.0,
+      };
+      if (v > score) {
+        score = v;
+        focus = f;
+      }
+    }
+    best = 0;
+    freshWhy =
+        'Legs ${lo.round()} % fresh, upper body ${up.round()} %: ${focusName(focus).toLowerCase()} today.';
+  } else {
+    for (final f in candidates) {
+      // Full body is the default only when both halves are equally due.
+      final d = f == StrengthFocus.full
+          ? min(since(StrengthFocus.lower), since(StrengthFocus.upper)) - 1
+          : since(f);
+      if (d > best) {
+        best = d;
+        focus = f;
+      }
     }
   }
   final minutes = min(c.maxMinutes, level == 2 ? 50 : 40);
@@ -963,6 +1021,8 @@ Pick _strengthPick(PickContext c, int level) {
       ? 'Upper body today, so your legs are fresh for tomorrow’s run.'
       : legsYesterday
       ? 'Upper body today: your legs worked hard yesterday.'
+      : freshWhy != null
+      ? freshWhy
       : best >= 99
       ? '${focusName(focus)}: not trained recently.'
       : '${focusName(focus)} last trained $best days ago.';

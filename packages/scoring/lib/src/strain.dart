@@ -74,13 +74,19 @@ double trimpFromRpe(
 ]) => p.rpeScale * rpe.clamp(0, 10) * max(0, minutes);
 
 /// What to add on top of the HR-based TRIMP of a strength session: HR
-/// undercounts lifting, so the session counts as at least its sRPE load.
+/// undercounts lifting, so the session counts as at least its sRPE load,
+/// or the load of its logged sets ([setsTrimp], see strength.dart),
+/// whichever is higher.
 double strengthCorrection({
   required double hrTrimp,
-  required int rpe,
-  required int minutes,
+  int? rpe,
+  int minutes = 0,
+  double setsTrimp = 0,
   StrainParams p = const StrainParams(),
-}) => max(0, trimpFromRpe(rpe, minutes, p) - hrTrimp);
+}) => max(
+  0,
+  max(rpe == null ? 0.0 : trimpFromRpe(rpe, minutes, p), setsTrimp) - hrTrimp,
+);
 
 /// HR max starts at 190 and only goes up when the band records higher.
 int updatedHrMax(int current, Iterable<int?> hrs) {
