@@ -906,6 +906,32 @@ class _WorkoutsEditorState extends State<WorkoutsEditor> {
               ),
           ],
         ),
+        const SizedBox(height: 24),
+        Text('Games you play', style: TempoType.label.c(c.text1)),
+        const SizedBox(height: 4),
+        Text(
+          'Optional. Tempo suggests them on the right days, sized to how recovered you are.',
+          style: TempoType.bodyS.c(c.text2),
+        ),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: [
+            for (final g in sc.Game.values)
+              TempoChip(
+                sc.gameName(g),
+                height: 40,
+                selected: _p.games.contains(g),
+                onTap: () {
+                  final games = {..._p.games};
+                  games.contains(g) ? games.remove(g) : games.add(g);
+                  setState(() => _p = _p.copyWith(games: games));
+                  widget.onChanged?.call(_p);
+                },
+              ),
+          ],
+        ),
         if (widget.sheet) ...[
           const SizedBox(height: 24),
           TempoButton(

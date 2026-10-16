@@ -17,6 +17,7 @@ import '../design/tokens.dart';
 import '../design/type.dart';
 import '../state/providers.dart';
 import 'nav.dart';
+import 'picks.dart' show PickDetailView;
 import 'shared.dart';
 
 /// Suggested workout for today: structure, where it lands, why, and the
@@ -352,6 +353,11 @@ class WorkoutDetailScreen extends ConsumerWidget {
             ),
           ),
         ],
+        if (p.detail != null)
+          Section(
+            title: 'What to do',
+            child: TempoCard(child: PickDetailView(session: p)),
+          ),
         Section(
           title: 'Why this, today',
           child: CardList(

@@ -82,6 +82,7 @@ final class Profile {
     this.days = const {1, 2, 4, 5, 6, 7},
     this.maxMinutes = 75,
     this.wornOn = 'Left wrist',
+    this.games = const {},
   });
 
   final int age, heightCm;
@@ -95,6 +96,10 @@ final class Profile {
   final Set<int> days;
   final int maxMinutes;
   final String wornOn;
+
+  /// Games and sports you play (badminton, table tennis…), for today's
+  /// picks.
+  final Set<Game> games;
 
   int get effectiveMaxHr => maxHr ?? maxHrFromAge(age);
   bool get wornLeft => wornOn != 'Right wrist';
@@ -122,6 +127,7 @@ final class Profile {
     Set<int>? days,
     int? maxMinutes,
     String? wornOn,
+    Set<Game>? games,
   }) => Profile(
     age: age ?? this.age,
     heightCm: heightCm ?? this.heightCm,
@@ -134,6 +140,7 @@ final class Profile {
     days: days ?? this.days,
     maxMinutes: maxMinutes ?? this.maxMinutes,
     wornOn: wornOn ?? this.wornOn,
+    games: games ?? this.games,
   );
 
   Map<String, Object?> toJson() => {
@@ -148,6 +155,7 @@ final class Profile {
     'days': days.toList()..sort(),
     'maxMinutes': maxMinutes,
     'wornOn': wornOn,
+    'games': [for (final g in games) g.name],
   };
 
   static Profile fromJson(Map<String, dynamic> j) => Profile(
@@ -166,6 +174,10 @@ final class Profile {
     days: {for (final d in (j['days'] as List? ?? const [])) d as int},
     maxMinutes: j['maxMinutes'] as int? ?? 75,
     wornOn: j['wornOn'] as String? ?? 'Left wrist',
+    games: {
+      for (final g in (j['games'] as List? ?? const []))
+        if (Game.values.asNameMap()[g] != null) Game.values.byName(g as String),
+    },
   );
 }
 

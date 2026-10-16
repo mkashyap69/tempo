@@ -19,6 +19,7 @@ import 'cardio_load.dart';
 import 'goal.dart';
 import 'coach_parts.dart';
 import 'nav.dart';
+import 'picks.dart';
 import 'shared.dart';
 import 'today.dart' show WorkoutCard;
 import 'weekly_plan.dart';
@@ -240,6 +241,7 @@ class CoachScreen extends ConsumerWidget {
                 t.status == sc.DayStatus.missedSlot)
               RescueCard(t),
             if (x != null && x.realign && t.pause == null) const RealignCard(),
+            if (t.pause == null) const TodayPicks(),
             if (x != null) AlsoToday(x),
             if (x != null) FocusSummary(x),
           ] else if (tab == CoachTab.week) ...[

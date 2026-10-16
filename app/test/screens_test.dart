@@ -528,7 +528,7 @@ void main() {
   group('Today states', () {
     testWidgets('normal: rings, a plan and the B charts', (t) async {
       final db = (await t.runAsync(() => seededDb(days: 30)))!;
-      await render(t, db, const TodayScreen());
+      await render(t, db, const TodayScreen(), h: 2000);
       expect(find.text('RECOVERY'), findsOneWidget);
       expect(find.text('STRAIN'), findsOneWidget);
       expect(find.text('SLEEP'), findsOneWidget);

@@ -190,6 +190,7 @@ Only one app can hold the band, so Mi Fitness must not be running.
 | H2 · Apple Health | — | Read access, Health sync, echo guard, onboarding choice, band-only screens hidden | 7 days on an iPhone + watch with no band: scores ready on opening each morning, nights match the Health app |
 | H3 · Health Connect | — | Same on Android, history and background permissions, reconcile against silent empty reads | 7 days on an Android phone + watch: background job keeps scores current without opening Tempo |
 | E1 · Everyday metrics | — | Sleep regularity and social jetlag (Sleep), body signals (Recovery; Today only when several are off), brisk minutes and longest still stretch (Strain, Trends), heart-rate recovery (Activity); breathing rate from Health | A week of real data where each card's numbers can be checked by hand against the day timeline |
+| C7 · Today's picks | — | Three workouts a day (run with type and intervals, strength with focus and exercises, a game you play), sized to readiness, the week and time to bed; one recommended; choosing one makes it today's plan | Two weeks where each day's picks match what a coach would allow (no hard within 48 h of hard, legs fresh before key runs) |
 | H4 · Switch and polish | — | Profile → Data source, timer-only live workouts, restore rebuilds Health minutes | Band → Health → band on one install with no lost scores |
 
 Phase 0 is the go/no-go. Week counts assume one engineer part-time.
