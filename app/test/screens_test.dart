@@ -14,6 +14,8 @@ import 'package:tempo/src/core/profile.dart';
 import 'package:tempo/src/design/theme.dart';
 import 'package:tempo/src/screens/activity_detail.dart';
 import 'package:tempo/src/screens/baselines.dart';
+import 'package:tempo/src/screens/biomarker.dart';
+import 'package:tempo/src/screens/labs.dart';
 import 'package:tempo/src/screens/calendar.dart';
 import 'package:tempo/src/screens/cardio_load.dart';
 import 'package:tempo/src/screens/coach.dart';
@@ -29,6 +31,7 @@ import 'package:tempo/src/design/components.dart' show Pressable;
 import 'package:tempo/src/screens/day_timeline.dart';
 import 'package:tempo/src/screens/insight_detail.dart';
 import 'package:tempo/src/screens/journal.dart';
+import 'package:tempo/src/screens/journal_customise.dart';
 import 'package:tempo/src/screens/learn.dart';
 import 'package:tempo/src/screens/live_workout.dart';
 import 'package:tempo/src/screens/longevity.dart';
@@ -93,8 +96,10 @@ void main() {
       () => NightDetailScreen(morning: dayOf(DateTime.now())),
       'Overnight heart rate',
     ),
-    'Trends': (() => const TrendsScreen(), 'Sleep performance'),
+    'Trends': (() => const TrendsScreen(), 'Sleep score'),
     'Longevity': (() => const LongevityScreen(), 'TEMPO AGE'),
+    'Biomarker': (() => const BiomarkerScreen(sc.Lever.steps), 'Daily steps'),
+    'Blood tests': (() => const LabsScreen(), 'Add a blood test'),
     'Weekly review': (() => const WeeklyReviewScreen(), 'Your week'),
     'Coach notifications': (() => const CoachSettingsScreen(), 'TRAINING TIME'),
     'Day timeline': (() => const DayTimelineScreen(), 'Heart rate'),
@@ -104,12 +109,16 @@ void main() {
     'Calendar': (() => const CalendarScreen(), 'Calendar'),
     'Insight': (
       () => const InsightDetailScreen(tag: 'alcohol'),
-      'Next-morning recovery',
+      'Every outcome',
     ),
     'Data health': (() => const DataHealthScreen(), 'Wear and gaps'),
     'Workouts': (() => const WorkoutsScreen(), 'Last 7 days'),
     'Band explorer': (() => const BandExplorerScreen(), 'Run explorer'),
     'Journal': (() => const JournalScreen(), 'Yesterday, quickly'),
+    'Customise journal': (
+      () => const JournalCustomiseScreen(),
+      'Customise journal',
+    ),
     'Weekly report': (
       () => const WeeklyReportScreen(),
       'YOUR WEEK IN THREE LINES',
@@ -470,6 +479,10 @@ void main() {
         await render(t, db, const LongevityScreen(), b: b, h: 3200);
         expect(find.text('WHAT SHAPES IT'), findsOneWidget);
         expect(find.text('HEALTH DETAILS'), findsOneWidget);
+        expect(find.textContaining('% confidence'), findsOneWidget);
+        expect(find.textContaining('Likely '), findsOneWidget);
+        expect(find.text('Activity'), findsOneWidget);
+        expect(find.text('Blood tests'), findsOneWidget);
         // Trends has its own tab now.
         expect(find.text('Trends'), findsNothing);
         await teardown(t, db);

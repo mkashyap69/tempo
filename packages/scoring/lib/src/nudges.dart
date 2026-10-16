@@ -13,7 +13,18 @@ import 'coach_day.dart';
 
 const nudgeAlgo = 'nudge-1';
 
-enum NudgeKind { brief, session, missed, lever, winddown, rpe, health, weekly }
+/// New kinds go at the end: [nudgeId] depends on the index.
+enum NudgeKind {
+  brief,
+  session,
+  missed,
+  lever,
+  winddown,
+  rpe,
+  health,
+  weekly,
+  journal,
+}
 
 /// How a kind interrupts. Passive ones go quietly to the shade.
 enum NudgeLevel { passive, active }
@@ -30,6 +41,7 @@ const defaultKinds = {
   NudgeKind.winddown,
   NudgeKind.rpe,
   NudgeKind.health,
+  NudgeKind.journal,
 };
 
 final class NudgeAction {
@@ -61,7 +73,10 @@ final class NudgeSpec {
   /// The user asked for it (Later, Plan 18:00): outside the budget.
   final bool requested;
 
-  NudgeLevel get level => kind == NudgeKind.brief || kind == NudgeKind.weekly
+  NudgeLevel get level =>
+      kind == NudgeKind.brief ||
+          kind == NudgeKind.weekly ||
+          kind == NudgeKind.journal
       ? NudgeLevel.passive
       : NudgeLevel.active;
 }
@@ -111,7 +126,9 @@ final class NudgeContext {
     this.sentLast7 = 0,
     this.rpeWorkout,
     this.illness = false,
+    this.bodyOff = 0,
     this.healthSentToday = false,
+    this.journalPending = false,
     this.model,
     this.seed = 0,
   });
@@ -155,6 +172,13 @@ final class NudgeContext {
   /// A workout to rate: (id, title).
   final (int, String)? rpeWorkout;
   final bool illness, healthSentToday;
+
+  /// Body signals off last night (resting HR, HRV or stress, breathing
+  /// rate, SpO₂). Two or more is the same health alert as [illness].
+  final int bodyOff;
+
+  /// Yesterday's journal check-in isn't done yet.
+  final bool journalPending;
 
   /// Learned timing (C5); null keeps the fixed defaults.
   final SlotModel? model;
@@ -403,8 +427,11 @@ List<NudgeSpec> planNudges(NudgeContext c) {
     );
   }
 
-  // Health: once per day while the illness flag holds.
-  if (c.illness && !c.healthSentToday && on(NudgeKind.health)) {
+  // Health: once per day while the illness flag holds, or while two or
+  // more body signals are off together.
+  if ((c.illness || c.bodyOff >= 2) &&
+      !c.healthSentToday &&
+      on(NudgeKind.health)) {
     final t = quiet(soon) ? at(0, c.wake + 30) : soon;
     if (!t.isBefore(soon)) {
       out.add(
@@ -412,13 +439,36 @@ List<NudgeSpec> planNudges(NudgeContext c) {
           kind: NudgeKind.health,
           id: nudgeId(NudgeKind.health, 0),
           fireAt: t,
-          title: 'Night heart rate ran high',
-          body: 'Rest today? You can pause the plan',
+          title: c.illness
+              ? 'Night heart rate ran high'
+              : '${c.bodyOff} body signals are off',
+          body: c.illness
+              ? 'Rest today? You can pause the plan'
+              : 'They often move together before a cold. Rest today?',
           actions: const [
             NudgeAction('pause3', 'Pause 3 days'),
             NudgeAction('fine', 'I’m fine'),
           ],
           requested: true,
+        ),
+      );
+    }
+  }
+
+  // Journal: two hours after waking, while yesterday's check-in is open.
+  if (c.journalPending &&
+      on(NudgeKind.journal) &&
+      !slowed(NudgeKind.journal, 0)) {
+    final t = at(0, c.wake + 120);
+    if (future(t)) {
+      out.add(
+        NudgeSpec(
+          kind: NudgeKind.journal,
+          id: nudgeId(NudgeKind.journal, 0),
+          fireAt: t,
+          title: 'Yesterday, quickly?',
+          body: 'A few taps so Tempo can see what moves your recovery',
+          actions: const [NudgeAction('open', 'Check in', foreground: true)],
         ),
       );
     }
@@ -453,6 +503,7 @@ const _priority = [
   NudgeKind.winddown,
   NudgeKind.lever,
   NudgeKind.brief,
+  NudgeKind.journal,
   NudgeKind.weekly,
 ];
 

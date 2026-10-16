@@ -114,7 +114,7 @@ Future<TrendSeries> loadSeries(
     final s = scores[st.dateKey(d)];
     m['recovery']!.add(s == null || s.calibrating ? null : s.recovery);
     m['strain']!.add(s?.strain);
-    m['sleep']!.add(s?.sleepPerf);
+    m['sleep']!.add(s?.sleepScore ?? s?.sleepPerf);
     m['rhr']!.add(s?.rhr);
     m['stress']!.add(s?.hrvProxy);
     m['hrv']!.add(s?.hrv);
@@ -194,7 +194,7 @@ final _specs = <_Spec>[
   ),
   _Spec(
     'sleep',
-    'Sleep performance',
+    'Sleep score',
     '% avg',
     _Kind.bar,
     40,

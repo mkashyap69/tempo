@@ -76,6 +76,9 @@ class PluginHealthReader implements HealthReader {
           HealthKind.spo2: [HealthDataType.BLOOD_OXYGEN],
           HealthKind.workout: [HealthDataType.WORKOUT],
           HealthKind.respiratoryRate: [HealthDataType.RESPIRATORY_RATE],
+          HealthKind.water: [HealthDataType.WATER],
+          HealthKind.caffeine: [HealthDataType.DIETARY_CAFFEINE],
+          HealthKind.wristTemp: [HealthDataType.SLEEP_WRIST_TEMPERATURE],
         }
       : const {
           HealthKind.heartRate: [HealthDataType.HEART_RATE],
@@ -95,6 +98,8 @@ class PluginHealthReader implements HealthReader {
           HealthKind.spo2: [HealthDataType.BLOOD_OXYGEN],
           HealthKind.workout: [HealthDataType.WORKOUT],
           HealthKind.respiratoryRate: [HealthDataType.RESPIRATORY_RATE],
+          HealthKind.water: [HealthDataType.WATER],
+          HealthKind.wristTemp: [HealthDataType.SKIN_TEMPERATURE],
         };
 
   @override

@@ -7,6 +7,8 @@ import 'package:store/store.dart' as st;
 
 import 'coach_extras.dart' show stepsToday;
 import 'coach_service.dart';
+import 'everyday.dart' show loadBodySignals;
+import 'journal.dart' show journalCheckedIn;
 import 'longevity_service.dart';
 import 'notifications.dart';
 import 'pause.dart';
@@ -154,6 +156,13 @@ class CoachNotifier {
       break;
     }
 
+    sc.BodySignals body;
+    try {
+      body = await loadBodySignals(db, day: day);
+    } catch (_) {
+      body = const sc.BodySignals([], sc.BodyLevel.learning);
+    }
+
     final model = learnedModel(log, now);
     _algo = model == null ? sc.nudgeAlgo : sc.nudgeAlgoLearned;
     return sc.NudgeContext(
@@ -186,6 +195,11 @@ class CoachNotifier {
           .length,
       rpeWorkout: rpe,
       illness: t.rhrFlag == sc.RhrFlag.illness,
+      bodyOff: body.level == sc.BodyLevel.rest ? body.off.length : 0,
+      journalPending: !await journalCheckedIn(
+        db,
+        day.subtract(const Duration(days: 1)),
+      ),
       healthSentToday: log.any(
         (r) =>
             r.kind == sc.NudgeKind.health.name &&

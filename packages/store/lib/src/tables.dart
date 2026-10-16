@@ -97,6 +97,9 @@ class DailyScores extends Table {
   TextColumn get source => text().withDefault(const Constant('band'))();
   RealColumn get hrv => real().nullable()();
   TextColumn get hrvKind => text().nullable()(); // sdnn | rmssd
+  // v13 (algo 9): sleep score v2 and recovery points taken off for vitals.
+  RealColumn get sleepScore => real().nullable()();
+  RealColumn get vitalsPenalty => real().withDefault(const Constant(0.0))();
   @override
   Set<Column> get primaryKey => {date};
 }
@@ -115,6 +118,10 @@ class Journal extends Table {
   TextColumn get date => text()();
   TextColumn get tag => text()();
   BoolColumn get value => boolean()();
+
+  /// For amount entries the number (drinks, mg, ml); for time entries the
+  /// minute of day. Null for yes/no entries (schema 11).
+  RealColumn get amount => real().nullable()();
   @override
   Set<Column> get primaryKey => {date, tag};
 }
@@ -222,6 +229,10 @@ class Longevity extends Table {
   BoolColumn get calibrating => boolean()();
   TextColumn get contributors => text()(); // JSON
   IntColumn get algoVersion => integer()();
+
+  /// Schema 11 (Tempo Age v2): 0–1 confidence and ± years.
+  RealColumn get confidence => real().nullable()();
+  RealColumn get halfRange => real().nullable()();
   @override
   Set<Column> get primaryKey => {date};
 }
@@ -268,4 +279,20 @@ class HealthMinutes extends Table {
   IntColumn get spo2 => integer().nullable()();
   @override
   Set<Column> get primaryKey => {ts};
+}
+
+/// Logged strength sets (schema 12). User input, editable: a set can be
+/// corrected or removed. Sets belong to a workout by time, not by id, so
+/// logging works with or without a live session.
+@DataClassName('StrengthSetRow')
+class StrengthSets extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get ts => integer()(); // when the set was ticked, seconds
+  TextColumn get exercise => text()(); // scoring exercise id
+  IntColumn get setNo => integer()();
+  RealColumn get kg => real().withDefault(const Constant(0.0))();
+  IntColumn get reps => integer().withDefault(const Constant(0))();
+  IntColumn get seconds => integer().withDefault(const Constant(0))();
+  IntColumn get rir => integer().nullable()(); // reps in reserve
+  TextColumn get superset => text().nullable()(); // group label, e.g. "A"
 }

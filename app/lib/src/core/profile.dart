@@ -66,6 +66,25 @@ abstract final class Keys {
 
   /// Source app id whose sleep counts; unset = every app, merged.
   static const healthSleepSource = 'health_sleep_source';
+
+  /// Source app ids whose heart rate, steps and HRV count; unset = every
+  /// app (A9: data source per metric).
+  static const healthHrSource = 'health_hr_source';
+  static const healthStepsSource = 'health_steps_source';
+  static const healthHrvSource = 'health_hrv_source';
+
+  /// Journal v2: JSON list of entry keys switched on, and the user's own
+  /// entries as JSON [{key, name}].
+  static const journalEntries = 'journal_entries';
+  static const journalCustom = 'journal_custom';
+
+  /// Blood tests, JSON [{date, nine PhenoAge markers}] (Tempo Age v2).
+  static const labs = 'labs';
+
+  /// The running journal experiment, JSON {key, doIt, start, days}, and
+  /// finished ones as a JSON list.
+  static const experiment = 'journal_experiment';
+  static const experimentsDone = 'journal_experiments_done';
 }
 
 /// Everything the user tells Tempo in onboarding and Profile.

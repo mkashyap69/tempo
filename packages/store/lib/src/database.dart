@@ -49,13 +49,14 @@ String dateKey(DateTime d) =>
     HealthRecords,
     HealthDeletions,
     HealthMinutes,
+    StrengthSets,
   ],
 )
 class TempoDb extends _$TempoDb {
   TempoDb(super.e);
 
   @override
-  int get schemaVersion => 10;
+  int get schemaVersion => 13;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -118,8 +119,44 @@ class TempoDb extends _$TempoDb {
         await _appendOnly('health_deletions');
         await _healthIndexes();
       }
+      if (from < 11) {
+        await _addColumns(m, journal, [journal.amount]);
+        await _addColumns(m, longevity, [
+          longevity.confidence,
+          longevity.halfRange,
+        ]);
+      }
+      if (from < 12) {
+        await m.createTable(strengthSets);
+      }
+      if (from < 13) {
+        await _addColumns(m, dailyScores, [
+          dailyScores.sleepScore,
+          dailyScores.vitalsPenalty,
+        ]);
+      }
     },
   );
+
+  /// Adds [columns] to [table], or creates the table whole when it's
+  /// missing (a partial database from a test or an interrupted upgrade).
+  Future<void> _addColumns(
+    Migrator m,
+    TableInfo<Table, dynamic> table,
+    List<GeneratedColumn> columns,
+  ) async {
+    final exists = await customSelect(
+      "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?",
+      variables: [Variable.withString(table.actualTableName)],
+    ).get();
+    if (exists.isEmpty) {
+      await m.createTable(table);
+      return;
+    }
+    for (final c in columns) {
+      await m.addColumn(table, c);
+    }
+  }
 
   Future<void> _healthIndexes() => customStatement(
     'CREATE INDEX IF NOT EXISTS health_records_start '
@@ -470,10 +507,31 @@ class TempoDb extends _$TempoDb {
 
   // ---- journal / sync / settings ----------------------------------------
 
-  Future<void> setJournal(DateTime day, String tag, bool value) => into(journal)
-      .insertOnConflictUpdate(
-        JournalCompanion.insert(date: dateKey(day), tag: tag, value: value),
-      );
+  Future<void> setJournal(
+    DateTime day,
+    String tag,
+    bool value, {
+    double? amount,
+  }) => into(journal).insertOnConflictUpdate(
+    JournalCompanion.insert(
+      date: dateKey(day),
+      tag: tag,
+      value: value,
+      amount: Value(amount),
+    ),
+  );
+
+  /// Removes one answer (an amount or time cleared by the user).
+  Future<void> clearJournal(DateTime day, String tag) => (delete(
+    journal,
+  )..where((j) => j.date.equals(dateKey(day)) & j.tag.equals(tag))).go();
+
+  /// Rows from [from] to [to] inclusive, oldest first.
+  Future<List<JournalData>> journalBetween(DateTime from, DateTime to) =>
+      (select(journal)
+            ..where((j) => j.date.isBetweenValues(dateKey(from), dateKey(to)))
+            ..orderBy([(j) => OrderingTerm.asc(j.date)]))
+          .get();
 
   Future<List<JournalData>> journalFor(DateTime day) =>
       (select(journal)..where((j) => j.date.equals(dateKey(day)))).get();
@@ -767,6 +825,44 @@ class TempoDb extends _$TempoDb {
   Future<void> putLongevity(LongevityCompanion row) =>
       into(longevity).insertOnConflictUpdate(row);
 
+  // ---- strength --------------------------------------------------------
+
+  Future<int> addStrengthSet(StrengthSetsCompanion s) =>
+      into(strengthSets).insert(s);
+
+  Future<void> updateStrengthSet(int id, StrengthSetsCompanion s) =>
+      (update(strengthSets)..where((x) => x.id.equals(id))).write(s);
+
+  Future<void> deleteStrengthSet(int id) =>
+      (delete(strengthSets)..where((x) => x.id.equals(id))).go();
+
+  /// Sets ticked in [from, to), oldest first.
+  Future<List<StrengthSetRow>> strengthSetsBetween(
+    DateTime from,
+    DateTime to,
+  ) =>
+      (select(strengthSets)
+            ..where(
+              (x) =>
+                  x.ts.isBiggerOrEqualValue(toTs(from)) &
+                  x.ts.isSmallerThanValue(toTs(to)),
+            )
+            ..orderBy([(x) => OrderingTerm.asc(x.ts)]))
+          .get();
+
+  Stream<List<StrengthSetRow>> watchStrengthSetsSince(DateTime from) =>
+      (select(strengthSets)
+            ..where((x) => x.ts.isBiggerOrEqualValue(toTs(from)))
+            ..orderBy([(x) => OrderingTerm.asc(x.ts)]))
+          .watch();
+
+  /// Every set of [exercise], oldest first (its progression history).
+  Future<List<StrengthSetRow>> strengthHistory(String exercise) =>
+      (select(strengthSets)
+            ..where((x) => x.exercise.equals(exercise))
+            ..orderBy([(x) => OrderingTerm.asc(x.ts)]))
+          .get();
+
   /// Snapshots oldest first.
   Future<List<LongevitySnapshot>> longevitySince(DateTime from) =>
       (select(longevity)
@@ -793,6 +889,7 @@ class TempoDb extends _$TempoDb {
     'sync_log',
     'longevity',
     'nudge_log',
+    'strength_sets',
   ];
 
   /// Restores rows from an export (`table → rows`). Raw rows already here
@@ -811,7 +908,11 @@ class TempoDb extends _$TempoDb {
         for (final r in await customSelect('PRAGMA table_info($t)').get())
           r.read<String>('name'),
       };
-      final fresh = t == 'workouts' || t == 'sync_log' || t == 'nudge_log';
+      final fresh =
+          t == 'workouts' ||
+          t == 'sync_log' ||
+          t == 'nudge_log' ||
+          t == 'strength_sets';
       final verb = rawTables.contains(t)
           ? 'INSERT OR IGNORE'
           : fresh

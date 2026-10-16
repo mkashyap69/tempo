@@ -33,6 +33,18 @@ enum HealthKind {
   /// Breaths per minute (Apple Watch and most Health Connect watches write
   /// it during sleep).
   respiratoryRate,
+
+  /// Water drunk, litres (Journal v2).
+  water,
+
+  /// Caffeine, grams (Apple Health only; Health Connect keeps it inside
+  /// nutrition records, which Tempo doesn't read).
+  caffeine,
+
+  /// Night temperature: Apple's sleeping wrist temperature (°C), or Health
+  /// Connect's skin temperature, which is already a change from the
+  /// watch's own baseline (°C). Only ever compared with its own nights.
+  wristTemp,
 }
 
 extension HealthKindX on HealthKind {
@@ -83,7 +95,7 @@ final class HealthRecord {
   /// Bundle id (iOS) or package name (Android) of the app that wrote it.
   final String sourceApp;
 
-  /// The writer's display name ("Mukund's Apple Watch", "Oura"), for
+  /// The writer's display name ("Mukund's Apple Watch", "Sleep Ring"), for
   /// Profile → Data sources. Not stored with the record; '' if unknown.
   final String sourceName;
 

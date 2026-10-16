@@ -55,7 +55,7 @@ HRV-guided training gives similar or slightly better fitness gains than fixed pl
   - An RHR elevation of about 5 bpm or more above personal baseline is commonly treated as a warning. A 3–4 bpm rise is within daily noise.
   - An elevation lasting 3 or more consecutive days is seen as a stronger sign of non-functional overreaching or illness.
   - A rule of thumb is to reduce that day's training if RHR is more than 5% above baseline, and to reduce until it normalises if it is more than 10% above.
-  — [Welltory blog](https://welltory.com/blog/overtraining-hrv-drops-resting-heart-rate); [TrainingPeaks coach blog](https://www.trainingpeaks.com/coach-blog/the-4-signs-of-overtraining/); [Outside Run](https://run.outsideonline.com/training/recovery/think-youre-overtraining-check-your-resting-heart-rate/) (low-quality evidence)
+  — HRV app blog; Training-log app coach blog; [Outside Run](https://run.outsideonline.com/training/recovery/think-youre-overtraining-check-your-resting-heart-rate/) (low-quality evidence)
 - One study compared morning and nocturnal HR/HRV responses to intensified training in recreational runners. This is relevant because the Mi Band gives nocturnal HR. — [PMC11541970](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC11541970/) (full text not retrieved)
 
 ### Inferences
@@ -91,7 +91,7 @@ Coaching practice: don't stack or double up missed work. Move a missed key sessi
   - Exception: sleep-onset latency, total sleep time and sleep efficiency may be impaired after vigorous exercise ending 1 h or less before bedtime.
   - Higher physical stress relative to a person's usual activity was associated with lower sleep efficiency and more wake after sleep onset.
   — [Springer](https://link.springer.com/article/10.1007/s40279-018-1015-0)
-- Leota et al. 2025 (Nature Communications), about 14,689 WHOOP users and about 4 million nights over 1 year:
+- Leota et al. 2025 (Nature Communications), about 14,689 Strap app users and about 4 million nights over 1 year:
   - Later and higher-strain exercise was associated with delayed sleep onset, shorter and poorer sleep, higher nocturnal RHR and lower nocturnal HRV.
   - Bouts ending at least 4 h before sleep onset were not associated with sleep changes, regardless of strain.
   - Recommendation: finish at least 4 h before sleep, or choose lighter strain inside that window.
@@ -223,7 +223,7 @@ These are evidence-anchored defaults; each one should be configurable and versio
 - Aerobic 150–300 min moderate or 75–150 min vigorous a week. — [WHO 2020](https://pmc.ncbi.nlm.nih.gov/articles/PMC7719906/)
 - Deload every 4–8 weeks: 5–7 days at −40–60% volume. — [Bell 2023](https://link.springer.com/article/10.1186/s40798-023-00633-0)
 - Steps 6–8k (age 60+) or 8–10k (under 60) daily for the mortality plateau. — [Paluch 2022](https://www.thelancet.com/journals/lanpub/article/PIIS2468-2667(21)00302-9/fulltext)
-- RHR ≥ 5 bpm above baseline means downgrade; elevated for 3 or more days means rest or check for illness. — practitioner only: [TrainingPeaks](https://www.trainingpeaks.com/coach-blog/the-4-signs-of-overtraining/)
+- RHR ≥ 5 bpm above baseline means downgrade; elevated for 3 or more days means rest or check for illness. — practitioner only: Training-log app
 
 ### Inferences
 Decision order for "today's session":

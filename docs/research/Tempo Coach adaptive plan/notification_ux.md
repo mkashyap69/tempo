@@ -23,7 +23,7 @@ A single well-timed notification has a large short-term effect: about 3.5x the o
 - Treat each push as having a cost. Keep a rolling "dose" (pushes in the last 24h and 7d) and require a higher expected benefit when the dose is high.
 
 ### Gaps
-- No rigorous public data was found that links pushes per day to opt-out specifically for wearable coaching apps (Whoop/Oura/Garmin don't publish this).
+- No rigorous public data was found that links pushes per day to opt-out specifically for wearable coaching apps (Strap app/Ring app/Watch brand A don't publish this).
 - The original methodology behind the "46% opt out at 2–5/week" figure could not be verified.
 
 ## 2. Timing: receptivity, availability, quiet hours, learning best times
@@ -61,8 +61,8 @@ Each notification should give one data-based "why" plus one optional action, be 
 - **Self-determination theory meta-analysis** of techniques that promote autonomous motivation for health (Gillison et al. 2019) — [Health Psychology Review PDF](https://selfdeterminationtheory.org/wp-content/uploads/2019/03/2019_GillisonEtAl_HPR_MetaAnalysis.pdf) (not read in full)
 - **Supporting autonomy is a prerequisite for autonomous motivation**, which predicts long-term achievement of health goals (Ng et al. 2012 meta-analysis) — [Ng & Ntoumanis 2012](https://selfdeterminationtheory.org/SDT/documents/2012-NgNtoumanis_PPS.pdf)
 - **Mehrotra:** irrelevant content gets dismissed; useful or urgent content gets timely attention — [Mehrotra 2016](https://pure-oai.bham.ac.uk/ws/files/29196179/Mehrotra_2016_CHI.pdf)
-- **Whoop pattern.** Strain Coach gives a daily strain target from morning recovery: for example, 85% recovery → target 14–18; 35% → keep strain under 10 with active recovery. Sleep Coach sets the bedtime from the day's strain. The AI coach adds context-aware nudges (hydration, timing, intensity) using location, weather and physiology — [Whoop support: AI Coach](https://support.whoop.com/s/article/How-to-Use-the-AI-Powered-WHOOP-Coach?language=en_US); [Whoop Sleep](https://support.whoop.com/s/article/WHOOP-Sleep?language=en_US); secondary: [liveworksleep](https://liveworksleep.com/whoop-app-features/)
-- **Oura** flags possible illness symptoms when the body is "under strain" and nudges the user to pay attention — [humanwindow comparison (secondary)](https://humanwindow.com/oura-ring-vs-whoop/)
+- **Strap app pattern.** Strain Coach gives a daily strain target from morning recovery: for example, 85% recovery → target 14–18; 35% → keep strain under 10 with active recovery. Sleep Coach sets the bedtime from the day's strain. The AI coach adds context-aware nudges (hydration, timing, intensity) using location, weather and physiology — Strap app support: AI Coach; Strap app Sleep; secondary: liveworksleep
+- **Ring app** flags possible illness symptoms when the body is "under strain" and nudges the user to pay attention — humanwindow comparison (secondary)
 
 ### Inferences (proposed Tempo copy rules)
 - Template: **[signal] → [meaning] → [one optional action]**. Example: title "Recovery 41% · HRV down" / body "Easy day could help — want a Zone 2 plan?"
@@ -72,7 +72,7 @@ Each notification should give one data-based "why" plus one optional action, be 
 - Content needs to make sense on a lock screen. Hide sensitive health values on the lock screen by default (Android visibility PRIVATE with a public version; iOS hiddenPreviewsBodyPlaceholder).
 
 ### Gaps
-- No primary source was found with Whoop, Oura, Garmin, Apple Fitness, Duolingo or Headspace push copy verbatim. Product teardowns found were secondary blogs.
+- No primary source was found with Strap app, Ring app, Watch brand A, a fitness app, Duolingo or Headspace push copy verbatim. Product teardowns found were secondary blogs.
 - Evidence on loss vs gain framing specifically for wearable readiness messages was not found in this pass.
 
 ## 4. Actionable patterns: inline actions, snooze, quick RPE, deep links, grouping, digests, streaks

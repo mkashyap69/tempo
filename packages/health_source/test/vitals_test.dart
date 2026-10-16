@@ -57,6 +57,20 @@ void main() {
     test('null with nothing in the night', () {
       expect(nightHrv(const [], night0, night1), isNull);
     });
+
+    test('one chosen app only', () {
+      final h = nightHrv(
+        [
+          r(HealthKind.hrvRmssd, DateTime(2026, 10, 2, 2), 30, src: 'watch'),
+          r(HealthKind.hrvSdnn, DateTime(2026, 10, 2, 3), 70, src: 'ring'),
+        ],
+        night0,
+        night1,
+        source: 'ring',
+      )!;
+      expect(h.kind, HrvKind.sdnn);
+      expect(h.ms, closeTo(70, 1e-9));
+    });
   });
 
   test('night breathing rate: mean of plausible readings in the night', () {
@@ -101,14 +115,14 @@ void main() {
           extra: 'RUNNING',
           src: 'com.apple.health',
         ),
-        // Strava logging the same run a minute later.
+        // A running app logging the same run a minute later.
         r(
           HealthKind.workout,
           a.add(const Duration(minutes: 1)),
           0,
           b: a.add(const Duration(minutes: 41)),
           extra: 'RUNNING',
-          src: 'com.strava',
+          src: 'com.example.runlog',
         ),
         r(
           HealthKind.workout,

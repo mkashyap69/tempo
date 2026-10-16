@@ -10,6 +10,8 @@ import '../design/tokens.dart';
 import '../design/type.dart';
 import '../state/live_session.dart';
 import 'activity_detail.dart' show effectProvider, EffectQuery;
+import 'nav.dart' show push;
+import 'strength_log.dart';
 
 /// Reads at arm's length: 132 px HR, 72 px controls.
 class LiveWorkoutScreen extends ConsumerWidget {
@@ -435,6 +437,16 @@ class _Live extends ConsumerWidget {
             ],
           ),
         ),
+        if (s.sport == sc.Sport.strength && !failed)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+            child: TempoButton(
+              'Log sets',
+              kind: ButtonKind.secondary,
+              expand: true,
+              onTap: () => push(context, StrengthLogScreen(plan: s.plan)),
+            ),
+          ),
         Padding(
           padding: EdgeInsets.fromLTRB(20, 16, 20, 16 + bottom),
           child: Row(

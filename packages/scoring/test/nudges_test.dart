@@ -307,4 +307,69 @@ void main() {
       expect(l.fireAt.hour * 60 + l.fireAt.minute, l.payload['choice']);
     });
   });
+
+  group('health and journal', () {
+    NudgeContext c({
+      DateTime? now,
+      bool illness = false,
+      int bodyOff = 0,
+      bool journalPending = false,
+      Set<NudgeKind> kinds = defaultKinds,
+    }) => NudgeContext(
+      now: now ?? DateTime(2026, 10, 5, 7),
+      wake: 6 * 60 + 30,
+      bedtime: 22 * 60 + 30,
+      today: const NudgeDay(
+        title: 'Rest',
+        minutes: 0,
+        rest: true,
+        status: DayStatus.rest,
+      ),
+      illness: illness,
+      bodyOff: bodyOff,
+      journalPending: journalPending,
+      kinds: kinds,
+    );
+
+    test('two or more body signals off raise the health alert', () {
+      expect(
+        planNudges(c(bodyOff: 1)).where((n) => n.kind == NudgeKind.health),
+        isEmpty,
+      );
+      final h = planNudges(c(bodyOff: 2))
+          .singleWhere((n) => n.kind == NudgeKind.health);
+      expect(h.title, '2 body signals are off');
+      expect(h.actions.map((a) => a.id), ['pause3', 'fine']);
+    });
+
+    test('the heart-rate wording wins when both hold', () {
+      final h = planNudges(c(illness: true, bodyOff: 3))
+          .singleWhere((n) => n.kind == NudgeKind.health);
+      expect(h.title, 'Night heart rate ran high');
+    });
+
+    test('journal reminder two hours after waking, passive', () {
+      final j = planNudges(c(journalPending: true))
+          .singleWhere((n) => n.kind == NudgeKind.journal);
+      expect(j.fireAt, DateTime(2026, 10, 5, 8, 30));
+      expect(j.level, NudgeLevel.passive);
+      expect(j.actions.single.foreground, isTrue);
+    });
+
+    test('no journal reminder when done, switched off or already past', () {
+      bool has(NudgeContext x) =>
+          planNudges(x).any((n) => n.kind == NudgeKind.journal);
+      expect(has(c()), isFalse);
+      expect(has(c(journalPending: true, kinds: {NudgeKind.brief})), isFalse);
+      expect(
+        has(c(journalPending: true, now: DateTime(2026, 10, 5, 9))),
+        isFalse,
+      );
+    });
+
+    test('new kinds keep the old notification ids', () {
+      expect(nudgeId(NudgeKind.weekly, 0), 170);
+      expect(nudgeId(NudgeKind.journal, 0), 180);
+    });
+  });
 }

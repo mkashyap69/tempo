@@ -46,7 +46,7 @@ class TodayRings extends StatelessWidget {
         ? t.nights / 14
         : (r ?? 0) / 100;
     final strainColor = s.strain[2];
-    final sp = t.sleepPerf;
+    final sp = t.sleepScore;
     final rings = [
       RingSpec(recFrac, recColor),
       RingSpec(
@@ -706,9 +706,9 @@ class LastNightStrip extends ConsumerWidget {
                   style: TempoType.label.c(c.text1).tnum,
                 ),
               ),
-              if (t.sleepPerf != null)
+              if (t.sleepScore != null)
                 Text(
-                  '${t.sleepPerf!.round()}%',
+                  'Sleep ${t.sleepScore!.round()}',
                   style: TempoType.label.c(s.sleepChannel).tnum,
                 ),
             ],

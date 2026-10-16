@@ -707,8 +707,8 @@ class _OnboardingState extends ConsumerState<OnboardingScreen> {
               health,
               health.label,
               health == DataSource.appleHealth
-                  ? 'Any watch or ring that writes to Apple Health (Apple Watch, Oura, Garmin…). Heart rate, sleep stages, HRV, steps and workouts, read-only.'
-                  : 'Any watch or ring that writes to Health Connect (Pixel Watch, Fitbit, Galaxy Watch, Garmin…). Heart rate, sleep stages, HRV, steps and workouts, read-only.',
+                  ? 'Any watch or ring that writes to Apple Health (Apple Watch and others). Heart rate, sleep stages, HRV, steps and workouts, read-only.'
+                  : 'Any watch or ring that writes to Health Connect. Heart rate, sleep stages, HRV, steps and workouts, read-only.',
             ),
             const SizedBox(height: 14),
             PrivacyNote(

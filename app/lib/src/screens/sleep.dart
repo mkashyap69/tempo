@@ -304,19 +304,24 @@ class SleepScreen extends ConsumerWidget {
                 TextSpan(
                   children: [
                     TextSpan(
-                      text: '${perf?.round() ?? '—'}',
+                      text: '${t.sleepScore?.round() ?? '—'}',
                       style: TempoType.hero.c(c.text1),
                     ),
                     TextSpan(
-                      text: '% of need',
+                      text: ' sleep score',
                       style: TempoType.titleM.c(c.text3),
                     ),
                   ],
                 ),
               ),
+              if (perf != null)
+                Text(
+                  '${perf.round()}% of need · bedtime, efficiency, wake-ups and heart-rate dip make up the rest',
+                  style: TempoType.caption.c(c.text2).tnum,
+                ),
               const SizedBox(height: 10),
               TargetStrip(
-                value: (perf ?? 0),
+                value: (t.sleepScore ?? 0),
                 max: 100,
                 color: s.sleepChannel,
                 height: 10,

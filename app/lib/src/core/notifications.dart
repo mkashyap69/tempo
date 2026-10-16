@@ -41,6 +41,7 @@ String? tapTarget(String? payload, String? actionId) {
   return switch (kind) {
     'rpe' => 'workouts',
     'weekly' => 'review',
+    'journal' => 'journal',
     _ => 'coach',
   };
 }
@@ -85,8 +86,16 @@ String nudgePayload(sc.NudgeSpec n) => jsonEncode({
   sc.NudgeKind.health => (
     id: 'coach_health',
     name: 'Health signals',
-    desc: 'When your night heart rate runs well above usual.',
+    desc:
+        'When your night heart rate runs well above usual, or several '
+        'body signals are off together.',
     imp: Importance.defaultImportance,
+  ),
+  sc.NudgeKind.journal => (
+    id: 'coach_journal',
+    name: 'Journal reminder',
+    desc: 'A quiet morning reminder while yesterday’s check-in is open.',
+    imp: Importance.low,
   ),
 };
 
@@ -140,6 +149,10 @@ List<DarwinNotificationCategory> _categories() {
     DarwinNotificationCategory(
       'coach_health',
       actions: [a('pause3', 'Pause 3 days'), a('fine', 'I’m fine')],
+    ),
+    DarwinNotificationCategory(
+      'coach_journal',
+      actions: [a('open', 'Check in', fg: true)],
     ),
     DarwinNotificationCategory(
       'coach_weekly',

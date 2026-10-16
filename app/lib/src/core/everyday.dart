@@ -59,7 +59,11 @@ Future<Rhythm> loadRhythm(st.TempoDb db, {DateTime? now}) async {
 
 /// Body signals for the night ending on [day]'s morning, against up to 60
 /// earlier nights of the same source (paused days left out).
-Future<sc.BodySignals> loadBodySignals(st.TempoDb db, {DateTime? day}) async {
+Future<sc.BodySignals> loadBodySignals(
+  st.TempoDb db, {
+  DateTime? day,
+  ({DateTime a, DateTime b})? tonight,
+}) async {
   final d = dayOf(day ?? DateTime.now());
   final score = await db.scoreFor(d);
   final source = score?.source ?? (await loadDataSource(db)).key;
@@ -76,7 +80,9 @@ Future<sc.BodySignals> loadBodySignals(st.TempoDb db, {DateTime? day}) async {
       s?.sleepStart == null || s?.sleepEnd == null
       ? null
       : (a: st.fromTs(s!.sleepStart!), b: st.fromTs(s.sleepEnd!));
-  final spans = [span(score), for (final s in past) span(s)];
+  // [tonight] stands in for the stored night while the day is being
+  // scored (score_service: the recovery penalty).
+  final spans = [tonight ?? span(score), for (final s in past) span(s)];
   final real = spans.whereType<({DateTime a, DateTime b})>().toList();
   final lo = real.isEmpty
       ? d
@@ -90,7 +96,7 @@ Future<sc.BodySignals> loadBodySignals(st.TempoDb db, {DateTime? day}) async {
           db,
           lo.subtract(const Duration(hours: 1)),
           hi.add(const Duration(hours: 1)),
-          kinds: const [hs.HealthKind.respiratoryRate],
+          kinds: const [hs.HealthKind.respiratoryRate, hs.HealthKind.wristTemp],
         )
       : const <hs.HealthRecord>[];
   double? nightSpo2(({DateTime a, DateTime b})? n) {
@@ -110,6 +116,8 @@ Future<sc.BodySignals> loadBodySignals(st.TempoDb db, {DateTime? day}) async {
 
   double? nightResp(({DateTime a, DateTime b})? n) =>
       n == null ? null : hs.nightRespiratoryRate(resp, n.a, n.b);
+  double? nightTemp(({DateTime a, DateTime b})? n) =>
+      n == null ? null : hs.nightTemperature(resp, n.a, n.b);
 
   return sc.bodySignals([
     sc.SignalInput(
@@ -154,7 +162,30 @@ Future<sc.BodySignals> loadBodySignals(st.TempoDb db, {DateTime? day}) async {
       higherIsWorse: false,
       minDelta: 1.5,
     ),
+    if (health)
+      sc.SignalInput(
+        key: 'temp',
+        value: nightTemp(spans.first),
+        history: [for (final n in spans.skip(1)) ?nightTemp(n)],
+        higherIsWorse: true,
+        minDelta: .3,
+      ),
   ]);
+}
+
+/// How far last night's breathing rate, SpO₂ and temperature sit the wrong
+/// way from your normal (z, positive = worse), for the recovery penalty.
+/// Resting HR and HRV are already in recovery, so they're left out here.
+Future<List<double?>> nightVitalsZ(
+  st.TempoDb db,
+  DateTime day,
+  ({DateTime a, DateTime b}) night,
+) async {
+  final s = await loadBodySignals(db, day: day, tonight: night);
+  return [
+    for (final r in s.readings)
+      if (const {'resp', 'spo2', 'temp'}.contains(r.key)) r.z,
+  ];
 }
 
 String signalName(String key) => switch (key) {
@@ -163,6 +194,7 @@ String signalName(String key) => switch (key) {
   'stress' => 'Overnight stress',
   'resp' => 'Breathing rate',
   'spo2' => 'Blood oxygen',
+  'temp' => 'Night temperature',
   _ => key,
 };
 
@@ -173,6 +205,7 @@ String signalValue(String key, double v) => switch (key) {
   'stress' => '${v.round()}',
   'resp' => '${v.toStringAsFixed(1)} /min',
   'spo2' => '${v.toStringAsFixed(1)} %',
+  'temp' => '${v.toStringAsFixed(2)} °C',
   _ => v.toStringAsFixed(1),
 };
 

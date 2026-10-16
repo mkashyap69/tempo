@@ -118,6 +118,10 @@ class TodayData {
   double? get recovery => calibrating ? null : score?.recovery;
   double get strain => score?.strain ?? 0;
   double? get sleepPerf => score?.sleepPerf;
+
+  /// The sleep number shown everywhere (algo 9's sleep score); nights
+  /// scored before it fall back to sleep performance.
+  double? get sleepScore => score?.sleepScore ?? score?.sleepPerf;
   double? get slept => score?.sleptHours;
   double? get need => score?.needHours;
   bool get hasNight => score?.sleepEnd != null;
@@ -180,6 +184,7 @@ Future<TodayData> loadToday(st.TempoDb db, {DateTime? at}) async {
           recovery: calibrating ? null : score?.recovery,
           calibrating: calibrating,
           load: load.status,
+          loadRatio: load.ratio,
         )
       : const sc.StrainTarget(8, 12, general: true);
   final coach = CoachService(db);

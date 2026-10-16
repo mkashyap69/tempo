@@ -9,7 +9,9 @@ import '../design/components.dart';
 import '../design/tokens.dart';
 import '../design/type.dart';
 import '../state/providers.dart';
+import 'nav.dart' show push;
 import 'strain.dart' show ActivityRow, mmssShort;
+import 'strength_log.dart';
 
 /// Every workout, newest first: recorded on the band, live in Tempo, or
 /// auto-detected from heart rate and steps.
@@ -58,6 +60,13 @@ class _WorkoutsState extends ConsumerState<WorkoutsScreen> {
             for (final w in all)
               if (!st.fromTs(w.start).isBefore(weekAgo)) w,
           ],
+        ),
+        const FreshnessCard(),
+        TempoButton(
+          'Log a strength session',
+          kind: ButtonKind.secondary,
+          expand: true,
+          onTap: () => push(context, const StrengthLogScreen()),
         ),
         if (sports.length > 1)
           SingleChildScrollView(

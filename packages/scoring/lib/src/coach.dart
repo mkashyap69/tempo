@@ -802,6 +802,7 @@ StrainTarget strainTarget({
   double? recovery,
   bool calibrating = false,
   LoadStatus load = LoadStatus.learning,
+  double? loadRatio,
 }) {
   if (recovery == null && !calibrating)
     return const StrainTarget(8, 12, general: true);
@@ -811,11 +812,41 @@ StrainTarget strainTarget({
   if (recovery <= 33 || (over && recovery < overRestBelow)) {
     return const StrainTarget(0, 8, cap: true);
   }
-  if (recovery < 50) return const StrainTarget(8, 12);
-  if (recovery < 67 || over) return const StrainTarget(10, 13);
-  if (recovery < 80) return const StrainTarget(13, 16);
-  if (recovery < 90) return const StrainTarget(14, 17);
-  return const StrainTarget(15, 18);
+  final StrainTarget t;
+  if (recovery < 50) {
+    t = const StrainTarget(8, 12);
+  } else if (recovery < 67 || over) {
+    t = const StrainTarget(10, 13);
+  } else if (recovery < 80) {
+    t = const StrainTarget(13, 16);
+  } else if (recovery < 90) {
+    t = const StrainTarget(14, 17);
+  } else {
+    t = const StrainTarget(15, 18);
+  }
+  return adjustForLoad(t, recovery, load, loadRatio);
+}
+
+/// The 7-day vs 28-day load ratio nudges a target (A9): a well-recovered
+/// week well under your normal (< 0.8) has room to build, so the range
+/// moves up a point; a week running hot (> 1.2, short of overreaching)
+/// takes a point off the top. Starting values to calibrate.
+StrainTarget adjustForLoad(
+  StrainTarget t,
+  double recovery,
+  LoadStatus load,
+  double? ratio,
+) {
+  if (ratio == null || load == LoadStatus.learning || t.cap || t.general) {
+    return t;
+  }
+  if (ratio < .8 && recovery >= 67) {
+    return StrainTarget(min(20, t.lo + 1), min(21, t.hi + 1));
+  }
+  if (ratio > 1.2 && load != LoadStatus.overreaching) {
+    return StrainTarget(t.lo, max(t.lo + 1, t.hi - 1));
+  }
+  return t;
 }
 
 DayState dayState({

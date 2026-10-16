@@ -1,20 +1,20 @@
-# Whoop-style app on Mi Band 6 — E2E plan
+# Recovery, strain and sleep app on Mi Band 6 — E2E plan
 
 As of Oct 3, 2026 · Owner: Manish
 
 ## Summary
 
-We build a Flutter app for Android and iOS that talks to the Mi Band 6 directly over Bluetooth LE and turns its data into three Whoop-style daily scores: Strain (0–21), Sleep performance (%) and Recovery (0–100%). No Mi Fitness, no Gadgetbridge, no vendor cloud at runtime.
+We build a Flutter app for Android and iOS that talks to the Mi Band 6 directly over Bluetooth LE and turns its data into three daily scores: Strain (0–21), Sleep performance (%) and Recovery (0–100%). No Mi Fitness, no Gadgetbridge, no vendor cloud at runtime.
 
 Decisions locked:
 
 - **Stack:** Flutter, one codebase for Android and iOS.
 - **Data path:** direct BLE. Our app owns the band; Mi Fitness is used once, only to obtain the auth key. Or, without a band, read-only from Apple Health / Health Connect (decided 2026-10-06; one source per install, see `docs/research/Health connectors plan.md`).
 - **Storage:** fully on-device, no backend. Raw data is immutable; scores are recomputed from it whenever the algorithm changes. Backups via data export in Settings.
-- **Hardware:** Mi Band 6 over BLE. Any other watch or ring only through what it writes to Apple Health / Health Connect. No Polar H10 or other direct sensors.
+- **Hardware:** Mi Band 6 over BLE. Any other watch or ring only through what it writes to Apple Health / Health Connect. No chest straps or other direct sensors.
 - **Audience:** personal tool. Pairing takes a pasted auth key (no guided key extraction), sideloaded builds, no multi-user accounts in v1.
 
-The honest ceiling: Mi Band 6 gives per-minute heart rate, steps, sleep stages (light, deep, REM) and a stress index, but not raw beat-to-beat (RR) intervals. Strain and Sleep can match Whoop's logic closely; Recovery uses the band's stress index as an HRV proxy.
+The honest ceiling: Mi Band 6 gives per-minute heart rate, steps, sleep stages (light, deep, REM) and a stress index, but not raw beat-to-beat (RR) intervals. Strain and Sleep can match the leading strap's logic closely; Recovery uses the band's stress index as an HRV proxy.
 
 v1 is done when the band syncs in the background on both platforms, the three scores are ready on waking, and they have run for 30 straight days on real data.
 
@@ -192,6 +192,7 @@ Only one app can hold the band, so Mi Fitness must not be running.
 | E1 · Everyday metrics | — | Sleep regularity and social jetlag (Sleep), body signals (Recovery; Today only when several are off), brisk minutes and longest still stretch (Strain, Trends), heart-rate recovery (Activity); breathing rate from Health | A week of real data where each card's numbers can be checked by hand against the day timeline |
 | C7 · Today's picks | — | Three workouts a day (run with type and intervals, strength with focus and exercises, a game you play), sized to readiness, the week and time to bed; one recommended; choosing one makes it today's plan | Two weeks where each day's picks match what a coach would allow (no hard within 48 h of hard, legs fresh before key runs) |
 | H4 · Switch and polish | — | Profile → Data source, timer-only live workouts, restore rebuilds Health minutes | Band → Health → band on one install with no lost scores |
+| T1 · Teardown next steps | — | Body-signals alert and journal reminder; Journal v2 (catalogue, amounts, automatic entries) and impact engine with experiments; Tempo Age v2 (groups, overlap, confidence, PhenoAge); strength log, progression and freshness; algo 9 (vitals penalty, sleep score v2, load-aware target, source per metric). See `docs/research/Competitor teardown and next steps.md` | Backtest 2020–2026 on the real export with no week of Tempo Age jumping over a year; 4 weeks of logged lifting where each suggested weight is one a coach would set; 14 days of journal with no wrong automatic entry |
 
 Phase 0 is the go/no-go. Week counts assume one engineer part-time.
 
@@ -205,6 +206,6 @@ Phase 0 is the go/no-go. Week counts assume one engineer part-time.
 | Porting Gadgetbridge code | AGPL-3.0 contamination | Protocol reference only; own implementation |
 | iOS background limits | Scores late some mornings | Sync on open; show last sync time |
 | Wrist optical HR lags in intervals/lifting | Strain under-counts | Label workout strain as an estimate |
-| Naming and claims | Trademark issues | No "Whoop" or "Mi" in the app name; wellness wording only |
+| Naming and claims | Trademark issues | No competitor or vendor names in the app name; wellness wording only |
 | Sparse or late Health data | Strain low, scores change after the morning | Interpolate HR gaps ≤ 15 min; re-read 3 days (10 once a day) and rescore |
 | Health read fails silently (empty list) | Records wrongly removed | Tombstone only when the re-read found at least half as many records |

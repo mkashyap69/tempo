@@ -9,6 +9,7 @@ import '../design/icons.dart';
 import '../design/tokens.dart';
 import '../design/type.dart';
 import '../state/providers.dart';
+import 'strength_log.dart';
 import 'nav.dart';
 
 /// Today's three picks: a run, a strength session and a game or other
@@ -202,6 +203,21 @@ class _PickSheet extends StatelessWidget {
                 await openLive(context, ref, plan: p.session);
               },
             ),
+            if (p.kind == sc.PickKind.strength) ...[
+              const SizedBox(height: 8),
+              TempoButton(
+                'Log sets',
+                kind: ButtonKind.text,
+                expand: true,
+                onTap: () async {
+                  await CoachService(ref.read(dbProvider))
+                      .swapToday(p.session, 'you picked ${p.session.title}');
+                  if (!context.mounted) return;
+                  Navigator.pop(context);
+                  await push(context, StrengthLogScreen(plan: p.session));
+                },
+              ),
+            ],
           ],
         ),
       ),
@@ -273,6 +289,11 @@ class PickDetailView extends StatelessWidget {
                         ),
                       ],
                     ),
+                    if (e.kg != null)
+                      Text(
+                        '${e.kg! == e.kg!.roundToDouble() ? e.kg!.round() : e.kg} kg × ${e.reps} · ${e.target ?? ''}',
+                        style: TempoType.caption.c(context.s.recHigh),
+                      ),
                     if (e.home != null && e.home != e.name)
                       Text(
                         'At home: ${e.home}',

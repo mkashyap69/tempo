@@ -330,4 +330,4 @@ The sync connects, authenticates, fetches each data type from its cursor in `syn
 
 ---
 
-*Tempo is an independent personal project. It isn't affiliated with or endorsed by Xiaomi, Huami/Zepp or WHOOP. Product names are used only to describe compatibility.*
+*Tempo is an independent personal project. It isn't affiliated with or endorsed by Xiaomi or Huami/Zepp. Product names are used only to describe compatibility.*

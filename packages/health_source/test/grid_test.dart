@@ -61,6 +61,20 @@ void main() {
       final g = HealthGrid()..add(hr(0, 70, src: tempoAppId));
       expect(g.minutes(m(0), m(1)).single.hr, isNull);
     });
+
+    test('heart rate and steps from one chosen app only', () {
+      final g =
+          HealthGrid(const GridParams(hrSource: 'ring', stepsSource: 'phone'))
+            ..addAll([
+              hr(0, 60, src: 'watch'),
+              hr(0, 80, src: 'ring'),
+              rec(HealthKind.steps, m(0), m(1), 50, src: 'watch'),
+              rec(HealthKind.steps, m(0), m(1), 30, src: 'phone'),
+            ]);
+      final x = g.minutes(m(0), m(1)).single;
+      expect(x.hr, 80);
+      expect(x.steps, 30);
+    });
   });
 
   group('steps', () {
@@ -164,9 +178,9 @@ void main() {
 
     test('a Health Connect session with stages uses the stages', () {
       final g = HealthGrid()
-        ..add(rec(HealthKind.sleepSession, m(0), m(4), 4, src: 'fitbit'))
-        ..add(rec(HealthKind.sleepAwake, m(0), m(1), 1, src: 'fitbit'))
-        ..add(rec(HealthKind.sleepDeep, m(1), m(4), 3, src: 'fitbit'));
+        ..add(rec(HealthKind.sleepSession, m(0), m(4), 4, src: 'band'))
+        ..add(rec(HealthKind.sleepAwake, m(0), m(1), 1, src: 'band'))
+        ..add(rec(HealthKind.sleepDeep, m(1), m(4), 3, src: 'band'));
       expect(
         [for (final x in g.minutes(m(0), m(4))) x.sleep],
         [SleepMark.awake, SleepMark.deep, SleepMark.deep, SleepMark.deep],

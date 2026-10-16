@@ -447,9 +447,10 @@ Future<void> rebuildHealthMinutes(
   final end = DateTime.fromMillisecondsSinceEpoch(
     (to.millisecondsSinceEpoch ~/ 60000 + 1) * 60000,
   );
-  final sleepFrom = await db.setting(Keys.healthSleepSource);
   final params = GridParams(
-    sleepSource: sleepFrom == null || sleepFrom.isEmpty ? null : sleepFrom,
+    sleepSource: await metricSource(db, SourceMetric.sleep),
+    hrSource: await metricSource(db, SourceMetric.heartRate),
+    stepsSource: await metricSource(db, SourceMetric.steps),
   );
   for (var a = a0; a.isBefore(end); a = a.add(HealthSyncService.chunk)) {
     final next = a.add(HealthSyncService.chunk);
@@ -501,7 +502,7 @@ Future<Map<String, String>> sourceNames(TempoDb db) async {
 }
 
 /// A readable name for a source app: what Health called it, else the
-/// last part of its id ("com.ouraring.oura" → "Oura").
+/// last part of its id ("com.example.sleepring" → "Sleepring").
 String sourceLabel(String id, Map<String, String> names) {
   final n = names[id];
   if (n != null && n.isNotEmpty) return n;
@@ -521,17 +522,49 @@ final class SleepSourceInfo {
   final DateTime last;
 }
 
+/// A measure whose source app can be chosen (Profile → Data sources).
+enum SourceMetric {
+  sleep(Keys.healthSleepSource),
+  heartRate(Keys.healthHrSource),
+  steps(Keys.healthStepsSource),
+  hrv(Keys.healthHrvSource);
+
+  const SourceMetric(this.key);
+  final String key;
+
+  List<HealthKind> get kinds => switch (this) {
+    SourceMetric.sleep => [
+      for (final k in HealthKind.values)
+        if (k.isSleep) k,
+    ],
+    SourceMetric.heartRate => const [HealthKind.heartRate],
+    SourceMetric.steps => const [HealthKind.steps],
+    SourceMetric.hrv => const [HealthKind.hrvSdnn, HealthKind.hrvRmssd],
+  };
+}
+
+/// The chosen app for [m], or null for every app.
+Future<String?> metricSource(TempoDb db, SourceMetric m) async {
+  final v = await db.setting(m.key);
+  return v == null || v.isEmpty ? null : v;
+}
+
 /// Apps that wrote sleep in the last [days] days, most nights first.
 Future<List<SleepSourceInfo>> sleepSources(
   TempoDb db, {
   int days = 30,
   DateTime? now,
+}) => metricSources(db, SourceMetric.sleep, days: days, now: now);
+
+/// Apps that wrote [m] in the last [days] days, most days first.
+Future<List<SleepSourceInfo>> metricSources(
+  TempoDb db,
+  SourceMetric m, {
+  int days = 30,
+  DateTime? now,
 }) async {
   final since = (now ?? DateTime.now()).subtract(Duration(days: days));
-  final kinds = [
-    for (final k in HealthKind.values)
-      if (k.isSleep) "'${k.name}'",
-  ].join(', ');
+  final kinds = [for (final k in m.kinds) "'${k.name}'"].join(', ');
   final rows = await db
       .customSelect(
         'SELECT source_app, end_ms FROM health_records '
@@ -563,11 +596,16 @@ Future<List<SleepSourceInfo>> sleepSources(
 
 /// Uses only [id]'s sleep (null: every app, merged), then rebuilds the
 /// stored Health minutes and rescores everything they cover.
-Future<void> setSleepSource(TempoDb db, String? id) async {
+Future<void> setSleepSource(TempoDb db, String? id) =>
+    setMetricSource(db, SourceMetric.sleep, id);
+
+/// Chooses the app [m] comes from (null = every app), then rebuilds the
+/// Health minutes and rescores every Health day.
+Future<void> setMetricSource(TempoDb db, SourceMetric m, String? id) async {
   if (id == null) {
-    await db.deleteSetting(Keys.healthSleepSource);
+    await db.deleteSetting(m.key);
   } else {
-    await db.putSetting(Keys.healthSleepSource, id);
+    await db.putSetting(m.key, id);
   }
   final first = await db
       .customSelect('SELECT MIN(start_ms) AS a FROM health_records')
