@@ -237,6 +237,7 @@ class PluginHealthReader implements HealthReader {
       value: value,
       // iOS: bundle id; Health Connect: package name (its source_id is "").
       sourceApp: p.sourceId.isNotEmpty ? p.sourceId : p.sourceName,
+      sourceName: p.sourceName,
       extra: extra,
     );
   }

@@ -13,7 +13,6 @@ import '../core/battery.dart';
 import '../core/data_source.dart';
 import '../core/export.dart';
 import '../core/format.dart';
-import '../core/health_export.dart';
 import '../core/home_widgets.dart';
 import '../core/background_guard.dart';
 import '../core/key_store.dart';
@@ -32,7 +31,7 @@ import 'backups.dart';
 import 'band_explorer.dart';
 import 'coach_settings.dart';
 import 'data_health.dart';
-import 'data_source.dart';
+import 'data_sources.dart';
 import 'learn.dart';
 import 'nav.dart';
 import 'onboarding.dart' show AvailabilityEditor, WorkoutsEditor;
@@ -253,8 +252,6 @@ class SettingsScreen extends ConsumerWidget {
     final nudge = info[Keys.bedtimeNudge] ?? '45';
     final sleepAssist = info[Keys.sleepAssist] != '0';
     final stressOn = info[Keys.stressMonitor] != '0';
-    final healthOn = info[Keys.healthExport] == '1';
-    final healthName = Platform.isIOS ? 'Apple Health' : 'Health Connect';
     final pause = extras?.pause;
 
     Future<void> save(Profile next) async {
@@ -453,6 +450,28 @@ class SettingsScreen extends ConsumerWidget {
               const SizedBox(height: 8),
               const Hair(),
               Pressable(
+                onTap: () => push(context, const DataSourcesScreen()),
+                label: 'Data sources',
+                child: SizedBox(
+                  height: 44,
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Data sources',
+                          style: TempoType.body.c(c.text1),
+                        ),
+                      ),
+                      Text(
+                        '${source.label} ›',
+                        style: TempoType.bodyS.c(c.text2),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const Hair(),
+              Pressable(
                 onTap: () => push(context, const DataHealthScreen()),
                 child: SizedBox(
                   height: 44,
@@ -640,40 +659,8 @@ class SettingsScreen extends ConsumerWidget {
             },
           ),
         ]),
-        if (health)
-          group('Data source', [
-            ListRow(
-              'Source',
-              value: source.label,
-              onTap: () => switchDataSource(context, ref),
-            ),
-            ListRow(
-              'Health access',
-              sub: source == DataSource.appleHealth
-                  ? 'Heart rate, sleep, steps, HRV, workouts'
-                  : 'Heart rate, sleep, steps, HRV, workouts, history',
-              onTap: () => connectHealth(context, ref),
-            ),
-            if (Platform.isAndroid)
-              ListRow(
-                'Background reads',
-                sub: extras?.batteryExempt ?? true
-                    ? null
-                    : 'Battery optimisation can stop background reads',
-                value: extras?.batteryExempt ?? true ? 'Allowed' : 'Restricted',
-                onTap: () async {
-                  await BackgroundGuard.requestBatteryExemption();
-                  ref.invalidate(_profileExtrasProvider);
-                },
-              ),
-          ])
-        else
+        if (!health)
           group('Band settings', [
-            ListRow(
-              'Data source',
-              value: source.label,
-              onTap: () => switchDataSource(context, ref),
-            ),
             ListRow(
               'Heart rate',
               value: hrEvery == 1 ? 'Every minute' : 'Every $hrEvery min',
@@ -897,33 +884,6 @@ class SettingsScreen extends ConsumerWidget {
               ref.watch(settingProvider(Keys.lastBackup)).value,
             ),
             onTap: () => push(context, const BackupsScreen()),
-          ),
-          ListRow(
-            health ? '$healthName export' : healthName,
-            sub: health
-                ? 'Write workouts timed in Tempo'
-                : 'Write workouts and sleep · never reads',
-            chevron: false,
-            trailing: TempoSwitch(
-              label: healthName,
-              value: healthOn,
-              onChanged: (v) async {
-                final h = HealthExport(db);
-                if (!v) {
-                  await h.disable();
-                  return;
-                }
-                final ok = await h.enable();
-                if (!ok && context.mounted) {
-                  showTempoToast(
-                    context,
-                    Platform.isAndroid
-                        ? 'Install Health Connect, then turn this on again.'
-                        : 'Tempo needs write access in Health settings.',
-                  );
-                }
-              },
-            ),
           ),
           if (!health)
             ListRow(

@@ -119,6 +119,18 @@ Future<void> switchDataSource(BuildContext context, WidgetRef ref) async {
     selected: now,
   );
   if (pick == null || pick == now || !context.mounted) return;
+  await useDataSource(context, ref, pick);
+}
+
+/// Profile → Data sources → "Use this source": confirms, then switches to
+/// [pick] (asking for Health access, or pairing the band, as needed).
+Future<void> useDataSource(
+  BuildContext context,
+  WidgetRef ref,
+  DataSource pick,
+) async {
+  final db = ref.read(dbProvider);
+  if (pick == await loadDataSource(db) || !context.mounted) return;
   final ok = await confirmSheet(
     context,
     title: 'Switch to ${pick.label}?',

@@ -61,6 +61,11 @@ abstract final class Keys {
   static const healthDeepRead = 'health_deep_read'; // ISO, last 10-day re-read
   static const healthFound = 'health_found'; // JSON, what the last read saw
   static const healthKinds = 'health_kinds'; // kinds read at least once, CSV
+  /// JSON {source app id: display name}, from Health reads.
+  static const healthSourceNames = 'health_source_names';
+
+  /// Source app id whose sleep counts; unset = every app, merged.
+  static const healthSleepSource = 'health_sleep_source';
 }
 
 /// Everything the user tells Tempo in onboarding and Profile.

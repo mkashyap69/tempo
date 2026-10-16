@@ -66,6 +66,7 @@ final class HealthRecord {
     required this.end,
     required this.value,
     this.sourceApp = '',
+    this.sourceName = '',
     this.extra,
   });
 
@@ -81,6 +82,10 @@ final class HealthRecord {
 
   /// Bundle id (iOS) or package name (Android) of the app that wrote it.
   final String sourceApp;
+
+  /// The writer's display name ("Mukund's Apple Watch", "Oura"), for
+  /// Profile → Data sources. Not stored with the record; '' if unknown.
+  final String sourceName;
 
   /// Workout activity type name (`RUNNING`, …) for [HealthKind.workout].
   final String? extra;
