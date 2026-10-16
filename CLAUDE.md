@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Personal Whoop-style app for the Mi Band 6, built in Flutter. It also runs without a band, reading Apple Health or Health Connect (one source per install). Full plan: `PLAN.md`. Read it before starting any work.
+Personal recovery, strain and sleep app for the Mi Band 6, built in Flutter. It also runs without a band, reading Apple Health or Health Connect (one source per install). Full plan: `PLAN.md`. Read it before starting any work.
 
 ## Non-negotiables
 

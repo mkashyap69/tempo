@@ -1,18 +1,18 @@
-# Bevel teardown and next steps
+# Competitor teardown and next steps
 
 As of Oct 16, 2026 · Proposal for the owner. Nothing here is decided until it lands in `docs/decisions.md`.
 
-Sources: three Bevel product videos (Biological Age, Strength Builder, Journal), read frame by frame; Bevel's help center, blog and feedback board, read through search results (the bevel.health domains are blocked from the dev container, so some help pages were seen only as snippets); third-party reviews. Links are at the end.
+Subject: the leading iPhone health app built on Apple Health, called "the benchmark app" here. Sources: three of its product videos (Biological Age, strength logging, Journal), read frame by frame; its help center, blog and public feature board, read through search results (its domains are blocked from the dev container, so some help pages were seen only as snippets); third-party reviews.
 
 ## Summary
 
-Bevel is an iPhone-only layer over Apple Health. Core is free; Pro ($99.99 a year) adds Biological Age, Health Records and the AI coach. It has three things we lack or do worse:
+The benchmark app is an iPhone-only layer over Apple Health. Core is free; Pro ($99.99 a year) adds Biological Age, Health Records and the AI coach. It has three things we lack or do worse:
 
 1. **Biological Age** is grouped (Sleep, Activity, Fitness, Lifestyle, Blood), shows a **confidence %**, corrects for **overlap between related inputs**, and takes **blood work** (PhenoAge).
-2. **Strength Builder** logs every set (weight, reps, rest timer, plate calculator, supersets, 700+ exercises), tracks progression (e1RM, volume), and maps **muscle freshness**.
+2. **Strength logging** records every set (weight, reps, rest timer, plate calculator, supersets, 700+ exercises), tracks progression (e1RM, volume), and maps **muscle freshness**.
 3. **Journal** has a catalogue of about 100 behaviours, **quantities** (caffeine mg, water ml, drinks), **automatic entries** from data, and an **impact %** on Recovery and Sleep.
 
-What we already do better: Android and the Mi Band (Bevel is iPhone-only, and Android sits at "planned (tbd)" on its own board), fully on-device and free, an adaptive coach with goals, periodisation and taper (Bevel only lists periodisation as "planned (soon)"), today's picks sized to readiness, and an illness warning from body signals (Bevel has sickness detection at "planned (soon)").
+What we already do better: Android and the Mi Band (the benchmark is iPhone-only, and Android sits at "planned (tbd)" on its own board), fully on-device and free, an adaptive coach with goals, periodisation and taper (the benchmark only lists periodisation as "planned (soon)"), today's picks sized to readiness, and an illness warning from body signals (the benchmark has sickness detection at "planned (soon)").
 
 Recommended order: **J1 Journal v2 → L1 Tempo Age v2 → S1–S2 Strength log and progression → A9 algo → J2/S3 → roadmap extras.** All the scoring work is pure Dart and doesn't depend on the field gates still open (C1, C4, P1/P2, H2/H3), so it can run alongside them if the owner agrees.
 
@@ -26,9 +26,9 @@ Recommended order: **J1 Journal v2 → L1 Tempo Age v2 → S1–S2 Strength log 
 - Expanding a group shows each biomarker on a min–max bar with its own years: Time Asleep 7h 34m (5–11 h) −0.1, Sleep Consistency 93 % −1.6, Steps 8.46k (0–16k) −0.1, Zones 2–3 111 min (0–300) **+0.4**, Zones 4–5 66 min −0.5, Strength Training …
 - Biomarker detail: today's value and its years, chips to switch biomarker, a **28-day rolling average** chart (3M / 6M / 1Y) with an average line, "Reference range: < 60 female", a bar with the "Younger" zone.
 - **Other Biomarkers** (tracked, not in the age): HRV baseline "Increasing · 61.3 ms", resting HR "Good · 56.1 bpm". "Edit" picks which ones show.
-- "Ask Bevel anything" sits over every screen.
+- An "Ask … anything" AI bar sits over every screen.
 
-### How Bevel calculates it
+### How it is calculated
 
 - Each factor is compared with **healthy-ageing benchmarks adjusted for age and sex**, and **published hazard ratios** turn the gap into years. Example: steps subtract years from 8,000 a day under 60 and from 6,000 at 60+, and resting HR is +9 % mortality per 10 bpm (Zhang 2016).
 - **Covariance adjustment**: correlated factors (resting HR and VO₂ max, lean mass and strength training) are moderated so they aren't counted twice, so group years don't add up neatly to the total.
@@ -46,7 +46,7 @@ Recommended order: **J1 Journal v2 → L1 Tempo Age v2 → S1–S2 Strength log 
 | No overlap adjustment between steps and active minutes, or between sleep regularity and duration | Total too extreme for active people |
 | Confidence is on/off ("calibrating") | No sense of how solid the number is |
 | No groups | 13 rows are harder to read than 5 groups |
-| Zone 2+ minutes in one lever | Bevel splits moderate and vigorous; vigorous minutes count about double (WHO 2020) |
+| Zone 2+ minutes in one lever | The benchmark splits moderate and vigorous; vigorous minutes count about double (WHO 2020) |
 | No blood, no measured VO₂ max from Health | Missing the most predictive inputs a user may already have |
 | Resting HR reference 65 for everyone | Not adjusted for age and sex like the others |
 
@@ -85,7 +85,7 @@ C7 picks *prescribe* strength (focus, 6 exercises with sets × reps, rest, cue, 
 
 **S1 · Set logger** (schema bump; `strength_sets` append-only: workout id, exercise id, set no, kg, reps, RIR/RPE, done_at, superset group)
 - Rows pre-filled from the last session, or from the pick's prescription.
-- Tick → rest timer with **sound + vibration** at the end, **screen kept awake**, plate calculator (kg *and* lb, your gym's plates), supersets, add or remove sets, **RIR per set** (one tap: 0/1/2/3+). RIR is something Bevel only has planned.
+- Tick → rest timer with **sound + vibration** at the end, **screen kept awake**, plate calculator (kg *and* lb, your gym's plates), supersets, add or remove sets, **RIR per set** (one tap: 0/1/2/3+). RIR is something the benchmark only has planned.
 - Bundled offline library, about 150 exercises to start (JSON asset with primary/secondary muscles, equipment, home swap), plus custom exercises. Names and cues are our own writing.
 - Live HR in the mini-bar on the band. Health users get a timer, as today.
 
@@ -122,17 +122,17 @@ From docs: impact is a correlation and "not causation"; about 5 yes and 5 no unl
 
 **J1 · Journal v2** (UI + store; journal rows gain an optional `amount` and `unit`)
 - A **catalogue** of about 60 entries in 4 groups (Lifestyle, Health status, Supplements & meds, Sleep environment), searchable, plus custom entries. Users switch on only what they track. The morning card shows only the switched-on ones.
-- **Quantities and times**: drinks, caffeine mg plus *time of last caffeine*, water, **first/last meal time** (this also gives a fasting window: fasting is Bevel's most-voted request, 780+ votes).
+- **Quantities and times**: drinks, caffeine mg plus *time of last caffeine*, water, **first/last meal time** (this also gives a fasting window: fasting is the most-voted request on the benchmark's board, 780+ votes).
 - **Automatic entries** from our own data, needing no logging: brisk 30+, steps over target, Zone 2 30+, strength done, **late workout (< 3 h before bed)**, nap, **travel (phone time-zone change)**, late bedtime vs usual, high-strain day. Read caffeine, water and alcohol from Health where present (read-only, TODO(verify) per kind).
 - A **journal reminder** as a new C4 nudge kind, within the existing caps and quiet hours.
 
-**J2 · Impact engine v2** (pure Dart, `scoring/insights.dart`). This is where we beat Bevel instead of copying it:
+**J2 · Impact engine v2** (pure Dart, `scoring/insights.dart`). This is where we beat the benchmark instead of copying it:
 - **More outcomes:** recovery, sleep performance, night HRV (or stress), night RHR, time asleep, deep share. Use the right lag (behaviour on day D → night D → morning D+1).
 - **Adjust for confounders**: ridge regression of the z-scored outcome on all active tags plus yesterday's strain, weekday/weekend and sleep debt. Late meals often come with alcohol, so a plain mean blames both.
 - **Shrink small samples toward zero** (empirical-Bayes prior) and show **effect ± range in real units** ("≈ −4 recovery points, likely −1 to −7"), not a bare %.
 - **Many-tags guard**: with about 60 tags some will look significant by chance, so require the range to exclude 0 *and* hold in both halves of the history.
 - **Dose-response** for amounts (each drink, caffeine after 2 pm by mg).
-- **N-of-1 experiments**: "Try 14 days with no caffeine after 2 pm". Tempo schedules on/off blocks, reminds you, and reports the result with a range. Bevel doesn't have this.
+- **N-of-1 experiments**: "Try 14 days with no caffeine after 2 pm". Tempo schedules on/off blocks, reminds you, and reports the result with a range. The benchmark doesn't have this.
 
 Gate J1: 14 days logged with the reminder, with no day where an automatic entry is wrong when checked by hand. Gate J2: on synthetic data with a planted effect and a planted confounder, the engine finds the first and not the second (unit test), and on 90 days of real data no tag's sign flips between the two halves without its range including 0.
 
@@ -140,18 +140,18 @@ Gate J1: 14 days logged with the reminder, with no day where an automatic entry 
 
 | Area | Today | Change | Why |
 | --- | --- | --- | --- |
-| Recovery inputs | HRV/stress 0.4, RHR 0.3, sleep 0.3 | Add **respiratory rate**, **SpO₂** and **wrist temperature** deviations as a penalty only (no bonus), from the body-signals code | Bevel uses all five. Deviations predict illness (Mishra 2020) |
+| Recovery inputs | HRV/stress 0.4, RHR 0.3, sleep 0.3 | Add **respiratory rate**, **SpO₂** and **wrist temperature** deviations as a penalty only (no bonus), from the body-signals code | The benchmark uses all five. Deviations predict illness (Mishra 2020) |
 | Wrist temperature | Not read | Read Apple sleeping wrist temperature / Health Connect skin temperature (TODO(verify)) | Feeds recovery, body signals and the cycle later |
-| Sleep score | Hours ÷ need | v2: sufficiency 60 %, regularity (SRI) 15 %, efficiency 10 %, continuity (wake bouts) 10 %, HR dip 5 %. Band stages stay out of the score (wrist stages are unreliable) | Closer to Bevel and Oura, and regularity is already measured (E1) |
+| Sleep score | Hours ÷ need | v2: sufficiency 60 %, regularity (SRI) 15 %, efficiency 10 %, continuity (wake bouts) 10 %, HR dip 5 %. Band stages stay out of the score (wrist stages are unreliable) | Closer to how leading apps score sleep, and regularity is already measured (E1) |
 | Strain | HR TRIMP | + strength volume term (S3) | Wrist HR under-counts lifting |
 | Strain target | From recovery colour | From recovery **and** the 7/28-day load ratio (already in `load.dart`) | Stops recommending the same strain after a big week |
-| Data source | One source; sleep from one app | **Priority per metric** (HR, HRV, sleep, steps) | A top request on Bevel's board that Bevel itself doesn't support |
+| Data source | One source; sleep from one app | **Priority per metric** (HR, HRV, sleep, steps) | A top request on the benchmark's board that it doesn't support itself |
 
 Every change bumps `algo_version`, recomputes, and is backtested on 2020–2026 before shipping. Every constant is listed as a starting value to calibrate.
 
-## 5 · Bevel roadmap: what users ask for and our answer
+## 5 · Benchmark roadmap: what users ask for and our answer
 
-| Request on Bevel's board | Status there | Our position | Action |
+| Request on the benchmark's board | Status there | Our position | Action |
 | --- | --- | --- | --- |
 | Android app | planned (tbd) | **Have** | Lead with it |
 | Fasting tracker | planned (tbd), 780+ votes | Missing | J1 meal times → fasting window |
@@ -171,7 +171,7 @@ Every change bumps `algo_version`, recomputes, and is backtested on 2020–2026 
 
 ## Target audience
 
-People with a cheap band or any watch, often on Android, who want Whoop-level coaching without a subscription, a cloud account or an iPhone. Every feature above is chosen to work offline, on Android and on the Mi Band's per-minute data, and to stay honest about what a wrist can't measure (ranges and confidence instead of false precision).
+People with a cheap band or any watch, often on Android, who want premium-strap-level coaching without a subscription, a cloud account or an iPhone. Every feature above is chosen to work offline, on Android and on the Mi Band's per-minute data, and to stay honest about what a wrist can't measure (ranges and confidence instead of false precision).
 
 ## Checklist
 
@@ -222,8 +222,5 @@ People with a cheap band or any watch, often on Android, who want Whoop-level co
 
 ## Sources
 
-- Bevel videos: [Biological Age](https://s3.amazonaws.com/webflow-prod-assets/64dcc8c57b43bbf105fd381f/69ee9ca238c60abaf690cb7f_BioAge3_smaller-2.mp4), [Strength Builder](https://s3.amazonaws.com/webflow-prod-assets/69d57061165346ff54989dc6/69e555bcdce98ab24de85e5d_StrengthBuilder_smaller.mp4), [Journal](https://s3.amazonaws.com/webflow-prod-assets/69d57061165346ff54989dc6/69ea98c05a20535791cc8796_Journal3_smaller.mp4)
-- Bevel: [The Basics: Biological Age](https://www.bevel.health/blog/biological-age-the-basics), [Physiological Age Factors](https://www.bevel.health/blog/physiological-age-factors), [Blood Biomarkers](https://www.bevel.health/blog/blood-biomarkers), [Understanding Biological Age and Confidence](https://help.bevel.health/en/articles/11586369), [Biology Common Questions](https://help.bevel.health/en/articles/11586305), [Biology trend charts](https://help.bevel.health/en/articles/11673665), [Key Bevel Terms](https://help.bevel.health/en/articles/11251073), [How to View Insights](https://help.bevel.health/en/articles/10437057), [Journal Common Questions](https://help.bevel.health/en/articles/11968449), [Features by version](https://help.bevel.health/en/articles/11194113), [Pricing](https://help.bevel.health/en/articles/11583937)
-- Bevel feedback board: [index](https://feedback.bevel.health/feature-requests), [Fasting tracker](https://feedback.bevel.health/feature-requests/p/fasting-tracker), [Journal reminders](https://feedback.bevel.health/feature-requests/p/reminders), [Strength and periodisation](https://feedback.bevel.health/feature-requests/p/strength-training-periodization-more-health-data-integration), [Real-time metric notifications](https://feedback.bevel.health/feature-requests/p/abnormal-health-metrics-notification), [Data source priority](https://feedback.bevel.health/feature-requests/p/extend-data-source-priority-settings-to-all-metric-categories-not-just-sleep), [Journal auto trackers](https://feedback.bevel.health/feature-requests/p/journal-insights-auto-trackers), [Activity calendar](https://feedback.bevel.health/feature-requests/p/activity-calendar), [Bevel Wrapped](https://feedback.bevel.health/feature-requests/p/yearly-bevel-wrapped)
-- Coverage: [Gadgets & Wearables on Bevel 3](https://gadgetsandwearables.com/2026/05/16/bevel-3/), [Google Health support](https://gadgetsandwearables.com/2026/07/13/bevel-google-health-fitbit-air-integration/), [Bevel scores explained](https://www.fitcoin.co/articles/bevel-scores-explained), [Health App Insider review](https://www.healthappinsider.com/en/reviews/bevel-review), [Autonomous review](https://www.autonomous.ai/ourblog/bevel-app-review), [Threads user comparison](https://www.threads.com/@sanderbelaen/post/DaiQzwsgu1_)
+- The benchmark app's product videos (Biological Age, strength logging, Journal), help center, blog and public feature board, plus third-party reviews. Links are kept out of the repo.
 - Science: Levine 2018 PhenoAge (Aging), Kodama 2009, Zhang 2016, Paluch 2022, WHO 2020 activity guidelines, Windred 2024, Mishra 2020. The rest are as cited in `scoring/longevity.dart`.

@@ -83,7 +83,7 @@ final class HealthRecord {
   /// Bundle id (iOS) or package name (Android) of the app that wrote it.
   final String sourceApp;
 
-  /// The writer's display name ("Mukund's Apple Watch", "Oura"), for
+  /// The writer's display name ("Mukund's Apple Watch", "Sleep Ring"), for
   /// Profile → Data sources. Not stored with the record; '' if unknown.
   final String sourceName;
 

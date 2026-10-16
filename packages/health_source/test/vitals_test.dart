@@ -101,14 +101,14 @@ void main() {
           extra: 'RUNNING',
           src: 'com.apple.health',
         ),
-        // Strava logging the same run a minute later.
+        // A running app logging the same run a minute later.
         r(
           HealthKind.workout,
           a.add(const Duration(minutes: 1)),
           0,
           b: a.add(const Duration(minutes: 41)),
           extra: 'RUNNING',
-          src: 'com.strava',
+          src: 'com.example.runlog',
         ),
         r(
           HealthKind.workout,

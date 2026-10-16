@@ -11,7 +11,7 @@ import 'support/health_fake.dart';
 import 'support/seed.dart';
 
 const fit = 'com.google.android.apps.fitness';
-const ring = 'com.ouraring.oura';
+const ring = 'com.example.sleepring';
 
 /// A ring that also wrote the night before last (always over, whatever the
 /// time now), from 22:00 (an hour before the watch), as one unstaged block.
@@ -29,7 +29,7 @@ Future<void> addRingNight(TempoDb db) async {
         end: bed.add(const Duration(hours: 9)),
         value: 540,
         sourceApp: ring,
-        sourceName: 'Oura',
+        sourceName: 'Sleep Ring',
       ),
     ]),
     useLock: false,
@@ -55,11 +55,11 @@ void main() {
       final db = await healthDb(nights: 3);
       await addRingNight(db);
       final names = await sourceNames(db);
-      expect(names[ring], 'Oura');
+      expect(names[ring], 'Sleep Ring');
       final src = await sleepSources(db);
       expect(src.map((s) => s.id), [fit, ring]); // most nights first
       expect(src.first.nights, 3);
-      expect(src.last.label, 'Oura');
+      expect(src.last.label, 'Sleep Ring');
       expect(src.last.nights, 1);
       // Tempo's own exported night is never a source.
       expect(src.any((s) => s.id == tempoAppId), isFalse);
@@ -80,8 +80,8 @@ void main() {
   );
 
   test('labels: Health’s name, else the end of the id', () {
-    expect(sourceLabel(ring, {ring: 'Oura'}), 'Oura');
-    expect(sourceLabel('com.whoop.app', {}), 'App');
+    expect(sourceLabel(ring, {ring: 'Sleep Ring'}), 'Sleep Ring');
+    expect(sourceLabel('com.example.app', {}), 'App');
     expect(sourceLabel('com.example.sleepy', {}), 'Sleepy');
   });
 
@@ -102,9 +102,9 @@ void main() {
     expect(find.text('HEALTH ACCESS'), findsOneWidget);
     expect(find.text('SLEEP FROM'), findsOneWidget);
     expect(find.text('Every app, merged'), findsOneWidget);
-    expect(find.text('Oura'), findsOneWidget);
+    expect(find.text('Sleep Ring'), findsOneWidget);
     expect(find.text('WRITING TO HEALTH'), findsOneWidget);
-    await t.tap(find.text('Oura'));
+    await t.tap(find.text('Sleep Ring'));
     await settle(t, frames: 60);
     expect(await t.runAsync(() => db.setting(Keys.healthSleepSource)), ring);
     await teardown(t, db);

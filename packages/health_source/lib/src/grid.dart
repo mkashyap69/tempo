@@ -38,7 +38,7 @@ final class GridParams {
   });
 
   /// Only this app's sleep records count (Profile → Data sources → Sleep
-  /// from), like Athlytic's preferred sleep tracker: Health merges a watch
+  /// from): Health merges a watch
   /// and a ring into one longer night otherwise. Null = every app, merged
   /// as described on [HealthGrid].
   final String? sleepSource;

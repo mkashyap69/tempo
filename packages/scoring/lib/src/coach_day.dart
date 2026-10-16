@@ -50,7 +50,7 @@ final class SessionMatch {
   final int minutes;
 }
 
-/// Thresholds for [matchSession] (TrainingPeaks-style compliance bands).
+/// Thresholds for [matchSession] (compliance bands as training logs use them).
 const matchDone = .8, matchPartial = .5, hardMinutesNeeded = 5;
 
 const _cardio = {

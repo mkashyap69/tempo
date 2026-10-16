@@ -164,9 +164,9 @@ void main() {
 
     test('a Health Connect session with stages uses the stages', () {
       final g = HealthGrid()
-        ..add(rec(HealthKind.sleepSession, m(0), m(4), 4, src: 'fitbit'))
-        ..add(rec(HealthKind.sleepAwake, m(0), m(1), 1, src: 'fitbit'))
-        ..add(rec(HealthKind.sleepDeep, m(1), m(4), 3, src: 'fitbit'));
+        ..add(rec(HealthKind.sleepSession, m(0), m(4), 4, src: 'band'))
+        ..add(rec(HealthKind.sleepAwake, m(0), m(1), 1, src: 'band'))
+        ..add(rec(HealthKind.sleepDeep, m(1), m(4), 3, src: 'band'));
       expect(
         [for (final x in g.minutes(m(0), m(4))) x.sleep],
         [SleepMark.awake, SleepMark.deep, SleepMark.deep, SleepMark.deep],

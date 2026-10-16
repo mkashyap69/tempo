@@ -6,7 +6,7 @@ As of Oct 6, 2026 · Status: decided and built (H0–H4); D1–D4 signed off by 
 
 Let someone with no Mi Band 6 pick **Apple Health** (iOS, HealthKit) or **Health Connect** (Android) as their data source during onboarding, and get the same Today / Coach / Trends / Longevity experience from whatever their watch or ring writes there: heart rate, sleep and stages, steps, workouts, HRV, resting HR, SpO₂.
 
-"Google Health" here means **Health Connect**. The Google Fit APIs are deprecated, and Health Connect is the on-device store that Fitbit, Pixel Watch, Samsung Health, Garmin, Oura, Mi Fitness and others write to. Both connectors are on-device stores read through local OS APIs, so the "fully on-device, no network" rule still holds.
+"Google Health" here means **Health Connect**. The Google Fit APIs are deprecated, and Health Connect is the on-device store that Android watches, rings, phone-maker health apps, Mi Fitness and others write to. Both connectors are on-device stores read through local OS APIs, so the "fully on-device, no network" rule still holds.
 
 The work is mostly a **seam**, not new scoring. Scoring already takes `List<Minute>` + stress readings and doesn't care where they came from. `tools/backtest/lib/health_export.dart` already maps Apple Health HR and sleep records onto minutes, and has been run on 2020–2026 data. The app already depends on the `health` plugin (write-only today, `app/lib/src/core/health_export.dart`). What's new is: read permissions, an append-only raw table for Health records, a resampler from records to minutes, a recovery variant that uses real HRV, and hiding band-only features.
 
@@ -27,7 +27,7 @@ D1 yes (read-only Health, not locked to the band), D2 one source per install, D3
 
 | Signal | Mi Band 6 (today) | Apple Health | Health Connect | Gap / handling |
 | --- | --- | --- | --- | --- |
-| Heart rate | Every minute, all day | Apple Watch: ~every 4–10 min at rest, ~every 5 s in workouts; others vary | Depends on writer: Pixel/Fitbit, Samsung, Garmin write anything from per-minute to sparse | Resample to minutes, forward-fill short gaps, track **HR coverage** per day |
+| Heart rate | Every minute, all day | Apple Watch: ~every 4–10 min at rest, ~every 5 s in workouts; others vary | Depends on writer: watch and ring apps write anything from per-minute to sparse | Resample to minutes, forward-fill short gaps, track **HR coverage** per day |
 | Steps | Per minute | Intervals (often several min) | Intervals | Spread each interval's steps evenly across its minutes |
 | Sleep + stages | Band flag, we stage from HR + motion | `SleepAnalysis`: inBed, asleepCore/Deep/REM, awake (watchOS 9+) | `SleepSessionRecord` with stages | **Use the source's stages as-is**; skip our `stageSleep` when stages exist |
 | HRV | None (stress index as proxy) | SDNN, Apple Watch, mostly overnight | RMSSD (`HeartRateVariabilityRmssdRecord`) where the writer supports it | Better than the band: feeds Recovery directly (D3) |
@@ -120,7 +120,7 @@ Every formula change gets unit tests in `packages/scoring` (CLAUDE.md non-negoti
 | H0 · Decisions + seam | D1–D4 logged in `decisions.md`; CLAUDE.md/PLAN.md updated; `packages/health_source` with `HealthRecord`, `MinuteGrid` moved from backtest; backtest uses it | Backtest output identical before and after the move; package tests pass |
 | H1 · Store + scoring | Schema v10 (`health_records`, `health_deletions`, `daily_scores.source/hrv/hrv_kind`, source-suffixed baselines); algo 8 (stage pass-through, HRV recovery, coverage, RHR fallback); golden tests from export.xml slices | Backtest over the Apple Watch years: scores sane, recovery vs HRV-free variant compared, k re-checked |
 | H2 · Apple Health read | Read permissions, `HealthSyncService` on iOS, echo guard, onboarding choice, capability gating, source line | 7 days on an iPhone + Apple Watch with no band: scores ready on opening the app each morning, nights match the Health app's sleep chart |
-| H3 · Health Connect read | Same on Android, history + background permissions, changes/deletions, rate-limit handling | 7 days on an Android phone with a Health-Connect-writing watch (Pixel/Fitbit or Galaxy Watch): background job keeps scores current without opening the app |
+| H3 · Health Connect read | Same on Android, history + background permissions, changes/deletions, rate-limit handling | 7 days on an Android phone with a watch that writes to Health Connect: background job keeps scores current without opening the app |
 | H4 · Polish | Switch source flow, Partial data explainer, Learn page, export/restore covers new tables | Switch band → Health → band on one install with no lost data and correct calibrating messages |
 | H5 · Later (optional) | Merge mode: band primary, Health for workouts/HRV/other sensors | Only if D2 is revisited |
 

@@ -63,8 +63,7 @@ const _accessRows = <(String, List<HealthKind>)>[
 
 /// Profile → Data sources: where Tempo gets its data, how fresh it is,
 /// what Health shares, whose sleep counts, and writing back to Health.
-/// Modelled on Bevel's Data Sources, Oura's Data sharing and Athlytic's
-/// preferred sleep tracker (decisions.md, 2026-10-16).
+/// See decisions.md, 2026-10-16.
 class DataSourcesScreen extends ConsumerWidget {
   const DataSourcesScreen({super.key});
 

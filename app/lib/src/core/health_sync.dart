@@ -501,7 +501,7 @@ Future<Map<String, String>> sourceNames(TempoDb db) async {
 }
 
 /// A readable name for a source app: what Health called it, else the
-/// last part of its id ("com.ouraring.oura" → "Oura").
+/// last part of its id ("com.example.sleepring" → "Sleepring").
 String sourceLabel(String id, Map<String, String> names) {
   final n = names[id];
   if (n != null && n.isNotEmpty) return n;

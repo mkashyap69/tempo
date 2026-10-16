@@ -2,8 +2,8 @@ import 'package:scoring/scoring.dart';
 
 import 'record.dart';
 
-/// A workout another app wrote to Health (Apple Watch Workout, Strava,
-/// Fitbit, Samsung Health, …).
+/// A workout another app wrote to Health (Apple Watch Workout,
+/// a running app, a watch maker's app, …).
 final class HealthWorkout {
   const HealthWorkout({
     required this.start,
