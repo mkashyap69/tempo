@@ -11,6 +11,7 @@ library;
 import 'dart:math';
 
 import 'block.dart';
+import 'picks.dart';
 import 'load.dart';
 import 'longevity.dart';
 import 'strain.dart';
@@ -74,6 +75,7 @@ final class Session {
     required this.strainHi,
     required this.intensity,
     this.note = '',
+    this.detail,
   });
 
   /// Template key, see [sessionTemplate].
@@ -88,6 +90,10 @@ final class Session {
 
   /// Short descriptor, e.g. "full body".
   final String note;
+
+  /// What to do in it, for a session chosen from today's picks: the run's
+  /// type and cues, the strength exercises, or the game and its format.
+  final PickDetail? detail;
 
   bool get isRest => intensity == Intensity.rest;
   bool get isHard => intensity == Intensity.hard;
@@ -139,6 +145,7 @@ final class Session {
     'hi': strainHi,
     'intensity': intensity.name,
     'note': note,
+    if (detail != null) 'detail': detail!.toJson(),
   };
 
   static Session fromJson(Map<String, dynamic> j) => Session(
@@ -154,6 +161,9 @@ final class Session {
     strainHi: (j['hi'] as num).toDouble(),
     intensity: Intensity.values.byName(j['intensity'] as String),
     note: j['note'] as String? ?? '',
+    detail: j['detail'] is Map
+        ? PickDetail.fromJson((j['detail'] as Map).cast<String, dynamic>())
+        : null,
   );
 }
 
@@ -304,6 +314,80 @@ Session sessionTemplate(String key) => switch (key) {
     intensity: Intensity.moderate,
     note: 'lower body',
   ),
+  'strength_upper' => const Session(
+    key: 'strength_upper',
+    title: 'Strength',
+    sport: Sport.strength,
+    segments: [Segment(40, 2)],
+    strainLo: 7,
+    strainHi: 10,
+    intensity: Intensity.moderate,
+    note: 'upper body',
+  ),
+  'strength_core' => const Session(
+    key: 'strength_core',
+    title: 'Core and mobility',
+    sport: Sport.strength,
+    segments: [Segment(20, 1)],
+    strainLo: 2,
+    strainHi: 5,
+    intensity: Intensity.easy,
+    note: 'core',
+  ),
+  'recovery_run' => const Session(
+    key: 'recovery_run',
+    title: 'Recovery run',
+    sport: Sport.running,
+    segments: [Segment(5, 1), Segment(15, 2), Segment(5, 1)],
+    strainLo: 3,
+    strainHi: 6,
+    intensity: Intensity.easy,
+  ),
+  'strides_run' => const Session(
+    key: 'strides_run',
+    title: 'Easy run + strides',
+    sport: Sport.running,
+    segments: [Segment(5, 1), Segment(25, 2), Segment(5, 1)],
+    strainLo: 6,
+    strainHi: 9,
+    intensity: Intensity.moderate,
+    note: '6 × 20″ strides',
+  ),
+  'tempo_run' => const Session(
+    key: 'tempo_run',
+    title: 'Tempo run',
+    sport: Sport.running,
+    segments: [Segment(10, 2), Segment(20, 3), Segment(10, 1)],
+    strainLo: 10,
+    strainHi: 13,
+    intensity: Intensity.hard,
+  ),
+  'hill_run' => Session(
+    key: 'hill_run',
+    title: 'Hill repeats',
+    sport: Sport.running,
+    segments: [
+      const Segment(10, 2),
+      ..._reps(8, const Segment(1, 5), const Segment(2, 1)),
+      const Segment(8, 2),
+    ],
+    strainLo: 12,
+    strainHi: 15,
+    intensity: Intensity.hard,
+  ),
+  'fartlek_run' => Session(
+    key: 'fartlek_run',
+    title: 'Fartlek',
+    sport: Sport.running,
+    segments: [
+      const Segment(10, 2),
+      ..._reps(6, const Segment(2, 4), const Segment(2, 2)),
+      const Segment(8, 2),
+    ],
+    strainLo: 11,
+    strainHi: 14,
+    intensity: Intensity.hard,
+  ),
   'yoga' => const Session(
     key: 'yoga',
     title: 'Yoga',
@@ -349,7 +433,13 @@ String? hardKeyFor(Sport s) => switch (s) {
 /// The Z2 version used when easing off a hard day.
 String easierKeyFor(Session s) => switch (s.sport) {
   Sport.running =>
-    s.key == 'threshold_run' || s.key == 'vo2_run' ? 'steady_run' : 'easy_run',
+    s.key == 'threshold_run' ||
+            s.key == 'vo2_run' ||
+            s.key == 'tempo_run' ||
+            s.key == 'hill_run' ||
+            s.key == 'fartlek_run'
+        ? 'steady_run'
+        : 'easy_run',
   Sport.cycling => 'easy_ride',
   Sport.hiit => 'easy_walk',
   Sport.strength => 'mobility',
@@ -363,6 +453,11 @@ String? harderKeyFor(Session s) => switch (s.key) {
   'steady_run' ||
   'easy_run' ||
   'aerobic_run' ||
+  'recovery_run' ||
+  'strides_run' ||
+  'tempo_run' ||
+  'hill_run' ||
+  'fartlek_run' ||
   'long_run' => 'vo2_run',
   'easy_ride' || 'long_ride' => 'tempo_ride',
   _ => s.sport == null ? null : hardKeyFor(s.sport!),
@@ -408,6 +503,7 @@ Session fitMinutes(Session s, int maxMinutes) {
     strainHi: s.strainHi,
     intensity: s.intensity,
     note: s.note,
+    detail: s.detail,
   );
 }
 
@@ -612,6 +708,7 @@ Session scaled(Session s, double f, {int? cap}) {
     strainHi: s.strainHi,
     intensity: s.intensity,
     note: s.note,
+    detail: s.detail,
   );
   if (cap == null) return r;
   // Trim with whole reps first, so a cap never breaks an interval.

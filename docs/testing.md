@@ -69,3 +69,13 @@ and Profile → Export (JSON) when something's off.
 | E3 | Strain → Movement today | Brisk minutes ≈ minutes of purposeful walking; longest still stretch matches a long desk session on the day timeline; "needs heart rate" on a phone-only Health source |
 | E4 | Activity after a hard run | Heart-rate recovery appears when you stood or walked easy for 2 min after stopping; none for an easy session |
 | E5 | Health: breathing rate | After the update, one permission sheet asks for breathing rate; Recovery shows it after 14 nights (90 days are backfilled) |
+
+## Today's picks
+
+| # | Check | Pass when |
+| --- | --- | --- |
+| K1 | Profile → Workouts → Games you play: pick two | Coach → Today shows a run, a strength session and one of your games; one says "Tempo's pick" |
+| K2 | The day after a hard session | No hard run is offered; strength is upper body if the hard day was a run |
+| K3 | Evening, under 4 h to bed | Nothing hard; under 1 h, only easy options |
+| K4 | Open a pick → Make it today's plan | Today's card shows it; the workout screen lists "What to do" (intervals, exercises or format) |
+| K5 | Start now on an interval run | The live workout follows the pick's segments |

@@ -24,6 +24,7 @@ import 'goal.dart' show TodayGoalLine;
 import 'journal.dart' show JournalNudge, JournalScreen;
 import 'nav.dart';
 import 'pairing.dart';
+import 'picks.dart';
 import 'recovery.dart';
 import 'shared.dart';
 import 'strain.dart';
@@ -348,6 +349,8 @@ abstract final class TodayBody {
           onWhy: () => push(context, const WorkoutDetailScreen()),
         ),
       if (!noData && !t.firstDay) const TodayGoalLine(),
+      // Three alternatives to the plan, one row until opened.
+      if (!noData && t.pause == null) const PicksEntry(),
       if (!noData && t.firstDay) const FirstWeekCard(),
       if (!noData) ...[
         WeekRecoveryStrain(t: t),
