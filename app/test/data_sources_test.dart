@@ -79,6 +79,33 @@ void main() {
     },
   );
 
+  test(
+    'steps from one app: listed, chosen, rescored; back to every app',
+    () async {
+      final db = await healthDb(nights: 3);
+      final src = await metricSources(db, SourceMetric.steps);
+      expect(src.map((s) => s.id).toSet(), {'phone', 'watch'});
+      final today = DateTime.now();
+      final day = DateTime(today.year, today.month, today.day - 1);
+      Future<int> steps() async => (await db.healthMinutesBetween(
+        day,
+        day.add(const Duration(days: 1)),
+      )).fold<int>(0, (a, r) => a + r.steps);
+      final merged = await steps();
+      await setMetricSource(db, SourceMetric.steps, 'phone');
+      expect(await db.setting(Keys.healthStepsSource), 'phone');
+      final phone = await steps();
+      expect(phone, lessThan(merged)); // the watch counted a little more
+      await setMetricSource(db, SourceMetric.steps, null);
+      expect(await steps(), merged);
+      // Scores carry algo 9's sleep score.
+      final s = (await db.scoresBetween(day, day)).single;
+      expect(s.algoVersion, 9);
+      expect(s.sleepScore, isNotNull);
+      await db.close();
+    },
+  );
+
   test('labels: Health’s name, else the end of the id', () {
     expect(sourceLabel(ring, {ring: 'Sleep Ring'}), 'Sleep Ring');
     expect(sourceLabel('com.example.app', {}), 'App');

@@ -21,10 +21,15 @@ import 'pairing.dart';
 
 /// What the Data sources screen shows besides plain settings.
 final class _SourcesData {
-  const _SourcesData(this.found, this.sleepFrom, this.batteryExempt);
+  const _SourcesData(this.found, this.from, this.chosen, this.batteryExempt);
   final Set<HealthKind> found;
-  final List<SleepSourceInfo> sleepFrom;
+
+  /// Apps that wrote each measure lately, and the app chosen for it.
+  final Map<SourceMetric, List<SleepSourceInfo>> from;
+  final Map<SourceMetric, String?> chosen;
   final bool batteryExempt;
+
+  List<SleepSourceInfo> get sleepFrom => from[SourceMetric.sleep] ?? const [];
 }
 
 final _sourcesProvider = FutureProvider<_SourcesData>((ref) async {
@@ -36,7 +41,12 @@ final _sourcesProvider = FutureProvider<_SourcesData>((ref) async {
       exempt = await BackgroundGuard.batteryExempt;
     } catch (_) {}
   }
-  return _SourcesData(await healthFound(db), await sleepSources(db), exempt);
+  return _SourcesData(
+    await healthFound(db),
+    {for (final m in SourceMetric.values) m: await metricSources(db, m)},
+    {for (final m in SourceMetric.values) m: await metricSource(db, m)},
+    exempt,
+  );
 });
 
 /// The data types shown under Health access, in order.
@@ -178,6 +188,21 @@ class DataSourcesScreen extends ConsumerWidget {
           ),
           const Overline('Sleep from'),
           _SleepFrom(options: data?.sleepFrom ?? const [], selected: sleepFrom),
+          // Other measures only when two or more apps write them.
+          for (final m in const [
+            SourceMetric.heartRate,
+            SourceMetric.hrv,
+            SourceMetric.steps,
+          ])
+            if ((data?.from[m]?.length ?? 0) >= 2 ||
+                data?.chosen[m] != null) ...[
+              Overline('${_metricName(m)} from'),
+              _MetricFrom(
+                metric: m,
+                options: data!.from[m] ?? const [],
+                selected: data.chosen[m],
+              ),
+            ],
         ],
         const Overline('Writing to Health'),
         CardList(
@@ -352,6 +377,92 @@ class _SleepFromState extends ConsumerState<_SleepFrom> {
               : opts.isEmpty
               ? 'No sleep in Health from the last 30 days yet.'
               : 'Choose your watch or ring if Tempo’s nights look longer than your tracker’s.',
+          style: TempoType.caption.c(c.text3),
+        ),
+      ],
+    );
+  }
+}
+
+String _metricName(SourceMetric m) => switch (m) {
+  SourceMetric.sleep => 'Sleep',
+  SourceMetric.heartRate => 'Heart rate',
+  SourceMetric.steps => 'Steps',
+  SourceMetric.hrv => 'HRV',
+};
+
+/// Which app's heart rate, HRV or steps count: every app (merged as
+/// before) or one. Shown when two or more apps write the measure.
+class _MetricFrom extends ConsumerStatefulWidget {
+  const _MetricFrom({
+    required this.metric,
+    required this.options,
+    required this.selected,
+  });
+  final SourceMetric metric;
+  final List<SleepSourceInfo> options;
+  final String? selected;
+
+  @override
+  ConsumerState<_MetricFrom> createState() => _MetricFromState();
+}
+
+class _MetricFromState extends ConsumerState<_MetricFrom> {
+  bool _busy = false;
+
+  Future<void> _choose(String? id) async {
+    if (id == widget.selected || _busy) return;
+    setState(() => _busy = true);
+    final name = _metricName(widget.metric);
+    try {
+      await setMetricSource(ref.read(dbProvider), widget.metric, id);
+      if (mounted) {
+        showTempoToast(
+          context,
+          id == null
+              ? '$name now comes from every app'
+              : '$name now comes from ${widget.options.where((o) => o.id == id).firstOrNull?.label ?? id} only · days rescored',
+        );
+      }
+    } catch (e) {
+      if (mounted) showTempoToast(context, 'Couldn’t change it: $e');
+    }
+    if (mounted) setState(() => _busy = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        CardList(
+          children: [
+            ListRow(
+              'Every app',
+              sub: widget.metric == SourceMetric.steps
+                  ? 'The busiest app each minute, so a phone and a watch don’t double up.'
+                  : 'Readings in the same minute are averaged.',
+              chevron: false,
+              trailing: widget.selected == null ? const _Tick() : null,
+              onTap: _busy ? null : () => _choose(null),
+            ),
+            for (final o in widget.options)
+              ListRow(
+                o.label,
+                sub:
+                    '${o.nights} ${o.nights == 1 ? 'day' : 'days'} in the last 30 · last ${dayShort(o.last)}',
+                chevron: false,
+                trailing: widget.selected == o.id ? const _Tick() : null,
+                onTap: _busy ? null : () => _choose(o.id),
+              ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Text(
+          _busy
+              ? 'Rescoring days…'
+              : 'Pick the device you trust most for ${_metricName(widget.metric).toLowerCase()}.',
           style: TempoType.caption.c(c.text3),
         ),
       ],

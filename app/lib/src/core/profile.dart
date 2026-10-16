@@ -67,6 +67,12 @@ abstract final class Keys {
   /// Source app id whose sleep counts; unset = every app, merged.
   static const healthSleepSource = 'health_sleep_source';
 
+  /// Source app ids whose heart rate, steps and HRV count; unset = every
+  /// app (A9: data source per metric).
+  static const healthHrSource = 'health_hr_source';
+  static const healthStepsSource = 'health_steps_source';
+  static const healthHrvSource = 'health_hrv_source';
+
   /// Journal v2: JSON list of entry keys switched on, and the user's own
   /// entries as JSON [{key, name}].
   static const journalEntries = 'journal_entries';

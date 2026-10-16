@@ -17,12 +17,14 @@ final class NightHrv {
 
 /// HRV over one night: readings from 30 min before [start] to 30 min after
 /// [end]. RMSSD is preferred when both kinds exist (two apps writing). Null
-/// with no plausible reading (5–300 ms).
+/// with no plausible reading (5–300 ms). [source] keeps one app's readings
+/// only (Profile → Data sources → HRV from).
 NightHrv? nightHrv(
   Iterable<HealthRecord> records,
   DateTime start,
   DateTime end, {
   Duration slack = const Duration(minutes: 30),
+  String? source,
 }) {
   final a = start.subtract(slack), b = end.add(slack);
   final logs = {HrvKind.sdnn: <double>[], HrvKind.rmssd: <double>[]};
@@ -33,6 +35,7 @@ NightHrv? nightHrv(
       _ => null,
     };
     if (kind == null || r.fromTempo) continue;
+    if (source != null && r.sourceApp != source) continue;
     if (r.start.isBefore(a) || !r.start.isBefore(b)) continue;
     if (r.value.isNaN || r.value < 5 || r.value > 300) continue;
     logs[kind]!.add(log(r.value));
@@ -83,6 +86,32 @@ double? nightRespiratoryRate(
           r.start.isBefore(b) &&
           r.value >= 6 &&
           r.value <= 40)
+        r.value,
+  ];
+  if (xs.isEmpty) return null;
+  return xs.reduce((x, y) => x + y) / xs.length;
+}
+
+/// Mean night temperature reading (Apple's sleeping wrist temperature in
+/// °C, or Health Connect's skin temperature change from baseline in °C),
+/// from 30 min before [start] to 30 min after [end]; null with none.
+/// Readings outside −5…42 are dropped. Only ever compared with the same
+/// source's own nights.
+double? nightTemperature(
+  Iterable<HealthRecord> records,
+  DateTime start,
+  DateTime end, {
+  Duration slack = const Duration(minutes: 30),
+}) {
+  final a = start.subtract(slack), b = end.add(slack);
+  final xs = [
+    for (final r in records)
+      if (r.kind == HealthKind.wristTemp &&
+          !r.fromTempo &&
+          !r.start.isBefore(a) &&
+          r.start.isBefore(b) &&
+          r.value >= -5 &&
+          r.value <= 42)
         r.value,
   ];
   if (xs.isEmpty) return null;

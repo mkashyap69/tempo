@@ -175,47 +175,52 @@ People with a cheap band or any watch, often on Android, who want premium-strap-
 
 ## Checklist
 
+Status as of Oct 16, 2026 (built in this branch; see `docs/decisions.md`).
+
 **Now (fix and quick wins)**
-- [ ] L1.1 Fix the VO₂ max / RHR double count in Tempo Age (algo bump, test)
-- [ ] Health nudge when ≥ 2 body signals are off (reuses C4)
-- [ ] Journal reminder nudge
+- [x] L1.1 Fix the VO₂ max / RHR double count in Tempo Age (algo bump, test)
+- [x] Health nudge when ≥ 2 body signals are off (reuses C4)
+- [x] Journal reminder nudge
 
 **J1 · Journal v2**
-- [ ] Catalogue of about 60 entries, groups, search, custom entries
-- [ ] Amounts and times (drinks, caffeine mg plus last time, water, meal times / fasting)
-- [ ] Automatic entries from our data (brisk, steps, Zone 2, strength, late workout, nap, travel, late bed)
+- [x] Catalogue (70 entries), groups, search, custom entries
+- [x] Amounts and times (drinks, caffeine mg plus last time, water, meal times / fasting)
+- [x] Automatic entries from our data (brisk, steps, Zone 2, strength, late workout, nap, late bed, hard day)
+- [ ] Travel from a phone time-zone change (travel stays a manual entry)
 
 **L1 · Tempo Age v2**
-- [ ] Overlap shrink per group
-- [ ] 6 groups with rings and years
-- [ ] Confidence % and a range
-- [ ] Split moderate and vigorous minutes
-- [ ] Measured VO₂ max from Health (TODO(verify))
-- [ ] PhenoAge from manual labs (`lab_results`, golden tests)
-- [ ] Biomarker detail: bar, 28-day chart, age/sex reference
-- [ ] Monday snapshot, "since last week" chip
+- [x] Overlap shrink per group
+- [x] 6 groups with years (rows, not rings)
+- [x] Confidence % and a range
+- [x] Split moderate and vigorous minutes
+- [x] Measured VO₂ max: typed in from a watch (the Health plugin has no VO₂ max type)
+- [x] PhenoAge from manual labs (stored in settings so backups carry them; tests against the published coefficients)
+- [x] Biomarker detail: bar, 30-day average over 3M/6M/1Y, age/sex reference
+- [ ] Monday snapshot (Tempo Age still updates daily under the 1-year-a-week cap; the "since last week" card stays)
 
 **S1–S3 · Strength**
-- [ ] `strength_sets` table and the set logger (pre-fill, rest timer, sound, screen awake, plates, supersets, RIR)
-- [ ] Offline library of about 150 exercises plus custom exercises
-- [ ] Progression engine: e1RM, double progression, readiness and phase aware
-- [ ] Picks pre-fill your weights
-- [ ] Muscle freshness map; picks choose focus by freshness
-- [ ] Strength volume term in strain
+- [x] `strength_sets` table and the set logger (pre-fill, rest timer, sound, screen awake, plates, supersets, RIR)
+- [x] Offline library of 155 exercises
+- [ ] Custom exercises
+- [x] Progression engine: e1RM, double progression, readiness and lighter-week aware
+- [ ] Rep ranges by block phase (the goal's dose still sets them)
+- [x] Picks pre-fill your weights
+- [x] Muscle freshness; picks choose focus by freshness (a list of muscles, not a body map)
+- [x] Strength set load in strain
 
 **J2 · Impact engine v2**
-- [ ] Multiple outcomes with correct lag
-- [ ] Ridge with confounders, shrinkage, ranges in real units
-- [ ] Many-tags guard, dose-response
-- [ ] N-of-1 experiments
+- [x] Multiple outcomes with correct lag
+- [x] Ridge with confounders, shrinkage, ranges in real units
+- [x] Many-tags guard, dose-response
+- [x] N-of-1 experiments
 
 **A9 · Algo**
-- [ ] Respiratory rate, SpO₂ and temperature as recovery penalties
-- [ ] Read wrist/skin temperature (TODO(verify))
-- [ ] Sleep score v2 (sufficiency, regularity, efficiency, continuity, HR dip)
-- [ ] Strain target that uses the load ratio
-- [ ] Data source priority per metric
-- [ ] Backtest 2020–2026 for every change
+- [x] Respiratory rate, SpO₂ and temperature as recovery penalties
+- [x] Read wrist/skin temperature (TODO(verify) on phones)
+- [x] Sleep score v2 (sufficiency, regularity, efficiency, continuity, HR dip), shown on Sleep
+- [x] Strain target that uses the load ratio
+- [x] Data source priority per metric (sleep, heart rate, HRV, steps)
+- [ ] Backtest 2020–2026 for every change (runs on a synthetic export here; needs the real export on the owner's machine)
 
 **Later**
 - [ ] Home-screen widget, year in review

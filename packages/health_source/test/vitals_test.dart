@@ -57,6 +57,20 @@ void main() {
     test('null with nothing in the night', () {
       expect(nightHrv(const [], night0, night1), isNull);
     });
+
+    test('one chosen app only', () {
+      final h = nightHrv(
+        [
+          r(HealthKind.hrvRmssd, DateTime(2026, 10, 2, 2), 30, src: 'watch'),
+          r(HealthKind.hrvSdnn, DateTime(2026, 10, 2, 3), 70, src: 'ring'),
+        ],
+        night0,
+        night1,
+        source: 'ring',
+      )!;
+      expect(h.kind, HrvKind.sdnn);
+      expect(h.ms, closeTo(70, 1e-9));
+    });
   });
 
   test('night breathing rate: mean of plausible readings in the night', () {

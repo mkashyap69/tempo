@@ -180,6 +180,7 @@ Future<TodayData> loadToday(st.TempoDb db, {DateTime? at}) async {
           recovery: calibrating ? null : score?.recovery,
           calibrating: calibrating,
           load: load.status,
+          loadRatio: load.ratio,
         )
       : const sc.StrainTarget(8, 12, general: true);
   final coach = CoachService(db);

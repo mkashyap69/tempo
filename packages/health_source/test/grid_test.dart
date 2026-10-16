@@ -61,6 +61,20 @@ void main() {
       final g = HealthGrid()..add(hr(0, 70, src: tempoAppId));
       expect(g.minutes(m(0), m(1)).single.hr, isNull);
     });
+
+    test('heart rate and steps from one chosen app only', () {
+      final g =
+          HealthGrid(const GridParams(hrSource: 'ring', stepsSource: 'phone'))
+            ..addAll([
+              hr(0, 60, src: 'watch'),
+              hr(0, 80, src: 'ring'),
+              rec(HealthKind.steps, m(0), m(1), 50, src: 'watch'),
+              rec(HealthKind.steps, m(0), m(1), 30, src: 'phone'),
+            ]);
+      final x = g.minutes(m(0), m(1)).single;
+      expect(x.hr, 80);
+      expect(x.steps, 30);
+    });
   });
 
   group('steps', () {

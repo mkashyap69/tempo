@@ -8,11 +8,13 @@ import 'package:health_source/health_source.dart' as hs;
 import 'package:scoring/scoring.dart' as sc;
 import 'package:store/store.dart' as st;
 
-import 'strength.dart' show strengthExtraTrimp;
 import 'data_source.dart';
+import 'everyday.dart' show nightVitalsZ;
+import 'health_sync.dart' show metricSource, SourceMetric;
 import 'minutes.dart';
 import 'pause.dart';
 import 'profile.dart' show Keys, sportLabel;
+import 'strength.dart' show strengthExtraTrimp;
 
 const hrMaxKey = 'hr_max';
 
@@ -102,12 +104,23 @@ class ScoreService {
       records = await loadHealthRecords(db, from, to);
       final night = sc.daySleep(date: day, minutes: minutes).night;
       if (night != null) {
-        final h = hs.nightHrv(records, night.start, night.end);
+        final h = hs.nightHrv(
+          records,
+          night.start,
+          night.end,
+          source: await metricSource(db, SourceMetric.hrv),
+        );
         hrv = h?.ms;
         hrvKind = h?.kind.name;
       }
       sourceRhr = hs.sourceRestingHr(records, day);
     }
+    // Night vitals (breathing rate, SpO₂, temperature) against your
+    // normal, for the recovery penalty (algo 9).
+    final tonight = sc.daySleep(date: day, minutes: minutes).night;
+    final vitalsZ = tonight == null
+        ? const <double?>[]
+        : await nightVitalsZ(db, day, (a: tonight.start, b: tonight.end));
     final s = sc.scoreDay(
       date: day,
       minutes: minutes,
@@ -119,6 +132,7 @@ class ScoreService {
       hrv: hrv,
       hrvKind: hrvKind,
       sourceRhr: sourceRhr,
+      vitalsZ: vitalsZ,
     );
     await db.upsertScore(fromScoring(s));
     await _activities(day, s, minutes, source: source, records: records);
@@ -373,6 +387,8 @@ sc.DailyScore toScoring(st.DailyScore d) => sc.DailyScore(
   source: d.source,
   hrv: d.hrv,
   hrvKind: d.hrvKind,
+  sleepScore: d.sleepScore,
+  vitalsPenalty: d.vitalsPenalty,
 );
 
 st.DailyScoresCompanion fromScoring(sc.DailyScore s) =>
@@ -396,4 +412,6 @@ st.DailyScoresCompanion fromScoring(sc.DailyScore s) =>
       source: Value(s.source),
       hrv: Value(s.hrv),
       hrvKind: Value(s.hrvKind),
+      sleepScore: Value(s.sleepScore),
+      vitalsPenalty: Value(s.vitalsPenalty),
     );

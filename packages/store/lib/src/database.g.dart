@@ -2219,6 +2219,29 @@ class $DailyScoresTable extends DailyScores
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _sleepScoreMeta = const VerificationMeta(
+    'sleepScore',
+  );
+  @override
+  late final GeneratedColumn<double> sleepScore = GeneratedColumn<double>(
+    'sleep_score',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _vitalsPenaltyMeta = const VerificationMeta(
+    'vitalsPenalty',
+  );
+  @override
+  late final GeneratedColumn<double> vitalsPenalty = GeneratedColumn<double>(
+    'vitals_penalty',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0.0),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     date,
@@ -2240,6 +2263,8 @@ class $DailyScoresTable extends DailyScores
     source,
     hrv,
     hrvKind,
+    sleepScore,
+    vitalsPenalty,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -2385,6 +2410,21 @@ class $DailyScoresTable extends DailyScores
         hrvKind.isAcceptableOrUnknown(data['hrv_kind']!, _hrvKindMeta),
       );
     }
+    if (data.containsKey('sleep_score')) {
+      context.handle(
+        _sleepScoreMeta,
+        sleepScore.isAcceptableOrUnknown(data['sleep_score']!, _sleepScoreMeta),
+      );
+    }
+    if (data.containsKey('vitals_penalty')) {
+      context.handle(
+        _vitalsPenaltyMeta,
+        vitalsPenalty.isAcceptableOrUnknown(
+          data['vitals_penalty']!,
+          _vitalsPenaltyMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -2470,6 +2510,14 @@ class $DailyScoresTable extends DailyScores
         DriftSqlType.string,
         data['${effectivePrefix}hrv_kind'],
       ),
+      sleepScore: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}sleep_score'],
+      ),
+      vitalsPenalty: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}vitals_penalty'],
+      )!,
     );
   }
 
@@ -2499,6 +2547,8 @@ class DailyScore extends DataClass implements Insertable<DailyScore> {
   final String source;
   final double? hrv;
   final String? hrvKind;
+  final double? sleepScore;
+  final double vitalsPenalty;
   const DailyScore({
     required this.date,
     required this.strain,
@@ -2519,6 +2569,8 @@ class DailyScore extends DataClass implements Insertable<DailyScore> {
     required this.source,
     this.hrv,
     this.hrvKind,
+    this.sleepScore,
+    required this.vitalsPenalty,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -2564,6 +2616,10 @@ class DailyScore extends DataClass implements Insertable<DailyScore> {
     if (!nullToAbsent || hrvKind != null) {
       map['hrv_kind'] = Variable<String>(hrvKind);
     }
+    if (!nullToAbsent || sleepScore != null) {
+      map['sleep_score'] = Variable<double>(sleepScore);
+    }
+    map['vitals_penalty'] = Variable<double>(vitalsPenalty);
     return map;
   }
 
@@ -2606,6 +2662,10 @@ class DailyScore extends DataClass implements Insertable<DailyScore> {
       hrvKind: hrvKind == null && nullToAbsent
           ? const Value.absent()
           : Value(hrvKind),
+      sleepScore: sleepScore == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sleepScore),
+      vitalsPenalty: Value(vitalsPenalty),
     );
   }
 
@@ -2634,6 +2694,8 @@ class DailyScore extends DataClass implements Insertable<DailyScore> {
       source: serializer.fromJson<String>(json['source']),
       hrv: serializer.fromJson<double?>(json['hrv']),
       hrvKind: serializer.fromJson<String?>(json['hrvKind']),
+      sleepScore: serializer.fromJson<double?>(json['sleepScore']),
+      vitalsPenalty: serializer.fromJson<double>(json['vitalsPenalty']),
     );
   }
   @override
@@ -2659,6 +2721,8 @@ class DailyScore extends DataClass implements Insertable<DailyScore> {
       'source': serializer.toJson<String>(source),
       'hrv': serializer.toJson<double?>(hrv),
       'hrvKind': serializer.toJson<String?>(hrvKind),
+      'sleepScore': serializer.toJson<double?>(sleepScore),
+      'vitalsPenalty': serializer.toJson<double>(vitalsPenalty),
     };
   }
 
@@ -2682,6 +2746,8 @@ class DailyScore extends DataClass implements Insertable<DailyScore> {
     String? source,
     Value<double?> hrv = const Value.absent(),
     Value<String?> hrvKind = const Value.absent(),
+    Value<double?> sleepScore = const Value.absent(),
+    double? vitalsPenalty,
   }) => DailyScore(
     date: date ?? this.date,
     strain: strain ?? this.strain,
@@ -2702,6 +2768,8 @@ class DailyScore extends DataClass implements Insertable<DailyScore> {
     source: source ?? this.source,
     hrv: hrv.present ? hrv.value : this.hrv,
     hrvKind: hrvKind.present ? hrvKind.value : this.hrvKind,
+    sleepScore: sleepScore.present ? sleepScore.value : this.sleepScore,
+    vitalsPenalty: vitalsPenalty ?? this.vitalsPenalty,
   );
   DailyScore copyWithCompanion(DailyScoresCompanion data) {
     return DailyScore(
@@ -2732,6 +2800,12 @@ class DailyScore extends DataClass implements Insertable<DailyScore> {
       source: data.source.present ? data.source.value : this.source,
       hrv: data.hrv.present ? data.hrv.value : this.hrv,
       hrvKind: data.hrvKind.present ? data.hrvKind.value : this.hrvKind,
+      sleepScore: data.sleepScore.present
+          ? data.sleepScore.value
+          : this.sleepScore,
+      vitalsPenalty: data.vitalsPenalty.present
+          ? data.vitalsPenalty.value
+          : this.vitalsPenalty,
     );
   }
 
@@ -2756,13 +2830,15 @@ class DailyScore extends DataClass implements Insertable<DailyScore> {
           ..write('algoVersion: $algoVersion, ')
           ..write('source: $source, ')
           ..write('hrv: $hrv, ')
-          ..write('hrvKind: $hrvKind')
+          ..write('hrvKind: $hrvKind, ')
+          ..write('sleepScore: $sleepScore, ')
+          ..write('vitalsPenalty: $vitalsPenalty')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
     date,
     strain,
     trimp,
@@ -2782,7 +2858,9 @@ class DailyScore extends DataClass implements Insertable<DailyScore> {
     source,
     hrv,
     hrvKind,
-  );
+    sleepScore,
+    vitalsPenalty,
+  ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -2805,7 +2883,9 @@ class DailyScore extends DataClass implements Insertable<DailyScore> {
           other.algoVersion == this.algoVersion &&
           other.source == this.source &&
           other.hrv == this.hrv &&
-          other.hrvKind == this.hrvKind);
+          other.hrvKind == this.hrvKind &&
+          other.sleepScore == this.sleepScore &&
+          other.vitalsPenalty == this.vitalsPenalty);
 }
 
 class DailyScoresCompanion extends UpdateCompanion<DailyScore> {
@@ -2828,6 +2908,8 @@ class DailyScoresCompanion extends UpdateCompanion<DailyScore> {
   final Value<String> source;
   final Value<double?> hrv;
   final Value<String?> hrvKind;
+  final Value<double?> sleepScore;
+  final Value<double> vitalsPenalty;
   final Value<int> rowid;
   const DailyScoresCompanion({
     this.date = const Value.absent(),
@@ -2849,6 +2931,8 @@ class DailyScoresCompanion extends UpdateCompanion<DailyScore> {
     this.source = const Value.absent(),
     this.hrv = const Value.absent(),
     this.hrvKind = const Value.absent(),
+    this.sleepScore = const Value.absent(),
+    this.vitalsPenalty = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   DailyScoresCompanion.insert({
@@ -2871,6 +2955,8 @@ class DailyScoresCompanion extends UpdateCompanion<DailyScore> {
     this.source = const Value.absent(),
     this.hrv = const Value.absent(),
     this.hrvKind = const Value.absent(),
+    this.sleepScore = const Value.absent(),
+    this.vitalsPenalty = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : date = Value(date),
        strain = Value(strain),
@@ -2898,6 +2984,8 @@ class DailyScoresCompanion extends UpdateCompanion<DailyScore> {
     Expression<String>? source,
     Expression<double>? hrv,
     Expression<String>? hrvKind,
+    Expression<double>? sleepScore,
+    Expression<double>? vitalsPenalty,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -2920,6 +3008,8 @@ class DailyScoresCompanion extends UpdateCompanion<DailyScore> {
       if (source != null) 'source': source,
       if (hrv != null) 'hrv': hrv,
       if (hrvKind != null) 'hrv_kind': hrvKind,
+      if (sleepScore != null) 'sleep_score': sleepScore,
+      if (vitalsPenalty != null) 'vitals_penalty': vitalsPenalty,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -2944,6 +3034,8 @@ class DailyScoresCompanion extends UpdateCompanion<DailyScore> {
     Value<String>? source,
     Value<double?>? hrv,
     Value<String?>? hrvKind,
+    Value<double?>? sleepScore,
+    Value<double>? vitalsPenalty,
     Value<int>? rowid,
   }) {
     return DailyScoresCompanion(
@@ -2966,6 +3058,8 @@ class DailyScoresCompanion extends UpdateCompanion<DailyScore> {
       source: source ?? this.source,
       hrv: hrv ?? this.hrv,
       hrvKind: hrvKind ?? this.hrvKind,
+      sleepScore: sleepScore ?? this.sleepScore,
+      vitalsPenalty: vitalsPenalty ?? this.vitalsPenalty,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -3030,6 +3124,12 @@ class DailyScoresCompanion extends UpdateCompanion<DailyScore> {
     if (hrvKind.present) {
       map['hrv_kind'] = Variable<String>(hrvKind.value);
     }
+    if (sleepScore.present) {
+      map['sleep_score'] = Variable<double>(sleepScore.value);
+    }
+    if (vitalsPenalty.present) {
+      map['vitals_penalty'] = Variable<double>(vitalsPenalty.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -3058,6 +3158,8 @@ class DailyScoresCompanion extends UpdateCompanion<DailyScore> {
           ..write('source: $source, ')
           ..write('hrv: $hrv, ')
           ..write('hrvKind: $hrvKind, ')
+          ..write('sleepScore: $sleepScore, ')
+          ..write('vitalsPenalty: $vitalsPenalty, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -10333,6 +10435,8 @@ typedef $$DailyScoresTableCreateCompanionBuilder =
       Value<String> source,
       Value<double?> hrv,
       Value<String?> hrvKind,
+      Value<double?> sleepScore,
+      Value<double> vitalsPenalty,
       Value<int> rowid,
     });
 typedef $$DailyScoresTableUpdateCompanionBuilder =
@@ -10356,6 +10460,8 @@ typedef $$DailyScoresTableUpdateCompanionBuilder =
       Value<String> source,
       Value<double?> hrv,
       Value<String?> hrvKind,
+      Value<double?> sleepScore,
+      Value<double> vitalsPenalty,
       Value<int> rowid,
     });
 
@@ -10460,6 +10566,16 @@ class $$DailyScoresTableFilterComposer
 
   ColumnFilters<String> get hrvKind => $composableBuilder(
     column: $table.hrvKind,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get sleepScore => $composableBuilder(
+    column: $table.sleepScore,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get vitalsPenalty => $composableBuilder(
+    column: $table.vitalsPenalty,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -10567,6 +10683,16 @@ class $$DailyScoresTableOrderingComposer
     column: $table.hrvKind,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<double> get sleepScore => $composableBuilder(
+    column: $table.sleepScore,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get vitalsPenalty => $composableBuilder(
+    column: $table.vitalsPenalty,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$DailyScoresTableAnnotationComposer
@@ -10642,6 +10768,16 @@ class $$DailyScoresTableAnnotationComposer
 
   GeneratedColumn<String> get hrvKind =>
       $composableBuilder(column: $table.hrvKind, builder: (column) => column);
+
+  GeneratedColumn<double> get sleepScore => $composableBuilder(
+    column: $table.sleepScore,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get vitalsPenalty => $composableBuilder(
+    column: $table.vitalsPenalty,
+    builder: (column) => column,
+  );
 }
 
 class $$DailyScoresTableTableManager
@@ -10694,6 +10830,8 @@ class $$DailyScoresTableTableManager
                 Value<String> source = const Value.absent(),
                 Value<double?> hrv = const Value.absent(),
                 Value<String?> hrvKind = const Value.absent(),
+                Value<double?> sleepScore = const Value.absent(),
+                Value<double> vitalsPenalty = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => DailyScoresCompanion(
                 date: date,
@@ -10715,6 +10853,8 @@ class $$DailyScoresTableTableManager
                 source: source,
                 hrv: hrv,
                 hrvKind: hrvKind,
+                sleepScore: sleepScore,
+                vitalsPenalty: vitalsPenalty,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -10738,6 +10878,8 @@ class $$DailyScoresTableTableManager
                 Value<String> source = const Value.absent(),
                 Value<double?> hrv = const Value.absent(),
                 Value<String?> hrvKind = const Value.absent(),
+                Value<double?> sleepScore = const Value.absent(),
+                Value<double> vitalsPenalty = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => DailyScoresCompanion.insert(
                 date: date,
@@ -10759,6 +10901,8 @@ class $$DailyScoresTableTableManager
                 source: source,
                 hrv: hrv,
                 hrvKind: hrvKind,
+                sleepScore: sleepScore,
+                vitalsPenalty: vitalsPenalty,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

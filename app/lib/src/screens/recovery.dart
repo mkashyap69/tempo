@@ -120,6 +120,13 @@ class RecoveryScreen extends ConsumerWidget {
                   ),
             const SizedBox(height: 14),
             Text(recoveryWhy(t, cs), style: TempoType.body.c(c.text2)),
+            if ((t.score?.vitalsPenalty ?? 0) >= .5) ...[
+              const SizedBox(height: 8),
+              Text(
+                '−${t.score!.vitalsPenalty.round()} points: breathing rate, blood oxygen or night temperature ran off your normal.',
+                style: TempoType.bodyS.c(context.s.recLow),
+              ),
+            ],
           ],
         ),
         Section(

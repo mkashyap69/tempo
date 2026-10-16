@@ -56,7 +56,7 @@ class TempoDb extends _$TempoDb {
   TempoDb(super.e);
 
   @override
-  int get schemaVersion => 12;
+  int get schemaVersion => 13;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -120,15 +120,43 @@ class TempoDb extends _$TempoDb {
         await _healthIndexes();
       }
       if (from < 11) {
-        await m.addColumn(journal, journal.amount);
-        await m.addColumn(longevity, longevity.confidence);
-        await m.addColumn(longevity, longevity.halfRange);
+        await _addColumns(m, journal, [journal.amount]);
+        await _addColumns(m, longevity, [
+          longevity.confidence,
+          longevity.halfRange,
+        ]);
       }
       if (from < 12) {
         await m.createTable(strengthSets);
       }
+      if (from < 13) {
+        await _addColumns(m, dailyScores, [
+          dailyScores.sleepScore,
+          dailyScores.vitalsPenalty,
+        ]);
+      }
     },
   );
+
+  /// Adds [columns] to [table], or creates the table whole when it's
+  /// missing (a partial database from a test or an interrupted upgrade).
+  Future<void> _addColumns(
+    Migrator m,
+    TableInfo<Table, dynamic> table,
+    List<GeneratedColumn> columns,
+  ) async {
+    final exists = await customSelect(
+      "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?",
+      variables: [Variable.withString(table.actualTableName)],
+    ).get();
+    if (exists.isEmpty) {
+      await m.createTable(table);
+      return;
+    }
+    for (final c in columns) {
+      await m.addColumn(table, c);
+    }
+  }
 
   Future<void> _healthIndexes() => customStatement(
     'CREATE INDEX IF NOT EXISTS health_records_start '

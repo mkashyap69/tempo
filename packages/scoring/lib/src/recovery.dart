@@ -67,3 +67,16 @@ RecoveryColor recoveryColor(double score) => score >= 67
   RecoveryColor.yellow => (low: 10, high: 14),
   RecoveryColor.red => (low: 0, high: 10),
 };
+
+/// Points taken off recovery for night vitals moving the wrong way
+/// (breathing rate, SpO₂, temperature; z positive = worse than your
+/// normal): 4 per SD beyond 1.5, at most 8 a signal and 15 in all. Never
+/// adds: a better-than-usual night is already in HRV and resting HR.
+double recoveryPenalty(Iterable<double?> worseZ) {
+  var p = 0.0;
+  for (final z in worseZ) {
+    if (z == null || z <= 1.5) continue;
+    p += min(8, 4 * (z - 1.5));
+  }
+  return min(15, p);
+}

@@ -31,6 +31,8 @@ final class DailyScore {
     this.source = bandSource,
     this.hrv,
     this.hrvKind,
+    this.sleepScore,
+    this.vitalsPenalty = 0,
   });
 
   final DateTime date; // local midnight
@@ -60,6 +62,12 @@ final class DailyScore {
 
   /// `sdnn` or `rmssd`: different scales, never one baseline.
   final String? hrvKind;
+
+  /// Sleep score v2 (0–100; see [sleepScoreV2]); null without a night.
+  final double? sleepScore;
+
+  /// Recovery points taken off for night vitals (algo 9).
+  final double vitalsPenalty;
 }
 
 /// [DailyScore.source] of days scored from the Mi Band.
@@ -192,6 +200,7 @@ DailyScore scoreDay({
   double? hrv,
   String? hrvKind,
   double? sourceRhr,
+  List<double?> vitalsZ = const [],
 }) {
   final day = DateTime(date.year, date.month, date.day);
   final sl = daySleep(date: day, minutes: minutes, p: p.sleep);
@@ -296,6 +305,45 @@ DailyScore scoreDay({
       weight: p.recovery.wSleep,
     ),
   ], p.recovery);
+  final penalty = rec == null ? 0.0 : recoveryPenalty(vitalsZ);
+
+  // Sleep score v2: bedtime against the 14-night median, the night's
+  // efficiency and wake bouts, and the heart-rate dip from the 3 h before.
+  double? score;
+  if (night != null && perf != null) {
+    int toNoon(DateTime t) => ((t.hour - 12) % 24) * 60 + t.minute;
+    final beds = [
+      for (final d in same.take(14))
+        if (d.sleepStart != null) toNoon(d.sleepStart!),
+    ]..sort();
+    final evening = [
+      for (final m in minutes)
+        if (m.hr != null &&
+            !m.stage.asleep &&
+            m.ts.isBefore(night.start) &&
+            !m.ts.isBefore(night.start.subtract(const Duration(hours: 3))))
+          m.hr!,
+    ];
+    final asleepHr = [
+      for (final m in night.minutes)
+        if (m.hr != null && m.stage.asleep) m.hr!,
+    ];
+    double? dip;
+    if (evening.length >= 30 && asleepHr.length >= 60) {
+      final e = evening.reduce((a, b) => a + b) / evening.length;
+      final a = asleepHr.reduce((a, b) => a + b) / asleepHr.length;
+      dip = (1 - a / e) * 100;
+    }
+    score = sleepScoreV2(
+      sleepPerf: perf,
+      bedDeviationMinutes: beds.length < 5
+          ? null
+          : toNoon(night.start) - beds[beds.length ~/ 2],
+      efficiency: night.efficiency,
+      wakeBoutCount: wakeBouts(night),
+      hrDipPct: dip,
+    ).score;
+  }
 
   return DailyScore(
     date: day,
@@ -311,7 +359,9 @@ DailyScore scoreDay({
     sleepPerf: perf,
     rhr: rhr,
     hrvProxy: stressHrv,
-    recovery: rec,
+    recovery: rec == null ? null : max(0, rec - penalty).toDouble(),
+    vitalsPenalty: penalty,
+    sleepScore: score,
     calibrating: calibrating,
     source: source,
     hrv: realHrv,

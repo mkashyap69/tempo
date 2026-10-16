@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'types.dart';
 
 final class SleepSession {
@@ -161,3 +163,87 @@ double sleepNeedHours({
 /// 0–100, capped.
 double sleepPerformance(double sleptHours, double needHours) =>
     needHours <= 0 ? 100 : (100 * sleptHours / needHours).clamp(0, 100);
+
+// ---- Sleep score v2 -----------------------------------------------------------
+
+/// The parts of the sleep score, each 0–100 (null when not measurable).
+final class SleepScore {
+  const SleepScore({
+    required this.score,
+    required this.sufficiency,
+    this.regularity,
+    this.efficiency,
+    this.continuity,
+    this.hrDip,
+  });
+  final double score, sufficiency;
+  final double? regularity, efficiency, continuity, hrDip;
+}
+
+/// Weights of the parts; missing parts drop out and the rest renormalise.
+const sleepScoreWeights = (
+  sufficiency: .60,
+  regularity: .15,
+  efficiency: .10,
+  continuity: .10,
+  hrDip: .05,
+);
+
+/// Wake bouts of [minMinutes]+ inside a night.
+int wakeBouts(SleepSession s, {int minMinutes = 5}) {
+  var n = 0, run = 0;
+  for (final m in s.minutes) {
+    if (m.stage == Stage.wake) {
+      run++;
+      if (run == minMinutes) n++;
+    } else {
+      run = 0;
+    }
+  }
+  return n;
+}
+
+/// Sleep score v2: how long against need (sleep performance) 60 %,
+/// bedtime within your usual 15 %, efficiency 10 %, few wake bouts 10 %
+/// and the night's heart-rate dip 5 %. Band stages are left out (wrist
+/// staging is too rough to score). [bedDeviationMinutes] is tonight's
+/// bedtime against your 14-night median; [hrDipPct] is 1 − sleeping HR ÷
+/// evening HR, in percent.
+SleepScore sleepScoreV2({
+  required double sleepPerf,
+  int? bedDeviationMinutes,
+  double? efficiency,
+  int? wakeBoutCount,
+  double? hrDipPct,
+}) {
+  double lin(double v, double lo, double hi) =>
+      ((v - lo) / (hi - lo) * 100).clamp(0, 100).toDouble();
+  final reg = bedDeviationMinutes == null
+      ? null
+      : 100 - lin(bedDeviationMinutes.abs().toDouble(), 0, 90);
+  final eff = efficiency == null ? null : lin(efficiency, .65, .90);
+  final cont = wakeBoutCount == null
+      ? null
+      : max(0, 100 - 15.0 * wakeBoutCount).toDouble();
+  final dip = hrDipPct == null ? null : lin(hrDipPct, 0, 15);
+  const w = sleepScoreWeights;
+  var acc = w.sufficiency * sleepPerf, ws = w.sufficiency;
+  for (final (v, wt) in [
+    (reg, w.regularity),
+    (eff, w.efficiency),
+    (cont, w.continuity),
+    (dip, w.hrDip),
+  ]) {
+    if (v == null) continue;
+    acc += wt * v;
+    ws += wt;
+  }
+  return SleepScore(
+    score: acc / ws,
+    sufficiency: sleepPerf,
+    regularity: reg,
+    efficiency: eff,
+    continuity: cont,
+    hrDip: dip,
+  );
+}

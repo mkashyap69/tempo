@@ -97,6 +97,9 @@ class DailyScores extends Table {
   TextColumn get source => text().withDefault(const Constant('band'))();
   RealColumn get hrv => real().nullable()();
   TextColumn get hrvKind => text().nullable()(); // sdnn | rmssd
+  // v13 (algo 9): sleep score v2 and recovery points taken off for vitals.
+  RealColumn get sleepScore => real().nullable()();
+  RealColumn get vitalsPenalty => real().withDefault(const Constant(0.0))();
   @override
   Set<Column> get primaryKey => {date};
 }

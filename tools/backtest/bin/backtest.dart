@@ -64,7 +64,7 @@ Future<void> main(List<String> argv) async {
 
   if (!calibrating) {
     stdout.writeln(
-      'date,strain,trimp,hr_max,slept_h,need_h,sleep_perf,rhr,recovery,calibrating,algo_version',
+      'date,strain,trimp,hr_max,slept_h,need_h,sleep_perf,sleep_score,rhr,recovery,calibrating,algo_version',
     );
   }
   final history = <DailyScore>[];
@@ -112,6 +112,7 @@ Future<void> main(List<String> argv) async {
         f(s.sleptHours, 2),
         f(s.needHours, 2),
         f(s.sleepPerf, 0),
+        f(s.sleepScore, 0),
         f(s.rhr),
         f(s.recovery, 0),
         s.calibrating,
