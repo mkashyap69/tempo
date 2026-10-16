@@ -304,19 +304,24 @@ class SleepScreen extends ConsumerWidget {
                 TextSpan(
                   children: [
                     TextSpan(
-                      text: '${perf?.round() ?? '—'}',
+                      text: '${t.sleepScore?.round() ?? '—'}',
                       style: TempoType.hero.c(c.text1),
                     ),
                     TextSpan(
-                      text: '% of need',
+                      text: ' sleep score',
                       style: TempoType.titleM.c(c.text3),
                     ),
                   ],
                 ),
               ),
+              if (perf != null)
+                Text(
+                  '${perf.round()}% of need · bedtime, efficiency, wake-ups and heart-rate dip make up the rest',
+                  style: TempoType.caption.c(c.text2).tnum,
+                ),
               const SizedBox(height: 10),
               TargetStrip(
-                value: (perf ?? 0),
+                value: (t.sleepScore ?? 0),
                 max: 100,
                 color: s.sleepChannel,
                 height: 10,
@@ -367,28 +372,6 @@ class SleepScreen extends ConsumerWidget {
               ],
             ],
           ),
-          if (t.score?.sleepScore case final score?)
-            TempoCard(
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Overline('Sleep score'),
-                        const SizedBox(height: 4),
-                        Text(
-                          'How long against need (60 %), a usual bedtime (15 %), efficiency (10 %), few wake-ups (10 %) and the heart-rate dip (5 %).',
-                          style: TempoType.caption.c(c.text2),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Text('${score.round()}', style: TempoType.scoreM.c(c.text1)),
-                ],
-              ),
-            ),
           TempoCard(
             onTap: () => push(context, NightDetailScreen(morning: t.day)),
             label: 'Night detail',

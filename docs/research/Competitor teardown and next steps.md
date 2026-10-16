@@ -217,7 +217,7 @@ Status as of Oct 16, 2026 (built in this branch; see `docs/decisions.md`).
 **A9 · Algo**
 - [x] Respiratory rate, SpO₂ and temperature as recovery penalties
 - [x] Read wrist/skin temperature (TODO(verify) on phones)
-- [x] Sleep score v2 (sufficiency, regularity, efficiency, continuity, HR dip), shown on Sleep
+- [x] Sleep score v2 (sufficiency, regularity, efficiency, continuity, HR dip), the sleep number on Today, Sleep, Trends and the widget
 - [x] Strain target that uses the load ratio
 - [x] Data source priority per metric (sleep, heart rate, HRV, steps)
 - [ ] Backtest 2020–2026 for every change (runs on a synthetic export here; needs the real export on the owner's machine)

@@ -53,9 +53,9 @@ Future<void> updateHomeWidgets(TodayData t) async {
           ? 'Cap ${t.target.hi.round()}'
           : 'Target ${t.target.lo.round()}–${t.target.hi.round()}',
       'strain_fill': (t.strain / 21 * 100).round(),
-      'sleep_value': t.sleepPerf == null ? '—' : '${t.sleepPerf!.round()}',
+      'sleep_value': t.sleepScore == null ? '—' : '${t.sleepScore!.round()}',
       'sleep_state': t.slept == null ? 'No data' : hmShort(t.slept!),
-      'sleep_fill': (t.sleepPerf ?? 0).round(),
+      'sleep_fill': (t.sleepScore ?? 0).round(),
       'updated_at': '${(t.lastSync ?? DateTime.now()).millisecondsSinceEpoch}',
       ...sessionWidgetData(t),
     };

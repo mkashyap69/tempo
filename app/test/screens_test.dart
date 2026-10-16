@@ -96,7 +96,7 @@ void main() {
       () => NightDetailScreen(morning: dayOf(DateTime.now())),
       'Overnight heart rate',
     ),
-    'Trends': (() => const TrendsScreen(), 'Sleep performance'),
+    'Trends': (() => const TrendsScreen(), 'Sleep score'),
     'Longevity': (() => const LongevityScreen(), 'TEMPO AGE'),
     'Biomarker': (() => const BiomarkerScreen(sc.Lever.steps), 'Daily steps'),
     'Blood tests': (() => const LabsScreen(), 'Add a blood test'),
