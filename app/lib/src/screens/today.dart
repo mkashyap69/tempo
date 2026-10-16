@@ -49,7 +49,7 @@ class TodayScreen extends ConsumerWidget {
         adapter == BluetoothAdapterState.unauthorized ||
         sync.problem == SyncProblem.noPermission;
     return TempoPage(
-      bottom: 100,
+      bottom: 140, // clear the start button over the last row
       onRefresh: paired
           ? () {
               TempoHaptics.light(); // pull-to-sync threshold reached
@@ -338,9 +338,8 @@ abstract final class TodayBody {
       TodayRings(t: t, noData: noData, dim: dim),
       if (!noData && !t.firstDay && done)
         _DoneCard(
-          title: t.plan!.title,
-          minutes: t.plan!.minutes,
-          easier: t.status == sc.DayStatus.doneEasier,
+          title: doneTitle(t),
+          sub: doneSub(t),
           onTap: () => push(context, const WorkoutDetailScreen()),
         )
       else if (!noData && t.restDay)
@@ -768,13 +767,10 @@ Future<void> showWhySheet(BuildContext context, TodayData t) =>
 class _DoneCard extends StatelessWidget {
   const _DoneCard({
     required this.title,
-    required this.minutes,
-    required this.easier,
+    required this.sub,
     required this.onTap,
   });
-  final String title;
-  final int minutes;
-  final bool easier;
+  final String title, sub;
   final VoidCallback onTap;
 
   @override
@@ -800,15 +796,9 @@ class _DoneCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  easier ? '$title · done, easier' : '$title · done',
-                  style: TempoType.label.c(c.text1),
-                ),
+                Text(title, style: TempoType.label.c(c.text1)),
                 const SizedBox(height: 2),
-                Text(
-                  'Nice work. Keep the rest of the day easy.',
-                  style: TempoType.bodyS.c(c.text2),
-                ),
+                Text(sub, style: TempoType.bodyS.c(c.text2)),
               ],
             ),
           ),
@@ -818,3 +808,30 @@ class _DoneCard extends StatelessWidget {
     );
   }
 }
+
+/// The workout that covered today's plan when it was a different one
+/// (a game counted for an easy run), else null.
+st.Workout? _coveredBy(TodayData t) {
+  final by = t.swap.by;
+  if (t.swap.kind != sc.SwapKind.counted || by == null) return null;
+  if (by.sport == t.plan?.sport) return null;
+  for (final w in t.workouts) {
+    if (st.fromTs(w.start) == by.start) return w;
+  }
+  return null;
+}
+
+/// "Easy run · done", or what you actually did: "Sport · 1 h 19 · done".
+String doneTitle(TodayData t) {
+  final w = _coveredBy(t);
+  if (w != null) {
+    return '${w.title} · ${hmShort((w.end - w.start) / 3600)} · done';
+  }
+  return t.status == sc.DayStatus.doneEasier
+      ? '${t.plan!.title} · done, easier'
+      : '${t.plan!.title} · done';
+}
+
+String doneSub(TodayData t) => _coveredBy(t) != null
+    ? 'Counted as today’s ${t.plan!.title.toLowerCase()}. Keep the rest of the day easy.'
+    : 'Nice work. Keep the rest of the day easy.';

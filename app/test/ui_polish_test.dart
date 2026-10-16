@@ -5,6 +5,7 @@ import 'package:scoring/scoring.dart' as sc;
 import 'package:store/store.dart';
 import 'package:tempo/src/core/coach_service.dart';
 import 'package:tempo/src/screens/activity_detail.dart';
+import 'package:tempo/src/core/today.dart';
 import 'package:tempo/src/screens/today.dart';
 
 import 'support/harness.dart';
@@ -68,6 +69,37 @@ void main() {
     expect(find.text('Easy run · done'), findsOneWidget);
     expect(find.text('SUGGESTED FOR TODAY'), findsNothing);
     expect(find.text('Choose a workout'), findsNothing);
+    await teardown(t, db);
+  });
+
+  testWidgets('a game that covered the run is named, not the run', (t) async {
+    final db = (await t.runAsync(() async {
+      final db = await seededDb(days: 30);
+      final day = dayOf(DateTime.now());
+      await CoachService(db).ensureWeek(day);
+      await CoachService(db).swapToday(sc.sessionTemplate('aerobic_run'), 't');
+      final start = DateTime.now().subtract(const Duration(hours: 2));
+      await db.addWorkout(
+        WorkoutsCompanion.insert(
+          start: toTs(start),
+          end: toTs(start.add(const Duration(minutes: 79))),
+          sport: const Value('sport'),
+          title: 'Sport',
+          source: 'band',
+          confirmed: const Value(true),
+          strain: 12.3,
+          trimp: 90,
+          zones: '[20,35,20,4,0]',
+        ),
+      );
+      return db;
+    }))!;
+    final today = (await t.runAsync(() => loadToday(db)))!;
+    expect(today.status, sc.DayStatus.done);
+    expect(doneTitle(today), startsWith('Sport · 1h 19m'));
+    expect(doneSub(today), contains('Counted as today’s easy aerobic run'));
+    await render(t, db, const TodayScreen());
+    expect(find.textContaining('Counted as'), findsOneWidget);
     await teardown(t, db);
   });
 }
