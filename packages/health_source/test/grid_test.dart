@@ -113,6 +113,37 @@ void main() {
       );
     });
 
+    test('a chosen sleep source: only its records count', () {
+      // A watch and a ring both wrote last night; the ring started earlier.
+      HealthGrid grid([String? from]) =>
+          HealthGrid(GridParams(sleepSource: from))
+            ..add(rec(HealthKind.sleepLight, m(2), m(5), 3, src: 'watch'))
+            ..add(rec(HealthKind.sleepDeep, m(0), m(3), 3, src: 'ring'))
+            ..add(hr(1, 50, src: 'ring'));
+      List<SleepMark?> marks(HealthGrid g) => [
+        for (final x in g.minutes(m(0), m(6))) x.sleep,
+      ];
+      // Merged (default): the ring's deep wins where they overlap.
+      expect(marks(grid()), [
+        SleepMark.deep,
+        SleepMark.deep,
+        SleepMark.deep,
+        SleepMark.light,
+        SleepMark.light,
+        null,
+      ]);
+      expect(marks(grid('watch')), [
+        null,
+        null,
+        SleepMark.light,
+        SleepMark.light,
+        SleepMark.light,
+        null,
+      ]);
+      // Heart rate from other apps still counts.
+      expect(grid('watch').minutes(m(1), m(2)).single.hr, 50);
+    });
+
     test('in bed counts as asleep only with no stages inside it', () {
       final phoneOnly = HealthGrid()
         ..add(rec(HealthKind.sleepInBed, m(0), m(3), 3, src: 'phone'));

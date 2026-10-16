@@ -71,7 +71,7 @@ void main() {
     ),
     'Profile': (
       () => const SettingsScreen(),
-      ['Health Connect', 'DATA SOURCE', 'Health access'],
+      ['Health Connect', 'Data sources'],
       ['BAND SETTINGS', 'Re-pair or change band', 'Rewrite band settings'],
     ),
   };

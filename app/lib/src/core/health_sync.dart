@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:drift/drift.dart' show Value;
+import 'package:drift/drift.dart' show Value, Variable;
 import 'package:flutter/foundation.dart';
 import 'package:health_source/health_source.dart';
 import 'package:path_provider/path_provider.dart';
@@ -227,6 +227,7 @@ class HealthSyncService {
     final readFrom = newKinds.isEmpty ? from : t0.subtract(firstWindow);
 
     final counts = <HealthKind, int>{};
+    final names = <String, String>{};
     final failed = <HealthKind>{};
     final errors = <String>{};
     // Kept only for a re-read, to compare against what is stored.
@@ -261,6 +262,9 @@ class HealthSyncService {
             if (_usable(r)) r,
         ];
         await db.appendHealthRecords([for (final r in keep) _row(r, t0)]);
+        for (final r in keep) {
+          if (r.sourceName.isNotEmpty) names[r.sourceApp] = r.sourceName;
+        }
         if (!firstImport) fresh.addAll(keep);
         counts[kind] = (counts[kind] ?? 0) + keep.length;
       }
@@ -338,6 +342,7 @@ class HealthSyncService {
     }
     await db.putSetting(Keys.lastSync, _now().toIso8601String());
     await _rememberFound(counts);
+    await rememberSourceNames(db, names);
 
     final report = HealthSyncReport(
       from: from,
@@ -442,10 +447,14 @@ Future<void> rebuildHealthMinutes(
   final end = DateTime.fromMillisecondsSinceEpoch(
     (to.millisecondsSinceEpoch ~/ 60000 + 1) * 60000,
   );
+  final sleepFrom = await db.setting(Keys.healthSleepSource);
+  final params = GridParams(
+    sleepSource: sleepFrom == null || sleepFrom.isEmpty ? null : sleepFrom,
+  );
   for (var a = a0; a.isBefore(end); a = a.add(HealthSyncService.chunk)) {
     final next = a.add(HealthSyncService.chunk);
     final b = next.isAfter(end) ? end : next;
-    final grid = HealthGrid()
+    final grid = HealthGrid(params)
       ..addAll(
         await loadHealthRecords(
           db,
@@ -458,4 +467,114 @@ Future<void> rebuildHealthMinutes(
       for (final m in grid.minutes(a, b)) healthMinuteRow(m),
     ]);
   }
+}
+
+/// Adds [found] (source app id → display name) to the stored names.
+Future<void> rememberSourceNames(TempoDb db, Map<String, String> found) async {
+  if (found.isEmpty) return;
+  final names = await sourceNames(db);
+  final before = names.length;
+  var changed = false;
+  for (final e in found.entries) {
+    if (names[e.key] != e.value) {
+      names[e.key] = e.value;
+      changed = true;
+    }
+  }
+  if (changed || names.length != before) {
+    await db.putSetting(Keys.healthSourceNames, jsonEncode(names));
+  }
+}
+
+/// Source app id → display name, as Health last reported it.
+Future<Map<String, String>> sourceNames(TempoDb db) async {
+  try {
+    final m = jsonDecode(await db.setting(Keys.healthSourceNames) ?? '{}');
+    return {
+      for (final e in (m as Map).entries)
+        if (e.key is String && e.value is String)
+          e.key as String: e.value as String,
+    };
+  } catch (_) {
+    return {};
+  }
+}
+
+/// A readable name for a source app: what Health called it, else the
+/// last part of its id ("com.ouraring.oura" → "Oura").
+String sourceLabel(String id, Map<String, String> names) {
+  final n = names[id];
+  if (n != null && n.isNotEmpty) return n;
+  final parts = id.split('.').where((p) => p.isNotEmpty).toList();
+  if (parts.isEmpty) return id;
+  final last = parts.last;
+  return last[0].toUpperCase() + last.substring(1);
+}
+
+/// An app that wrote sleep to Health recently.
+final class SleepSourceInfo {
+  const SleepSourceInfo(this.id, this.label, this.nights, this.last);
+  final String id, label;
+
+  /// Nights (local dates a sleep record ended on) in the window.
+  final int nights;
+  final DateTime last;
+}
+
+/// Apps that wrote sleep in the last [days] days, most nights first.
+Future<List<SleepSourceInfo>> sleepSources(
+  TempoDb db, {
+  int days = 30,
+  DateTime? now,
+}) async {
+  final since = (now ?? DateTime.now()).subtract(Duration(days: days));
+  final kinds = [
+    for (final k in HealthKind.values)
+      if (k.isSleep) "'${k.name}'",
+  ].join(', ');
+  final rows = await db
+      .customSelect(
+        'SELECT source_app, end_ms FROM health_records '
+        'WHERE kind IN ($kinds) AND end_ms >= ?',
+        variables: [Variable.withInt(since.millisecondsSinceEpoch)],
+      )
+      .get();
+  final nights = <String, Set<String>>{};
+  final last = <String, int>{};
+  for (final r in rows) {
+    final id = r.read<String>('source_app');
+    if (id == tempoAppId) continue;
+    final end = r.read<int>('end_ms');
+    final d = DateTime.fromMillisecondsSinceEpoch(end);
+    nights.putIfAbsent(id, () => {}).add('${d.year}-${d.month}-${d.day}');
+    if (end > (last[id] ?? 0)) last[id] = end;
+  }
+  final names = await sourceNames(db);
+  return [
+    for (final id in nights.keys)
+      SleepSourceInfo(
+        id,
+        sourceLabel(id, names),
+        nights[id]!.length,
+        DateTime.fromMillisecondsSinceEpoch(last[id]!),
+      ),
+  ]..sort((a, b) => b.nights.compareTo(a.nights));
+}
+
+/// Uses only [id]'s sleep (null: every app, merged), then rebuilds the
+/// stored Health minutes and rescores everything they cover.
+Future<void> setSleepSource(TempoDb db, String? id) async {
+  if (id == null) {
+    await db.deleteSetting(Keys.healthSleepSource);
+  } else {
+    await db.putSetting(Keys.healthSleepSource, id);
+  }
+  final first = await db
+      .customSelect('SELECT MIN(start_ms) AS a FROM health_records')
+      .getSingleOrNull();
+  final a = first?.read<int?>('a');
+  if (a == null) return;
+  final from = DateTime.fromMillisecondsSinceEpoch(a);
+  await rebuildHealthMinutes(db, from, DateTime.now());
+  await ScoreService(db).recomputeFrom(from);
 }

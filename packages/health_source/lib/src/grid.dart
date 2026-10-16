@@ -34,7 +34,14 @@ final class GridParams {
     this.minBpm = 25,
     this.maxBpm = 230,
     this.maxStepsPerMinute = 300,
+    this.sleepSource,
   });
+
+  /// Only this app's sleep records count (Profile → Data sources → Sleep
+  /// from), like Athlytic's preferred sleep tracker: Health merges a watch
+  /// and a ring into one longer night otherwise. Null = every app, merged
+  /// as described on [HealthGrid].
+  final String? sleepSource;
 
   /// Heart rate is interpolated between readings up to this far apart.
   /// Apple Watch measures every ~4–10 min at rest and Health Connect
@@ -149,6 +156,11 @@ class HealthGrid {
   void add(HealthRecord r) {
     if (r.fromTempo) return;
     if (r.end.isBefore(r.start)) return;
+    if (r.kind.isSleep &&
+        p.sleepSource != null &&
+        r.sourceApp != p.sleepSource) {
+      return;
+    }
     switch (r.kind) {
       case HealthKind.heartRate:
         final v = r.value;
