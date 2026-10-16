@@ -115,6 +115,10 @@ class Journal extends Table {
   TextColumn get date => text()();
   TextColumn get tag => text()();
   BoolColumn get value => boolean()();
+
+  /// For amount entries the number (drinks, mg, ml); for time entries the
+  /// minute of day. Null for yes/no entries (schema 11).
+  RealColumn get amount => real().nullable()();
   @override
   Set<Column> get primaryKey => {date, tag};
 }
@@ -222,6 +226,10 @@ class Longevity extends Table {
   BoolColumn get calibrating => boolean()();
   TextColumn get contributors => text()(); // JSON
   IntColumn get algoVersion => integer()();
+
+  /// Schema 11 (Tempo Age v2): 0–1 confidence and ± years.
+  RealColumn get confidence => real().nullable()();
+  RealColumn get halfRange => real().nullable()();
   @override
   Set<Column> get primaryKey => {date};
 }

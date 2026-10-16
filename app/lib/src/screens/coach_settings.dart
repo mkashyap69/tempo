@@ -44,8 +44,9 @@ String kindName(sc.NudgeKind k) => switch (k) {
   sc.NudgeKind.lever => 'Daily focus nudge',
   sc.NudgeKind.winddown => 'Wind-down',
   sc.NudgeKind.rpe => 'Rate a detected workout',
-  sc.NudgeKind.health => 'Night heart rate alert',
+  sc.NudgeKind.health => 'Health alert',
   sc.NudgeKind.weekly => 'Weekly look-back',
+  sc.NudgeKind.journal => 'Journal reminder',
 };
 
 String kindWhen(sc.NudgeKind k) => switch (k) {
@@ -56,8 +57,10 @@ String kindWhen(sc.NudgeKind k) => switch (k) {
   sc.NudgeKind.lever => 'Mid-afternoon, only if you’re behind',
   sc.NudgeKind.winddown => 'Before tonight’s bedtime',
   sc.NudgeKind.rpe => 'After a walk, run or ride Tempo spots',
-  sc.NudgeKind.health => 'Once, when it runs well above usual',
+  sc.NudgeKind.health =>
+    'Once, when night heart rate runs high or 2+ body signals are off',
   sc.NudgeKind.weekly => 'Sunday 18:00',
+  sc.NudgeKind.journal => '2 h after waking, while yesterday is open',
 };
 
 /// Tempo Coach notifications: which kinds, how many, and your slots.

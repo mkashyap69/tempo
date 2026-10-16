@@ -260,4 +260,199 @@ void main() {
     ]);
     expect(ch.first.$2, closeTo(-.8, 1e-9));
   });
+
+  group('Tempo Age v2', () {
+    const base = LongevityInputs(
+      age: 35,
+      male: true,
+      daysOfData: 40,
+      steps: 7000,
+      activeMinutes: 75,
+      sleepHours: 7.5,
+      bedtimeSdMinutes: 45,
+    );
+    LongevityInputs withRhr(double rhr, {bool measured = false}) =>
+        LongevityInputs(
+          age: 35,
+          male: true,
+          daysOfData: 40,
+          vo2max: measured ? 42.8 : vo2maxFromHr(185, rhr),
+          vo2maxMeasured: measured,
+          restingHr: rhr,
+          steps: 7000,
+          activeMinutes: 75,
+          sleepHours: 7.5,
+          bedtimeSdMinutes: 45,
+        );
+
+    test('resting HR is not counted twice when VO₂ max comes from it', () {
+      double drop(bool measured) =>
+          tempoAge(withRhr(65, measured: measured)).age -
+          tempoAge(withRhr(55, measured: measured)).age;
+      // Before v2 the same 10 bpm counted ~1 year directly and ~3.7 more
+      // through the estimated VO₂ max.
+      final derived = drop(false);
+      expect(derived, lessThan(3.6));
+      final rhr = tempoAge(withRhr(55)).contributors
+          .singleWhere((c) => c.lever == Lever.restingHr);
+      expect(rhr.weak, isTrue);
+      expect(rhr.weight, lessThan(derivedRhrWeight + 1e-9));
+      // A measured VO₂ max leaves resting HR its full (group) weight.
+      final m = tempoAge(withRhr(55, measured: true)).contributors
+          .singleWhere((c) => c.lever == Lever.restingHr);
+      expect(m.weight, greaterThan(derivedRhrWeight));
+    });
+
+    test('overlapping levers in a group are shrunk', () {
+      expect(groupScale(AgeGroup.activity, 1), 1);
+      expect(groupScale(AgeGroup.activity, 3), closeTo(1 / 1.6, 1e-9));
+      final t = tempoAge(
+        const LongevityInputs(
+          age: 35,
+          male: true,
+          daysOfData: 40,
+          steps: 12000,
+          activeMinutes: 300,
+          strengthPerWeek: 2,
+        ),
+      );
+      final g = t.groups.single;
+      expect(g.group, AgeGroup.activity);
+      final raw = [
+        for (final c in g.levers)
+          yearsFromHazard(hazard(c.lever, c.value, age: 35))
+              .clamp(-leverCap(c.lever), leverCap(c.lever)),
+      ].reduce((a, b) => a + b);
+      expect(g.years, closeTo(raw / 1.6, 1e-9));
+      expect(t.age - 35, closeTo(g.years, 1e-9));
+    });
+
+    test('groups add up to the total', () {
+      final t = tempoAge(withRhr(52).copyLabs(phenoAge: 30, labDaysOld: 10));
+      final sum = t.groups.fold<double>(0, (a, g) => a + g.years);
+      expect(t.age - 35, closeTo(sum, 1e-9));
+      expect(t.groups.map((g) => g.group), [
+        AgeGroup.sleep,
+        AgeGroup.activity,
+        AgeGroup.fitness,
+        AgeGroup.blood,
+      ]);
+    });
+
+    test('confidence grows with coverage and inputs; range narrows', () {
+      final thin = tempoAge(
+        const LongevityInputs(age: 35, male: true, daysOfData: 5, steps: 7000),
+      );
+      final full = tempoAge(withRhr(60).copyLabs(phenoAge: 33, labDaysOld: 30));
+      expect(thin.confidence, lessThan(.2));
+      expect(full.confidence, greaterThan(thin.confidence));
+      expect(full.halfRange, lessThan(thin.halfRange));
+      expect(full.low, lessThan(full.age));
+      expect(full.high, greaterThan(full.age));
+      expect(thin.missing.first, Lever.fitness);
+      expect(full.missing, isNot(contains(Lever.blood)));
+    });
+
+    test('blood test weight falls with age', () {
+      expect(labRecency(0), 1);
+      expect(labRecency(182), 1);
+      expect(labRecency(456), closeTo(.5, 1e-9));
+      expect(labRecency(730), 0);
+      double bloodYears(int days) =>
+          tempoAge(base.copyLabs(phenoAge: 45, labDaysOld: days)).contributors
+              .singleWhere((c) => c.lever == Lever.blood)
+              .years;
+      expect(bloodYears(30), closeTo(10, 1e-9)); // capped at 10
+      expect(bloodYears(456), closeTo(5, 1e-9));
+      expect(
+        tempoAge(base.copyLabs(phenoAge: 45, labDaysOld: 800)).contributors
+            .any((c) => c.lever == Lever.blood),
+        isFalse,
+      );
+    });
+
+    test('resting HR reference by age and sex', () {
+      expect(rhrNorm(35, true), 65);
+      expect(rhrNorm(35, false), 68);
+      expect(hazard(Lever.restingHr, 68, male: false), 1);
+    });
+  });
+
+  group('PhenoAge (Levine 2018)', () {
+    const healthy = Labs(
+      albumin: 45,
+      creatinine: 80,
+      glucose: 5,
+      crp: 1,
+      lymphocytePct: 30,
+      mcv: 90,
+      rdw: 13,
+      alp: 70,
+      wbc: 6,
+    );
+    test('a healthy profile reads younger, a poor one older', () {
+      // Values from the published coefficients, computed independently.
+      expect(phenoAge(healthy, 40), closeTo(32.97, .01));
+      expect(phenoAge(healthy, 60), closeTo(50.81, .01));
+      const poor = Labs(
+        albumin: 38,
+        creatinine: 110,
+        glucose: 7,
+        crp: 10,
+        lymphocytePct: 20,
+        mcv: 98,
+        rdw: 16,
+        alp: 120,
+        wbc: 10,
+      );
+      expect(phenoAge(poor, 40), closeTo(63.72, .01));
+    });
+    test('higher RDW or CRP raises it', () {
+      const rdw = Labs(
+        albumin: 45,
+        creatinine: 80,
+        glucose: 5,
+        crp: 1,
+        lymphocytePct: 30,
+        mcv: 90,
+        rdw: 15,
+        alp: 70,
+        wbc: 6,
+      );
+      expect(phenoAge(rdw, 40)!, greaterThan(phenoAge(healthy, 40)!));
+    });
+    test('CRP of 0 is outside the formula', () {
+      const zero = Labs(
+        albumin: 45,
+        creatinine: 80,
+        glucose: 5,
+        crp: 0,
+        lymphocytePct: 30,
+        mcv: 90,
+        rdw: 13,
+        alp: 70,
+        wbc: 6,
+      );
+      expect(phenoAge(zero, 40), isNull);
+    });
+  });
+}
+
+extension on LongevityInputs {
+  LongevityInputs copyLabs({double? phenoAge, int? labDaysOld}) =>
+      LongevityInputs(
+        age: this.age,
+        male: this.male,
+        daysOfData: this.daysOfData,
+        vo2max: this.vo2max,
+        vo2maxMeasured: this.vo2maxMeasured,
+        restingHr: this.restingHr,
+        steps: this.steps,
+        activeMinutes: this.activeMinutes,
+        strengthPerWeek: this.strengthPerWeek,
+        sleepHours: this.sleepHours,
+        bedtimeSdMinutes: this.bedtimeSdMinutes,
+        phenoAge: phenoAge,
+        labDaysOld: labDaysOld,
+      );
 }

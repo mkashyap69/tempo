@@ -3449,8 +3449,17 @@ class $JournalTable extends Journal with TableInfo<$JournalTable, JournalData> {
       'CHECK ("value" IN (0, 1))',
     ),
   );
+  static const VerificationMeta _amountMeta = const VerificationMeta('amount');
   @override
-  List<GeneratedColumn> get $columns => [date, tag, value];
+  late final GeneratedColumn<double> amount = GeneratedColumn<double>(
+    'amount',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [date, tag, value, amount];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -3487,6 +3496,12 @@ class $JournalTable extends Journal with TableInfo<$JournalTable, JournalData> {
     } else if (isInserting) {
       context.missing(_valueMeta);
     }
+    if (data.containsKey('amount')) {
+      context.handle(
+        _amountMeta,
+        amount.isAcceptableOrUnknown(data['amount']!, _amountMeta),
+      );
+    }
     return context;
   }
 
@@ -3508,6 +3523,10 @@ class $JournalTable extends Journal with TableInfo<$JournalTable, JournalData> {
         DriftSqlType.bool,
         data['${effectivePrefix}value'],
       )!,
+      amount: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}amount'],
+      ),
     );
   }
 
@@ -3521,10 +3540,15 @@ class JournalData extends DataClass implements Insertable<JournalData> {
   final String date;
   final String tag;
   final bool value;
+
+  /// For amount entries the number (drinks, mg, ml); for time entries the
+  /// minute of day. Null for yes/no entries (schema 11).
+  final double? amount;
   const JournalData({
     required this.date,
     required this.tag,
     required this.value,
+    this.amount,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -3532,6 +3556,9 @@ class JournalData extends DataClass implements Insertable<JournalData> {
     map['date'] = Variable<String>(date);
     map['tag'] = Variable<String>(tag);
     map['value'] = Variable<bool>(value);
+    if (!nullToAbsent || amount != null) {
+      map['amount'] = Variable<double>(amount);
+    }
     return map;
   }
 
@@ -3540,6 +3567,9 @@ class JournalData extends DataClass implements Insertable<JournalData> {
       date: Value(date),
       tag: Value(tag),
       value: Value(value),
+      amount: amount == null && nullToAbsent
+          ? const Value.absent()
+          : Value(amount),
     );
   }
 
@@ -3552,6 +3582,7 @@ class JournalData extends DataClass implements Insertable<JournalData> {
       date: serializer.fromJson<String>(json['date']),
       tag: serializer.fromJson<String>(json['tag']),
       value: serializer.fromJson<bool>(json['value']),
+      amount: serializer.fromJson<double?>(json['amount']),
     );
   }
   @override
@@ -3561,19 +3592,27 @@ class JournalData extends DataClass implements Insertable<JournalData> {
       'date': serializer.toJson<String>(date),
       'tag': serializer.toJson<String>(tag),
       'value': serializer.toJson<bool>(value),
+      'amount': serializer.toJson<double?>(amount),
     };
   }
 
-  JournalData copyWith({String? date, String? tag, bool? value}) => JournalData(
+  JournalData copyWith({
+    String? date,
+    String? tag,
+    bool? value,
+    Value<double?> amount = const Value.absent(),
+  }) => JournalData(
     date: date ?? this.date,
     tag: tag ?? this.tag,
     value: value ?? this.value,
+    amount: amount.present ? amount.value : this.amount,
   );
   JournalData copyWithCompanion(JournalCompanion data) {
     return JournalData(
       date: data.date.present ? data.date.value : this.date,
       tag: data.tag.present ? data.tag.value : this.tag,
       value: data.value.present ? data.value.value : this.value,
+      amount: data.amount.present ? data.amount.value : this.amount,
     );
   }
 
@@ -3582,37 +3621,42 @@ class JournalData extends DataClass implements Insertable<JournalData> {
     return (StringBuffer('JournalData(')
           ..write('date: $date, ')
           ..write('tag: $tag, ')
-          ..write('value: $value')
+          ..write('value: $value, ')
+          ..write('amount: $amount')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(date, tag, value);
+  int get hashCode => Object.hash(date, tag, value, amount);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is JournalData &&
           other.date == this.date &&
           other.tag == this.tag &&
-          other.value == this.value);
+          other.value == this.value &&
+          other.amount == this.amount);
 }
 
 class JournalCompanion extends UpdateCompanion<JournalData> {
   final Value<String> date;
   final Value<String> tag;
   final Value<bool> value;
+  final Value<double?> amount;
   final Value<int> rowid;
   const JournalCompanion({
     this.date = const Value.absent(),
     this.tag = const Value.absent(),
     this.value = const Value.absent(),
+    this.amount = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   JournalCompanion.insert({
     required String date,
     required String tag,
     required bool value,
+    this.amount = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : date = Value(date),
        tag = Value(tag),
@@ -3621,12 +3665,14 @@ class JournalCompanion extends UpdateCompanion<JournalData> {
     Expression<String>? date,
     Expression<String>? tag,
     Expression<bool>? value,
+    Expression<double>? amount,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
       if (date != null) 'date': date,
       if (tag != null) 'tag': tag,
       if (value != null) 'value': value,
+      if (amount != null) 'amount': amount,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -3635,12 +3681,14 @@ class JournalCompanion extends UpdateCompanion<JournalData> {
     Value<String>? date,
     Value<String>? tag,
     Value<bool>? value,
+    Value<double?>? amount,
     Value<int>? rowid,
   }) {
     return JournalCompanion(
       date: date ?? this.date,
       tag: tag ?? this.tag,
       value: value ?? this.value,
+      amount: amount ?? this.amount,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -3657,6 +3705,9 @@ class JournalCompanion extends UpdateCompanion<JournalData> {
     if (value.present) {
       map['value'] = Variable<bool>(value.value);
     }
+    if (amount.present) {
+      map['amount'] = Variable<double>(amount.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -3669,6 +3720,7 @@ class JournalCompanion extends UpdateCompanion<JournalData> {
           ..write('date: $date, ')
           ..write('tag: $tag, ')
           ..write('value: $value, ')
+          ..write('amount: $amount, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -6050,6 +6102,28 @@ class $LongevityTable extends Longevity
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _confidenceMeta = const VerificationMeta(
+    'confidence',
+  );
+  @override
+  late final GeneratedColumn<double> confidence = GeneratedColumn<double>(
+    'confidence',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _halfRangeMeta = const VerificationMeta(
+    'halfRange',
+  );
+  @override
+  late final GeneratedColumn<double> halfRange = GeneratedColumn<double>(
+    'half_range',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     date,
@@ -6058,6 +6132,8 @@ class $LongevityTable extends Longevity
     calibrating,
     contributors,
     algoVersion,
+    confidence,
+    halfRange,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -6128,6 +6204,18 @@ class $LongevityTable extends Longevity
     } else if (isInserting) {
       context.missing(_algoVersionMeta);
     }
+    if (data.containsKey('confidence')) {
+      context.handle(
+        _confidenceMeta,
+        confidence.isAcceptableOrUnknown(data['confidence']!, _confidenceMeta),
+      );
+    }
+    if (data.containsKey('half_range')) {
+      context.handle(
+        _halfRangeMeta,
+        halfRange.isAcceptableOrUnknown(data['half_range']!, _halfRangeMeta),
+      );
+    }
     return context;
   }
 
@@ -6161,6 +6249,14 @@ class $LongevityTable extends Longevity
         DriftSqlType.int,
         data['${effectivePrefix}algo_version'],
       )!,
+      confidence: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}confidence'],
+      ),
+      halfRange: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}half_range'],
+      ),
     );
   }
 
@@ -6178,6 +6274,10 @@ class LongevitySnapshot extends DataClass
   final bool calibrating;
   final String contributors;
   final int algoVersion;
+
+  /// Schema 11 (Tempo Age v2): 0–1 confidence and ± years.
+  final double? confidence;
+  final double? halfRange;
   const LongevitySnapshot({
     required this.date,
     required this.tempoAge,
@@ -6185,6 +6285,8 @@ class LongevitySnapshot extends DataClass
     required this.calibrating,
     required this.contributors,
     required this.algoVersion,
+    this.confidence,
+    this.halfRange,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -6195,6 +6297,12 @@ class LongevitySnapshot extends DataClass
     map['calibrating'] = Variable<bool>(calibrating);
     map['contributors'] = Variable<String>(contributors);
     map['algo_version'] = Variable<int>(algoVersion);
+    if (!nullToAbsent || confidence != null) {
+      map['confidence'] = Variable<double>(confidence);
+    }
+    if (!nullToAbsent || halfRange != null) {
+      map['half_range'] = Variable<double>(halfRange);
+    }
     return map;
   }
 
@@ -6206,6 +6314,12 @@ class LongevitySnapshot extends DataClass
       calibrating: Value(calibrating),
       contributors: Value(contributors),
       algoVersion: Value(algoVersion),
+      confidence: confidence == null && nullToAbsent
+          ? const Value.absent()
+          : Value(confidence),
+      halfRange: halfRange == null && nullToAbsent
+          ? const Value.absent()
+          : Value(halfRange),
     );
   }
 
@@ -6221,6 +6335,8 @@ class LongevitySnapshot extends DataClass
       calibrating: serializer.fromJson<bool>(json['calibrating']),
       contributors: serializer.fromJson<String>(json['contributors']),
       algoVersion: serializer.fromJson<int>(json['algoVersion']),
+      confidence: serializer.fromJson<double?>(json['confidence']),
+      halfRange: serializer.fromJson<double?>(json['halfRange']),
     );
   }
   @override
@@ -6233,6 +6349,8 @@ class LongevitySnapshot extends DataClass
       'calibrating': serializer.toJson<bool>(calibrating),
       'contributors': serializer.toJson<String>(contributors),
       'algoVersion': serializer.toJson<int>(algoVersion),
+      'confidence': serializer.toJson<double?>(confidence),
+      'halfRange': serializer.toJson<double?>(halfRange),
     };
   }
 
@@ -6243,6 +6361,8 @@ class LongevitySnapshot extends DataClass
     bool? calibrating,
     String? contributors,
     int? algoVersion,
+    Value<double?> confidence = const Value.absent(),
+    Value<double?> halfRange = const Value.absent(),
   }) => LongevitySnapshot(
     date: date ?? this.date,
     tempoAge: tempoAge ?? this.tempoAge,
@@ -6250,6 +6370,8 @@ class LongevitySnapshot extends DataClass
     calibrating: calibrating ?? this.calibrating,
     contributors: contributors ?? this.contributors,
     algoVersion: algoVersion ?? this.algoVersion,
+    confidence: confidence.present ? confidence.value : this.confidence,
+    halfRange: halfRange.present ? halfRange.value : this.halfRange,
   );
   LongevitySnapshot copyWithCompanion(LongevityCompanion data) {
     return LongevitySnapshot(
@@ -6265,6 +6387,10 @@ class LongevitySnapshot extends DataClass
       algoVersion: data.algoVersion.present
           ? data.algoVersion.value
           : this.algoVersion,
+      confidence: data.confidence.present
+          ? data.confidence.value
+          : this.confidence,
+      halfRange: data.halfRange.present ? data.halfRange.value : this.halfRange,
     );
   }
 
@@ -6276,7 +6402,9 @@ class LongevitySnapshot extends DataClass
           ..write('realAge: $realAge, ')
           ..write('calibrating: $calibrating, ')
           ..write('contributors: $contributors, ')
-          ..write('algoVersion: $algoVersion')
+          ..write('algoVersion: $algoVersion, ')
+          ..write('confidence: $confidence, ')
+          ..write('halfRange: $halfRange')
           ..write(')'))
         .toString();
   }
@@ -6289,6 +6417,8 @@ class LongevitySnapshot extends DataClass
     calibrating,
     contributors,
     algoVersion,
+    confidence,
+    halfRange,
   );
   @override
   bool operator ==(Object other) =>
@@ -6299,7 +6429,9 @@ class LongevitySnapshot extends DataClass
           other.realAge == this.realAge &&
           other.calibrating == this.calibrating &&
           other.contributors == this.contributors &&
-          other.algoVersion == this.algoVersion);
+          other.algoVersion == this.algoVersion &&
+          other.confidence == this.confidence &&
+          other.halfRange == this.halfRange);
 }
 
 class LongevityCompanion extends UpdateCompanion<LongevitySnapshot> {
@@ -6309,6 +6441,8 @@ class LongevityCompanion extends UpdateCompanion<LongevitySnapshot> {
   final Value<bool> calibrating;
   final Value<String> contributors;
   final Value<int> algoVersion;
+  final Value<double?> confidence;
+  final Value<double?> halfRange;
   final Value<int> rowid;
   const LongevityCompanion({
     this.date = const Value.absent(),
@@ -6317,6 +6451,8 @@ class LongevityCompanion extends UpdateCompanion<LongevitySnapshot> {
     this.calibrating = const Value.absent(),
     this.contributors = const Value.absent(),
     this.algoVersion = const Value.absent(),
+    this.confidence = const Value.absent(),
+    this.halfRange = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   LongevityCompanion.insert({
@@ -6326,6 +6462,8 @@ class LongevityCompanion extends UpdateCompanion<LongevitySnapshot> {
     required bool calibrating,
     required String contributors,
     required int algoVersion,
+    this.confidence = const Value.absent(),
+    this.halfRange = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : date = Value(date),
        tempoAge = Value(tempoAge),
@@ -6340,6 +6478,8 @@ class LongevityCompanion extends UpdateCompanion<LongevitySnapshot> {
     Expression<bool>? calibrating,
     Expression<String>? contributors,
     Expression<int>? algoVersion,
+    Expression<double>? confidence,
+    Expression<double>? halfRange,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -6349,6 +6489,8 @@ class LongevityCompanion extends UpdateCompanion<LongevitySnapshot> {
       if (calibrating != null) 'calibrating': calibrating,
       if (contributors != null) 'contributors': contributors,
       if (algoVersion != null) 'algo_version': algoVersion,
+      if (confidence != null) 'confidence': confidence,
+      if (halfRange != null) 'half_range': halfRange,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -6360,6 +6502,8 @@ class LongevityCompanion extends UpdateCompanion<LongevitySnapshot> {
     Value<bool>? calibrating,
     Value<String>? contributors,
     Value<int>? algoVersion,
+    Value<double?>? confidence,
+    Value<double?>? halfRange,
     Value<int>? rowid,
   }) {
     return LongevityCompanion(
@@ -6369,6 +6513,8 @@ class LongevityCompanion extends UpdateCompanion<LongevitySnapshot> {
       calibrating: calibrating ?? this.calibrating,
       contributors: contributors ?? this.contributors,
       algoVersion: algoVersion ?? this.algoVersion,
+      confidence: confidence ?? this.confidence,
+      halfRange: halfRange ?? this.halfRange,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -6394,6 +6540,12 @@ class LongevityCompanion extends UpdateCompanion<LongevitySnapshot> {
     if (algoVersion.present) {
       map['algo_version'] = Variable<int>(algoVersion.value);
     }
+    if (confidence.present) {
+      map['confidence'] = Variable<double>(confidence.value);
+    }
+    if (halfRange.present) {
+      map['half_range'] = Variable<double>(halfRange.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -6409,6 +6561,8 @@ class LongevityCompanion extends UpdateCompanion<LongevitySnapshot> {
           ..write('calibrating: $calibrating, ')
           ..write('contributors: $contributors, ')
           ..write('algoVersion: $algoVersion, ')
+          ..write('confidence: $confidence, ')
+          ..write('halfRange: $halfRange, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -8679,16 +8833,18 @@ typedef $$MinuteSamplesTableProcessedTableManager =
       MinuteSample,
       PrefetchHooks Function()
     >;
-typedef $$HrLiveTableCreateCompanionBuilder = HrLiveCompanion Function({
-  Value<int> ts,
-  required int bpm,
-  Value<String> source,
-});
-typedef $$HrLiveTableUpdateCompanionBuilder = HrLiveCompanion Function({
-  Value<int> ts,
-  Value<int> bpm,
-  Value<String> source,
-});
+typedef $$HrLiveTableCreateCompanionBuilder =
+    HrLiveCompanion Function({
+      Value<int> ts,
+      required int bpm,
+      Value<String> source,
+    });
+typedef $$HrLiveTableUpdateCompanionBuilder =
+    HrLiveCompanion Function({
+      Value<int> ts,
+      Value<int> bpm,
+      Value<String> source,
+    });
 
 class $$HrLiveTableFilterComposer extends Composer<_$TempoDb, $HrLiveTable> {
   $$HrLiveTableFilterComposer({
@@ -8783,16 +8939,18 @@ class $$HrLiveTableTableManager
               $$HrLiveTableOrderingComposer($db: db, $table: table),
           createComputedFieldComposer: () =>
               $$HrLiveTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback: ({
-            Value<int> ts = const Value.absent(),
-            Value<int> bpm = const Value.absent(),
-            Value<String> source = const Value.absent(),
-          }) => HrLiveCompanion(ts: ts, bpm: bpm, source: source),
-          createCompanionCallback: ({
-            Value<int> ts = const Value.absent(),
-            required int bpm,
-            Value<String> source = const Value.absent(),
-          }) => HrLiveCompanion.insert(ts: ts, bpm: bpm, source: source),
+          updateCompanionCallback:
+              ({
+                Value<int> ts = const Value.absent(),
+                Value<int> bpm = const Value.absent(),
+                Value<String> source = const Value.absent(),
+              }) => HrLiveCompanion(ts: ts, bpm: bpm, source: source),
+          createCompanionCallback:
+              ({
+                Value<int> ts = const Value.absent(),
+                required int bpm,
+                Value<String> source = const Value.absent(),
+              }) => HrLiveCompanion.insert(ts: ts, bpm: bpm, source: source),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
               .toList(),
@@ -8905,14 +9063,14 @@ class $$StressSamplesTableTableManager
               $$StressSamplesTableOrderingComposer($db: db, $table: table),
           createComputedFieldComposer: () =>
               $$StressSamplesTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback: ({
-            Value<int> ts = const Value.absent(),
-            Value<int> value = const Value.absent(),
-          }) => StressSamplesCompanion(ts: ts, value: value),
-          createCompanionCallback: ({
-            Value<int> ts = const Value.absent(),
-            required int value,
-          }) => StressSamplesCompanion.insert(ts: ts, value: value),
+          updateCompanionCallback:
+              ({
+                Value<int> ts = const Value.absent(),
+                Value<int> value = const Value.absent(),
+              }) => StressSamplesCompanion(ts: ts, value: value),
+          createCompanionCallback:
+              ({Value<int> ts = const Value.absent(), required int value}) =>
+                  StressSamplesCompanion.insert(ts: ts, value: value),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
               .toList(),
@@ -9049,11 +9207,13 @@ class $$Spo2SamplesTableTableManager
               $$Spo2SamplesTableOrderingComposer($db: db, $table: table),
           createComputedFieldComposer: () =>
               $$Spo2SamplesTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback: ({
-            Value<int> ts = const Value.absent(),
-            Value<int> value = const Value.absent(),
-            Value<int?> quality = const Value.absent(),
-          }) => Spo2SamplesCompanion(ts: ts, value: value, quality: quality),
+          updateCompanionCallback:
+              ({
+                Value<int> ts = const Value.absent(),
+                Value<int> value = const Value.absent(),
+                Value<int?> quality = const Value.absent(),
+              }) =>
+                  Spo2SamplesCompanion(ts: ts, value: value, quality: quality),
           createCompanionCallback:
               ({
                 Value<int> ts = const Value.absent(),
@@ -9280,18 +9440,20 @@ typedef $$BandWorkoutsTableProcessedTableManager =
       BandWorkoutRow,
       PrefetchHooks Function()
     >;
-typedef $$OdEventsTableCreateCompanionBuilder = OdEventsCompanion Function({
-  Value<int> ts,
-  required int drop,
-  required String spo2,
-  required String hr,
-});
-typedef $$OdEventsTableUpdateCompanionBuilder = OdEventsCompanion Function({
-  Value<int> ts,
-  Value<int> drop,
-  Value<String> spo2,
-  Value<String> hr,
-});
+typedef $$OdEventsTableCreateCompanionBuilder =
+    OdEventsCompanion Function({
+      Value<int> ts,
+      required int drop,
+      required String spo2,
+      required String hr,
+    });
+typedef $$OdEventsTableUpdateCompanionBuilder =
+    OdEventsCompanion Function({
+      Value<int> ts,
+      Value<int> drop,
+      Value<String> spo2,
+      Value<String> hr,
+    });
 
 class $$OdEventsTableFilterComposer
     extends Composer<_$TempoDb, $OdEventsTable> {
@@ -9401,12 +9563,13 @@ class $$OdEventsTableTableManager
               $$OdEventsTableOrderingComposer($db: db, $table: table),
           createComputedFieldComposer: () =>
               $$OdEventsTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback: ({
-            Value<int> ts = const Value.absent(),
-            Value<int> drop = const Value.absent(),
-            Value<String> spo2 = const Value.absent(),
-            Value<String> hr = const Value.absent(),
-          }) => OdEventsCompanion(ts: ts, drop: drop, spo2: spo2, hr: hr),
+          updateCompanionCallback:
+              ({
+                Value<int> ts = const Value.absent(),
+                Value<int> drop = const Value.absent(),
+                Value<String> spo2 = const Value.absent(),
+                Value<String> hr = const Value.absent(),
+              }) => OdEventsCompanion(ts: ts, drop: drop, spo2: spo2, hr: hr),
           createCompanionCallback:
               ({
                 Value<int> ts = const Value.absent(),
@@ -10108,22 +10271,24 @@ typedef $$DailyScoresTableProcessedTableManager =
       DailyScore,
       PrefetchHooks Function()
     >;
-typedef $$BaselinesTableCreateCompanionBuilder = BaselinesCompanion Function({
-  required String metric,
-  required int window,
-  required double mean,
-  required double sd,
-  required int updatedAt,
-  Value<int> rowid,
-});
-typedef $$BaselinesTableUpdateCompanionBuilder = BaselinesCompanion Function({
-  Value<String> metric,
-  Value<int> window,
-  Value<double> mean,
-  Value<double> sd,
-  Value<int> updatedAt,
-  Value<int> rowid,
-});
+typedef $$BaselinesTableCreateCompanionBuilder =
+    BaselinesCompanion Function({
+      required String metric,
+      required int window,
+      required double mean,
+      required double sd,
+      required int updatedAt,
+      Value<int> rowid,
+    });
+typedef $$BaselinesTableUpdateCompanionBuilder =
+    BaselinesCompanion Function({
+      Value<String> metric,
+      Value<int> window,
+      Value<double> mean,
+      Value<double> sd,
+      Value<int> updatedAt,
+      Value<int> rowid,
+    });
 
 class $$BaselinesTableFilterComposer
     extends Composer<_$TempoDb, $BaselinesTable> {
@@ -10300,18 +10465,22 @@ typedef $$BaselinesTableProcessedTableManager =
       Baseline,
       PrefetchHooks Function()
     >;
-typedef $$JournalTableCreateCompanionBuilder = JournalCompanion Function({
-  required String date,
-  required String tag,
-  required bool value,
-  Value<int> rowid,
-});
-typedef $$JournalTableUpdateCompanionBuilder = JournalCompanion Function({
-  Value<String> date,
-  Value<String> tag,
-  Value<bool> value,
-  Value<int> rowid,
-});
+typedef $$JournalTableCreateCompanionBuilder =
+    JournalCompanion Function({
+      required String date,
+      required String tag,
+      required bool value,
+      Value<double?> amount,
+      Value<int> rowid,
+    });
+typedef $$JournalTableUpdateCompanionBuilder =
+    JournalCompanion Function({
+      Value<String> date,
+      Value<String> tag,
+      Value<bool> value,
+      Value<double?> amount,
+      Value<int> rowid,
+    });
 
 class $$JournalTableFilterComposer extends Composer<_$TempoDb, $JournalTable> {
   $$JournalTableFilterComposer({
@@ -10333,6 +10502,11 @@ class $$JournalTableFilterComposer extends Composer<_$TempoDb, $JournalTable> {
 
   ColumnFilters<bool> get value => $composableBuilder(
     column: $table.value,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get amount => $composableBuilder(
+    column: $table.amount,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -10360,6 +10534,11 @@ class $$JournalTableOrderingComposer
     column: $table.value,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<double> get amount => $composableBuilder(
+    column: $table.amount,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$JournalTableAnnotationComposer
@@ -10379,6 +10558,9 @@ class $$JournalTableAnnotationComposer
 
   GeneratedColumn<bool> get value =>
       $composableBuilder(column: $table.value, builder: (column) => column);
+
+  GeneratedColumn<double> get amount =>
+      $composableBuilder(column: $table.amount, builder: (column) => column);
 }
 
 class $$JournalTableTableManager
@@ -10412,11 +10594,13 @@ class $$JournalTableTableManager
                 Value<String> date = const Value.absent(),
                 Value<String> tag = const Value.absent(),
                 Value<bool> value = const Value.absent(),
+                Value<double?> amount = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => JournalCompanion(
                 date: date,
                 tag: tag,
                 value: value,
+                amount: amount,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -10424,11 +10608,13 @@ class $$JournalTableTableManager
                 required String date,
                 required String tag,
                 required bool value,
+                Value<double?> amount = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => JournalCompanion.insert(
                 date: date,
                 tag: tag,
                 value: value,
+                amount: amount,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -10453,18 +10639,20 @@ typedef $$JournalTableProcessedTableManager =
       JournalData,
       PrefetchHooks Function()
     >;
-typedef $$SyncStateTableCreateCompanionBuilder = SyncStateCompanion Function({
-  required String device,
-  required String dataType,
-  required int lastTs,
-  Value<int> rowid,
-});
-typedef $$SyncStateTableUpdateCompanionBuilder = SyncStateCompanion Function({
-  Value<String> device,
-  Value<String> dataType,
-  Value<int> lastTs,
-  Value<int> rowid,
-});
+typedef $$SyncStateTableCreateCompanionBuilder =
+    SyncStateCompanion Function({
+      required String device,
+      required String dataType,
+      required int lastTs,
+      Value<int> rowid,
+    });
+typedef $$SyncStateTableUpdateCompanionBuilder =
+    SyncStateCompanion Function({
+      Value<String> device,
+      Value<String> dataType,
+      Value<int> lastTs,
+      Value<int> rowid,
+    });
 
 class $$SyncStateTableFilterComposer
     extends Composer<_$TempoDb, $SyncStateTable> {
@@ -10613,16 +10801,18 @@ typedef $$SyncStateTableProcessedTableManager =
       SyncStateData,
       PrefetchHooks Function()
     >;
-typedef $$SettingsTableCreateCompanionBuilder = SettingsCompanion Function({
-  required String key,
-  required String value,
-  Value<int> rowid,
-});
-typedef $$SettingsTableUpdateCompanionBuilder = SettingsCompanion Function({
-  Value<String> key,
-  Value<String> value,
-  Value<int> rowid,
-});
+typedef $$SettingsTableCreateCompanionBuilder =
+    SettingsCompanion Function({
+      required String key,
+      required String value,
+      Value<int> rowid,
+    });
+typedef $$SettingsTableUpdateCompanionBuilder =
+    SettingsCompanion Function({
+      Value<String> key,
+      Value<String> value,
+      Value<int> rowid,
+    });
 
 class $$SettingsTableFilterComposer
     extends Composer<_$TempoDb, $SettingsTable> {
@@ -10706,16 +10896,22 @@ class $$SettingsTableTableManager
               $$SettingsTableOrderingComposer($db: db, $table: table),
           createComputedFieldComposer: () =>
               $$SettingsTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback: ({
-            Value<String> key = const Value.absent(),
-            Value<String> value = const Value.absent(),
-            Value<int> rowid = const Value.absent(),
-          }) => SettingsCompanion(key: key, value: value, rowid: rowid),
-          createCompanionCallback: ({
-            required String key,
-            required String value,
-            Value<int> rowid = const Value.absent(),
-          }) => SettingsCompanion.insert(key: key, value: value, rowid: rowid),
+          updateCompanionCallback:
+              ({
+                Value<String> key = const Value.absent(),
+                Value<String> value = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => SettingsCompanion(key: key, value: value, rowid: rowid),
+          createCompanionCallback:
+              ({
+                required String key,
+                required String value,
+                Value<int> rowid = const Value.absent(),
+              }) => SettingsCompanion.insert(
+                key: key,
+                value: value,
+                rowid: rowid,
+              ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
               .toList(),
@@ -10738,38 +10934,40 @@ typedef $$SettingsTableProcessedTableManager =
       Setting,
       PrefetchHooks Function()
     >;
-typedef $$WorkoutsTableCreateCompanionBuilder = WorkoutsCompanion Function({
-  Value<int> id,
-  required int start,
-  required int end,
-  Value<String?> sport,
-  required String title,
-  required String source,
-  Value<bool> confirmed,
-  required double strain,
-  required double trimp,
-  Value<int?> avgHr,
-  Value<int?> maxHr,
-  required String zones,
-  Value<int?> rpe,
-  Value<String?> plan,
-});
-typedef $$WorkoutsTableUpdateCompanionBuilder = WorkoutsCompanion Function({
-  Value<int> id,
-  Value<int> start,
-  Value<int> end,
-  Value<String?> sport,
-  Value<String> title,
-  Value<String> source,
-  Value<bool> confirmed,
-  Value<double> strain,
-  Value<double> trimp,
-  Value<int?> avgHr,
-  Value<int?> maxHr,
-  Value<String> zones,
-  Value<int?> rpe,
-  Value<String?> plan,
-});
+typedef $$WorkoutsTableCreateCompanionBuilder =
+    WorkoutsCompanion Function({
+      Value<int> id,
+      required int start,
+      required int end,
+      Value<String?> sport,
+      required String title,
+      required String source,
+      Value<bool> confirmed,
+      required double strain,
+      required double trimp,
+      Value<int?> avgHr,
+      Value<int?> maxHr,
+      required String zones,
+      Value<int?> rpe,
+      Value<String?> plan,
+    });
+typedef $$WorkoutsTableUpdateCompanionBuilder =
+    WorkoutsCompanion Function({
+      Value<int> id,
+      Value<int> start,
+      Value<int> end,
+      Value<String?> sport,
+      Value<String> title,
+      Value<String> source,
+      Value<bool> confirmed,
+      Value<double> strain,
+      Value<double> trimp,
+      Value<int?> avgHr,
+      Value<int?> maxHr,
+      Value<String> zones,
+      Value<int?> rpe,
+      Value<String?> plan,
+    });
 
 class $$WorkoutsTableFilterComposer
     extends Composer<_$TempoDb, $WorkoutsTable> {
@@ -11095,36 +11293,38 @@ typedef $$WorkoutsTableProcessedTableManager =
       Workout,
       PrefetchHooks Function()
     >;
-typedef $$PlanDaysTableCreateCompanionBuilder = PlanDaysCompanion Function({
-  required String date,
-  required String session,
-  Value<String?> original,
-  Value<String?> reason,
-  Value<int?> adaptedAt,
-  required bool general,
-  Value<String?> slot,
-  Value<int?> plannedMinute,
-  Value<String> status,
-  Value<String?> statusSource,
-  Value<int?> statusAt,
-  Value<String?> algoVersion,
-  Value<int> rowid,
-});
-typedef $$PlanDaysTableUpdateCompanionBuilder = PlanDaysCompanion Function({
-  Value<String> date,
-  Value<String> session,
-  Value<String?> original,
-  Value<String?> reason,
-  Value<int?> adaptedAt,
-  Value<bool> general,
-  Value<String?> slot,
-  Value<int?> plannedMinute,
-  Value<String> status,
-  Value<String?> statusSource,
-  Value<int?> statusAt,
-  Value<String?> algoVersion,
-  Value<int> rowid,
-});
+typedef $$PlanDaysTableCreateCompanionBuilder =
+    PlanDaysCompanion Function({
+      required String date,
+      required String session,
+      Value<String?> original,
+      Value<String?> reason,
+      Value<int?> adaptedAt,
+      required bool general,
+      Value<String?> slot,
+      Value<int?> plannedMinute,
+      Value<String> status,
+      Value<String?> statusSource,
+      Value<int?> statusAt,
+      Value<String?> algoVersion,
+      Value<int> rowid,
+    });
+typedef $$PlanDaysTableUpdateCompanionBuilder =
+    PlanDaysCompanion Function({
+      Value<String> date,
+      Value<String> session,
+      Value<String?> original,
+      Value<String?> reason,
+      Value<int?> adaptedAt,
+      Value<bool> general,
+      Value<String?> slot,
+      Value<int?> plannedMinute,
+      Value<String> status,
+      Value<String?> statusSource,
+      Value<int?> statusAt,
+      Value<String?> algoVersion,
+      Value<int> rowid,
+    });
 
 class $$PlanDaysTableFilterComposer
     extends Composer<_$TempoDb, $PlanDaysTable> {
@@ -11426,20 +11626,22 @@ typedef $$PlanDaysTableProcessedTableManager =
       PlanDay,
       PrefetchHooks Function()
     >;
-typedef $$SyncLogTableCreateCompanionBuilder = SyncLogCompanion Function({
-  Value<int> id,
-  required int ts,
-  required String summary,
-  required String result,
-  Value<int?> durationMs,
-});
-typedef $$SyncLogTableUpdateCompanionBuilder = SyncLogCompanion Function({
-  Value<int> id,
-  Value<int> ts,
-  Value<String> summary,
-  Value<String> result,
-  Value<int?> durationMs,
-});
+typedef $$SyncLogTableCreateCompanionBuilder =
+    SyncLogCompanion Function({
+      Value<int> id,
+      required int ts,
+      required String summary,
+      required String result,
+      Value<int?> durationMs,
+    });
+typedef $$SyncLogTableUpdateCompanionBuilder =
+    SyncLogCompanion Function({
+      Value<int> id,
+      Value<int> ts,
+      Value<String> summary,
+      Value<String> result,
+      Value<int?> durationMs,
+    });
 
 class $$SyncLogTableFilterComposer extends Composer<_$TempoDb, $SyncLogTable> {
   $$SyncLogTableFilterComposer({
@@ -11613,24 +11815,30 @@ typedef $$SyncLogTableProcessedTableManager =
       SyncLogData,
       PrefetchHooks Function()
     >;
-typedef $$LongevityTableCreateCompanionBuilder = LongevityCompanion Function({
-  required String date,
-  required double tempoAge,
-  required double realAge,
-  required bool calibrating,
-  required String contributors,
-  required int algoVersion,
-  Value<int> rowid,
-});
-typedef $$LongevityTableUpdateCompanionBuilder = LongevityCompanion Function({
-  Value<String> date,
-  Value<double> tempoAge,
-  Value<double> realAge,
-  Value<bool> calibrating,
-  Value<String> contributors,
-  Value<int> algoVersion,
-  Value<int> rowid,
-});
+typedef $$LongevityTableCreateCompanionBuilder =
+    LongevityCompanion Function({
+      required String date,
+      required double tempoAge,
+      required double realAge,
+      required bool calibrating,
+      required String contributors,
+      required int algoVersion,
+      Value<double?> confidence,
+      Value<double?> halfRange,
+      Value<int> rowid,
+    });
+typedef $$LongevityTableUpdateCompanionBuilder =
+    LongevityCompanion Function({
+      Value<String> date,
+      Value<double> tempoAge,
+      Value<double> realAge,
+      Value<bool> calibrating,
+      Value<String> contributors,
+      Value<int> algoVersion,
+      Value<double?> confidence,
+      Value<double?> halfRange,
+      Value<int> rowid,
+    });
 
 class $$LongevityTableFilterComposer
     extends Composer<_$TempoDb, $LongevityTable> {
@@ -11668,6 +11876,16 @@ class $$LongevityTableFilterComposer
 
   ColumnFilters<int> get algoVersion => $composableBuilder(
     column: $table.algoVersion,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get confidence => $composableBuilder(
+    column: $table.confidence,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get halfRange => $composableBuilder(
+    column: $table.halfRange,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -11710,6 +11928,16 @@ class $$LongevityTableOrderingComposer
     column: $table.algoVersion,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<double> get confidence => $composableBuilder(
+    column: $table.confidence,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get halfRange => $composableBuilder(
+    column: $table.halfRange,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$LongevityTableAnnotationComposer
@@ -11744,6 +11972,14 @@ class $$LongevityTableAnnotationComposer
     column: $table.algoVersion,
     builder: (column) => column,
   );
+
+  GeneratedColumn<double> get confidence => $composableBuilder(
+    column: $table.confidence,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get halfRange =>
+      $composableBuilder(column: $table.halfRange, builder: (column) => column);
 }
 
 class $$LongevityTableTableManager
@@ -11783,6 +12019,8 @@ class $$LongevityTableTableManager
                 Value<bool> calibrating = const Value.absent(),
                 Value<String> contributors = const Value.absent(),
                 Value<int> algoVersion = const Value.absent(),
+                Value<double?> confidence = const Value.absent(),
+                Value<double?> halfRange = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => LongevityCompanion(
                 date: date,
@@ -11791,6 +12029,8 @@ class $$LongevityTableTableManager
                 calibrating: calibrating,
                 contributors: contributors,
                 algoVersion: algoVersion,
+                confidence: confidence,
+                halfRange: halfRange,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -11801,6 +12041,8 @@ class $$LongevityTableTableManager
                 required bool calibrating,
                 required String contributors,
                 required int algoVersion,
+                Value<double?> confidence = const Value.absent(),
+                Value<double?> halfRange = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => LongevityCompanion.insert(
                 date: date,
@@ -11809,6 +12051,8 @@ class $$LongevityTableTableManager
                 calibrating: calibrating,
                 contributors: contributors,
                 algoVersion: algoVersion,
+                confidence: confidence,
+                halfRange: halfRange,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -11836,30 +12080,32 @@ typedef $$LongevityTableProcessedTableManager =
       LongevitySnapshot,
       PrefetchHooks Function()
     >;
-typedef $$NudgeLogTableCreateCompanionBuilder = NudgeLogCompanion Function({
-  Value<int> id,
-  required int ts,
-  required String day,
-  required String kind,
-  required int notifId,
-  Value<int?> fireAt,
-  required String event,
-  Value<String?> action,
-  Value<String> payload,
-  required String algoVersion,
-});
-typedef $$NudgeLogTableUpdateCompanionBuilder = NudgeLogCompanion Function({
-  Value<int> id,
-  Value<int> ts,
-  Value<String> day,
-  Value<String> kind,
-  Value<int> notifId,
-  Value<int?> fireAt,
-  Value<String> event,
-  Value<String?> action,
-  Value<String> payload,
-  Value<String> algoVersion,
-});
+typedef $$NudgeLogTableCreateCompanionBuilder =
+    NudgeLogCompanion Function({
+      Value<int> id,
+      required int ts,
+      required String day,
+      required String kind,
+      required int notifId,
+      Value<int?> fireAt,
+      required String event,
+      Value<String?> action,
+      Value<String> payload,
+      required String algoVersion,
+    });
+typedef $$NudgeLogTableUpdateCompanionBuilder =
+    NudgeLogCompanion Function({
+      Value<int> id,
+      Value<int> ts,
+      Value<String> day,
+      Value<String> kind,
+      Value<int> notifId,
+      Value<int?> fireAt,
+      Value<String> event,
+      Value<String?> action,
+      Value<String> payload,
+      Value<String> algoVersion,
+    });
 
 class $$NudgeLogTableFilterComposer
     extends Composer<_$TempoDb, $NudgeLogTable> {

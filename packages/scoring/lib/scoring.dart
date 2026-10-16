@@ -15,6 +15,7 @@ export 'src/feel.dart';
 export 'src/gait.dart';
 export 'src/hrv.dart';
 export 'src/insights.dart';
+export 'src/journal_catalog.dart';
 export 'src/load.dart';
 export 'src/longevity.dart';
 export 'src/nudges.dart';

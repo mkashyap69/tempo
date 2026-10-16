@@ -198,6 +198,9 @@ class HealthGrid {
           HealthKind.hrvRmssd ||
           HealthKind.restingHr ||
           HealthKind.respiratoryRate ||
+          HealthKind.water ||
+          HealthKind.caffeine ||
+          HealthKind.wristTemp ||
           HealthKind.workout:
         break; // read per night / per day, see vitals.dart, workouts.dart
     }

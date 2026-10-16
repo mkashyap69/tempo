@@ -55,7 +55,7 @@ class TempoDb extends _$TempoDb {
   TempoDb(super.e);
 
   @override
-  int get schemaVersion => 10;
+  int get schemaVersion => 11;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -117,6 +117,11 @@ class TempoDb extends _$TempoDb {
         await _appendOnly('health_records');
         await _appendOnly('health_deletions');
         await _healthIndexes();
+      }
+      if (from < 11) {
+        await m.addColumn(journal, journal.amount);
+        await m.addColumn(longevity, longevity.confidence);
+        await m.addColumn(longevity, longevity.halfRange);
       }
     },
   );
@@ -470,10 +475,32 @@ class TempoDb extends _$TempoDb {
 
   // ---- journal / sync / settings ----------------------------------------
 
-  Future<void> setJournal(DateTime day, String tag, bool value) => into(journal)
-      .insertOnConflictUpdate(
-        JournalCompanion.insert(date: dateKey(day), tag: tag, value: value),
-      );
+  Future<void> setJournal(
+    DateTime day,
+    String tag,
+    bool value, {
+    double? amount,
+  }) => into(journal).insertOnConflictUpdate(
+    JournalCompanion.insert(
+      date: dateKey(day),
+      tag: tag,
+      value: value,
+      amount: Value(amount),
+    ),
+  );
+
+  /// Removes one answer (an amount or time cleared by the user).
+  Future<void> clearJournal(DateTime day, String tag) =>
+      (delete(journal)
+            ..where((j) => j.date.equals(dateKey(day)) & j.tag.equals(tag)))
+          .go();
+
+  /// Rows from [from] to [to] inclusive, oldest first.
+  Future<List<JournalData>> journalBetween(DateTime from, DateTime to) =>
+      (select(journal)
+            ..where((j) => j.date.isBetweenValues(dateKey(from), dateKey(to)))
+            ..orderBy([(j) => OrderingTerm.asc(j.date)]))
+          .get();
 
   Future<List<JournalData>> journalFor(DateTime day) =>
       (select(journal)..where((j) => j.date.equals(dateKey(day)))).get();

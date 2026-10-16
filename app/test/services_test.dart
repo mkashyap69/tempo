@@ -592,6 +592,56 @@ void main() {
       expect(i.daysOfData, 0);
     });
 
+    test('v2: measured VO₂ max, vigorous minutes and a blood test', () async {
+      final d = await seededDb(days: 30);
+      final before = await longevityInputs(d);
+      expect(before.vo2maxMeasured, isFalse);
+      expect(before.vigorousMinutes, isNotNull);
+      expect(
+        before.activeMinutes,
+        greaterThanOrEqualTo(before.vigorousMinutes!),
+      );
+      await saveManualHealth(d, const ManualHealth(vo2max: 47));
+      final today = DateTime.now();
+      await saveLab(
+        d,
+        LabTest(
+          DateTime(today.year, today.month, today.day - 40),
+          const sc.Labs(
+            albumin: 45,
+            creatinine: 80,
+            glucose: 5,
+            crp: 1,
+            lymphocytePct: 30,
+            mcv: 90,
+            rdw: 13,
+            alp: 70,
+            wbc: 6,
+          ),
+        ),
+      );
+      final i = await longevityInputs(d);
+      expect(i.vo2max, 47);
+      expect(i.vo2maxMeasured, isTrue);
+      expect(i.phenoAge, isNotNull);
+      expect(i.labDaysOld, inInclusiveRange(39, 41));
+      final t = await updateLongevity(d);
+      expect(t.contributors.map((c) => c.lever), contains(sc.Lever.blood));
+      final row = (await d.longevitySince(DateTime(2000))).last;
+      expect(row.confidence, closeTo(t.confidence, 1e-9));
+      expect(row.halfRange, closeTo(t.halfRange, 1e-9));
+      final saved = decodeContributors(row.contributors);
+      expect(
+        saved.firstWhere((c) => c.lever == sc.Lever.restingHr).weight,
+        greaterThan(sc.derivedRhrWeight),
+      );
+      // Replacing and deleting a test by its date.
+      expect((await loadLabs(d)).length, 1);
+      await deleteLab(d, DateTime(today.year, today.month, today.day - 40));
+      expect(await loadLabs(d), isEmpty);
+      await d.close();
+    });
+
     test('a snapshot is saved with its algo version', () async {
       final d = await seededDb(days: 30);
       final t = await updateLongevity(d);

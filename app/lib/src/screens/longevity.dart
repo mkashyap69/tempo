@@ -10,9 +10,12 @@ import '../core/longevity_service.dart';
 import '../core/profile.dart';
 import '../design/chart.dart';
 import '../design/components.dart';
+import '../design/icons.dart';
 import '../design/tokens.dart';
 import '../design/type.dart';
 import '../state/providers.dart';
+import 'biomarker.dart';
+import 'labs.dart';
 import 'nav.dart';
 
 class LongevityData {
@@ -26,6 +29,7 @@ class LongevityData {
     required this.progress,
     required this.manual,
     required this.profile,
+    this.labCount = 0,
   });
   final st.LongevitySnapshot? latest;
   final List<sc.Contributor> contributors;
@@ -36,6 +40,19 @@ class LongevityData {
   final (double, double)? progress;
   final ManualHealth manual;
   final Profile profile;
+  final int labCount;
+
+  double get confidence => latest?.confidence ?? 0;
+  double? get halfRange => latest?.halfRange;
+
+  /// Levers with no data, most important first.
+  List<sc.Lever> get missing {
+    final have = {for (final c in contributors) c.lever};
+    return [
+      for (final l in sc.Lever.values)
+        if (!have.contains(l) && sc.leverImportance(l) > 0) l,
+    ]..sort((a, b) => sc.leverImportance(b).compareTo(sc.leverImportance(a)));
+  }
 
   /// The newest settled snapshot at least a week before [latest].
   st.LongevitySnapshot? get weekAgo {
@@ -90,6 +107,7 @@ final longevityProvider = FutureProvider<LongevityData>((ref) async {
     progress: focus == null ? null : await focusProgress(db, focus, profile),
     manual: await loadManualHealth(db),
     profile: profile,
+    labCount: (await loadLabs(db)).length,
   );
 });
 
@@ -167,11 +185,11 @@ class _LongevityScreenState extends ConsumerState<LongevityScreen> {
               ),
             ),
           if (d.contributors.isNotEmpty)
-            Section(
-              title: 'What shapes it',
-              child: _Contributors(d.contributors),
-            ),
-          Section(title: 'Health details', child: _ManualCard(d.manual)),
+            Section(title: 'What shapes it', child: AgeGroupsCard(d)),
+          Section(
+            title: 'Health details',
+            child: _ManualCard(d.manual, d.labCount),
+          ),
           Text(
             'Tempo Age is a wellness estimate from published population '
             'studies, not a medical test or a diagnosis. Talk to a doctor '
@@ -190,7 +208,7 @@ String leverName(sc.Lever l) => switch (l) {
   sc.Lever.fitness => 'Cardio fitness',
   sc.Lever.restingHr => 'Resting heart rate',
   sc.Lever.steps => 'Daily steps',
-  sc.Lever.activeMinutes => 'Zone 2+ minutes',
+  sc.Lever.activeMinutes => 'Active minutes',
   sc.Lever.strength => 'Strength training',
   sc.Lever.sleepDuration => 'Sleep duration',
   sc.Lever.sleepRegularity => 'Bedtime regularity',
@@ -200,6 +218,7 @@ String leverName(sc.Lever l) => switch (l) {
   sc.Lever.alcohol => 'Alcohol',
   sc.Lever.bloodPressure => 'Blood pressure',
   sc.Lever.waist => 'Waist',
+  sc.Lever.blood => 'Blood (PhenoAge)',
 };
 
 String leverValue(sc.Lever l, double v) => switch (l) {
@@ -220,6 +239,7 @@ String leverValue(sc.Lever l, double v) => switch (l) {
   sc.Lever.alcohol => '${v.round()} units a week',
   sc.Lever.bloodPressure => '${v.round()} systolic',
   sc.Lever.waist => '${v.round()} cm',
+  sc.Lever.blood => '${v.toStringAsFixed(1)} yrs',
 };
 
 /// What to do, and what Tempo does for you, per lever.
@@ -243,6 +263,7 @@ String leverHow(sc.Lever l) => switch (l) {
     'Less salt, more movement and good sleep lower it. Check it with a cuff.',
   sc.Lever.waist => 'Waist follows activity, sleep and food quality.',
   sc.Lever.restingHr || sc.Lever.stress => 'Follows fitness and sleep.',
+  sc.Lever.blood => 'Glucose, CRP and RDW respond to activity, sleep, food and weight. Retest after 3–6 months.',
 };
 
 String _k(double v) =>
@@ -329,6 +350,13 @@ class _Hero extends StatelessWidget {
               ),
             ),
           ),
+          if (d.halfRange != null) ...[
+            const SizedBox(height: 2),
+            Text(
+              'Likely ${(l.tempoAge - d.halfRange!).toStringAsFixed(1)}–${(l.tempoAge + d.halfRange!).toStringAsFixed(1)}',
+              style: TempoType.bodyS.c(c.text3).tnum,
+            ),
+          ],
           const SizedBox(height: 6),
           Text(
             l.calibrating
@@ -336,6 +364,10 @@ class _Hero extends StatelessWidget {
                 : '$words.${d.pace == null ? '' : ' ${_paceWords(d.pace!)}'}',
             style: TempoType.body.c(c.text2),
           ),
+          if (l.confidence != null) ...[
+            const SizedBox(height: 12),
+            _ConfidenceRow(d),
+          ],
           const SizedBox(height: 14),
           _AgeScale(real: l.realAge, tempo: l.tempoAge),
         ],
@@ -699,136 +731,119 @@ class _LeverCard extends ConsumerWidget {
   }
 }
 
-// ---- contributors -----------------------------------------------------------
+// ---- confidence -------------------------------------------------------------
 
-class _Contributors extends StatelessWidget {
-  const _Contributors(this.items);
-  final List<sc.Contributor> items;
+class _ConfidenceRow extends StatelessWidget {
+  const _ConfidenceRow(this.d);
+  final LongevityData d;
+
+  static String words(double c) => c >= .85
+      ? 'High-quality estimate'
+      : c >= .65
+      ? 'Good estimate with minor gaps'
+      : c >= .4
+      ? 'Rough estimate: several measures missing'
+      : 'Early estimate: most measures missing';
 
   @override
   Widget build(BuildContext context) {
     final c = context.c;
-    final sorted = [...items]..sort((a, b) => a.years.compareTo(b.years));
-    return TempoCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text('Younger', style: TempoType.caption.c(c.text3)),
-              ),
-              Text('Older', style: TempoType.caption.c(c.text3)),
-            ],
-          ),
-          const SizedBox(height: 6),
-          for (final (i, x) in sorted.indexed) ...[
-            if (i > 0) const SizedBox(height: 12),
-            Semantics(
-              label:
-                  '${leverName(x.lever)}, ${leverValue(x.lever, x.value)}, ${_years(x.years)}',
-              excludeSemantics: true,
+    final pct = (d.confidence * 100).round();
+    return Pressable(
+      label: '$pct% confidence. ${words(d.confidence)}',
+      onTap: () => _sheet(context),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: c.surface2,
+          borderRadius: BorderRadius.circular(TempoRadii.md),
+        ),
+        child: Row(
+          children: [
+            Expanded(
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          '${leverName(x.lever)}${x.weak ? ' ≈' : ''}',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TempoType.label.c(c.text1),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        leverValue(x.lever, x.value),
-                        maxLines: 1,
-                        style: TempoType.caption.c(c.text2).tnum,
-                      ),
-                      SizedBox(
-                        width: 72,
-                        child: Text(
-                          _years(x.years),
-                          textAlign: TextAlign.end,
-                          style: TempoType.label
-                              .c(_tone(context, x.years))
-                              .tnum,
-                        ),
-                      ),
-                    ],
+                  Text(
+                    '$pct% confidence',
+                    style: TempoType.label.c(
+                      d.confidence >= .65 ? context.s.recHigh : c.text1,
+                    ),
                   ),
-                  const SizedBox(height: 6),
-                  _Diverge(x.years),
+                  Text(
+                    words(d.confidence),
+                    style: TempoType.caption.c(c.text2),
+                  ),
                 ],
               ),
             ),
+            TempoIcon(TempoIcons.chevron, size: 16, color: c.text3, stroke: 2),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _sheet(BuildContext context) => showTempoSheet<void>(
+    context,
+    builder: (ctx) {
+      final c = ctx.c;
+      final miss = d.missing;
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('How sure is this?', style: TempoType.titleM.c(c.text1)),
+          const SizedBox(height: 10),
+          Text(
+            'Confidence weighs each measure by how much it matters and how '
+            'complete it is: band measures need 20 of the last 30 days, and a '
+            'blood test counts fully for 6 months. The range shown under '
+            'Tempo Age narrows as confidence rises.',
+            style: TempoType.body.c(c.text2),
+          ),
+          if (miss.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            const Overline('Would raise it'),
+            const SizedBox(height: 6),
+            for (final l in miss.take(5))
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 3),
+                child: Text(
+                  '· ${_raise(l)}',
+                  style: TempoType.bodyS.c(c.text1),
+                ),
+              ),
+          ],
+          if (d.days < sc.fullCoverageDays) ...[
+            const SizedBox(height: 8),
+            Text(
+              '· Wear the band day and night: ${d.days} of the last 30 days have data.',
+              style: TempoType.bodyS.c(c.text1),
+            ),
           ],
         ],
-      ),
-    );
-  }
-}
+      );
+    },
+  );
 
-/// A bar from the centre: left for younger, right for older (±5 years).
-class _Diverge extends StatelessWidget {
-  const _Diverge(this.years);
-  final double years;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.c;
-    final f = (years.abs() / 5).clamp(0, 1).toDouble();
-    final tone = _tone(context, years);
-    return SizedBox(
-      height: 6,
-      child: LayoutBuilder(
-        builder: (_, box) {
-          final half = box.maxWidth / 2;
-          final w = max(2.0, f * half);
-          return Stack(
-            children: [
-              Positioned.fill(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: c.surface3,
-                    borderRadius: BorderRadius.circular(3),
-                  ),
-                ),
-              ),
-              Positioned(
-                left: years < 0 ? half - w : half,
-                width: w,
-                top: 0,
-                bottom: 0,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: tone,
-                    borderRadius: BorderRadius.circular(3),
-                  ),
-                ),
-              ),
-              Positioned(
-                left: half - .5,
-                width: 1,
-                top: 0,
-                bottom: 0,
-                child: ColoredBox(color: c.lineStrong),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-  }
+  static String _raise(sc.Lever l) => switch (l) {
+    sc.Lever.blood => 'Add a blood test (Health details → Blood tests)',
+    sc.Lever.smoking ||
+    sc.Lever.alcohol ||
+    sc.Lever.bloodPressure ||
+    sc.Lever.waist => 'Add ${leverName(l).toLowerCase()} in Health details',
+    sc.Lever.breathing => 'Night SpO₂ readings (band setting)',
+    sc.Lever.strength => 'A week of logged workouts',
+    _ => 'More days of ${leverName(l).toLowerCase()}',
+  };
 }
 
 // ---- manual inputs ----------------------------------------------------------
 
 class _ManualCard extends ConsumerWidget {
-  const _ManualCard(this.m);
+  const _ManualCard(this.m, this.labCount);
   final ManualHealth m;
+  final int labCount;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -858,12 +873,7 @@ class _ManualCard extends ConsumerWidget {
             );
             if (v == null) return;
             await save(
-              ManualHealth(
-                smoking: v < 0 ? null : sc.Smoking.values[v],
-                alcohol: m.alcohol,
-                systolic: m.systolic,
-                waist: m.waist,
-              ),
+              m.copyWith(smoking: () => v < 0 ? null : sc.Smoking.values[v]),
             );
           },
         ),
@@ -883,14 +893,7 @@ class _ManualCard extends ConsumerWidget {
               max: 100,
             );
             if (v == null) return;
-            await save(
-              ManualHealth(
-                smoking: m.smoking,
-                alcohol: v.isNaN ? null : v,
-                systolic: m.systolic,
-                waist: m.waist,
-              ),
-            );
+            await save(m.copyWith(alcohol: () => v.isNaN ? null : v));
           },
         ),
         ListRow(
@@ -909,15 +912,33 @@ class _ManualCard extends ConsumerWidget {
               max: 220,
             );
             if (v == null) return;
-            await save(
-              ManualHealth(
-                smoking: m.smoking,
-                alcohol: m.alcohol,
-                systolic: v.isNaN ? null : v.round(),
-                waist: m.waist,
-              ),
-            );
+            await save(m.copyWith(systolic: () => v.isNaN ? null : v.round()));
           },
+        ),
+        ListRow(
+          'VO₂ max from a watch',
+          value: m.vo2max == null
+              ? 'Estimated'
+              : leverValue(sc.Lever.fitness, m.vo2max!),
+          sub: 'Otherwise Tempo estimates it from resting HR',
+          onTap: () async {
+            final v = await _number(
+              context,
+              title: 'VO₂ max',
+              suffix: 'ml/kg/min',
+              note: 'The cardio fitness number your watch app shows.',
+              initial: m.vo2max,
+              min: 15,
+              max: 90,
+            );
+            if (v == null) return;
+            await save(m.copyWith(vo2max: () => v.isNaN ? null : v));
+          },
+        ),
+        ListRow(
+          'Blood tests',
+          value: labCount == 0 ? 'Add' : '$labCount',
+          onTap: () => push(context, const LabsScreen()),
         ),
         ListRow(
           'Waist',
@@ -933,14 +954,7 @@ class _ManualCard extends ConsumerWidget {
               max: 200,
             );
             if (v == null) return;
-            await save(
-              ManualHealth(
-                smoking: m.smoking,
-                alcohol: m.alcohol,
-                systolic: m.systolic,
-                waist: v.isNaN ? null : v,
-              ),
-            );
+            await save(m.copyWith(waist: () => v.isNaN ? null : v));
           },
         ),
       ],
@@ -1028,16 +1042,23 @@ Future<void> _howItWorks(BuildContext context) => showTempoSheet<void>(
           'of adult life, so a ratio becomes years: 8 × log₂(ratio).',
         ),
         p(
-          'Measures use your last 30 days: resting HR and estimated VO₂max '
-          '(Uth et al.), steps (Paluch 2022), Zone 2+ minutes (Arem 2015), '
-          'strength (Momma 2022), sleep length and regularity (Windred '
-          '2024), night breathing from SpO₂ dips, and the band’s stress '
-          'index (lightly weighted).',
+          'Measures use your last 30 days: VO₂max (from your watch, or '
+          'estimated from resting HR, Uth et al.), resting HR, steps (Paluch '
+          '2022), active minutes with vigorous ones counted twice (Arem '
+          '2015, WHO 2020), strength (Momma 2022), sleep length and '
+          'regularity (Windred 2024), night breathing from SpO₂ dips, and '
+          'the band’s stress index (lightly weighted).',
         ),
         p(
-          'Optional details add smoking (Jha 2013), alcohol, blood '
-          'pressure and waist. Each measure is capped, and the total stays '
-          'within 15 years of your calendar age.',
+          'Optional details add smoking (Jha 2013), alcohol, blood pressure, '
+          'waist and a blood test (PhenoAge, Levine 2018). Each measure is '
+          'capped, and the total stays within 15 years of your calendar age.',
+        ),
+        p(
+          'Measures are grouped (sleep, activity, fitness, lifestyle, body, '
+          'blood). Measures in a group overlap, so a group counts for less '
+          'than the sum of its parts. When VO₂max is estimated from resting '
+          'HR, resting HR itself counts lightly so it isn’t counted twice.',
         ),
         p(
           'Pace of aging is how fast Tempo Age moves per calendar year '

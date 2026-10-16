@@ -18,6 +18,7 @@ import 'design/theme.dart';
 import 'design/tokens.dart';
 import 'design/type.dart';
 import 'screens/coach.dart';
+import 'screens/journal.dart';
 import 'screens/live_workout.dart';
 import 'screens/nav.dart';
 import 'screens/onboarding.dart';
@@ -225,6 +226,8 @@ class _ShellState extends ConsumerState<Shell> with WidgetsBindingObserver {
         await push(context, const WorkoutsScreen());
       case 'review':
         await push(context, const WeeklyReviewScreen());
+      case 'journal':
+        await push(context, const JournalScreen(standalone: true));
       case 'start':
         // Today's session as planned now — the evening version if it was
         // moved or rescued — started guided.

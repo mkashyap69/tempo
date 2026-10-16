@@ -59,6 +59,9 @@ const _accessRows = <(String, List<HealthKind>)>[
   ('Workouts', [HealthKind.workout]),
   ('Blood oxygen', [HealthKind.spo2]),
   ('Respiratory rate', [HealthKind.respiratoryRate]),
+  ('Water', [HealthKind.water]),
+  ('Caffeine', [HealthKind.caffeine]),
+  ('Night temperature', [HealthKind.wristTemp]),
 ];
 
 /// Profile → Data sources: where Tempo gets its data, how fresh it is,

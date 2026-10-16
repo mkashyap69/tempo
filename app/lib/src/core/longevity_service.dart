@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:math';
 
-import 'package:drift/drift.dart' show Variable;
+import 'package:drift/drift.dart' show Value, Variable;
 import 'package:scoring/scoring.dart' as sc;
 import 'package:store/store.dart' as st;
 
@@ -14,17 +14,43 @@ import 'score_service.dart' show parseDateKey;
 
 /// Optional details only the user can give (Longevity → Health details).
 final class ManualHealth {
-  const ManualHealth({this.smoking, this.alcohol, this.systolic, this.waist});
+  const ManualHealth({
+    this.smoking,
+    this.alcohol,
+    this.systolic,
+    this.waist,
+    this.vo2max,
+  });
   final sc.Smoking? smoking;
   final double? alcohol; // units a week
   final int? systolic;
   final double? waist; // cm
+
+  /// VO₂ max as a watch app measured it (ml/kg/min). The Health plugin
+  /// has no VO₂ max type, so it is typed in; without it Tempo estimates
+  /// VO₂ max from resting HR.
+  final double? vo2max;
+
+  ManualHealth copyWith({
+    sc.Smoking? Function()? smoking,
+    double? Function()? alcohol,
+    int? Function()? systolic,
+    double? Function()? waist,
+    double? Function()? vo2max,
+  }) => ManualHealth(
+    smoking: smoking == null ? this.smoking : smoking(),
+    alcohol: alcohol == null ? this.alcohol : alcohol(),
+    systolic: systolic == null ? this.systolic : systolic(),
+    waist: waist == null ? this.waist : waist(),
+    vo2max: vo2max == null ? this.vo2max : vo2max(),
+  );
 
   Map<String, Object?> toJson() => {
     'smoking': smoking?.name,
     'alcohol': alcohol,
     'systolic': systolic,
     'waist': waist,
+    'vo2max': vo2max,
   };
 
   static ManualHealth fromJson(Map<String, dynamic> j) => ManualHealth(
@@ -32,8 +58,101 @@ final class ManualHealth {
     alcohol: (j['alcohol'] as num?)?.toDouble(),
     systolic: (j['systolic'] as num?)?.toInt(),
     waist: (j['waist'] as num?)?.toDouble(),
+    vo2max: (j['vo2max'] as num?)?.toDouble(),
   );
 }
+
+/// One blood test: its date and the nine PhenoAge markers.
+final class LabTest {
+  const LabTest(this.date, this.labs);
+  final DateTime date;
+  final sc.Labs labs;
+
+  static const fields = [
+    ('albumin', 'Albumin', 'g/L'),
+    ('creatinine', 'Creatinine', 'µmol/L'),
+    ('glucose', 'Glucose (fasting)', 'mmol/L'),
+    ('crp', 'CRP', 'mg/L'),
+    ('lymphocytePct', 'Lymphocytes', '%'),
+    ('mcv', 'MCV', 'fL'),
+    ('rdw', 'RDW', '%'),
+    ('alp', 'Alkaline phosphatase', 'U/L'),
+    ('wbc', 'White cells', '10⁹/L'),
+  ];
+
+  Map<String, double> get values => {
+    'albumin': labs.albumin,
+    'creatinine': labs.creatinine,
+    'glucose': labs.glucose,
+    'crp': labs.crp,
+    'lymphocytePct': labs.lymphocytePct,
+    'mcv': labs.mcv,
+    'rdw': labs.rdw,
+    'alp': labs.alp,
+    'wbc': labs.wbc,
+  };
+
+  static sc.Labs labsFrom(Map<String, double> v) => sc.Labs(
+    albumin: v['albumin']!,
+    creatinine: v['creatinine']!,
+    glucose: v['glucose']!,
+    crp: v['crp']!,
+    lymphocytePct: v['lymphocytePct']!,
+    mcv: v['mcv']!,
+    rdw: v['rdw']!,
+    alp: v['alp']!,
+    wbc: v['wbc']!,
+  );
+
+  Map<String, Object?> toJson() => {'date': st.dateKey(date), ...values};
+
+  static LabTest? fromJson(Map<String, dynamic> j) {
+    try {
+      return LabTest(
+        parseDateKey(j['date'] as String),
+        labsFrom({for (final (k, _, _) in fields) k: (j[k] as num).toDouble()}),
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+}
+
+/// Blood tests, newest first.
+Future<List<LabTest>> loadLabs(st.TempoDb db) async {
+  try {
+    final raw = await db.setting(Keys.labs);
+    if (raw == null || raw.isEmpty) return const [];
+    return [
+      for (final m in (jsonDecode(raw) as List).cast<Map<String, dynamic>>())
+        ?LabTest.fromJson(m),
+    ]..sort((a, b) => b.date.compareTo(a.date));
+  } catch (_) {
+    return const [];
+  }
+}
+
+/// Adds or replaces the test on [t]'s date.
+Future<void> saveLab(st.TempoDb db, LabTest t) async {
+  final all = [
+    for (final x in await loadLabs(db))
+      if (!_sameDay(x.date, t.date)) x,
+    t,
+  ];
+  await db.putSetting(Keys.labs, jsonEncode([for (final x in all) x.toJson()]));
+}
+
+Future<void> deleteLab(st.TempoDb db, DateTime date) async {
+  await db.putSetting(
+    Keys.labs,
+    jsonEncode([
+      for (final x in await loadLabs(db))
+        if (!_sameDay(x.date, date)) x.toJson(),
+    ]),
+  );
+}
+
+bool _sameDay(DateTime a, DateTime b) => st.dateKey(a) == st.dateKey(b);
 
 Future<ManualHealth> loadManualHealth(st.TempoDb db) async {
   final raw = await db.setting(Keys.longevityInputs);
@@ -117,11 +236,11 @@ Future<(double, double)?> focusProgress(
   final target = sc.leverTarget(f.lever, age: p.age, male: p.male);
   switch (f.lever) {
     case sc.Lever.activeMinutes:
+      // Moderate-equivalent: vigorous minutes (≥ 80 %) count twice.
       final hrMax = p.effectiveMaxHr;
-      return (
-        (await _countMinutes(db, mon, end, (hrMax * .6).round())).toDouble(),
-        target,
-      );
+      final any = await _countMinutes(db, mon, end, (hrMax * .6).round());
+      final vig = await _countMinutes(db, mon, end, (hrMax * .8).round());
+      return ((any + vig).toDouble(), target);
     case sc.Lever.strength:
       final ws = await db.workoutsBetween(mon, end);
       return (_strength(ws).toDouble(), target);
@@ -148,22 +267,26 @@ int _strength(List<st.Workout> ws) => ws
     )
     .length;
 
+/// Minutes in [from, to) with HR at or above [minHr] (and below [below]).
 Future<int> _countMinutes(
   st.TempoDb db,
   DateTime from,
   DateTime to,
-  int minHr,
-) async {
+  int minHr, {
+  int? below,
+}) async {
   final table = (await loadDataSource(db)).isHealth
       ? 'health_minutes'
       : 'minute_samples';
   final r = await db
       .customSelect(
-        'SELECT COUNT(*) AS n FROM $table WHERE ts >= ? AND ts < ? AND hr >= ?',
+        'SELECT COUNT(*) AS n FROM $table WHERE ts >= ? AND ts < ? AND hr >= ?'
+        '${below == null ? '' : ' AND hr < ?'}',
         variables: [
           Variable.withInt(st.toTs(from)),
           Variable.withInt(st.toTs(to)),
           Variable.withInt(minHr),
+          if (below != null) Variable.withInt(below),
         ],
       )
       .getSingle();
@@ -286,18 +409,40 @@ Future<sc.LongevityInputs> longevityInputs(
     if (n != null) breathing.add(n.score.toDouble());
   }
 
+  // Latest blood test on or before the window's end.
+  final lab = (await loadLabs(db))
+      .where((t) => !t.date.isAfter(to))
+      .firstOrNull;
+  final pheno = lab == null
+      ? null
+      : sc.phenoAge(lab.labs, p.age - to.difference(lab.date).inDays / 365.25);
+
+  final moderate = withData < 5
+      ? null
+      : await _countMinutes(
+              db,
+              from,
+              to,
+              (hrMax * .6).round(),
+              below: (hrMax * .8).round(),
+            ) /
+            weeks;
+  final vigorous = withData < 5
+      ? null
+      : await _countMinutes(db, from, to, (hrMax * .8).round()) / weeks;
+
   return sc.LongevityInputs(
     age: p.age,
     male: p.male,
     daysOfData: withData,
-    vo2max: rhr == null ? null : sc.vo2maxFromHr(hrMax, rhr),
+    vo2max: manual.vo2max ?? (rhr == null ? null : sc.vo2maxFromHr(hrMax, rhr)),
+    vo2maxMeasured: manual.vo2max != null,
     restingHr: rhr,
     steps: steps.length < 5
         ? null
         : steps.reduce((a, b) => a + b) / steps.length,
-    activeMinutes: withData < 5
-        ? null
-        : await _countMinutes(db, from, to, (hrMax * .6).round()) / weeks,
+    activeMinutes: moderate == null ? null : moderate + 2 * vigorous!,
+    vigorousMinutes: vigorous,
     strengthPerWeek: withData < 7
         ? null
         : _strength(await db.workoutsBetween(from, to)) / weeks,
@@ -309,11 +454,13 @@ Future<sc.LongevityInputs> longevityInputs(
     alcoholUnits: manual.alcohol,
     systolic: manual.systolic,
     waistCm: manual.waist,
+    phenoAge: pheno,
+    labDaysOld: lab == null ? null : to.difference(lab.date).inDays,
   );
 }
 
 /// Version of the Tempo Age method, stored on snapshots.
-const longevityAlgo = 2; // 2: weekly change cap
+const longevityAlgo = 3; // 2: weekly change cap; 3: v2 groups, labs
 
 Map<String, Object?> _contributorJson(sc.Contributor c) => {
   'lever': c.lever.name,
@@ -322,6 +469,7 @@ Map<String, Object?> _contributorJson(sc.Contributor c) => {
   'target': c.target,
   'gain': c.gain,
   'weak': c.weak,
+  'weight': c.weight,
 };
 
 /// Computes today's Tempo Age, saves it, and fills monthly snapshots for
@@ -353,6 +501,9 @@ Future<sc.TempoAge> updateLongevity(st.TempoDb db) async {
             ),
             contributors: raw.contributors,
             calibrating: false,
+            confidence: raw.confidence,
+            halfRange: raw.halfRange,
+            missing: raw.missing,
           );
     await db.putLongevity(
       st.LongevityCompanion.insert(
@@ -364,6 +515,8 @@ Future<sc.TempoAge> updateLongevity(st.TempoDb db) async {
           for (final c in t.contributors) _contributorJson(c),
         ]),
         algoVersion: longevityAlgo,
+        confidence: Value(t.confidence),
+        halfRange: Value(t.halfRange),
       ),
     );
     return t;
@@ -419,6 +572,7 @@ List<sc.Contributor> decodeContributors(String json) {
           target: (m['target'] as num).toDouble(),
           gain: (m['gain'] as num).toDouble(),
           weak: m['weak'] as bool? ?? false,
+          weight: (m['weight'] as num?)?.toDouble() ?? 1,
         ),
     ];
   } catch (_) {

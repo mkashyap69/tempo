@@ -14,6 +14,8 @@ import 'package:tempo/src/core/profile.dart';
 import 'package:tempo/src/design/theme.dart';
 import 'package:tempo/src/screens/activity_detail.dart';
 import 'package:tempo/src/screens/baselines.dart';
+import 'package:tempo/src/screens/biomarker.dart';
+import 'package:tempo/src/screens/labs.dart';
 import 'package:tempo/src/screens/calendar.dart';
 import 'package:tempo/src/screens/cardio_load.dart';
 import 'package:tempo/src/screens/coach.dart';
@@ -95,6 +97,8 @@ void main() {
     ),
     'Trends': (() => const TrendsScreen(), 'Sleep performance'),
     'Longevity': (() => const LongevityScreen(), 'TEMPO AGE'),
+    'Biomarker': (() => const BiomarkerScreen(sc.Lever.steps), 'Daily steps'),
+    'Blood tests': (() => const LabsScreen(), 'Add a blood test'),
     'Weekly review': (() => const WeeklyReviewScreen(), 'Your week'),
     'Coach notifications': (() => const CoachSettingsScreen(), 'TRAINING TIME'),
     'Day timeline': (() => const DayTimelineScreen(), 'Heart rate'),
@@ -470,6 +474,10 @@ void main() {
         await render(t, db, const LongevityScreen(), b: b, h: 3200);
         expect(find.text('WHAT SHAPES IT'), findsOneWidget);
         expect(find.text('HEALTH DETAILS'), findsOneWidget);
+        expect(find.textContaining('% confidence'), findsOneWidget);
+        expect(find.textContaining('Likely '), findsOneWidget);
+        expect(find.text('Activity'), findsOneWidget);
+        expect(find.text('Blood tests'), findsOneWidget);
         // Trends has its own tab now.
         expect(find.text('Trends'), findsNothing);
         await teardown(t, db);
