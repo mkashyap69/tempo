@@ -1,4 +1,7 @@
 import 'dart:convert';
+import 'dart:math' as math;
+
+import 'package:health_source/health_source.dart' as hs;
 
 import 'package:scoring/scoring.dart' as sc;
 import 'package:store/store.dart' as st;
@@ -210,5 +213,225 @@ Future<Map<String, bool>> autoEntriesFor(
   return {
     for (final e in all.entries)
       if (on.contains(e.key)) e.key: e.value,
+  };
+}
+
+// ---- impact (J2) ------------------------------------------------------------
+
+/// How an entry is coded for the impact engine. Times are hours (after
+/// noon for evening entries, so 23:30 and 00:30 sit an hour apart).
+sc.Behaviour behaviourFor(sc.JournalEntryDef d) => switch (d.kind) {
+  sc.EntryKind.yesNo => sc.Behaviour(d.key),
+  sc.EntryKind.amount => sc.Behaviour(
+    d.key,
+    binary: false,
+    dose: switch (d.key) {
+      'caffeine_mg' => 100,
+      'water' => 500,
+      _ => 1,
+    },
+  ),
+  sc.EntryKind.time => sc.Behaviour(d.key, binary: false),
+};
+
+/// "per 100 mg", "per hour later", "" for yes/no.
+String doseWords(sc.JournalEntryDef d) => switch (d.kind) {
+  sc.EntryKind.yesNo => '',
+  sc.EntryKind.time => ' per hour later',
+  sc.EntryKind.amount =>
+    ' per ${behaviourFor(d).dose.round()} ${d.unit ?? ''}'.trimRight(),
+};
+
+double? _code(sc.JournalEntryDef d, st.JournalData r) => switch (d.kind) {
+  sc.EntryKind.yesNo => r.value ? 1 : 0,
+  sc.EntryKind.amount => r.amount ?? (r.value ? null : 0),
+  sc.EntryKind.time =>
+    r.amount == null
+        ? null
+        : d.key == 'first_meal'
+        ? r.amount! / 60
+        : ((r.amount! - 12 * 60) % 1440) / 60,
+};
+
+/// Days in [from, to] with their entries (manual and automatic) and the
+/// night and morning that followed.
+Future<List<sc.ImpactDay>> loadImpactDays(
+  st.TempoDb db,
+  JournalConfig config, {
+  required DateTime from,
+  required DateTime to,
+}) async {
+  final rows = await db.journalBetween(from, to);
+  final byDate = <String, List<st.JournalData>>{};
+  for (final r in rows) {
+    byDate.putIfAbsent(r.date, () => []).add(r);
+  }
+  final scores = {
+    for (final s in await db.scoresBetween(
+      from,
+      to.add(const Duration(days: 1)),
+    ))
+      s.date: s,
+  };
+  final autoOn = config.automatic.isNotEmpty;
+  final profile = await loadAppProfile(db) ?? const Profile();
+  final out = <sc.ImpactDay>[];
+  for (
+    var d = dayOf(from);
+    !d.isAfter(to);
+    d = DateTime(d.year, d.month, d.day + 1)
+  ) {
+    final next = scores[st.dateKey(d.add(const Duration(days: 1)))];
+    if (next == null) continue;
+    final y = <sc.Outcome, double>{
+      if (next.recovery != null && !next.calibrating)
+        sc.Outcome.recovery: next.recovery!,
+      if (next.sleepPerf != null) sc.Outcome.sleepPerf: next.sleepPerf!,
+      if (next.hrv != null && next.hrv! > 0)
+        sc.Outcome.hrv: math.log(next.hrv!),
+      if (next.rhr != null) sc.Outcome.rhr: next.rhr!,
+      if (next.sleptHours != null) sc.Outcome.sleptHours: next.sleptHours!,
+    };
+    if (y.isEmpty) continue;
+    final x = <String, double>{};
+    for (final r in byDate[st.dateKey(d)] ?? const <st.JournalData>[]) {
+      final def = config.def(r.tag);
+      if (def == null || def.automatic) continue;
+      final v = _code(def, r);
+      if (v != null) x[r.tag] = v;
+    }
+    if (autoOn) {
+      final auto = sc.autoEntries(await autoFactsFor(db, d, profile: profile));
+      for (final a in config.automatic) {
+        if (auto[a.key] case final v?) x[a.key] = v ? 1 : 0;
+      }
+    }
+    out.add(
+      sc.ImpactDay(
+        date: d,
+        x: x,
+        y: y,
+        strain: scores[st.dateKey(d)]?.strain,
+        weekend: d.add(const Duration(days: 1)).weekday >= 6,
+      ),
+    );
+  }
+  return out;
+}
+
+// ---- experiments --------------------------------------------------------------
+
+sc.Experiment? _parseExperiment(Map<String, dynamic> j) {
+  try {
+    return sc.Experiment(
+      key: j['key'] as String,
+      doIt: j['doIt'] as bool,
+      start: DateTime.parse(j['start'] as String),
+      days: j['days'] as int? ?? 14,
+    );
+  } catch (_) {
+    return null;
+  }
+}
+
+Map<String, Object?> _experimentJson(sc.Experiment e) => {
+  'key': e.key,
+  'doIt': e.doIt,
+  'start': st.dateKey(e.start),
+  'days': e.days,
+};
+
+/// The running experiment, or null.
+Future<sc.Experiment?> loadExperiment(st.TempoDb db) async {
+  final raw = await db.setting(Keys.experiment);
+  if (raw == null || raw.isEmpty) return null;
+  try {
+    return _parseExperiment(jsonDecode(raw) as Map<String, dynamic>);
+  } catch (_) {
+    return null;
+  }
+}
+
+/// Finished or stopped experiments, newest first.
+Future<List<sc.Experiment>> loadPastExperiments(st.TempoDb db) async {
+  try {
+    final raw = await db.setting(Keys.experimentsDone);
+    if (raw == null || raw.isEmpty) return const [];
+    return [
+      for (final m in (jsonDecode(raw) as List).cast<Map<String, dynamic>>())
+        ?_parseExperiment(m),
+    ]..sort((a, b) => b.start.compareTo(a.start));
+  } catch (_) {
+    return const [];
+  }
+}
+
+/// Starts a 14-day experiment from today; one runs at a time.
+Future<void> startExperiment(st.TempoDb db, String key, bool doIt) async {
+  await stopExperiment(db);
+  await db.putSetting(
+    Keys.experiment,
+    jsonEncode(
+      _experimentJson(
+        sc.Experiment(key: key, doIt: doIt, start: dayOf(DateTime.now())),
+      ),
+    ),
+  );
+}
+
+/// Moves the running experiment to the past list (cut short at today
+/// when stopped early, so its result only counts the days it ran).
+Future<void> stopExperiment(st.TempoDb db) async {
+  final e = await loadExperiment(db);
+  if (e == null) return;
+  final today = dayOf(DateTime.now());
+  final ran = today.difference(e.start).inDays.clamp(0, e.days);
+  final past = await loadPastExperiments(db);
+  await db.putSetting(
+    Keys.experimentsDone,
+    jsonEncode([
+      if (ran > 0)
+        _experimentJson(
+          sc.Experiment(key: e.key, doIt: e.doIt, start: e.start, days: ran),
+        ),
+      for (final p in past) _experimentJson(p),
+    ]),
+  );
+  await db.deleteSetting(Keys.experiment);
+}
+
+/// Ends the running experiment once its days are up (on load).
+Future<sc.Experiment?> currentExperiment(st.TempoDb db) async {
+  final e = await loadExperiment(db);
+  if (e != null && !dayOf(DateTime.now()).isBefore(e.end)) {
+    await stopExperiment(db);
+    return null;
+  }
+  return e;
+}
+
+/// Water and caffeine Health recorded on [day], in the journal's units
+/// (ml, mg), for the check-in to suggest. Empty off Health.
+Future<Map<String, double>> healthAmountsFor(
+  st.TempoDb db,
+  DateTime day,
+) async {
+  final source = await loadDataSource(db);
+  if (!source.isHealth) return const {};
+  final d = dayOf(day);
+  final recs = await loadHealthRecords(
+    db,
+    d,
+    d.add(const Duration(days: 1)),
+    kinds: const [hs.HealthKind.water, hs.HealthKind.caffeine],
+  );
+  double sum(hs.HealthKind k) => recs
+      .where((r) => r.kind == k && !r.start.isBefore(d))
+      .fold<double>(0, (a, r) => a + r.value);
+  final water = sum(hs.HealthKind.water) * 1000; // L → ml
+  final caffeine = sum(hs.HealthKind.caffeine) * 1000; // g → mg
+  return {
+    if (water > 0) 'water': water.roundToDouble(),
+    if (caffeine > 0) 'caffeine_mg': caffeine.roundToDouble(),
   };
 }

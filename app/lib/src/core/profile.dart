@@ -74,6 +74,11 @@ abstract final class Keys {
 
   /// Blood tests, JSON [{date, nine PhenoAge markers}] (Tempo Age v2).
   static const labs = 'labs';
+
+  /// The running journal experiment, JSON {key, doIt, start, days}, and
+  /// finished ones as a JSON list.
+  static const experiment = 'journal_experiment';
+  static const experimentsDone = 'journal_experiments_done';
 }
 
 /// Everything the user tells Tempo in onboarding and Profile.

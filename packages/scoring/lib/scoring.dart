@@ -14,6 +14,7 @@ export 'src/everyday.dart';
 export 'src/feel.dart';
 export 'src/gait.dart';
 export 'src/hrv.dart';
+export 'src/impact.dart';
 export 'src/insights.dart';
 export 'src/journal_catalog.dart';
 export 'src/load.dart';

@@ -1,316 +1,283 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:scoring/scoring.dart' as sc;
-import 'package:store/store.dart' as st;
 
-import '../core/format.dart';
+import '../core/journal.dart';
 import '../design/components.dart';
 import '../design/tokens.dart';
 import '../design/type.dart';
+import '../state/providers.dart';
 import 'journal.dart';
 
+final _pastProvider = FutureProvider<List<sc.Experiment>>((ref) async {
+  ref.watch(dbTickProvider);
+  return loadPastExperiments(ref.watch(dbProvider));
+});
+
+/// One journal entry across every outcome: the adjusted effect and its
+/// likely range, the raw days behind it, experiments and a way to start
+/// one.
 class InsightDetailScreen extends ConsumerWidget {
-  const InsightDetailScreen({super.key, required this.tag});
+  const InsightDetailScreen({
+    super.key,
+    required this.tag,
+    this.outcome = sc.Outcome.recovery,
+  });
   final String tag;
+  final sc.Outcome outcome;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final c = context.c;
+    final days = ref.watch(impactDaysProvider).value;
     final j = ref.watch(journalProvider).value;
-    final c = context.c, s = context.s;
-    final d = j?.insights.where((x) => x.tag.key == tag).firstOrNull;
-    if (d == null) return Scaffold(backgroundColor: c.bg);
-    final i = d.insight;
-    final yes = [
-      for (final n in d.nights)
-        if (n.$2) n.$3,
+    final rows = <sc.Outcome, sc.Impact>{
+      for (final o in sc.Outcome.values)
+        if (ref.watch(impactsProvider(o)).value case final v?)
+          for (final i in v.$1)
+            if (i.key == tag) o: i,
+    };
+    final def = j?.config.def(tag);
+    final name = def?.name ?? tag;
+    final main = rows[outcome];
+    final past = [
+      for (final e in ref.watch(_pastProvider).value ?? const <sc.Experiment>[])
+        if (e.key == tag) e,
     ];
-    final no = [
-      for (final n in d.nights)
-        if (!n.$2) n.$3,
-    ];
-    double? mean(Iterable<double?> x) {
-      final v = x.whereType<double>().toList();
-      return v.isEmpty ? null : v.reduce((a, b) => a + b) / v.length;
-    }
+    return TempoPage(
+      children: [
+        DetailHeader(title: name),
+        if (main == null || days == null)
+          const SizedBox(height: 300)
+        else ...[
+          Text(
+            main.shown
+                ? '${outcomeName(outcome)} ${effectText(outcome, main.effect)}${def == null ? '' : doseWords(def)} after ${name.toLowerCase()}.'
+                : 'No clear link yet between ${name.toLowerCase()} and your ${outcomeName(outcome).toLowerCase()}.',
+            style: TempoType.titleL.c(c.text1),
+          ),
+          TempoCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text('Every outcome', style: TempoType.label.c(c.text1)),
+                const SizedBox(height: 4),
+                Text(
+                  'Adjusted for your other entries, the day’s strain and weekends. The bar is the likely range.',
+                  style: TempoType.caption.c(c.text3),
+                ),
+                for (final o in sc.Outcome.values)
+                  if (rows[o] case final i?) ...[
+                    const SizedBox(height: 14),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            outcomeName(o),
+                            style: TempoType.bodyS.c(c.text1),
+                          ),
+                        ),
+                        Text(
+                          i.confidence == sc.ImpactConfidence.notEnough
+                              ? 'Not enough days'
+                              : '${effectText(o, i.effect)} · ${confidenceWord(i.confidence)}',
+                          style: TempoType.caption
+                              .c(
+                                i.shown
+                                    ? (i.helps
+                                          ? context.s.recHigh
+                                          : context.s.recLow)
+                                    : c.text2,
+                              )
+                              .tnum,
+                        ),
+                      ],
+                    ),
+                    if (i.confidence != sc.ImpactConfidence.notEnough) ...[
+                      const SizedBox(height: 6),
+                      EffectBar(i),
+                    ],
+                  ],
+              ],
+            ),
+          ),
+          _RawDays(tag: tag, outcome: outcome, days: days, name: name),
+          if (def != null && !def.automatic && def.kind == sc.EntryKind.yesNo)
+            TempoButton(
+              'Try a 14-day experiment',
+              kind: ButtonKind.secondary,
+              expand: true,
+              onTap: j?.experiment != null
+                  ? null
+                  : () => offerExperiment(
+                      context,
+                      ref,
+                      def,
+                      suggestAvoid: !(main.helps),
+                    ),
+            ),
+          if (j?.experiment != null)
+            Text(
+              'One experiment runs at a time.',
+              style: TempoType.caption.c(c.text3),
+            ),
+          for (final e in past) _PastExperiment(e: e, name: name, days: days),
+        ],
+      ],
+    );
+  }
+}
 
-    String diff(double? a, double? b, String unit, {int dp = 0}) {
-      if (a == null || b == null) return '—';
-      final x = a - b;
-      return '${x >= 0 ? '+' : '−'}${x.abs().toStringAsFixed(dp)}$unit';
-    }
+class _RawDays extends StatelessWidget {
+  const _RawDays({
+    required this.tag,
+    required this.outcome,
+    required this.days,
+    required this.name,
+  });
+  final String tag, name;
+  final sc.Outcome outcome;
+  final List<sc.ImpactDay> days;
 
-    final untagged = j!.count - d.nights.length;
-    final strong = i.confidence.index >= sc.Confidence.low.index;
-    Widget group(String name, List<st.DailyScore> xs) {
-      final vals = [for (final x in xs) x.recovery!];
-      final avg = vals.isEmpty
-          ? 0.0
-          : vals.reduce((a, b) => a + b) / vals.length;
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c;
+    final yes = <double>[], no = <double>[];
+    for (final d in days) {
+      final v = d.x[tag], y = d.y[outcome];
+      if (v == null || y == null) continue;
+      (v != 0 ? yes : no).add(y);
+    }
+    final all = [...yes, ...no];
+    if (all.length < 2) return const SizedBox.shrink();
+    final lo = all.reduce((a, b) => a < b ? a : b);
+    final hi = all.reduce((a, b) => a > b ? a : b);
+    Widget strip(String label, List<double> vs) {
+      final avg = vs.isEmpty ? null : vs.reduce((a, b) => a + b) / vs.length;
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            children: [
-              Expanded(child: Text(name, style: TempoType.bodyS.c(c.text1))),
-              Text.rich(
-                TextSpan(
-                  children: [
-                    const TextSpan(text: 'avg '),
-                    TextSpan(
-                      text: '${avg.round()}%',
-                      style: TextStyle(color: c.text1),
-                    ),
-                    TextSpan(text: ' · ${vals.length} nights'),
-                  ],
-                ),
-                style: TempoType.bodyS.c(c.text2).tnum,
-              ),
-            ],
-          ),
+          Text('$label · ${vs.length} days', style: TempoType.bodyS.c(c.text1)),
           const SizedBox(height: 6),
           LayoutBuilder(
-            builder: (context, box) => Container(
-              height: 34,
-              decoration: BoxDecoration(
-                color: c.surface2,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  for (final (k, v) in vals.indexed)
-                    Positioned(
-                      left: v / 100 * box.maxWidth - 4,
-                      top: 6.0 + (k % 3) * 8,
-                      child: Container(
-                        width: 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          color: s.recoveryFor(v),
-                          shape: BoxShape.circle,
+            builder: (_, box) {
+              double x(double v) => hi - lo < 1e-9
+                  ? box.maxWidth / 2
+                  : (v - lo) / (hi - lo) * (box.maxWidth - 8);
+              return Container(
+                height: 30,
+                decoration: BoxDecoration(
+                  color: c.surface2,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Stack(
+                  children: [
+                    for (final (k, v) in vs.indexed)
+                      Positioned(
+                        left: x(v),
+                        top: 5.0 + (k % 3) * 7,
+                        child: Container(
+                          width: 7,
+                          height: 7,
+                          decoration: BoxDecoration(
+                            color: c.text2,
+                            shape: BoxShape.circle,
+                          ),
                         ),
                       ),
-                    ),
-                  if (vals.isNotEmpty)
-                    Positioned(
-                      left: avg / 100 * box.maxWidth - 1.5,
-                      top: -4,
-                      width: 3,
-                      height: 42,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: c.text1,
-                          borderRadius: BorderRadius.circular(2),
-                        ),
+                    if (avg != null)
+                      Positioned(
+                        left: x(avg) + 2,
+                        top: 0,
+                        width: 3,
+                        height: 30,
+                        child: ColoredBox(color: c.text1),
                       ),
-                    ),
-                ],
-              ),
-            ),
+                  ],
+                ),
+              );
+            },
           ),
         ],
       );
     }
 
-    return TempoPage(
-      children: [
-        const DetailHeader(title: 'Insight'),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Overline(
-              '${d.tag.name} · last ${d.nights.isEmpty ? 0 : DateTime.now().difference(d.nights.map((n) => n.$1).reduce((a, b) => a.isBefore(b) ? a : b)).inDays} days',
-            ),
-            const SizedBox(height: 8),
-            Text.rich(
-              strong
-                  ? TextSpan(
-                      children: [
-                        TextSpan(
-                          text:
-                              'On nights after ${d.tag.name.toLowerCase()}, your recovery averages ',
-                        ),
-                        TextSpan(
-                          text:
-                              '${i.diff.abs().round()} points ${i.diff < 0 ? 'lower' : 'higher'}',
-                          style: TextStyle(
-                            color: i.diff < 0 ? s.recLow : s.recHigh,
-                          ),
-                        ),
-                        const TextSpan(text: '.'),
-                      ],
-                    )
-                  : TextSpan(
-                      text:
-                          'No clear link yet between ${d.tag.name.toLowerCase()} and your recovery.',
-                    ),
-              style: TempoType.titleL.copyWith(
-                fontSize: 26,
-                height: 32 / 26,
-                color: c.text1,
-              ),
-            ),
-          ],
-        ),
-        TempoCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text('Next-morning recovery', style: TempoType.label.c(c.text1)),
-              const SizedBox(height: 14),
-              group('Without ${d.tag.name.toLowerCase()}', no),
-              const SizedBox(height: 14),
-              group('After ${d.tag.name.toLowerCase()}', yes),
-              const SizedBox(height: 14),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  for (final t in ['0%', '50%', '100%'])
-                    Text(t, style: TempoType.caption.c(c.text3)),
-                ],
-              ),
-            ],
-          ),
-        ),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: TempoCard(
-                padding: const EdgeInsets.all(14),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const Overline('Confidence'),
-                    const SizedBox(height: 8),
-                    Text(
-                      confidenceLabel(i.confidence),
-                      style: TempoType.titleM.c(c.text1),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        for (var k = 0; k < 3; k++) ...[
-                          if (k > 0) const SizedBox(width: 3),
-                          Expanded(
-                            child: Container(
-                              height: 6,
-                              decoration: BoxDecoration(
-                                color: k < (i.confidence.index - 1).clamp(0, 3)
-                                    ? c.text1
-                                    : c.trackOff,
-                                borderRadius: BorderRadius.circular(3),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      '${i.diff < 0 ? 'Lower' : 'Higher'} on ${i.consistent} of ${i.nWith} ${d.tag.name.toLowerCase()} nights',
-                      style: TempoType.caption.c(c.text2),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: TempoCard(
-                padding: const EdgeInsets.all(14),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Overline('Sample'),
-                    const SizedBox(height: 8),
-                    Text(
-                      '${i.nWith} vs ${i.nWithout}',
-                      style: TempoType.titleM.c(c.text1).tnum,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'nights with / without.${untagged > 0 ? ' $untagged nights untagged are excluded.' : ''}',
-                      style: TempoType.caption.c(c.text2),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-        CardList(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
-              child: Text('What moved', style: TempoType.label.c(c.text1)),
-            ),
-            for (final (k, v, badge) in [
-              (
-                'Resting HR',
-                diff(
-                  mean(yes.map((x) => x.rhr)),
-                  mean(no.map((x) => x.rhr)),
-                  ' bpm',
-                ),
-                false,
-              ),
-              (
-                'Overnight stress',
-                diff(
-                  mean(yes.map((x) => x.hrvProxy)),
-                  mean(no.map((x) => x.hrvProxy)),
-                  '',
-                ),
-                true,
-              ),
-              (
-                'Sleep',
-                diff(
-                  mean(
-                    yes.map(
-                      (x) => x.sleptHours == null ? null : x.sleptHours! * 60,
-                    ),
-                  ),
-                  mean(
-                    no.map(
-                      (x) => x.sleptHours == null ? null : x.sleptHours! * 60,
-                    ),
-                  ),
-                  ' min',
-                ),
-                false,
-              ),
-            ])
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
-                child: Row(
-                  children: [
-                    Text(k, style: TempoType.bodyS.c(c.text1)),
-                    if (badge) ...[
-                      const SizedBox(width: 6),
-                      const TempoBadge('≈', small: true),
-                    ],
-                    const Spacer(),
-                    Text(v, style: TempoType.bodyS.c(c.text2).tnum),
-                  ],
-                ),
-              ),
-          ],
-        ),
-        Text(
-          'A pattern in your own data, not a medical finding. Other things often happen on the same nights (late meals, late nights), so treat it as a strong hint.',
-          style: TempoType.caption.c(c.text3),
-        ),
-        if (d.nights.isNotEmpty)
+    return TempoCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
           Text(
-            'Nights from ${dm(d.nights.first.$1)} to ${dm(d.nights.last.$1)}.',
+            'The days behind it (${outcomeName(outcome).toLowerCase()}, not adjusted)',
+            style: TempoType.label.c(c.text1),
+          ),
+          const SizedBox(height: 12),
+          strip('Without ${name.toLowerCase()}', no),
+          const SizedBox(height: 12),
+          strip('With ${name.toLowerCase()}', yes),
+        ],
+      ),
+    );
+  }
+}
+
+class _PastExperiment extends StatelessWidget {
+  const _PastExperiment({
+    required this.e,
+    required this.name,
+    required this.days,
+  });
+  final sc.Experiment e;
+  final String name;
+  final List<sc.ImpactDay> days;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c;
+    return TempoCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Overline('Experiment · ${experimentTitle(e, name)}'),
+          for (final o in [
+            sc.Outcome.recovery,
+            sc.Outcome.sleepPerf,
+            sc.Outcome.sleptHours,
+          ])
+            Builder(
+              builder: (_) {
+                final r = sc.experimentResult(e, days, o);
+                final shown =
+                    r.confidence.index >= sc.ImpactConfidence.low.index;
+                return Padding(
+                  padding: const EdgeInsets.only(top: 10),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          outcomeName(o),
+                          style: TempoType.bodyS.c(c.text1),
+                        ),
+                      ),
+                      Text(
+                        r.confidence == sc.ImpactConfidence.notEnough
+                            ? 'Not enough days'
+                            : shown
+                            ? '${effectText(o, r.effect)} (${effectText(o, r.low)} to ${effectText(o, r.high)})'
+                            : 'No clear change',
+                        style: TempoType.caption.c(c.text2).tnum,
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          const SizedBox(height: 8),
+          Text(
+            'Kept to it on ${(sc.experimentResult(e, days, sc.Outcome.recovery).adherence * 100).round()} % of logged days.',
             style: TempoType.caption.c(c.text3),
           ),
-      ],
+        ],
+      ),
     );
   }
 }

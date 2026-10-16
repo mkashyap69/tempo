@@ -31,6 +31,7 @@ import 'package:tempo/src/design/components.dart' show Pressable;
 import 'package:tempo/src/screens/day_timeline.dart';
 import 'package:tempo/src/screens/insight_detail.dart';
 import 'package:tempo/src/screens/journal.dart';
+import 'package:tempo/src/screens/journal_customise.dart';
 import 'package:tempo/src/screens/learn.dart';
 import 'package:tempo/src/screens/live_workout.dart';
 import 'package:tempo/src/screens/longevity.dart';
@@ -108,12 +109,16 @@ void main() {
     'Calendar': (() => const CalendarScreen(), 'Calendar'),
     'Insight': (
       () => const InsightDetailScreen(tag: 'alcohol'),
-      'Next-morning recovery',
+      'Every outcome',
     ),
     'Data health': (() => const DataHealthScreen(), 'Wear and gaps'),
     'Workouts': (() => const WorkoutsScreen(), 'Last 7 days'),
     'Band explorer': (() => const BandExplorerScreen(), 'Run explorer'),
     'Journal': (() => const JournalScreen(), 'Yesterday, quickly'),
+    'Customise journal': (
+      () => const JournalCustomiseScreen(),
+      'Customise journal',
+    ),
     'Weekly report': (
       () => const WeeklyReportScreen(),
       'YOUR WEEK IN THREE LINES',
