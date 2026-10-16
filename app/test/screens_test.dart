@@ -551,7 +551,9 @@ void main() {
       final db = (await t.runAsync(() => seededDb(days: 5)))!;
       await render(t, db, const TodayScreen());
       expect(find.textContaining('of 14'), findsWidgets);
-      expect(find.text('Calibrating'), findsOneWidget);
+      // Said once, in the ring; the legend says "Learning", not 5/14 again.
+      expect(find.text('Learning'), findsOneWidget);
+      expect(find.textContaining('to go'), findsWidgets);
       await teardown(t, db);
     });
 

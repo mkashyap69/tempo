@@ -62,7 +62,7 @@ class TodayRings extends StatelessWidget {
     final (big, word) = noData
         ? ('—', 'No data')
         : calibrating
-        ? ('${t.nights}/14', 'Calibrating')
+        ? ('${t.nights}', 'of 14 nights')
         : r == null
         ? ('—', 'After tonight')
         : ('${r.round()}%', recoveryWord(r));
@@ -75,11 +75,11 @@ class TodayRings extends StatelessWidget {
         _LegendItem(
           label: 'RECOVERY',
           color: noData ? c.text3 : recColor,
-          value: big,
+          value: calibrating ? 'Learning' : big,
           sub: noData
               ? ''
               : calibrating
-              ? '${14 - t.nights} nights to baseline'
+              ? '${14 - t.nights} ${14 - t.nights == 1 ? 'night' : 'nights'} to go'
               : _rhrLine(t),
           onTap: noData ? null : () => push(context, const RecoveryScreen()),
         ),
@@ -93,7 +93,13 @@ class TodayRings extends StatelessWidget {
               : tg.cap
               ? ' / cap ${tg.hi.round()}'
               : ' / ${tg.lo.round()}–${tg.hi.round()}',
-          sub: noData ? '' : 'of 21',
+          sub: noData || t.firstDay
+              ? ''
+              : t.strain >= tg.hi
+              ? (tg.cap ? 'Cap reached' : 'Target reached')
+              : t.strain >= tg.lo
+              ? 'In range'
+              : '${n1(tg.lo - t.strain)} to go',
           onTap: noData ? null : () => push(context, const StrainScreen()),
         ),
         const SizedBox(height: 10),

@@ -91,6 +91,10 @@ abstract final class TodayBody {
       health: source.isHealth,
     );
     final adds = planAdds(t);
+    final done =
+        t.plan != null &&
+        !t.plan!.isRest &&
+        (t.status == sc.DayStatus.done || t.status == sc.DayStatus.doneEasier);
     // Asked before the call and the rings, so the score can't sway it.
     final now = DateTime.now();
     final felt = ref.watch(feelProvider(st.dateKey(t.day)));
@@ -314,7 +318,6 @@ abstract final class TodayBody {
       // Quiet unless several overnight signals are off together.
       BodySignalsAlert(onOpen: () => push(context, const RecoveryScreen())),
       if (askFeel) FeelCard(day: t.day),
-      if (!noData && !t.firstDay) const JournalNudge(),
       Pressable(
         label: 'Why today’s call',
         onTap: noData || t.firstDay ? null : () => showWhySheet(context, t),
@@ -328,11 +331,19 @@ abstract final class TodayBody {
               TextSpan(text: rest),
             ],
           ),
-          style: TempoType.titleL.c(c.text1),
+          // One calm sentence: titleM, not titleL, so it isn't three lines.
+          style: TempoType.titleM.c(c.text1),
         ),
       ),
       TodayRings(t: t, noData: noData, dim: dim),
-      if (!noData && t.restDay)
+      if (!noData && !t.firstDay && done)
+        _DoneCard(
+          title: t.plan!.title,
+          minutes: t.plan!.minutes,
+          easier: t.status == sc.DayStatus.doneEasier,
+          onTap: () => push(context, const WorkoutDetailScreen()),
+        )
+      else if (!noData && t.restDay)
         RestCard(
           onStart: () =>
               openLive(context, ref, plan: sc.sessionTemplate('easy_walk')),
@@ -349,8 +360,11 @@ abstract final class TodayBody {
           onWhy: () => push(context, const WorkoutDetailScreen()),
         ),
       if (!noData && !t.firstDay) const TodayGoalLine(),
-      // Three alternatives to the plan, one row until opened.
-      if (!noData && t.pause == null) const PicksEntry(),
+      // Three alternatives to the plan, one row until opened; not once
+      // today's session is done.
+      if (!noData && t.pause == null && !done) const PicksEntry(),
+      // The journal asks below the day's numbers, not above them.
+      if (!noData && !t.firstDay) const JournalNudge(),
       if (!noData && t.firstDay) const FirstWeekCard(),
       if (!noData) ...[
         WeekRecoveryStrain(t: t),
@@ -749,3 +763,58 @@ Future<void> showWhySheet(BuildContext context, TodayData t) =>
         );
       },
     );
+
+/// Today's session once it's done: one line instead of the full card.
+class _DoneCard extends StatelessWidget {
+  const _DoneCard({
+    required this.title,
+    required this.minutes,
+    required this.easier,
+    required this.onTap,
+  });
+  final String title;
+  final int minutes;
+  final bool easier;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c, s = context.s;
+    return TempoCard(
+      label: '$title done',
+      onTap: onTap,
+      child: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: s.recHigh.withValues(alpha: .14),
+              shape: BoxShape.circle,
+            ),
+            alignment: Alignment.center,
+            child: TempoIcon(TempoIcons.check, size: 18, color: s.recHigh),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  easier ? '$title · done, easier' : '$title · done',
+                  style: TempoType.label.c(c.text1),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Nice work. Keep the rest of the day easy.',
+                  style: TempoType.bodyS.c(c.text2),
+                ),
+              ],
+            ),
+          ),
+          TempoIcon(TempoIcons.chevron, size: 16, color: c.text3),
+        ],
+      ),
+    );
+  }
+}

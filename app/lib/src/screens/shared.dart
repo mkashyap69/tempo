@@ -309,11 +309,7 @@ String recoveryWhy(TodayData t, List<Contributor> cs) {
     );
   }
   if (t.calibrating) {
-    return (
-      'Night ${t.nights} of 14',
-      c.text1,
-      ' — still learning your baseline. Moderate effort today; general target ${target.lo.round()}–${target.hi.round()}.',
-    );
+    return ('Learning your normal.', c.text1, ' Keep today moderate.');
   }
   final r = t.recovery;
   if (r == null) {

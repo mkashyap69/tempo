@@ -136,11 +136,14 @@ final _activityProvider = FutureProvider.family<_ActivityData?, int>((
       );
   final similar = [w, ...others.take(4)]
     ..sort((p, q) => q.start.compareTo(p.start));
-  // Gait for anything on foot.
+  // Pace and cadence only mean something for a walk or a run. Games and
+  // HIIT have steps too, but in bursts: 1.1 km "at 17:28/km" over 79
+  // minutes of badminton is noise. An unlabelled session counts when most
+  // of it was steady walking or running.
   sc.Gait? gait;
   var fromBand = false;
-  const offFoot = {'cycling', 'strength', 'yoga'};
-  if (!offFoot.contains(w.sport)) {
+  const onFoot = {'running', 'walking'};
+  if (onFoot.contains(w.sport) || w.sport == null) {
     final mins = [
       for (final m in rows) sc.Minute(st.fromTs(m.ts), steps: m.steps),
     ];
@@ -154,7 +157,10 @@ final _activityProvider = FutureProvider.family<_ActivityData?, int>((
         heightCm: profile.heightCm.toDouble(),
       );
       fromBand = !running && band != null && stride == band;
-      gait = sc.gaitOf(mins, strideM: stride);
+      final g = sc.gaitOf(mins, strideM: stride);
+      if (g != null && (w.sport != null || g.movingMinutes * 2 >= g.minutes)) {
+        gait = g;
+      }
     }
   }
   return _ActivityData(
@@ -566,12 +572,9 @@ class GaitCard extends StatelessWidget {
         children: [
           Text('Pace & cadence', style: TempoType.label.c(c.text1)),
           const SizedBox(height: 12),
+          // Two by two: four stats in one row wrapped "/km" on phones.
           Row(
             children: [
-              Expanded(child: Stat('Steps', steps)),
-              Expanded(
-                child: Stat('Cadence', '${g.cadence.round()}', unit: ' spm'),
-              ),
               Expanded(
                 child: Stat(
                   'Distance',
@@ -587,6 +590,15 @@ class GaitCard extends StatelessWidget {
                   unit: ' /km',
                   estimate: true,
                 ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(child: Stat('Steps', steps)),
+              Expanded(
+                child: Stat('Cadence', '${g.cadence.round()}', unit: ' spm'),
               ),
             ],
           ),
@@ -625,7 +637,10 @@ class GaitCard extends StatelessWidget {
             'Best minute ${g.peakCadence}.',
             style: TempoType.caption.c(c.text3),
           ),
-          if (g.splits.isNotEmpty) ...[
+          // A "split" slower than 20 min/km is a stop-start session, not a
+          // kilometre anyone ran or walked.
+          if (g.splits.isNotEmpty &&
+              g.splits.every((x) => x < const Duration(minutes: 20))) ...[
             const SizedBox(height: 14),
             for (final (i, sp) in g.splits.indexed)
               Padding(
