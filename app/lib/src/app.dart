@@ -207,6 +207,10 @@ class _ShellState extends ConsumerState<Shell> with WidgetsBindingObserver {
         handleNudgeResponse(db, payload, action);
     _notifTaps = notificationTaps.stream.listen(_openFromNotification);
     if (!Platform.environment.containsKey('FLUTTER_TEST')) {
+      unawaited(
+        repairLiveZones(db)
+            .catchError((Object e) => debugPrint('live zones repair: $e')),
+      );
       TempoNotifications.instance
           .launchTarget()
           .then((t) {

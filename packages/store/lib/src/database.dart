@@ -267,6 +267,12 @@ class TempoDb extends _$TempoDb {
             ..orderBy([(m) => OrderingTerm.asc(m.ts)]))
           .get();
 
+  Future<List<HrLiveData>> hrLiveBetween(DateTime from, DateTime to) =>
+      (select(hrLive)
+            ..where((m) => m.ts.isBetweenValues(toTs(from), toTs(to) - 1))
+            ..orderBy([(m) => OrderingTerm.asc(m.ts)]))
+          .get();
+
   Future<List<HrLiveData>> hrLiveSince(DateTime from) =>
       (select(hrLive)
             ..where((m) => m.ts.isBiggerOrEqualValue(toTs(from)))

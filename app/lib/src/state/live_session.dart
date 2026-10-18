@@ -513,3 +513,38 @@ class LiveSession extends Notifier<LiveState?> {
 }
 
 String sportName(sc.Sport? s) => sportLabel(s);
+
+/// Live workouts saved before 2026-10-18 lost about half their zone time
+/// (the tick added whole seconds only). Rebuilds their zones once from the
+/// live heart rate they recorded; strain was right and stays.
+Future<void> repairLiveZones(st.TempoDb db) async {
+  if (await db.setting(Keys.liveZonesV2) == '1') return;
+  final profile = await loadAppProfile(db) ?? const Profile();
+  final all = await db.workoutsBetween(
+    DateTime(2000),
+    DateTime.now().add(const Duration(minutes: 1)),
+  );
+  for (final w in all) {
+    if (w.source != 'live') continue;
+    final a = st.fromTs(w.start);
+    final hr = await db.hrLiveBetween(a, st.fromTs(w.end));
+    if (hr.length < 60) continue;
+    // The max HR the session itself used: the latest score up to that day.
+    final recent = await db.scoresBefore(
+      dayOf(a).add(const Duration(days: 1)),
+      limit: 1,
+    );
+    final zones = sc.zoneSecondsFromSamples(
+      [for (final h in hr) (h.ts, h.bpm)],
+      recent.isEmpty ? profile.effectiveMaxHr : recent.first.hrMax,
+      end: w.end,
+    );
+    await db.updateWorkout(
+      w.id,
+      st.WorkoutsCompanion(
+        zones: Value(jsonEncode([for (final z in zones) (z / 60).round()])),
+      ),
+    );
+  }
+  await db.putSetting(Keys.liveZonesV2, '1');
+}

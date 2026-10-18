@@ -1,6 +1,13 @@
+import 'dart:convert';
+
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:scoring/scoring.dart' as sc;
+import 'package:store/store.dart' as st;
+import 'package:tempo/src/core/profile.dart' show Keys;
 import 'package:tempo/src/state/live_session.dart';
+
+import 'support/seed.dart';
 
 LiveState _live({int? bpm = 110, bool timerOnly = false}) => LiveState(
   phase: LivePhase.live,
@@ -97,5 +104,44 @@ void main() {
       expect(s.minutesTo(s.dayStrain - .1), isNull);
       expect(run(70, 5).minutesTo(15), isNull);
     });
+  });
+
+  test('repairLiveZones rebuilds zones from the recorded heart rate', () async {
+    final db = await seededDb(days: 3);
+    final start = DateTime.now().subtract(const Duration(hours: 2));
+    final a = st.toTs(start), b = a + 56 * 60;
+    // A 56-minute walk saved with the old bug: 31 of 56 minutes in zones.
+    final id = await db.addWorkout(
+      st.WorkoutsCompanion.insert(
+        start: a,
+        end: b,
+        sport: const Value('walking'),
+        title: 'Walking',
+        source: 'live',
+        confirmed: const Value(true),
+        strain: 3.4,
+        trimp: 9,
+        zones: jsonEncode([28, 3, 0, 0, 0]),
+      ),
+    );
+    for (var t = a; t < b; t++) {
+      await db.appendHrLive(t, t - a < 50 * 60 ? 105 : 140);
+    }
+    await repairLiveZones(db);
+    final w = (await db.workout(id))!;
+    final z = (jsonDecode(w.zones) as List).cast<int>();
+    expect(z.reduce((x, y) => x + y), 56);
+    expect(z[0], greaterThanOrEqualTo(49));
+    expect(w.strain, 3.4);
+    expect(await db.setting(Keys.liveZonesV2), '1');
+
+    // Runs once: a later edit is left alone.
+    await db.updateWorkout(
+      id,
+      st.WorkoutsCompanion(zones: Value(jsonEncode([1, 0, 0, 0, 0]))),
+    );
+    await repairLiveZones(db);
+    expect((await db.workout(id))!.zones, jsonEncode([1, 0, 0, 0, 0]));
+    await db.close();
   });
 }

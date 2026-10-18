@@ -41,7 +41,8 @@ void main() {
 
     test('wake bouts count runs of 5+ minutes', () {
       final t0 = DateTime(2026, 1, 1, 23);
-      Minute m(int i, Stage st) => Minute(t0.add(Duration(minutes: i)), stage: st);
+      Minute m(int i, Stage st) =>
+          Minute(t0.add(Duration(minutes: i)), stage: st);
       final mins = [
         for (var i = 0; i < 60; i++) m(i, Stage.light),
         for (var i = 60; i < 66; i++) m(i, Stage.wake), // bout

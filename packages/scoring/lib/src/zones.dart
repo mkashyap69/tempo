@@ -47,3 +47,24 @@ List<int> timeInZones(
   }
   return out;
 }
+
+/// Seconds in Z1..Z5 from timestamped readings ([ts] in seconds, bpm),
+/// sorted by time. Each reading holds until the next one or [end], but
+/// for no more than [maxGap] seconds: a longer gap counts as no signal.
+/// Below Z1 counts as Z1, as in a live session.
+List<int> zoneSecondsFromSamples(
+  List<(int, int)> samples,
+  int hrMax, {
+  required int end,
+  int maxGap = 10,
+}) {
+  final out = List<int>.filled(5, 0);
+  for (var i = 0; i < samples.length; i++) {
+    final (ts, hr) = samples[i];
+    final next = i + 1 < samples.length ? samples[i + 1].$1 : end;
+    final held = min(next - ts, maxGap);
+    if (held <= 0) continue;
+    out[max(zoneFor(hr, hrMax), 1) - 1] += held;
+  }
+  return out;
+}

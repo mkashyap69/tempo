@@ -45,6 +45,28 @@ void main() {
         0,
       ]);
     });
+    test('zone seconds from timestamped readings', () {
+      // hrMax 190: Z1 95–113, Z2 114–132. Readings 1 s apart, then a 30 s
+      // gap (capped at 10 s), then the last holds until the end.
+      final s = [(0, 110), (1, 112), (2, 120), (3, 120), (33, 80)];
+      expect(zoneSecondsFromSamples(s, 190, end: 38), [
+        1 + 1 + 5,
+        1 + 10,
+        0,
+        0,
+        0,
+      ]);
+    });
+    test('zone seconds ignore duplicate timestamps and an empty list', () {
+      expect(zoneSecondsFromSamples([(5, 150), (5, 110)], 190, end: 6), [
+        1,
+        0,
+        0,
+        0,
+        0,
+      ]);
+      expect(zoneSecondsFromSamples([], 190, end: 60), [0, 0, 0, 0, 0]);
+    });
   });
 
   group('cardio load', () {
