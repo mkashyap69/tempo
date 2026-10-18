@@ -9,6 +9,7 @@ import 'data_source.dart';
 import 'longevity_service.dart' show loadFocus;
 import 'pause.dart';
 import 'profile.dart';
+import 'score_service.dart' show hrIntervalKey;
 
 DateTime dayOf(DateTime t) => DateTime(t.year, t.month, t.day);
 DateTime mondayOf(DateTime t) =>
@@ -17,7 +18,8 @@ DateTime mondayOf(DateTime t) =>
 /// Daily TRIMP, newest first, for the last [days] days ending [day]. A day
 /// is null when it has no data: paused, no score, or the band worn for
 /// under [sc.loadMinWornMinutes] (off charging, not synced), so a gap
-/// doesn't read as a rest day.
+/// doesn't read as a rest day. Wear is counted in HR readings at the
+/// band's measuring interval (Health minutes are always per minute).
 Future<List<double?>> dailyTrimp(
   st.TempoDb db,
   DateTime day, {
@@ -30,6 +32,10 @@ Future<List<double?>> dailyTrimp(
   final first = DateTime.parse(rows.first.date);
   final pauses = await loadPauses(db);
   final health = (await loadDataSource(db)).isHealth;
+  final every = health
+      ? 1
+      : int.tryParse(await db.setting(hrIntervalKey) ?? '') ?? 1;
+  final minReadings = sc.loadMinHrReadings(every);
   final out = <double?>[];
   for (
     var d = dayOf(day);
@@ -41,8 +47,7 @@ Future<List<double?>> dailyTrimp(
     final known =
         t != null &&
         !isPaused(pauses, d) &&
-        await db.hrMinutesBetween(d, next, health: health) >=
-            sc.loadMinWornMinutes;
+        await db.hrMinutesBetween(d, next, health: health) >= minReadings;
     out.add(known ? t : null);
   }
   return out;

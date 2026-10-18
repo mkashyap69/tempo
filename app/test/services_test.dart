@@ -150,6 +150,39 @@ void main() {
     expect(await dailyTrimp(db, day(3), days: 4), [13.0, null, null, 10.0]);
   });
 
+  test('daily TRIMP counts wear at the band\'s HR interval', () async {
+    // HR every 10 minutes: a fully worn day has at most 144 readings, so
+    // the per-minute 600 must scale to 60.
+    await db.putSetting(hrIntervalKey, '10');
+    final d0 = DateTime(2026, 9, 20);
+    DateTime day(int i) => d0.add(Duration(days: i));
+    Future<void> wear(DateTime d, int hours) => db.appendMinutes([
+      for (var m = 0; m < hours * 60; m += 10)
+        MinuteSamplesCompanion.insert(
+          ts: Value(toTs(d.add(Duration(minutes: 360 + m)))),
+          steps: 0,
+          intensity: 0,
+          kind: 1,
+          hr: const Value(70),
+        ),
+    ]);
+    for (var i = 0; i < 2; i++) {
+      await db.upsertScore(
+        DailyScoresCompanion.insert(
+          date: dateKey(day(i)),
+          strain: 5,
+          trimp: 10.0 + i,
+          hrMax: 190,
+          calibrating: false,
+          algoVersion: sc.algoVersion,
+        ),
+      );
+    }
+    await wear(day(0), 16); // worn all day: 96 readings
+    await wear(day(1), 4); // 4 h, then on the charger: 24 readings
+    expect(await dailyTrimp(db, day(1), days: 2), [null, 10.0]);
+  });
+
   test('feel comparison pairs rated, scored, calibrated mornings', () async {
     final now = DateTime(2026, 10, 6, 9);
     for (var i = 0; i < 4; i++) {

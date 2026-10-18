@@ -70,6 +70,12 @@ void main() {
   });
 
   group('cardio load', () {
+    test('worn-day threshold scales with the HR interval', () {
+      expect(loadMinHrReadings(1), 600);
+      expect(loadMinHrReadings(10), 60);
+      expect(loadMinHrReadings(30), 20);
+      expect(loadMinHrReadings(0), 600);
+    });
     test('learning under 14 days of data', () {
       expect(cardioLoad([50, 50, 50]).status, LoadStatus.learning);
       expect(cardioLoad(List.filled(13, 50.0)).status, LoadStatus.learning);

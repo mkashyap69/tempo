@@ -632,6 +632,14 @@ void main() {
     });
   });
 
+  testWidgets('cardio load while learning says how many worn days', (t) async {
+    final db = (await t.runAsync(() => seededDb(days: 8)))!;
+    await render(t, db, const CardioLoadScreen());
+    expect(find.textContaining('You have '), findsOneWidget);
+    expect(find.textContaining('So far: '), findsOneWidget);
+    await teardown(t, db);
+  });
+
   group('Live workout', () {
     LiveState state(LivePhase p, {bool guided = true}) => LiveState(
       phase: p,

@@ -43,6 +43,12 @@ const loadMinDays = 14, loadMinAcuteDays = 4;
 /// A calendar day counts as data with at least this many minutes of HR.
 const loadMinWornMinutes = 600;
 
+/// HR readings a day needs to count as worn when the band measures every
+/// [everyMinutes] minutes: the same 10 hours of wear. At every 10 or 30
+/// minutes a day has at most 144 or 48 readings, so a flat 600 never passed.
+int loadMinHrReadings(int everyMinutes) =>
+    (loadMinWornMinutes / (everyMinutes < 1 ? 1 : everyMinutes)).ceil();
+
 LoadStatus loadStatusFor(double ratio) => ratio < 0.8
     ? LoadStatus.detraining
     : ratio < 1.0

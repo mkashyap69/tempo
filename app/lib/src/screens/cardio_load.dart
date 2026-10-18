@@ -12,7 +12,7 @@ import '../state/providers.dart';
 import 'coach.dart' show loadHistoryProvider;
 import 'shared.dart';
 
-List<String> loadAdvice(sc.LoadStatus s) => switch (s) {
+List<String> loadAdvice(sc.LoadStatus s, [sc.CardioLoad? l]) => switch (s) {
   sc.LoadStatus.building => [
     'Two hard sessions at most this week.',
     'Keep easy days truly easy: under 10 strain.',
@@ -35,7 +35,9 @@ List<String> loadAdvice(sc.LoadStatus s) => switch (s) {
   ],
   sc.LoadStatus.learning => [
     'Wear the band through every session so load starts counting.',
-    'Status appears after 14 days of wear.',
+    l == null
+        ? 'Status appears after ${sc.loadMinDays} days of wear.'
+        : 'Status appears at ${sc.loadMinDays} worn days, ${sc.loadMinAcuteDays} of them this week. So far: ${loadProgress(l)}${l.chronicDays < sc.loadMinDays ? ', ${l.acuteDays} this week' : ''}.',
     'Until then, the plan stays general and moderate.',
   ],
 };
@@ -70,7 +72,8 @@ class _CardioLoadState extends ConsumerState<CardioLoadScreen> {
     final pos = l.status == sc.LoadStatus.learning ? null : _markerPos(l.ratio);
     final p = l.percentVsNormal;
     final lead = switch (l.status) {
-      sc.LoadStatus.learning => 'Tempo needs 14 days of wear, 4 of them this week, to compare your week with your normal. Days off the band don’t count as rest.',
+      sc.LoadStatus.learning =>
+        'Tempo needs ${sc.loadMinDays} worn days in the last 4 weeks, ${sc.loadMinAcuteDays} of them this week, to compare your week with your normal. You have ${l.chronicDays}, and ${l.acuteDays} this week. A day counts once it has 10 hours of heart rate; days off the band don’t count as rest.',
       sc.LoadStatus.building =>
         'Your last 7 days are $p% above your 28-day normal. That’s the productive zone: fitness grows if recovery keeps up.',
       sc.LoadStatus.maintaining => 'Your week matches your normal. Fitness holds steady — fine for a busy week, slow for progress.',
@@ -333,7 +336,7 @@ class _CardioLoadState extends ConsumerState<CardioLoadScreen> {
           title: 'What to do this week',
           child: CardList(
             children: [
-              for (final (i, a) in loadAdvice(l.status).indexed)
+              for (final (i, a) in loadAdvice(l.status, l).indexed)
                 Padding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 16,
