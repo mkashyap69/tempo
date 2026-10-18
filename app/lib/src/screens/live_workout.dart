@@ -1,4 +1,8 @@
+import 'dart:async';
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:scoring/scoring.dart' as sc;
 
@@ -53,6 +57,7 @@ class _Live extends ConsumerWidget {
     final (seg, left) = s.segment;
     final plan = s.plan;
     String pill;
+    var inTarget = false;
     if (connecting) {
       pill = 'Connecting to band…';
     } else if (s.timerOnly) {
@@ -64,14 +69,18 @@ class _Live extends ConsumerWidget {
     } else if (s.guided && seg < plan!.segments.length) {
       final want = plan.segments[seg].zone;
       final r = sc.zoneRange(want, s.hrMax);
+      inTarget = z == want;
       pill = z == want
           ? 'In target · Z$want ${r.lo}–${r.hi}'
           : z < want
           ? 'Push a little · Z$want ${r.lo}–${r.hi}'
           : 'Ease off · Z$want ${r.lo}–${r.hi}';
     } else {
+      // Open session: no target to be in, so say where the next zone starts.
       final r = sc.zoneRange(z, s.hrMax);
-      pill = 'Z$z · ${r.lo}–${r.hi} bpm';
+      pill = z == 5
+          ? 'Z5 · ${r.lo}+ bpm'
+          : 'Z$z ${r.lo}–${r.hi} · Z${z + 1} at ${r.hi + 1}';
     }
 
     return Column(
@@ -103,21 +112,7 @@ class _Live extends ConsumerWidget {
                   ],
                 ),
               ),
-              SizedBox(
-                width: 44,
-                child: Semantics(
-                  label: s.timerOnly
-                      ? 'Timer only'
-                      : s.signalLost || connecting
-                      ? 'Band not streaming'
-                      : 'Band connected',
-                  child: TempoIcon(
-                    s.timerOnly ? TempoIcons.clock : TempoIcons.band,
-                    size: 18,
-                    color: s.signalLost ? sc0.recLow : c.text2,
-                  ),
-                ),
-              ),
+              _BandStatus(s: s),
             ],
           ),
         ),
@@ -147,11 +142,6 @@ class _Live extends ConsumerWidget {
                         ),
                         child: Column(
                           children: [
-                            AnimatedContainer(
-                              duration: TempoMotion.base,
-                              height: 8,
-                              color: zc,
-                            ),
                             Padding(
                               padding: const EdgeInsets.fromLTRB(
                                 16,
@@ -182,11 +172,11 @@ class _Live extends ConsumerWidget {
                                           ),
                                           child: Text(
                                             'Z$z',
-                                            style: const TextStyle(
+                                            style: TextStyle(
                                               fontFamily: TempoType.family,
                                               fontSize: 18,
                                               fontWeight: FontWeight.w600,
-                                              color: Color(0xFF0A0B0D),
+                                              color: sc0.onZone(z),
                                             ),
                                           ),
                                         ),
@@ -241,9 +231,7 @@ class _Live extends ConsumerWidget {
                                     child: Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        if (!connecting &&
-                                            !s.signalLost &&
-                                            z > 0) ...[
+                                        if (inTarget) ...[
                                           TempoIcon(
                                             TempoIcons.check,
                                             size: 16,
@@ -313,46 +301,8 @@ class _Live extends ConsumerWidget {
                           ],
                         ),
                       )
-                    else
-                      TempoCard(
-                        child: Row(
-                          children: [
-                            for (var i = 0; i < 5; i++)
-                              Expanded(
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 2,
-                                  ),
-                                  child: Column(
-                                    children: [
-                                      Opacity(
-                                        opacity: i == z - 1 ? 1 : .4,
-                                        child: Container(
-                                          height: 6,
-                                          decoration: BoxDecoration(
-                                            color: sc0.zone[i],
-                                            borderRadius: BorderRadius.circular(
-                                              3,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(height: 6),
-                                      Text(
-                                        'Z${i + 1}',
-                                        style: TempoType.caption.c(c.text2),
-                                      ),
-                                      Text(
-                                        '${(s.zoneSeconds[i] / 60).floor()}′',
-                                        style: TempoType.label.c(c.text1).tnum,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
+                    else if (!s.timerOnly)
+                      _ZoneSplit(s: s),
                     const SizedBox(height: 16),
                     Row(
                       children: [
@@ -382,7 +332,7 @@ class _Live extends ConsumerWidget {
                                     21,
                                   ),
                             caption: plan == null
-                                ? 'open session'
+                                ? _rateNote(s)
                                 : 'target +${(plan.strainLo - s.dayStrainBefore).clamp(0, 21).round()} to +${(plan.strainHi - s.dayStrainBefore).clamp(1, 21).round()}',
                           ),
                         ),
@@ -400,10 +350,16 @@ class _Live extends ConsumerWidget {
                                 : s.target!.cap
                                 ? 'cap ${s.target!.hi.round()}'
                                 : 'target ${s.target!.lo.round()}–${s.target!.hi.round()}',
+                            note: _dayNote(s),
+                            shaded: true,
                           ),
                         ),
                       ],
                     ),
+                    if (!s.timerOnly && !failed && !connecting) ...[
+                      const SizedBox(height: 16),
+                      _HeartCard(s: s),
+                    ],
                   ],
                 ),
               ),
@@ -466,29 +422,35 @@ class _Live extends ConsumerWidget {
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: TempoButton(
-                  failed ? 'Close' : 'End',
-                  height: 72,
-                  radius: 24,
-                  fontSize: 18,
-                  expand: true,
-                  onTap: () async {
-                    if (failed || connecting) {
-                      await n.end();
-                      n.close();
-                      if (context.mounted) Navigator.of(context).maybePop();
-                      return;
-                    }
-                    final ok = await confirmSheet(
-                      context,
-                      title: 'End workout?',
-                      body:
-                          'Tempo saves the session and asks how hard it felt.',
-                      action: 'End and save',
-                    );
-                    if (ok) await n.end();
-                  },
-                ),
+                child: failed || connecting
+                    ? TempoButton(
+                        failed ? 'Close' : 'End',
+                        height: 72,
+                        radius: 24,
+                        fontSize: 18,
+                        expand: true,
+                        onTap: () async {
+                          await n.end();
+                          n.close();
+                          if (context.mounted) {
+                            Navigator.of(context).maybePop();
+                          }
+                        },
+                      )
+                    // Hold to end: one stray tap mid-run can't end it.
+                    // Screen readers get the confirm sheet instead.
+                    : _HoldToEnd(
+                        onEnd: n.end,
+                        onConfirm: () async {
+                          final ok = await confirmSheet(
+                            context,
+                            title: 'End workout?',
+                            body: 'Tempo saves the session and asks how hard it felt.',
+                            action: 'End and save',
+                          );
+                          if (ok) await n.end();
+                        },
+                      ),
               ),
             ],
           ),
@@ -516,6 +478,419 @@ class _Live extends ConsumerWidget {
     final n = p.segments[i + 1];
     return 'Next · ${n.minutes}′ ${n.zone >= 3 ? 'hard' : 'easy'} in Z${n.zone}. Tempo will buzz the band 5 s before.';
   }
+
+  /// Open session: what the last five minutes add.
+  static String _rateNote(LiveState s) {
+    final r = s.strainRate;
+    if (r == null) return '';
+    final five = r * 5;
+    return five < .05 ? 'not adding strain now' : '+${n1(five)} per 5′ now';
+  }
+
+  /// Where the day is against its target, and how long at this pace.
+  static String? _dayNote(LiveState s) {
+    final t = s.target;
+    if (t == null || s.timerOnly) return null;
+    if (t.cap) {
+      if (s.dayStrain >= t.hi) return 'Past today’s cap';
+      final m = s.minutesTo(t.hi);
+      return m == null ? null : '≈ $m′ to the cap';
+    }
+    if (s.dayStrain >= t.hi) return 'Above target';
+    if (s.dayStrain >= t.lo) return 'In target';
+    final m = s.minutesTo(t.lo);
+    return m == null ? null : '≈ $m′ more at this pace';
+  }
+}
+
+/// Band link state: icon plus a dot (green streaming, red lost).
+class _BandStatus extends StatelessWidget {
+  const _BandStatus({required this.s});
+  final LiveState s;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c, sc0 = context.s;
+    final connecting = s.phase == LivePhase.connecting;
+    final dot = s.timerOnly
+        ? null
+        : connecting
+        ? c.text3
+        : s.signalLost
+        ? sc0.recLow
+        : sc0.recHigh;
+    return Semantics(
+      label: s.timerOnly
+          ? 'Timer only'
+          : s.signalLost || connecting
+          ? 'Band not streaming'
+          : 'Band connected',
+      child: SizedBox.square(
+        dimension: 44,
+        child: Center(
+          child: Container(
+            width: 36,
+            height: 36,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: c.surface2,
+              shape: BoxShape.circle,
+            ),
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                TempoIcon(
+                  s.timerOnly ? TempoIcons.clock : TempoIcons.band,
+                  size: 18,
+                  color: c.text2,
+                ),
+                if (dot != null)
+                  Positioned(
+                    right: -2,
+                    top: -1,
+                    child: Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: dot,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: c.surface2, width: 1.5),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Time in zones as one bar sized by minutes, plus the gap with no signal.
+class _ZoneSplit extends StatelessWidget {
+  const _ZoneSplit({required this.s});
+  final LiveState s;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c, sc0 = context.s;
+    final zs = s.zoneSeconds;
+    final gap = s.noSignalSeconds;
+    final showGap = gap >= 60;
+    int flex(double v) => math.max(1, (v * 10).round());
+    final parts = [
+      for (var i = 0; i < 5; i++)
+        if (zs[i] >= 1) (sc0.zone[i], zs[i]),
+      if (gap >= 1) (c.trackOff, gap),
+    ];
+    Widget col(String label, double sec, {bool on = false}) => Expanded(
+      child: Column(
+        children: [
+          Text(
+            label,
+            style: on
+                ? TempoType.caption
+                      .c(c.text1)
+                      .copyWith(fontWeight: FontWeight.w600)
+                : TempoType.caption.c(c.text3),
+          ),
+          Text(
+            '${(sec / 60).floor()}′',
+            style: TempoType.label.c(on ? c.text1 : c.text2).tnum,
+          ),
+        ],
+      ),
+    );
+    return TempoCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: SizedBox(
+              height: 10,
+              child: parts.isEmpty
+                  ? ColoredBox(color: c.trackOff)
+                  : Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        for (final (i, (color, sec)) in parts.indexed) ...[
+                          if (i > 0) const SizedBox(width: 2),
+                          Expanded(
+                            flex: flex(sec),
+                            child: ColoredBox(color: color),
+                          ),
+                        ],
+                      ],
+                    ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              for (var i = 0; i < 5; i++)
+                col('Z${i + 1}', zs[i], on: i == s.zone - 1),
+              if (showGap) col('No HR', gap),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Heart rate over the last 15 minutes on the zone bands, then steps and
+/// cadence on foot, or time above Z1 otherwise.
+class _HeartCard extends StatelessWidget {
+  const _HeartCard({required this.s});
+  final LiveState s;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c;
+    final window = math.min(s.elapsed.inSeconds, LiveState.traceWindow);
+    final onFoot = s.sport == sc.Sport.walking || s.sport == sc.Sport.running;
+    final up = s.zoneSeconds.skip(1).fold(0.0, (a, b) => a + b);
+    String? bpm(int? v) => v == null ? null : ' bpm';
+    return TempoCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (s.trace.length >= 2) ...[
+            Overline(
+              window >= LiveState.traceWindow
+                  ? 'Heart rate · last 15′'
+                  : 'Heart rate',
+            ),
+            const SizedBox(height: 10),
+            SizedBox(
+              height: 72,
+              child: CustomPaint(
+                painter: _TracePainter(
+                  trace: s.trace,
+                  now: s.elapsed.inSeconds,
+                  window: math.max(window, 60),
+                  hrMax: s.hrMax,
+                  zones: context.s.zone,
+                  line: c.text1,
+                ),
+              ),
+            ),
+            const SizedBox(height: 14),
+          ],
+          Row(
+            children: [
+              if (onFoot) ...[
+                Expanded(
+                  child: Stat(
+                    'Steps',
+                    s.steps == null ? '—' : grouped(s.steps!),
+                  ),
+                ),
+                Expanded(
+                  child: Stat(
+                    'Cadence',
+                    s.cadence?.toString() ?? '—',
+                    unit: s.cadence == null ? null : ' spm',
+                  ),
+                ),
+              ] else
+                Expanded(child: Stat('Z2 and up', '${(up / 60).floor()}′')),
+              Expanded(
+                child: Stat(
+                  'Avg HR',
+                  s.avgHr?.toString() ?? '—',
+                  unit: bpm(s.avgHr),
+                ),
+              ),
+              if (!onFoot)
+                Expanded(
+                  child: Stat(
+                    'Max HR',
+                    s.maxHr?.toString() ?? '—',
+                    unit: bpm(s.maxHr),
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TracePainter extends CustomPainter {
+  _TracePainter({
+    required this.trace,
+    required this.now,
+    required this.window,
+    required this.hrMax,
+    required this.zones,
+    required this.line,
+  });
+  final List<(int, int)> trace;
+  final int now, window, hrMax;
+  final List<Color> zones;
+  final Color line;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    var lo = trace.first.$2, hi = lo;
+    for (final (_, b) in trace) {
+      lo = math.min(lo, b);
+      hi = math.max(hi, b);
+    }
+    var yLo = lo - 8.0, yHi = hi + 8.0;
+    if (yHi - yLo < 30) {
+      final mid = (yHi + yLo) / 2;
+      yLo = mid - 15;
+      yHi = mid + 15;
+    }
+    double y(num b) => size.height * (1 - (b - yLo) / (yHi - yLo));
+    double x(int t) => size.width * (1 - (now - t) / window);
+
+    // Zone bands behind the line.
+    for (var z = 1; z <= 5; z++) {
+      final r = sc.zoneRange(z, hrMax);
+      final top = math.max(0.0, y(z == 5 ? yHi : r.hi + 1));
+      final bottom = math.min(size.height, y(r.lo));
+      if (bottom <= top) continue;
+      canvas.drawRect(
+        Rect.fromLTRB(0, top, size.width, bottom),
+        Paint()..color = zones[z - 1].withValues(alpha: .16),
+      );
+    }
+
+    // Break the line where readings stop for more than 5 s.
+    final path = Path();
+    int? prev;
+    for (final (t, b) in trace) {
+      if (t < now - window) continue;
+      if (prev == null || t - prev > 5) {
+        path.moveTo(x(t), y(b));
+      } else {
+        path.lineTo(x(t), y(b));
+      }
+      prev = t;
+    }
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = line
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2
+        ..strokeJoin = StrokeJoin.round
+        ..strokeCap = StrokeCap.round,
+    );
+    final (lt, lb) = trace.last;
+    canvas.drawCircle(Offset(x(lt), y(lb)), 3.5, Paint()..color = line);
+  }
+
+  @override
+  bool shouldRepaint(_TracePainter o) =>
+      o.trace != trace || o.now != now || o.line != line;
+}
+
+/// Fills over 0.9 s while held, then ends. Letting go early shows a hint.
+class _HoldToEnd extends StatefulWidget {
+  const _HoldToEnd({required this.onEnd, required this.onConfirm});
+  final Future<Object?> Function() onEnd;
+  final VoidCallback onConfirm;
+
+  @override
+  State<_HoldToEnd> createState() => _HoldToEndState();
+}
+
+class _HoldToEndState extends State<_HoldToEnd>
+    with SingleTickerProviderStateMixin {
+  late final _a =
+      AnimationController(
+        vsync: this,
+        duration: const Duration(milliseconds: 900),
+      )..addStatusListener((st) {
+        if (st == AnimationStatus.completed) {
+          HapticFeedback.heavyImpact();
+          widget.onEnd();
+        }
+      });
+  bool _hint = false;
+  Timer? _hintTimer;
+
+  void _release() {
+    if (_a.isCompleted) return;
+    _a.reverse();
+    setState(() => _hint = true);
+    _hintTimer?.cancel();
+    _hintTimer = Timer(const Duration(seconds: 2), () {
+      if (mounted) setState(() => _hint = false);
+    });
+  }
+
+  @override
+  void dispose() {
+    _hintTimer?.cancel();
+    _a.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c;
+    return Semantics(
+      button: true,
+      label: 'End workout',
+      onTap: widget.onConfirm,
+      child: ExcludeSemantics(
+        child: Listener(
+          behavior: HitTestBehavior.opaque,
+          onPointerDown: (_) {
+            HapticFeedback.selectionClick();
+            _a.forward();
+          },
+          onPointerUp: (_) => _release(),
+          onPointerCancel: (_) => _release(),
+          child: AnimatedBuilder(
+            animation: _a,
+            builder: (context, _) => Container(
+              height: 72,
+              clipBehavior: Clip.antiAlias,
+              decoration: BoxDecoration(
+                color: c.text1,
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  FractionallySizedBox(
+                    alignment: Alignment.centerLeft,
+                    widthFactor: _a.value,
+                    child: ColoredBox(color: context.s.recLow),
+                  ),
+                  Center(
+                    child: Text(
+                      _a.value > 0 && _a.status == AnimationStatus.forward
+                          ? 'Keep holding'
+                          : _hint
+                          ? 'Hold to end'
+                          : 'End',
+                      style: TextStyle(
+                        fontFamily: TempoType.family,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w500,
+                        letterSpacing: -0.075,
+                        color: c.textInverse,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _Tile extends StatelessWidget {
@@ -528,8 +903,12 @@ class _Tile extends StatelessWidget {
     this.hi,
     required this.caption,
     this.color,
+    this.note,
+    this.shaded = false,
   });
   final String label, value, caption;
+  final String? note;
+  final bool shaded;
   final double fill, max;
   final double? lo, hi;
   final Color? color;
@@ -554,9 +933,12 @@ class _Tile extends StatelessWidget {
             height: 12,
             track: 6,
             marker: false,
+            shaded: shaded,
           ),
           const SizedBox(height: 6),
           Text(caption, style: TempoType.caption.c(c.text3)),
+          // Always a second line, so both tiles in the row match.
+          Text(note ?? '', style: TempoType.caption.c(c.text2)),
         ],
       ),
     );

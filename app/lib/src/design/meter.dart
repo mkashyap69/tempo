@@ -367,11 +367,16 @@ class TargetStrip extends StatelessWidget {
     this.track = 4,
     this.extra,
     this.extraColor,
+    this.shaded = false,
   });
   final double value, max;
   final double? lo, hi;
   final Color color;
   final bool marker;
+
+  /// Draw the target as a shaded band on the track instead of an outlined
+  /// box (which reads as a slider handle when narrow).
+  final bool shaded;
   final double height, track;
 
   /// Projected addition drawn after the value (55 % opacity).
@@ -407,12 +412,17 @@ class TargetStrip extends StatelessWidget {
                 Positioned(
                   left: f(lo!) * w,
                   width: (f(hi!) - f(lo!)) * w,
-                  top: 0,
-                  height: height,
+                  top: shaded ? top : 0,
+                  height: shaded ? track : height,
                   child: Container(
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(3),
-                      border: Border.all(color: c.text2, width: 1.5),
+                      borderRadius: BorderRadius.circular(
+                        shaded ? track / 2 : 3,
+                      ),
+                      color: shaded ? c.text2.withValues(alpha: .4) : null,
+                      border: shaded
+                          ? null
+                          : Border.all(color: c.text2, width: 1.5),
                     ),
                   ),
                 ),

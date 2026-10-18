@@ -234,6 +234,12 @@ class TempoScales extends ThemeExtension<TempoScales> {
 
   Color zoneColor(int z) => zone[(z.clamp(1, 5)) - 1];
 
+  /// Text on a zone fill: near-black on light fills, white on dark ones
+  /// (dark Z1 and light Z5 fail 4.5:1 with near-black).
+  Color onZone(int z) => zoneColor(z).computeLuminance() > .2
+      ? const Color(0xFF0A0B0D)
+      : const Color(0xFFFFFFFF);
+
   @override
   TempoScales copyWith() => this;
 

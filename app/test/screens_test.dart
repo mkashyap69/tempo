@@ -642,6 +642,8 @@ void main() {
       elapsed: const Duration(minutes: 16, seconds: 48),
       trimp: 40,
       zoneSeconds: const [240, 540, 180, 60, 0],
+      noSignalSeconds: 90,
+      trace: [for (var t = 0; t < 600; t++) (408 + t, 120 + t ~/ 15)],
       hrMax: 186,
       dayTrimpBefore: 60,
       target: const sc.StrainTarget(13, 16),
@@ -656,7 +658,13 @@ void main() {
       (
         'open session',
         state(LivePhase.live, guided: false),
-        'Z4 · 149–167 bpm',
+        'Z4 149–167 · Z5 at 168',
+      ),
+      ('no-signal column', state(LivePhase.live, guided: false), 'No HR'),
+      (
+        'heart-rate trace',
+        state(LivePhase.live, guided: false),
+        'Heart rate · last 15′'.toUpperCase(),
       ),
       ('paused', state(LivePhase.paused), 'Resume'),
       ('summary', state(LivePhase.ended), 'How hard did that feel?'),
@@ -684,6 +692,42 @@ void main() {
         await teardown(t, db);
       });
     }
+
+    testWidgets('End needs a hold; a tap only shows the hint', (t) async {
+      final db = (await t.runAsync(() => seededDb(days: 3)))!;
+      t.view.physicalSize = const Size(390, 1000);
+      t.view.devicePixelRatio = 1;
+      addTearDown(t.view.reset);
+      final live = _CountingLive(state(LivePhase.live, guided: false));
+      await t.pumpWidget(
+        ProviderScope(
+          overrides: [
+            dbProvider.overrideWithValue(db),
+            liveSessionProvider.overrideWith(() => live),
+          ],
+          child: MaterialApp(
+            theme: tempoTheme(Brightness.dark),
+            home: const LiveWorkoutScreen(),
+          ),
+        ),
+      );
+      await settle(t, frames: 5);
+      await t.tap(find.text('End'));
+      await t.pump(const Duration(milliseconds: 100));
+      expect(find.text('Hold to end'), findsOneWidget);
+      expect(live.ends, 0);
+
+      final g = await t.startGesture(t.getCenter(find.text('Hold to end')));
+      await t.pump(); // the ticker's first frame sets its start time
+      await t.pump(const Duration(milliseconds: 300));
+      expect(find.text('Keep holding'), findsOneWidget);
+      await t.pump(const Duration(milliseconds: 700));
+      await g.up();
+      await t.pump();
+      expect(live.ends, 1);
+      await t.pump(const Duration(seconds: 3));
+      await teardown(t, db);
+    });
   });
 }
 
@@ -692,4 +736,14 @@ class _FixedLive extends LiveSession {
   final LiveState s;
   @override
   LiveState? build() => s;
+}
+
+class _CountingLive extends _FixedLive {
+  _CountingLive(super.s);
+  int ends = 0;
+  @override
+  Future<int?> end() async {
+    ends++;
+    return null;
+  }
 }

@@ -30,7 +30,10 @@ class LiveState {
     this.elapsed = Duration.zero,
     this.trimp = 0,
     this.zoneSeconds = const [0, 0, 0, 0, 0],
+    this.noSignalSeconds = 0,
+    this.trace = const [],
     this.hrMax = 190,
+    this.hrRest = 60,
     this.dayTrimpBefore = 0,
     this.target,
     this.error,
@@ -39,6 +42,8 @@ class LiveState {
     this.maxHr,
     this.startedAt,
     this.timerOnly = false,
+    this.steps,
+    this.cadence,
   });
 
   final LivePhase phase;
@@ -49,8 +54,18 @@ class LiveState {
   final bool signalLost;
   final Duration elapsed;
   final double trimp;
-  final List<int> zoneSeconds;
+
+  /// Seconds in Z1..Z5 (below Z1 counts as Z1), from the ticks' exact
+  /// durations: a 999 ms tick still adds 0.999 s.
+  final List<double> zoneSeconds;
+
+  /// Seconds the band sent nothing, so zones plus this add up to [elapsed].
+  final double noSignalSeconds;
+
+  /// (elapsed seconds, bpm), one per tick, the last [traceWindow] only.
+  final List<(int, int)> trace;
   final int hrMax;
+  final double hrRest;
   final double dayTrimpBefore;
   final sc.StrainTarget? target;
   final String? error;
@@ -63,11 +78,95 @@ class LiveState {
   /// next read (ScoreService._activities).
   final bool timerOnly;
 
+  /// Steps since the start and steps per minute lately, from the band's
+  /// day totals; null until the band answers or with no band.
+  final int? steps, cadence;
+
+  static const traceWindow = 15 * 60;
+
   bool get guided => plan != null && plan!.segments.isNotEmpty;
   int get zone => bpm == null ? 0 : sc.zoneFor(bpm!, hrMax);
   double get dayStrainBefore => sc.strainFromTrimp(dayTrimpBefore);
   double get dayStrain => sc.strainFromTrimp(dayTrimpBefore + trimp);
   double get sessionStrain => dayStrain - dayStrainBefore;
+
+  /// One clock tick of [dt]: TRIMP and zone time grow with the exact
+  /// duration; with no signal the time counts as [noSignalSeconds].
+  LiveState advance(Duration dt, {required bool lost}) {
+    final sec = dt.inMicroseconds / 1e6;
+    final b = lost ? null : bpm;
+    var t = trimp, gap = noSignalSeconds;
+    final zones = [...zoneSeconds];
+    final at = (elapsed + dt).inSeconds;
+    var tr = trace;
+    if (b != null) {
+      t +=
+          sc.minuteTrimp(b, hrRest: hrRest, hrMax: hrMax.toDouble()) * sec / 60;
+      final z = sc.zoneFor(b, hrMax);
+      zones[(z < 1 ? 1 : z) - 1] += sec;
+      tr = [
+        for (final e in trace)
+          if (e.$1 > at - traceWindow) e,
+        (at, b),
+      ];
+    } else if (!timerOnly) {
+      gap += sec;
+    }
+    return copyWith(
+      elapsed: elapsed + dt,
+      trimp: t,
+      zoneSeconds: zones,
+      noSignalSeconds: gap,
+      trace: tr,
+      signalLost: lost,
+      bpm: lost ? () => null : null,
+    );
+  }
+
+  /// Mean bpm over the last [seconds] of the trace, or null with under a
+  /// minute of readings.
+  double? recentBpm([int seconds = 300]) {
+    final from = elapsed.inSeconds - seconds;
+    final r = [
+      for (final e in trace)
+        if (e.$1 > from) e.$2,
+    ];
+    if (r.length < 60) return null;
+    return r.reduce((a, b) => a + b) / r.length;
+  }
+
+  /// Strain per minute at the last five minutes' heart rate.
+  double? get strainRate {
+    final hr = recentBpm();
+    if (hr == null) return null;
+    final per = sc.minuteTrimp(
+      hr.round(),
+      hrRest: hrRest,
+      hrMax: hrMax.toDouble(),
+    );
+    return sc.strainFromTrimp(dayTrimpBefore + trimp + per) - dayStrain;
+  }
+
+  /// Minutes more at the last five minutes' heart rate until the day
+  /// reaches [goal] strain. Null when already there, with too little data,
+  /// or when it would take over three hours.
+  int? minutesTo(double goal) {
+    if (dayStrain >= goal) return null;
+    final hr = recentBpm();
+    if (hr == null) return null;
+    final per = sc.minuteTrimp(
+      hr.round(),
+      hrRest: hrRest,
+      hrMax: hrMax.toDouble(),
+    );
+    if (per <= 0) return null;
+    for (var m = 1; m <= 180; m++) {
+      if (sc.strainFromTrimp(dayTrimpBefore + trimp + per * m) >= goal) {
+        return m;
+      }
+    }
+    return null;
+  }
 
   /// Index of the current segment and seconds left in it.
   (int, int) get segment {
@@ -87,12 +186,16 @@ class LiveState {
     bool? signalLost,
     Duration? elapsed,
     double? trimp,
-    List<int>? zoneSeconds,
+    List<double>? zoneSeconds,
+    double? noSignalSeconds,
+    List<(int, int)>? trace,
     String? error,
     int? workoutId,
     int? avgHr,
     int? maxHr,
     DateTime? startedAt,
+    int? steps,
+    int? cadence,
   }) => LiveState(
     phase: phase ?? this.phase,
     sport: sport,
@@ -103,7 +206,10 @@ class LiveState {
     elapsed: elapsed ?? this.elapsed,
     trimp: trimp ?? this.trimp,
     zoneSeconds: zoneSeconds ?? this.zoneSeconds,
+    noSignalSeconds: noSignalSeconds ?? this.noSignalSeconds,
+    trace: trace ?? this.trace,
     hrMax: hrMax,
+    hrRest: hrRest,
     dayTrimpBefore: dayTrimpBefore,
     timerOnly: timerOnly,
     target: target,
@@ -112,6 +218,8 @@ class LiveState {
     avgHr: avgHr ?? this.avgHr,
     maxHr: maxHr ?? this.maxHr,
     startedAt: startedAt ?? this.startedAt,
+    steps: steps ?? this.steps,
+    cadence: cadence ?? this.cadence,
   );
 }
 
@@ -127,6 +235,10 @@ class LiveSession extends Notifier<LiveState?> {
   Timer? _clock;
   DateTime? _lastBeat, _lastTick;
   final _beats = <int>[];
+  int _beatSum = 0;
+  Timer? _stepClock;
+  int? _stepsAtStart, _lastSteps;
+  DateTime? _lastStepsAt;
   bool _buzz = true;
   int _lastBuzzSegment = -1;
 
@@ -151,13 +263,14 @@ class LiveSession extends Notifier<LiveState?> {
     );
     final hrMax = recent.isEmpty ? profile.effectiveMaxHr : recent.first.hrMax;
     final rest = recent.isEmpty ? 60.0 : (recent.first.rhr ?? 60);
-    _rest = rest;
     _buzz = (await db.setting(Keys.buzzCues) ?? '1') == '1';
     final t = sc.strainTarget(
       recovery: today?.calibrating ?? true ? null : today?.recovery,
       calibrating: today?.calibrating ?? true,
     );
     _beats.clear();
+    _beatSum = 0;
+    _stepsAtStart = _lastSteps = _lastStepsAt = null;
     _lastBuzzSegment = -1;
     if ((await loadDataSource(db)).isHealth) {
       final now = DateTime.now();
@@ -169,6 +282,7 @@ class LiveSession extends Notifier<LiveState?> {
             plan?.title ?? '${sportName(plan?.sport ?? sport)} · open session',
         plan: plan,
         hrMax: hrMax,
+        hrRest: rest,
         dayTrimpBefore: today?.trimp ?? 0,
         target: t,
         startedAt: now,
@@ -184,6 +298,7 @@ class LiveSession extends Notifier<LiveState?> {
       title: plan?.title ?? '${sportName(plan?.sport ?? sport)} · open session',
       plan: plan,
       hrMax: hrMax,
+      hrRest: rest,
       dayTrimpBefore: today?.trimp ?? 0,
       target: t,
     );
@@ -199,13 +314,43 @@ class LiveSession extends Notifier<LiveState?> {
       _lastTick = DateTime.now();
       // Timer starts on the first beat (design: States × screens).
       _clock = Timer.periodic(const Duration(seconds: 1), (_) => _tick());
+      unawaited(_readSteps());
+      _stepClock = Timer.periodic(
+        const Duration(seconds: 20),
+        (_) => _readSteps(),
+      );
     } catch (e) {
       state = state!.copyWith(phase: LivePhase.failed, error: '$e');
       await _teardown();
     }
   }
 
-  double _rest = 60;
+  /// Session steps from the band's day total, and cadence from the last
+  /// two reads. Skipped while paused so cadence reflects moving time.
+  Future<void> _readSteps() async {
+    final link = _link;
+    if (link == null) return;
+    final r = await link.band.readRealtimeSteps();
+    final s = state;
+    if (r == null || s == null || _link != link) return;
+    final now = DateTime.now();
+    final start = _stepsAtStart ??= r.steps;
+    int? cadence;
+    final last = _lastSteps, at = _lastStepsAt;
+    if (last != null && at != null && s.phase == LivePhase.live) {
+      final min = now.difference(at).inSeconds / 60;
+      if (min > 0 && r.steps >= last) {
+        cadence = ((r.steps - last) / min).round();
+      }
+    }
+    _lastSteps = r.steps;
+    _lastStepsAt = now;
+    // Midnight resets the band's total; keep the count already reached.
+    if (r.steps < start) {
+      _stepsAtStart = r.steps - (s.steps ?? 0);
+    }
+    state = s.copyWith(steps: r.steps - _stepsAtStart!, cadence: cadence);
+  }
 
   void _onBeat(int bpm) {
     final s = state;
@@ -221,8 +366,19 @@ class LiveSession extends Notifier<LiveState?> {
         .read(dbProvider)
         .appendHrLive(st.toTs(now), bpm)
         .catchError((Object _) {});
-    if (s.phase == LivePhase.live) _beats.add(bpm);
-    state = s.copyWith(bpm: () => bpm, signalLost: false);
+    var avg = s.avgHr, mx = s.maxHr;
+    if (s.phase == LivePhase.live) {
+      _beats.add(bpm);
+      _beatSum += bpm;
+      avg = (_beatSum / _beats.length).round();
+      mx = mx == null || bpm > mx ? bpm : mx;
+    }
+    state = s.copyWith(
+      bpm: () => bpm,
+      signalLost: false,
+      avgHr: avg,
+      maxHr: mx,
+    );
     if (wasLost && _buzz) _link?.band.buzz().catchError((Object _) {});
   }
 
@@ -237,28 +393,16 @@ class LiveSession extends Notifier<LiveState?> {
         !s.timerOnly &&
         (_lastBeat == null ||
             now.difference(_lastBeat!) > const Duration(seconds: 10));
-    var trimp = s.trimp;
-    final zones = [...s.zoneSeconds];
-    if (!lost && s.bpm != null) {
-      trimp +=
-          sc.minuteTrimp(s.bpm!, hrRest: _rest, hrMax: s.hrMax.toDouble()) *
-          dt.inMilliseconds /
-          60000;
-      final z = sc.zoneFor(s.bpm!, s.hrMax);
-      zones[(z < 1 ? 1 : z) - 1] += dt.inSeconds;
-    }
-    final next = s.copyWith(
-      elapsed: s.elapsed + dt,
-      trimp: trimp,
-      zoneSeconds: zones,
-      signalLost: lost,
-      bpm: lost ? () => null : null,
-    );
+    final next = s.advance(dt, lost: lost);
     state = next;
     if (next.elapsed.inSeconds % 15 == 0 && next.bpm != null) {
       final m = next.elapsed.inMinutes;
       final sec = (next.elapsed.inSeconds % 60).toString().padLeft(2, '0');
-      BackgroundGuard.update('${next.bpm} bpm · $m:$sec');
+      final z = next.zone;
+      BackgroundGuard.update(
+        '${next.bpm} bpm${z > 0 ? ' · Z$z' : ''} · $m:$sec'
+        ' · strain +${next.sessionStrain.toStringAsFixed(1)}',
+      );
     }
     // Interval cues: buzz the band 5 s before a change; haptic on change.
     if (next.guided) {
@@ -305,9 +449,7 @@ class LiveSession extends Notifier<LiveState?> {
       state = null;
       return null;
     }
-    final avg = _beats.isEmpty
-        ? null
-        : (_beats.reduce((a, b) => a + b) / _beats.length).round();
+    final avg = _beats.isEmpty ? null : (_beatSum / _beats.length).round();
     final mx = _beats.isEmpty ? null : _beats.reduce((a, b) => a > b ? a : b);
     final id = await ref
         .read(dbProvider)
@@ -355,6 +497,8 @@ class LiveSession extends Notifier<LiveState?> {
     await BackgroundGuard.stop();
     _clock?.cancel();
     _clock = null;
+    _stepClock?.cancel();
+    _stepClock = null;
     await _hr?.cancel();
     _hr = null;
     final link = _link;

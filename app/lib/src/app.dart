@@ -516,7 +516,7 @@ class _LivePill extends ConsumerWidget {
                 ),
                 child: Text(
                   'Z$z',
-                  style: TempoType.label.c(const Color(0xFF0A0B0D)),
+                  style: TempoType.label.c(context.s.onZone(z)),
                 ),
               ),
             const SizedBox(width: 10),
