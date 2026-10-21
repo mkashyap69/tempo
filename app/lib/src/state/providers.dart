@@ -224,6 +224,13 @@ class SyncController extends Notifier<SyncStatus> {
     }
   }
 
+  /// Forgets the last failure (Profile → Developer): the banner goes until
+  /// the next sync fails again.
+  Future<void> clearProblem() async {
+    await ref.read(dbProvider).deleteSetting(Keys.lastError);
+    if (!state.running) state = const SyncStatus();
+  }
+
   void clearMessage() =>
       state = SyncStatus(problem: state.problem, failedPct: state.failedPct);
 }

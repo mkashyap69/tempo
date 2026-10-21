@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/widgets.dart';
+import 'package:store/store.dart' show TempoDb;
 import 'package:workmanager/workmanager.dart';
 
 import 'band_link.dart';
@@ -19,29 +20,37 @@ void backgroundDispatcher() {
     WidgetsFlutterBinding.ensureInitialized();
     final db = openDb();
     try {
-      if ((await loadDataSource(db)).isHealth) {
-        final r = await HealthSyncService(db, background: true).run();
-        if (!r.skipped) await afterSync(db);
-        return true;
-      }
-      await SyncService(db).run(wait: const Duration(seconds: 2));
-      await afterSync(db);
-      return true;
-    } on BandBusyException {
-      return true; // a foreground sync holds the band; do not stack retries
-    } on HealthBusyException {
-      return true;
-    } on HealthAccessException {
-      return true; // needs the user; retrying won't help
-    } on HealthUnreadableException {
-      return true; // phone locked (iOS); the next open or run reads it
-    } catch (e) {
-      debugPrint('background sync failed: $e');
-      return false; // WorkManager retries with backoff
+      return await runBackgroundSync(db);
     } finally {
       await db.close();
     }
   });
+}
+
+/// One background run: what the OS calls every few hours, and what
+/// Profile → Developer runs on demand. False asks WorkManager to retry.
+Future<bool> runBackgroundSync(TempoDb db) async {
+  try {
+    if ((await loadDataSource(db)).isHealth) {
+      final r = await HealthSyncService(db, background: true).run();
+      if (!r.skipped) await afterSync(db);
+      return true;
+    }
+    await SyncService(db).run(wait: const Duration(seconds: 2));
+    await afterSync(db);
+    return true;
+  } on BandBusyException {
+    return true; // a foreground sync holds the band; do not stack retries
+  } on HealthBusyException {
+    return true;
+  } on HealthAccessException {
+    return true; // needs the user; retrying won't help
+  } on HealthUnreadableException {
+    return true; // phone locked (iOS); the next open or run reads it
+  } catch (e) {
+    debugPrint('background sync failed: $e');
+    return false; // WorkManager retries with backoff
+  }
 }
 
 /// Registers the periodic sync (band or Health, whichever is the source).

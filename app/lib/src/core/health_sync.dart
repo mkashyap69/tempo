@@ -259,7 +259,7 @@ class HealthSyncService {
         }
         final keep = [
           for (final r in rs)
-            if (_usable(r)) r,
+            if (usable(r)) r,
         ];
         await db.appendHealthRecords([for (final r in keep) _row(r, t0)]);
         for (final r in keep) {
@@ -362,7 +362,8 @@ class HealthSyncService {
     return report;
   }
 
-  static bool _usable(HealthRecord r) =>
+  /// Whether a read keeps [r]: not Tempo's own, and a sane span and value.
+  static bool usable(HealthRecord r) =>
       !r.fromTempo &&
       !r.end.isBefore(r.start) &&
       r.end.difference(r.start) <= maxRecord &&
@@ -420,6 +421,24 @@ class HealthSyncService {
         ? '$lead · no new data$tail'
         : '$lead · ${parts.join(', ')}$tail';
   }
+}
+
+/// Makes the next read reach [back] into the past (Profile → Developer).
+/// Only the cursor moves: records already stored are ignored on the way
+/// in, and nothing stored is touched.
+Future<void> rereadHealth(
+  TempoDb db, {
+  Duration back = HealthSyncService.firstWindow,
+  DateTime? now,
+}) async {
+  final t = now ?? DateTime.now();
+  // The next read is a deep one, from the cursor back [deepWindow].
+  await db.setCursor(
+    HealthSyncService.device,
+    HealthSyncService.cursorType,
+    t.subtract(back).add(HealthSyncService.deepWindow),
+  );
+  await db.deleteSetting(Keys.healthDeepRead);
 }
 
 /// Rebuilds the derived per-minute rows for [from, to) from the stored
@@ -592,6 +611,69 @@ Future<List<SleepSourceInfo>> metricSources(
         DateTime.fromMillisecondsSinceEpoch(last[id]!),
       ),
   ]..sort((a, b) => b.nights.compareTo(a.nights));
+}
+
+/// An app that wrote sleep for one night, and what it wrote.
+final class NightSleepApp {
+  const NightSleepApp(
+    this.id,
+    this.label, {
+    required this.staged,
+    required this.used,
+  });
+  final String id, label;
+
+  /// Wrote light / core, deep or REM, not only asleep or in bed.
+  final bool staged;
+
+  /// Counted: no sleep app is chosen, or this is the chosen one.
+  final bool used;
+}
+
+/// Who wrote sleep in [from, to) (Sleep screen, for a night without
+/// stages), staged apps first. Tempo's own nights are never stored (every
+/// read drops them), so [tempoWrote] only says whether Tempo has ever
+/// written to Health (Profile → Health export, band source).
+Future<({List<NightSleepApp> apps, bool tempoWrote})> nightSleepApps(
+  TempoDb db,
+  DateTime from,
+  DateTime to,
+) async {
+  final rows = await db.healthRecordsBetween(
+    from,
+    to,
+    kinds: [
+      for (final k in HealthKind.values)
+        if (k.isSleep) k.name,
+    ],
+  );
+  final chosen = await metricSource(db, SourceMetric.sleep);
+  final names = await sourceNames(db);
+  final staged = <String, bool>{};
+  for (final r in rows) {
+    if (r.sourceApp == tempoAppId) continue;
+    final k = HealthKind.values.asNameMap()[r.kind];
+    final stage = switch (k) {
+      HealthKind.sleepLight ||
+      HealthKind.sleepDeep ||
+      HealthKind.sleepRem => true,
+      _ => false,
+    };
+    staged[r.sourceApp] = (staged[r.sourceApp] ?? false) || stage;
+  }
+  final apps = [
+    for (final e in staged.entries)
+      NightSleepApp(
+        e.key,
+        sourceLabel(e.key, names),
+        staged: e.value,
+        used: chosen == null || chosen == e.key,
+      ),
+  ]..sort((a, b) => (b.staged ? 1 : 0) - (a.staged ? 1 : 0));
+  return (
+    apps: apps,
+    tempoWrote: await db.setting(Keys.healthExportedTo) != null,
+  );
 }
 
 /// Uses only [id]'s sleep (null: every app, merged), then rebuilds the

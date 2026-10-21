@@ -48,6 +48,16 @@ class FakeReader implements HealthReader {
   Future<bool> canReadInBackground() async => background;
 
   @override
+  Future<HealthPermissions> permissions() async => HealthPermissions(
+    kinds: {for (final k in kinds) k: access && !denied.contains(k)},
+    history: true,
+    background: background,
+  );
+
+  /// Kinds [permissions] reports as not allowed.
+  Set<HealthKind> denied = {};
+
+  @override
   Future<List<HealthRecord>> read(
     HealthKind kind,
     DateTime from,

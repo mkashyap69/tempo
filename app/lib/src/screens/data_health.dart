@@ -19,8 +19,6 @@ import '../design/icons.dart';
 import '../design/tokens.dart';
 import '../design/type.dart';
 import '../state/providers.dart';
-import 'band_explorer.dart';
-import 'nav.dart';
 import 'settings.dart' show redownloadHistory;
 
 /// Per-day wear: (minutes, kind) runs. kind: 0 worn, 1 not worn, 2 gap.
@@ -354,12 +352,6 @@ class DataHealthScreen extends ConsumerWidget {
                 small: true,
                 kind: ButtonKind.ghost,
                 onTap: () => redownloadHistory(context, ref),
-              ),
-              TempoButton(
-                'Band explorer',
-                small: true,
-                kind: ButtonKind.ghost,
-                onTap: () => push(context, const BandExplorerScreen()),
               ),
             ],
           ),

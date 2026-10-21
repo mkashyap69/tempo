@@ -8,11 +8,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:scoring/scoring.dart' as sc;
 import 'package:share_plus/share_plus.dart';
 
+import '../core/background.dart' show runBackgroundSync;
 import '../core/band_link.dart';
 import '../core/battery.dart';
 import '../core/data_source.dart';
 import '../core/export.dart';
 import '../core/format.dart';
+import '../core/health_sync.dart' show rereadHealth;
 import '../core/home_widgets.dart';
 import '../core/background_guard.dart';
 import '../core/key_store.dart';
@@ -24,6 +26,7 @@ import '../core/score_service.dart';
 import '../core/sync_service.dart';
 import '../core/today.dart';
 import '../design/components.dart';
+import '../design/icons.dart';
 import '../design/tokens.dart';
 import '../design/type.dart';
 import '../state/providers.dart';
@@ -32,6 +35,7 @@ import 'band_explorer.dart';
 import 'coach_settings.dart';
 import 'data_health.dart';
 import 'data_sources.dart';
+import 'health_check.dart';
 import 'learn.dart';
 import 'nav.dart';
 import 'onboarding.dart' show AvailabilityEditor, WorkoutsEditor;
@@ -232,6 +236,7 @@ class SettingsScreen extends ConsumerWidget {
     final extras = ref.watch(_profileExtrasProvider).value;
     final sync = ref.watch(syncProvider);
     final mode = ref.watch(settingProvider(Keys.theme)).value ?? 'dark';
+    final dev = ref.watch(settingProvider(Keys.devMode)).value == '1';
     final c = context.c;
     if (p == null || info == null) return Scaffold(backgroundColor: c.bg);
     final db = ref.read(dbProvider);
@@ -304,14 +309,20 @@ class SettingsScreen extends ConsumerWidget {
                       border: Border.all(color: c.lineStrong, width: 1.5),
                     ),
                     alignment: Alignment.center,
-                    child: Container(
-                      width: 3,
-                      height: 14,
-                      decoration: BoxDecoration(
-                        color: c.text1,
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
+                    child: health
+                        ? TempoIcon(
+                            TempoIcons.heartRate,
+                            size: 18,
+                            color: c.text1,
+                          )
+                        : Container(
+                            width: 3,
+                            height: 14,
+                            decoration: BoxDecoration(
+                              color: c.text1,
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -949,13 +960,6 @@ class SettingsScreen extends ConsumerWidget {
               sub: 'Fixes sleep and activity stored at the wrong time',
               onTap: !paired ? null : () => redownloadHistory(context, ref),
             ),
-            ListRow(
-              'Band explorer',
-              sub: 'Read-only survey of what your band can share',
-              onTap: !paired
-                  ? null
-                  : () => push(context, const BandExplorerScreen()),
-            ),
           ],
           ListRow(
             'Recompute all scores',
@@ -972,6 +976,92 @@ class SettingsScreen extends ConsumerWidget {
             },
           ),
         ]),
+        if (dev)
+          group('Developer', [
+            ListRow(
+              'Band explorer',
+              sub: health
+                  ? 'Needs the Mi Band as the data source'
+                  : 'Read-only survey of what your band can share',
+              onTap: health || !paired
+                  ? null
+                  : () => push(context, const BandExplorerScreen()),
+            ),
+            ListRow(
+              'Health data check',
+              sub: health
+                  ? 'Compares ${source.label} with what Tempo stored'
+                  : 'Needs Apple Health or Health Connect as the source',
+              onTap: health
+                  ? () => push(context, const HealthCheckScreen())
+                  : null,
+            ),
+            if (health)
+              ListRow(
+                'Re-read last 90 days',
+                sub: 'Fills anything a read missed; nothing is deleted',
+                onTap: sync.running
+                    ? null
+                    : () async {
+                        final ok = await confirmSheet(
+                          context,
+                          title: 'Re-read 90 days of ${source.label}?',
+                          body: 'Reads everything again from 90 days back. Records Tempo already has are skipped, and every day it covers is rescored. Takes a minute or two.',
+                          action: 'Re-read',
+                        );
+                        if (!ok) return;
+                        await rereadHealth(db);
+                        final r = await ref
+                            .read(syncProvider.notifier)
+                            .syncNow();
+                        if (context.mounted) {
+                          showTempoToast(
+                            context,
+                            r.message ?? 'Re-read didn’t finish',
+                          );
+                        }
+                      },
+              ),
+            ListRow(
+              'Clear sync error',
+              sub: sync.problem == SyncProblem.none
+                  ? 'No error showing'
+                  : 'Hides the banner until a sync fails again',
+              onTap: sync.problem == SyncProblem.none
+                  ? null
+                  : () => ref.read(syncProvider.notifier).clearProblem(),
+            ),
+            ListRow(
+              'Run background sync now',
+              sub: 'The overnight run, started from here',
+              onTap: sync.running
+                  ? null
+                  : () async {
+                      final ok = await runBackgroundSync(db);
+                      if (!context.mounted) return;
+                      showTempoToast(
+                        context,
+                        ok
+                            ? 'Background run finished · see Sync health'
+                            : 'Background run failed · see Sync health',
+                      );
+                    },
+            ),
+            ListRow(
+              'Send a test notification',
+              sub: 'Arrives in 5 seconds',
+              onTap: () async {
+                await TempoNotifications.instance.requestPermission();
+                await TempoNotifications.instance.test();
+                if (context.mounted) showTempoToast(context, 'Sent');
+              },
+            ),
+            ListRow(
+              'Hide developer settings',
+              chevron: false,
+              onTap: () => db.putSetting(Keys.devMode, '0'),
+            ),
+          ]),
         Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -988,11 +1078,7 @@ class SettingsScreen extends ConsumerWidget {
             ),
           ],
         ),
-        Text(
-          'Tempo 1.0 · A wellness tool, not a medical device.',
-          textAlign: TextAlign.center,
-          style: TempoType.caption.c(c.text3),
-        ),
+        _VersionLine(dev: dev),
       ],
     );
   }
@@ -1032,5 +1118,47 @@ class SettingsScreen extends ConsumerWidget {
           style: TempoType.caption.c(context.c.text2),
         ),
     ],
+  );
+}
+
+/// The version line. Seven quick taps show Profile → Developer.
+class _VersionLine extends ConsumerStatefulWidget {
+  const _VersionLine({required this.dev});
+  final bool dev;
+  @override
+  ConsumerState<_VersionLine> createState() => _VersionLineState();
+}
+
+class _VersionLineState extends ConsumerState<_VersionLine> {
+  static const _taps = 7;
+  int _count = 0;
+  DateTime? _last;
+
+  Future<void> _tap() async {
+    final now = DateTime.now();
+    if (_last == null || now.difference(_last!) > const Duration(seconds: 1)) {
+      _count = 0;
+    }
+    _last = now;
+    _count++;
+    if (_count < _taps) return;
+    _count = 0;
+    if (widget.dev) {
+      showTempoToast(context, 'Developer settings are already on');
+      return;
+    }
+    await ref.read(dbProvider).putSetting(Keys.devMode, '1');
+    if (mounted) showTempoToast(context, 'Developer settings on');
+  }
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+    behavior: HitTestBehavior.opaque,
+    onTap: _tap,
+    child: Text(
+      'Tempo 1.0 · A wellness tool, not a medical device.',
+      textAlign: TextAlign.center,
+      style: TempoType.caption.c(context.c.text3),
+    ),
   );
 }
