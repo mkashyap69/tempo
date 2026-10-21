@@ -62,6 +62,14 @@ void main() {
       final day = dayOf(DateTime.now());
       await CoachService(db).ensureWeek(day);
       await CoachService(db).swapToday(sc.sessionTemplate('easy_run'), 'test');
+      // The seed's walk runs up to now; late in the day it would cover the
+      // run itself. Marked done by hand, the run is what's named.
+      for (final w in await db.workoutsBetween(
+        day,
+        day.add(const Duration(days: 1)),
+      )) {
+        await db.deleteWorkout(w.id);
+      }
       await db.setPlanIntent(day, sc.Intent.done.name, source: 'user');
       return db;
     }))!;

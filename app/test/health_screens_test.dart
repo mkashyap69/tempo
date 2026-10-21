@@ -59,17 +59,18 @@ void main() {
     'Activity': (() => const ActivityDetailScreen(id: 1), ['Zones'], []),
     'Baselines': (() => const BaselinesScreen(), ['Resting heart rate'], []),
     'Longevity': (() => const LongevityScreen(), ['TEMPO AGE'], []),
-    'Coach': (
-      () => const CoachScreen(standalone: true),
-      ['TODAY’S READINESS'],
-      [],
+    'Plan': (() => const CoachScreen(standalone: true), ['This week'], []),
+    'Progress': (
+      () => const TrendsScreen(tab: true),
+      ['Progress', 'HRV'],
+      ['Stress index'],
     ),
     'Data health': (
       () => const DataHealthScreen(),
       ['Wear and gaps', 'Health Connect'],
       ['Battery', 'Re-download band history', 'Band explorer'],
     ),
-    'Profile': (
+    'You': (
       () => const SettingsScreen(),
       ['Health Connect', 'Data sources'],
       ['BAND SETTINGS', 'Re-pair or change band', 'Rewrite band settings'],

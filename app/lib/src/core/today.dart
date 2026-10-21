@@ -5,6 +5,7 @@ import 'package:store/store.dart' as st;
 
 import 'coach_service.dart';
 import 'data_source.dart';
+import 'format.dart';
 import 'pause.dart';
 import 'profile.dart';
 
@@ -146,6 +147,37 @@ class TodayData {
   ];
 }
 
+/// Wellbeing and fat-loss priorities read the day in words, not strain.
+bool plainWords(Profile p) =>
+    p.goal == sc.Goal.wellbeing || p.goal == sc.Goal.fatLoss;
+
+/// Today's call, the one sentence Today, Plan, the morning notification and
+/// the widgets all show (scoring `dailyCall`).
+sc.DailyCall callFor(TodayData t, {bool noData = false, bool health = false}) {
+  final p = t.plan;
+  return sc.dailyCall(
+    sc.CallInput(
+      noData: noData,
+      health: health || t.source != sc.bandSource,
+      stale: t.stale,
+      firstDay: t.firstDay,
+      calibrating: t.calibrating,
+      nights: t.nights,
+      recovery: t.recovery,
+      state: t.state,
+      rhr: t.rhrFlag,
+      shortNight: t.shortNight,
+      load: t.load.status,
+      daysSinceHard: t.daysSinceHard,
+      target: t.target,
+      bedtime: clock12(t.bedtimeMinute),
+      planTitle: p == null || p.isRest ? null : p.title,
+      planHard: p?.isHard ?? false,
+      plainWords: plainWords(t.profile),
+    ),
+  );
+}
+
 int _clock(DateTime t) => t.hour * 60 + t.minute;
 
 int? parseHm(String? v) {
@@ -179,7 +211,7 @@ Future<TodayData> loadToday(st.TempoDb db, {DateTime? at}) async {
   final load = await loadFor(db, day);
   final profile = await loadAppProfile(db) ?? const Profile();
   final calibrating = score?.calibrating ?? nights < 14;
-  final target = everSlept
+  final baseTarget = everSlept
       ? sc.strainTarget(
           recovery: calibrating ? null : score?.recovery,
           calibrating: calibrating,
@@ -199,6 +231,9 @@ Future<TodayData> loadToday(st.TempoDb db, {DateTime? at}) async {
     score?.copyWith(calibrating: calibrating),
     load,
   );
+  // The state outranks the number: a rest day is capped whatever the
+  // recovery, an ease-off day tops out lower.
+  final target = sc.targetForState(baseTarget, state);
 
   // Sleep need tonight: your base + today's strain + a share of the debt.
   // Naps count against the debt. Paused nights don't teach the base.

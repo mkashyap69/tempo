@@ -12,17 +12,18 @@ each board to the code that implements it.
 | 02 Colour tokens | `design/tokens.dart` (`TempoColors`, `TempoScales`) |
 | 03 Type, space, shape, motion, haptics, icons | `design/type.dart`, `design/tokens.dart` (`TempoSpace`, `TempoRadii`, `TempoMotion`), `design/components.dart` (`TempoHaptics`), `design/icons.dart` |
 | 04 Components — data | `design/meter.dart` (`ScoreMeter`, `TargetMeter`, `TickRow`, `TargetStrip`, `DeviationBar`, `SegmentBar`, `IntervalBars`), `design/chart.dart`, `screens/recovery.dart` (`RecoveryTrend`), `screens/sleep.dart` (`Hypnogram`), `screens/coach.dart` (`WeekBars`, `MiniLoad`) |
-| 05 Components — UI | `design/components.dart` (buttons, badges, banner, segmented, chips, switch, yes/no, field, toast, sheet, empty states), `app.dart` (tab bar + start button) |
+| 05 Components — UI | `design/components.dart` (buttons, badges, banner, segmented, chips, switch, yes/no, field, toast, sheet, empty states), `app.dart` (four tabs + centre start / log button) |
 
 ## Screens
 
 | Board | Code |
 | --- | --- |
-| Today (dark, light, motion, all states) | `screens/today.dart`, `screens/shared.dart` |
-| 13 Coach home (+ states) | `screens/coach.dart` |
+| Today (dark, light, motion, all states) | `screens/today.dart` (phases), `screens/today_parts.dart` (check-in, call, not today, day progress, learning, lesson, night 14, welcome back, week row, tomorrow, tonight line), `screens/highlight.dart` (today's insight, Monday card, Discoveries), `screens/shared.dart` |
+| 13 Coach home (+ states) → Plan tab (This week / Goal) | `screens/coach.dart` |
+| Flow redesign mock-ups (claude.ai artifact `3UEgT7p95NrLJxX5REjemB`) | Today phases as above; Plan `screens/coach.dart`; start / log sheet `screens/nav.dart` (`showStartSheet`); Progress `screens/trends.dart` (tab mode); Week in review `screens/weekly_review.dart`; You `screens/settings.dart` |
 | 14 Cardio load (+ explainer sheet, all four statuses) | `screens/cardio_load.dart` |
 | 15 Suggested workout | `screens/workout_detail.dart` |
-| 16 Weekly plan | `screens/weekly_plan.dart` |
+| 16 Weekly plan | `screens/weekly_plan.dart` (`WeekPlanBody`, inside Plan) |
 | 17 Learn, Learn cards | `screens/learn.dart` |
 | 1 Onboarding (8 steps) | `screens/onboarding.dart` |
 | 2 Pairing (scan → success, wrong key, not found, busy) | `screens/pairing.dart` |
@@ -40,7 +41,7 @@ each board to the code that implements it.
 | 8g Insight detail | `screens/insight_detail.dart` |
 | 8h Data health | `screens/data_health.dart` |
 | 9 Journal (check-in, insights, locked) | `screens/journal.dart` |
-| 10 Weekly report + share card | `screens/weekly_report.dart` |
+| 10 Weekly report + share card | `screens/weekly_review.dart` (Week in review), `screens/weekly_report.dart` (share card) |
 | 11 Profile & settings | `screens/settings.dart` |
 | 12 Widgets | Android `kotlin/.../TempoWidgets.kt` + `res/layout/tempo_widget_*.xml`; iOS `ios/TempoWidget/`; data from `core/home_widgets.dart` |
 | States × screens | rules applied per screen; covered by `app/test/screens_test.dart` |

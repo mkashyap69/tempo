@@ -5,9 +5,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:store/store.dart';
 import 'package:tempo/src/core/notifications.dart';
 import 'package:tempo/src/design/theme.dart';
+import 'package:tempo/src/screens/today.dart' show todayNow;
 import 'package:tempo/src/state/providers.dart';
 
 import 'fake_sink.dart';
+
+/// The hour Today's layout sees in widget tests (morning by default, so
+/// results don't depend on when the suite runs). Set it, then render.
+var testHour = 9;
 
 /// Sync that never touches the radio.
 class IdleSync extends SyncController {
@@ -27,6 +32,7 @@ Widget harness(
   BluetoothAdapterState adapter = BluetoothAdapterState.on,
 }) {
   notificationSink = FakeNotificationSink();
+  todayNow = clockAt(testHour);
   return _scope(db, child, b: b, sync: sync, adapter: adapter);
 }
 
@@ -68,3 +74,9 @@ Future<void> teardown(WidgetTester t, TempoDb db) async {
   );
   await t.pump(const Duration(seconds: 1));
 }
+
+/// Today's layout clock at [hour]:[minute] on today's date.
+DateTime Function() clockAt(int hour, [int minute = 0]) => () {
+  final n = DateTime.now();
+  return DateTime(n.year, n.month, n.day, hour, minute);
+};

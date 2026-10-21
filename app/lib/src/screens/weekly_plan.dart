@@ -25,18 +25,6 @@ final _weekWorkoutsProvider = FutureProvider<List<st.Workout>>((ref) async {
       .workoutsBetween(mon, mon.add(const Duration(days: 7)));
 });
 
-class WeeklyPlanScreen extends StatelessWidget {
-  const WeeklyPlanScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) => const TempoPage(
-    children: [
-      DetailHeader(title: 'Weekly plan'),
-      WeekPlanBody(goal: true),
-    ],
-  );
-}
-
 /// The week's plan: dates and totals (with availability), what changed,
 /// planned vs actual strain and the seven days. [goal] adds the goal card
 /// under the dates (Coach shows the goal above its switcher instead).

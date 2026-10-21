@@ -32,15 +32,16 @@ import '../design/type.dart';
 import '../state/providers.dart';
 import 'backups.dart';
 import 'band_explorer.dart';
+import 'coach.dart' show CoachTab, openCoachAt;
 import 'coach_settings.dart';
 import 'data_health.dart';
 import 'data_sources.dart';
 import 'health_check.dart';
+import 'journal_customise.dart';
 import 'learn.dart';
 import 'nav.dart';
 import 'onboarding.dart' show AvailabilityEditor, WorkoutsEditor;
 import 'pairing.dart';
-import 'weekly_report.dart';
 
 final _bandInfoProvider = FutureProvider<Map<String, String?>>((ref) async {
   ref.watch(dbTickProvider);
@@ -291,7 +292,7 @@ class SettingsScreen extends ConsumerWidget {
           height: 44,
           child: Align(
             alignment: Alignment.centerLeft,
-            child: Text('Profile', style: TempoType.pageTitle.c(c.text1)),
+            child: Text('You', style: TempoType.pageTitle.c(c.text1)),
           ),
         ),
         TempoCard(
@@ -511,6 +512,23 @@ class SettingsScreen extends ConsumerWidget {
               ? 'No account, no cloud, no analytics. Tempo reads ${source.label} on this phone and never writes back what it read.'
               : 'No account, no cloud, no analytics. Your auth key is stored in the device keychain.',
         ),
+        group('Learn', [
+          ListRow(
+            'How Tempo works',
+            sub: 'Recovery, strain, load and the plan, in six short cards',
+            onTap: () => push(context, const LearnScreen()),
+          ),
+          ListRow(
+            'Training goal',
+            sub: 'Race or event, phases and the block',
+            onTap: () => openCoachAt(context, CoachTab.goal),
+          ),
+          ListRow(
+            'Journal questions',
+            sub: 'What the morning check-in asks',
+            onTap: () => push(context, const JournalCustomiseScreen()),
+          ),
+        ]),
         group('About you', [
           ListRow(
             'Age',
@@ -844,19 +862,7 @@ class SettingsScreen extends ConsumerWidget {
             },
           ),
         ]),
-        group('Help', [
-          ListRow(
-            'How Tempo thinks',
-            sub: 'Recovery, strain, load and the plan, in six short cards',
-            onTap: () => push(context, const LearnScreen()),
-          ),
-        ]),
         group('Your data', [
-          ListRow(
-            'Weekly report',
-            value: 'Share card',
-            onTap: () => push(context, const WeeklyReportScreen()),
-          ),
           ListRow(
             'Export',
             value: 'CSV or JSON',

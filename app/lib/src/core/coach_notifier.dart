@@ -209,18 +209,17 @@ class CoachNotifier {
     );
   }
 
+  /// The morning call, short: the same decision Today shows.
   static String? _brief(TodayData t) {
     if (t.calibrating) {
       return 'Still learning your baseline · in by ${fmtHm(t.bedtimeMinute)}';
     }
     final r = t.recovery;
     if (r == null) return null;
-    final why = switch (t.rhrFlag) {
-      sc.RhrFlag.illness => ' · night HR high',
-      sc.RhrFlag.elevated => ' · resting HR up',
-      _ => t.shortNight ? ' · short night' : '',
-    };
-    return 'Recovery ${r.round()}%$why · in by ${fmtHm(t.bedtimeMinute)}';
+    final call = callFor(t);
+    final why = sc.reasonShort(call.reason);
+    final rest = t.restDay ? ' · rest day' : '';
+    return 'Recovery ${r.round()}%$rest${why.isEmpty ? '' : ' · $why'} · in by ${fmtHm(t.bedtimeMinute)}';
   }
 
   /// Cancels what was pending and schedules [specs]. What fired since the

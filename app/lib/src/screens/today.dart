@@ -18,11 +18,20 @@ import '../design/tokens.dart';
 import '../design/type.dart';
 import '../state/providers.dart';
 import 'coach_parts.dart' show statusLabel, statusColor;
-import 'calendar.dart';
 import 'everyday_cards.dart';
-import 'feel.dart';
+import 'coach_parts.dart'
+    show
+        AlsoToday,
+        RealignCard,
+        RescueCard,
+        SessionActions,
+        SwapNote,
+        coachExtrasProvider;
 import 'goal.dart' show TodayGoalLine;
-import 'journal.dart' show JournalNudge, JournalScreen;
+import 'highlight.dart';
+import 'journal.dart' show journalProvider;
+import 'sleep.dart' show TonightCard;
+import 'today_parts.dart';
 import 'nav.dart';
 import 'pairing.dart';
 import 'picks.dart';
@@ -32,6 +41,10 @@ import 'strain.dart';
 import 'workout_detail.dart';
 import 'today_charts.dart';
 import 'workouts.dart';
+
+/// The clock Today's layout reads (morning, day, evening). Tests set it.
+@visibleForTesting
+DateTime Function() todayNow = DateTime.now;
 
 class TodayScreen extends ConsumerWidget {
   const TodayScreen({super.key, this.onTab});
@@ -84,20 +97,13 @@ abstract final class TodayBody {
     final c = context.c;
     final noData = !paired || noPermission;
     final dim = sync.running || (t.stale && !noData);
-    final (lead, leadColor, rest) = coachLine(
-      context,
-      t,
-      noBand: !paired,
-      noPermission: noPermission,
-      health: source.isHealth,
-    );
     final adds = planAdds(t);
     final done =
         t.plan != null &&
         !t.plan!.isRest &&
         (t.status == sc.DayStatus.done || t.status == sc.DayStatus.doneEasier);
     // Asked before the call and the rings, so the score can't sway it.
-    final now = DateTime.now();
+    final now = todayNow();
     final felt = ref.watch(feelProvider(st.dateKey(t.day)));
     final askFeel =
         !noData &&
@@ -262,6 +268,189 @@ abstract final class TodayBody {
       );
     }
 
+    // What Today leads with: the first weeks, a rest day, or the clock.
+    final restLike = t.restDay || t.state == sc.DayState.rest;
+    final phase = noData
+        ? sc.DayPhase.morning
+        : sc.dayPhase(
+            nowMinute: now.hour * 60 + now.minute,
+            bedtimeMinute: t.bedtimeMinute,
+            firstDay: t.firstDay,
+            calibrating: t.calibrating,
+            restDay: restLike,
+            sessionDone: done,
+          );
+    final evening =
+        phase == sc.DayPhase.evening ||
+        (restLike &&
+            sc.dayPhase(
+                  nowMinute: now.hour * 60 + now.minute,
+                  bedtimeMinute: t.bedtimeMinute,
+                ) ==
+                sc.DayPhase.evening);
+    final morning = now.hour < feelAskUntilHour;
+    final checkIn = !noData && !t.firstDay;
+    final graduated = ref.watch(settingProvider(Keys.graduated));
+    final showGraduation =
+        !noData &&
+        !t.calibrating &&
+        t.nights >= 14 &&
+        graduated.hasValue &&
+        graduated.value != '1' &&
+        t.history.where((d) => !d.calibrating).length < 7;
+    final away = noData ? null : daysAway(t);
+    final checkins = ref.watch(journalProvider).value?.count ?? 0;
+    final x = ref.watch(coachExtrasProvider).value;
+
+    final call = CallLine(
+      t: t,
+      noData: noData,
+      health: source.isHealth,
+      onWhy: noData || t.firstDay ? null : () => showWhySheet(context, t),
+    );
+    final rings = TodayRings(t: t, noData: noData, dim: dim);
+
+    // Today's session: done, a rest day, or the plan with its actions and
+    // the alternatives inside the card.
+    Widget? session;
+    if (!noData && !t.firstDay && done) {
+      session = _DoneCard(
+        title: doneTitle(t),
+        sub: doneSub(t),
+        onTap: () => push(context, const WorkoutDetailScreen()),
+      );
+    } else if (!noData && restLike) {
+      session = RestCard(
+        why: t.rhrFlag == sc.RhrFlag.illness
+            ? 'Your night signals point to rest. Light movement only — strain under ${t.target.hi.round()}.'
+            : null,
+        onStart: () =>
+            openLive(context, ref, plan: sc.sessionTemplate('easy_walk')),
+      );
+    } else if (!noData && !t.firstDay && t.plan != null && !t.plan!.isRest) {
+      session = WorkoutCard(
+        session: t.plan!,
+        general: t.planRow?.general ?? t.calibrating,
+        adds: adds,
+        overline: 'Today’s plan',
+        chip: statusLabel(t),
+        chipColor: statusColor(context, t.status),
+        onStart: () => openLive(context, ref, plan: t.plan),
+        onWhy: () => push(context, const WorkoutDetailScreen()),
+        footer: t.pause != null
+            ? null
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  SessionActions(t),
+                  const Hair(),
+                  const PicksEntry(inline: true),
+                ],
+              ),
+      );
+    }
+    // A planned rest day has no plan card; the picks stand on their own.
+    if (session == null &&
+        !noData &&
+        !t.firstDay &&
+        !done &&
+        t.pause == null &&
+        (phase == sc.DayPhase.morning || phase == sc.DayPhase.day)) {
+      session = const PicksEntry();
+    }
+    // What the coach did to today: a counted swap, a rescue, a realign.
+    final coachNotes = <Widget>[
+      if (!noData && t.pause == null && !t.firstDay) ...[
+        SwapNote(t),
+        if (!restLike && t.plan != null && t.status == sc.DayStatus.missedSlot)
+          RescueCard(t),
+        if (x != null && x.realign) const RealignCard(),
+      ],
+    ];
+    final insight = now.weekday == DateTime.monday
+        ? const WeekReviewCard()
+        : const TodayInsightCard();
+    final latest = t.workouts.isEmpty ? null : t.workouts.last;
+
+    final List<Widget> body;
+    if (noData) {
+      body = [call, rings];
+    } else {
+      switch (phase) {
+        case sc.DayPhase.newcomer:
+          body = [
+            if (checkIn)
+              MorningCheckIn(day: t.day, askFeel: askFeel, showDone: morning),
+            call,
+            rings,
+            LearningCard(t: t, checkins: checkins),
+            if (!t.firstDay) LessonCard(t: t),
+            ?session,
+            if (!t.firstDay) LastNightStrip(t: t),
+          ];
+        case sc.DayPhase.rest:
+          body = [
+            if (checkIn)
+              MorningCheckIn(day: t.day, askFeel: askFeel, showDone: morning),
+            call,
+            if (t.pause == null) const NotTodayCard(),
+            ?session,
+            if (evening) TonightCard(t: t),
+            rings,
+            LastNightStrip(t: t),
+          ];
+        case sc.DayPhase.morning:
+          body = [
+            if (showGraduation) const GraduationCard(),
+            if (away != null) WelcomeBackCard(days: away),
+            if (checkIn)
+              MorningCheckIn(day: t.day, askFeel: askFeel, showDone: morning),
+            call,
+            rings,
+            ?session,
+            ...coachNotes,
+            insight,
+            const TodayGoalLine(),
+            const WeekRow(),
+            LastNightStrip(t: t),
+          ];
+        case sc.DayPhase.day:
+          body = [
+            if (checkIn)
+              MorningCheckIn(day: t.day, askFeel: askFeel, showDone: morning),
+            call,
+            ?session,
+            ...coachNotes,
+            DayProgress(t: t),
+            rings,
+            insight,
+            if (x != null && t.pause == null) AlsoToday(x),
+            const TodayGoalLine(),
+            const WeekRow(),
+          ];
+        case sc.DayPhase.done:
+          body = [
+            call,
+            ?session,
+            if (latest != null) RecoveryHrCard(workoutId: latest.id),
+            ...coachNotes,
+            TonightLine(t: t),
+            rings,
+            insight,
+            TomorrowRow(t: t),
+          ];
+        case sc.DayPhase.evening:
+          body = [
+            TonightCard(t: t),
+            TodayInOneLine(t: t),
+            if (!done) ?session,
+            ...coachNotes,
+            rings,
+            TomorrowRow(t: t),
+          ];
+      }
+    }
+
     return [
       // Header
       ConstrainedBox(
@@ -275,23 +464,13 @@ abstract final class TodayBody {
                 children: [
                   Overline(dayLong(t.day)),
                   const SizedBox(height: 2),
-                  Text('Today', style: TempoType.titleM.c(c.text1)),
+                  Text(
+                    phase == sc.DayPhase.evening ? 'Tonight' : 'Today',
+                    style: TempoType.titleM.c(c.text1),
+                  ),
                 ],
               ),
             ),
-            TempoIconButton(
-              TempoIcons.journal,
-              label: 'Journal',
-              stroke: 1.75,
-              onTap: () => push(context, const JournalScreen(standalone: true)),
-            ),
-            TempoIconButton(
-              TempoIcons.calendar,
-              label: 'Calendar',
-              stroke: 1.75,
-              onTap: () => push(context, const CalendarScreen()),
-            ),
-            const SizedBox(width: 4),
             Pressable(
               label: 'Sync now',
               onTap: paired
@@ -336,67 +515,8 @@ abstract final class TodayBody {
       ?banner,
       // Quiet unless several overnight signals are off together.
       BodySignalsAlert(onOpen: () => push(context, const RecoveryScreen())),
-      if (askFeel) FeelCard(day: t.day),
-      Pressable(
-        label: 'Why today’s call',
-        onTap: noData || t.firstDay ? null : () => showWhySheet(context, t),
-        child: Text.rich(
-          TextSpan(
-            children: [
-              TextSpan(
-                text: lead,
-                style: TextStyle(color: leadColor),
-              ),
-              TextSpan(text: rest),
-            ],
-          ),
-          // One calm sentence: titleM, not titleL, so it isn't three lines.
-          style: TempoType.titleM.c(c.text1),
-        ),
-      ),
-      TodayRings(t: t, noData: noData, dim: dim),
-      if (!noData && !t.firstDay && done)
-        _DoneCard(
-          title: doneTitle(t),
-          sub: doneSub(t),
-          onTap: () => push(context, const WorkoutDetailScreen()),
-        )
-      else if (!noData && t.restDay)
-        RestCard(
-          onStart: () =>
-              openLive(context, ref, plan: sc.sessionTemplate('easy_walk')),
-        )
-      else if (!noData && !t.firstDay && t.plan != null && !t.plan!.isRest)
-        WorkoutCard(
-          session: t.plan!,
-          general: t.planRow?.general ?? t.calibrating,
-          adds: adds,
-          overline: 'Suggested for today',
-          chip: t.plan!.isRest ? null : statusLabel(t),
-          chipColor: statusColor(context, t.status),
-          onStart: () => openLive(context, ref, plan: t.plan),
-          onWhy: () => push(context, const WorkoutDetailScreen()),
-        ),
-      if (!noData && !t.firstDay) const TodayGoalLine(),
-      // Three alternatives to the plan, one row until opened; not once
-      // today's session is done.
-      if (!noData && t.pause == null && !done) const PicksEntry(),
-      // The journal asks below the day's numbers, not above them.
-      if (!noData && !t.firstDay) const JournalNudge(),
-      if (!noData && t.firstDay) const FirstWeekCard(),
-      if (!noData) ...[
-        WeekRecoveryStrain(t: t),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(child: ZoneDonutCard(t: t)),
-            const SizedBox(width: 10),
-            Expanded(child: LoadGaugeCard(t: t)),
-          ],
-        ),
-        LastNightStrip(t: t),
-      ],
-      if (t.workouts.isNotEmpty)
+      ...body,
+      if (t.workouts.isNotEmpty && phase != sc.DayPhase.evening)
         Section(
           title: 'Today’s workouts',
           trailing: Pressable(
@@ -581,8 +701,11 @@ class WorkoutCard extends StatelessWidget {
 }
 
 class RestCard extends StatelessWidget {
-  const RestCard({super.key, required this.onStart});
+  const RestCard({super.key, required this.onStart, this.why});
   final VoidCallback onStart;
+
+  /// Why today rests, when it isn't low recovery or load.
+  final String? why;
   @override
   Widget build(BuildContext context) {
     final c = context.c, s = context.s;
@@ -614,7 +737,7 @@ class RestCard extends StatelessWidget {
           Text('Let today be easy', style: TempoType.titleM.c(c.text1)),
           const SizedBox(height: 4),
           Text(
-            'Recovery is low or your cardio load is overreaching. Light movement only — strain under 8.',
+            why ?? 'Recovery is low or your cardio load is overreaching. Light movement only — strain under 8.',
             style: TempoType.bodyS.c(c.text2),
           ),
           const SizedBox(height: 14),
@@ -636,90 +759,6 @@ class RestCard extends StatelessWidget {
       ),
     );
   }
-}
-
-class FirstWeekCard extends StatelessWidget {
-  const FirstWeekCard({super.key});
-  @override
-  Widget build(BuildContext context) {
-    final c = context.c;
-    Widget item(String t, bool done) => SizedBox(
-      height: 44,
-      child: Row(
-        children: [
-          Container(
-            width: 22,
-            height: 22,
-            decoration: BoxDecoration(
-              color: done ? c.text1 : null,
-              shape: BoxShape.circle,
-              border: done ? null : Border.all(color: c.lineStrong, width: 1.5),
-            ),
-            alignment: Alignment.center,
-            child: done
-                ? TempoIcon(
-                    TempoIcons.check,
-                    size: 12,
-                    color: c.textInverse,
-                    stroke: 3,
-                  )
-                : null,
-          ),
-          const SizedBox(width: 12),
-          Text(t, style: TempoType.body.c(c.text1)),
-        ],
-      ),
-    );
-    return TempoCard(
-      padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 120,
-            height: 56,
-            child: CustomPaint(painter: _FirstWeekPainter(c.text3, c.text1)),
-          ),
-          const SizedBox(height: 16),
-          Text('Your first week', style: TempoType.titleM.c(c.text1)),
-          const SizedBox(height: 4),
-          Text(
-            'Tempo learns your normal over 14 nights. Until then, guidance is marked “general”.',
-            style: TempoType.bodyS.c(c.text2),
-          ),
-          const SizedBox(height: 16),
-          item('Pair your band', true),
-          item('Wear it to bed tonight', false),
-          item('Morning check-in tomorrow', false),
-        ],
-      ),
-    );
-  }
-}
-
-class _FirstWeekPainter extends CustomPainter {
-  _FirstWeekPainter(this.muted, this.strong);
-  final Color muted, strong;
-  @override
-  void paint(Canvas canvas, Size size) {
-    Paint p(Color c) => Paint()
-      ..color = c
-      ..strokeWidth = 2
-      ..strokeCap = StrokeCap.round;
-    canvas.drawLine(const Offset(6, 52), const Offset(6, 8), p(muted));
-    for (final x in const <double>[20, 34, 48]) {
-      canvas.drawLine(Offset(x, 52), Offset(x, 38), p(muted));
-    }
-    canvas.drawLine(const Offset(62, 52), const Offset(62, 8), p(strong));
-    for (final x in const <double>[76, 90, 104]) {
-      for (var y = 52.0; y > 38; y -= 7) {
-        canvas.drawLine(Offset(x, y), Offset(x, y - 2), p(muted));
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(_FirstWeekPainter o) => o.muted != muted;
 }
 
 /// "Why 78%?" — plain answer with the person's own numbers, then evidence.

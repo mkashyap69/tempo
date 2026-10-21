@@ -1,6 +1,8 @@
 # User flow and journey
 
-As of Oct 21, 2026 · Proposal for the owner. Nothing here is decided until it lands in `docs/decisions.md`.
+As of Oct 21, 2026 · Built as F1 (PLAN.md); the decisions are in `docs/decisions.md` (2026-10-21). Mock-ups: claude.ai artifact `3UEgT7p95NrLJxX5REjemB`.
+
+What differs from this proposal as built: pause offers ill and travelling (no injured); there is no "add an activity" in the start sheet (Tempo has no manual entry yet); heart-rate recovery shows in the after-session recap but isn't an insight trigger; customisable Today and the onboarding goal step are left for later (onboarding points to Plan → Goal).
 
 The question: Tempo has grown phase by phase (C0–C7, P1–P2, N1, H0–H4, E1, T1), and from the user's side it now feels scattered. Things are hard to find, insights we already compute go unseen, and there is no path through the app. This doc audits the app as it is, looks at who uses it and at what the leading apps do, then proposes one structure and one daily, weekly and long-term journey.
 

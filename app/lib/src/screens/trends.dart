@@ -18,12 +18,17 @@ import 'baselines.dart';
 import 'calendar.dart';
 import 'coach.dart' show CardioLoadCard;
 import 'day_timeline.dart';
+import 'highlight.dart' show DiscoveriesSection;
+import 'longevity.dart' show TempoAgeSummary;
 import 'nav.dart';
 import 'night_detail.dart';
 import 'recovery.dart';
 import 'sleep.dart';
 import 'strain.dart';
 import 'stress.dart';
+import 'today_charts.dart'
+    show LoadGaugeCard, WeekRecoveryStrain, ZoneDonutCard;
+import 'weekly_review.dart';
 import 'workouts.dart';
 
 /// One value per day for each metric, oldest first; null = no data.
@@ -293,7 +298,8 @@ class _TrendsState extends ConsumerState<TrendsScreen> {
     final health = ref.watch(dataSourceProvider).isHealth;
     final c = context.c;
     final data = ref.watch(trendsProvider(_range)).value;
-    final debt = ref.watch(todayProvider).value?.debt;
+    final today = ref.watch(todayProvider).value;
+    final debt = today?.debt;
     return TempoPage(
       gap: 18,
       bottom: widget.tab ? 100 : 48,
@@ -303,7 +309,7 @@ class _TrendsState extends ConsumerState<TrendsScreen> {
             height: 44,
             child: Align(
               alignment: Alignment.centerLeft,
-              child: Text('Trends', style: TempoType.pageTitle.c(c.text1)),
+              child: Text('Progress', style: TempoType.pageTitle.c(c.text1)),
             ),
           )
         else
@@ -319,6 +325,43 @@ class _TrendsState extends ConsumerState<TrendsScreen> {
               ),
             ),
           ),
+        if (widget.tab) ...[
+          const _WeekCard(),
+          if (today != null && today.everSlept) ...[
+            WeekRecoveryStrain(t: today),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(child: ZoneDonutCard(t: today)),
+                const SizedBox(width: 10),
+                Expanded(child: LoadGaugeCard(t: today)),
+              ],
+            ),
+          ],
+          const TempoAgeSummary(),
+          const DiscoveriesSection(),
+          Text('Trends', style: TempoType.titleM.c(c.text1)),
+        ],
+        if (!widget.tab) const CardioLoadCard(),
+        TempoSegmented<int>(
+          values: const [7, 30, 90],
+          labels: const ['7 days', '30 days', '90 days'],
+          selected: _range,
+          onChanged: (v) => setState(() => _range = v),
+        ),
+        if (data == null)
+          const SizedBox(height: 400)
+        else
+          for (final sp in _specs)
+            // The band has a stress index; Health sources have real HRV.
+            if (sp.key != (health ? 'stress' : 'hrv'))
+              _TrendCard(
+                spec: sp,
+                cur: data.$1.metrics[sp.key]!,
+                prev: data.$2.metrics[sp.key]!,
+                debt: sp.key == 'sleep' ? debt : null,
+              ),
+        Text('History', style: TempoType.titleM.c(c.text1)),
         Wrap(
           spacing: 8,
           runSpacing: 8,
@@ -359,26 +402,50 @@ class _TrendsState extends ConsumerState<TrendsScreen> {
               ),
           ],
         ),
-        const CardioLoadCard(),
-        TempoSegmented<int>(
-          values: const [7, 30, 90],
-          labels: const ['7 days', '30 days', '90 days'],
-          selected: _range,
-          onChanged: (v) => setState(() => _range = v),
-        ),
-        if (data == null)
-          const SizedBox(height: 400)
-        else
-          for (final sp in _specs)
-            // The band has a stress index; Health sources have real HRV.
-            if (sp.key != (health ? 'stress' : 'hrv'))
-              _TrendCard(
-                spec: sp,
-                cur: data.$1.metrics[sp.key]!,
-                prev: data.$2.metrics[sp.key]!,
-                debt: sp.key == 'sleep' ? debt : null,
-              ),
       ],
+    );
+  }
+}
+
+/// The week so far (or, on Monday, last week) in one card: opens the
+/// week in review.
+class _WeekCard extends ConsumerWidget {
+  const _WeekCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final now = DateTime.now();
+    final mon = reviewMonday(now);
+    final r = ref.watch(weekReviewProvider(st.dateKey(mon))).value;
+    final c = context.c;
+    return TempoCard(
+      label: 'Week in review',
+      onTap: () => push(context, WeeklyReviewScreen(monday: mon)),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Overline(
+                  now.weekday == DateTime.monday ? 'Last week' : 'This week',
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  r?.headline ?? 'Week in review',
+                  style: TempoType.titleM.c(c.text1),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Planned vs done, health minimums, Tempo Age',
+                  style: TempoType.bodyS.c(c.text2),
+                ),
+              ],
+            ),
+          ),
+          TempoIcon(TempoIcons.chevron, size: 18, color: c.text3, stroke: 2),
+        ],
+      ),
     );
   }
 }

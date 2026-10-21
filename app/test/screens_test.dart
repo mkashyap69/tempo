@@ -27,7 +27,7 @@ import 'package:tempo/src/screens/goal.dart';
 import 'package:tempo/src/screens/goal_setup.dart';
 import 'package:tempo/src/screens/nav.dart' show present;
 import 'package:tempo/src/core/format.dart' show dayShort;
-import 'package:tempo/src/design/components.dart' show Pressable;
+import 'package:tempo/src/design/components.dart' show Pressable, TempoPage;
 import 'package:tempo/src/screens/day_timeline.dart';
 import 'package:tempo/src/screens/insight_detail.dart';
 import 'package:tempo/src/screens/journal.dart';
@@ -43,6 +43,7 @@ import 'package:tempo/src/screens/sleep.dart';
 import 'package:tempo/src/screens/strain.dart';
 import 'package:tempo/src/screens/stress.dart';
 import 'package:tempo/src/screens/today.dart';
+import 'package:tempo/src/screens/today_parts.dart' show MorningCheckIn;
 import 'package:tempo/src/screens/trends.dart';
 import 'package:tempo/src/screens/weekly_plan.dart';
 import 'package:tempo/src/screens/weekly_report.dart';
@@ -80,10 +81,13 @@ void main() {
 
   final screens = <String, (Widget Function(), String)>{
     'Today': (() => const TodayScreen(), 'Today'),
-    'Coach': (() => const CoachScreen(standalone: true), 'TODAY’S READINESS'),
+    'Plan': (() => const CoachScreen(standalone: true), 'This week'),
     'Cardio load': (() => const CardioLoadScreen(), 'WHAT TO DO THIS WEEK'),
     'Workout detail': (() => const WorkoutDetailScreen(), 'WHY THIS, TODAY'),
-    'Weekly plan': (() => const WeeklyPlanScreen(), 'PLANNED VS ACTUAL STRAIN'),
+    'Weekly plan': (
+      () => const TempoPage(children: [WeekPlanBody()]),
+      'PLANNED VS ACTUAL STRAIN',
+    ),
     'Learn': (() => const LearnScreen(), 'How Tempo thinks'),
     'Learn cards': (() => const LearnCardsScreen(), '1 / 6 · RECOVERY'),
     'Recovery': (
@@ -97,10 +101,11 @@ void main() {
       'Overnight heart rate',
     ),
     'Trends': (() => const TrendsScreen(), 'Sleep score'),
+    'Progress': (() => const TrendsScreen(tab: true), 'Progress'),
     'Longevity': (() => const LongevityScreen(), 'TEMPO AGE'),
     'Biomarker': (() => const BiomarkerScreen(sc.Lever.steps), 'Daily steps'),
     'Blood tests': (() => const LabsScreen(), 'Add a blood test'),
-    'Weekly review': (() => const WeeklyReviewScreen(), 'Your week'),
+    'Weekly review': (() => const WeeklyReviewScreen(), 'Week in review'),
     'Coach notifications': (() => const CoachSettingsScreen(), 'TRAINING TIME'),
     'Day timeline': (() => const DayTimelineScreen(), 'Heart rate'),
     'Activity': (() => const ActivityDetailScreen(id: 1), 'Zones'),
@@ -123,7 +128,7 @@ void main() {
       () => const WeeklyReportScreen(),
       'YOUR WEEK IN THREE LINES',
     ),
-    'Profile': (() => const SettingsScreen(), 'Profile'),
+    'You': (() => const SettingsScreen(), 'You'),
     'Onboarding': (
       () => const OnboardingScreen(),
       'Know how ready you are, every morning.',
@@ -257,7 +262,7 @@ void main() {
       testWidgets('check-in card writes the rating (${b.name})', (t) async {
         final db = (await t.runAsync(() => seededDb(days: 3)))!;
         final day = DateTime(2026, 10, 6);
-        await render(t, db, FeelCard(day: day), b: b);
+        await render(t, db, MorningCheckIn(day: day, askFeel: true), b: b);
         expect(find.text('How do you feel?'), findsOneWidget);
         expect(find.text('Drained'), findsOneWidget);
         await t.tap(find.text('Good'));
@@ -384,30 +389,30 @@ void main() {
       await teardown(t, db);
     });
 
-    testWidgets('Coach shows status, also-today and week glyphs', (t) async {
+    testWidgets('Today in the day: what else today asks for', (t) async {
+      testHour = 14;
+      addTearDown(() => testHour = 9);
       final db = (await t.runAsync(() => seededDb(days: 30)))!;
-      await render(t, db, const CoachScreen(standalone: true), h: 2600);
-      expect(find.text('Tempo Coach'), findsOneWidget);
+      await render(t, db, const TodayScreen(), h: 3600);
       expect(find.text('ALSO TODAY'), findsOneWidget);
       expect(find.textContaining('In bed by'), findsWidgets);
       await teardown(t, db);
     });
 
     for (final b in Brightness.values) {
-      testWidgets('Coach: goal strip and Today / Week / Goal (${b.name})', (
+      testWidgets('Plan: goal strip and This week / Goal (${b.name})', (
         t,
       ) async {
-        coachTab.value = CoachTab.today;
-        addTearDown(() => coachTab.value = CoachTab.today);
+        coachTab.value = CoachTab.week;
+        addTearDown(() => coachTab.value = CoachTab.week);
         final db = (await t.runAsync(() => seededDb(days: 30)))!;
         await render(t, db, const CoachScreen(standalone: true), b: b, h: 3600);
-        expect(find.text('TODAY’S READINESS'), findsOneWidget);
         expect(find.text('No training goal'), findsOneWidget); // the strip
-        await t.tap(find.text('Week'));
-        await settle(t);
         expect(find.text('PLANNED VS ACTUAL STRAIN'), findsOneWidget);
-        expect(find.text('Your week so far'), findsOneWidget);
+        expect(find.text('Week in review'), findsOneWidget);
+        // Today's session is one row here; the card lives on Today.
         expect(find.text('TODAY’S READINESS'), findsNothing);
+        expect(find.text('TODAY'), findsOneWidget);
         await t.tap(find.text('Goal'));
         await settle(t);
         expect(find.text('Set a goal'), findsOneWidget);
@@ -418,7 +423,7 @@ void main() {
 
     testWidgets('Coach week shows the goal scorecard', (t) async {
       coachTab.value = CoachTab.week;
-      addTearDown(() => coachTab.value = CoachTab.today);
+      addTearDown(() => coachTab.value = CoachTab.week);
       final db = (await t.runAsync(() async {
         final d = await seededDb(days: 30);
         await saveBlock(
@@ -435,8 +440,8 @@ void main() {
       await teardown(t, db);
     });
 
-    testWidgets('Today: the goal line opens Coach at the goal', (t) async {
-      addTearDown(() => coachTab.value = CoachTab.today);
+    testWidgets('Today: the goal line opens Plan at the goal', (t) async {
+      addTearDown(() => coachTab.value = CoachTab.week);
       final db = (await t.runAsync(() => seededDb(days: 30)))!;
       await render(t, db, const TodayScreen(), h: 2600);
       final line = find.text('Training for something? Set a goal');
@@ -448,13 +453,19 @@ void main() {
       await teardown(t, db);
     });
 
-    testWidgets('Trends as a tab: shortcuts and cardio load', (t) async {
+    testWidgets('Progress: week, Tempo Age, discoveries, trends, history', (
+      t,
+    ) async {
       final db = (await t.runAsync(() => seededDb(days: 30)))!;
-      await render(t, db, const TrendsScreen(tab: true), h: 2600);
+      await render(t, db, const TrendsScreen(tab: true), h: 9000);
+      expect(find.text('Progress'), findsOneWidget);
+      expect(find.text('TEMPO AGE'), findsOneWidget);
+      expect(find.text('DISCOVERIES'), findsOneWidget);
+      expect(find.text('Time in zones'), findsOneWidget);
       for (final s in ['Workouts', 'Day timeline', 'Calendar', 'Baselines']) {
         expect(find.text(s), findsOneWidget);
       }
-      expect(find.text('CARDIO LOAD'), findsOneWidget);
+      expect(find.text('Cardio load'), findsOneWidget);
       expect(find.byTooltip('Back'), findsNothing);
       await teardown(t, db);
     });
@@ -539,23 +550,46 @@ void main() {
   });
 
   group('Today states', () {
-    testWidgets('normal: rings, a plan and the B charts', (t) async {
+    testWidgets('morning: check-in, the call, rings and the plan', (t) async {
       final db = (await t.runAsync(() => seededDb(days: 30)))!;
-      await render(t, db, const TodayScreen(), h: 2000);
+      await render(t, db, const TodayScreen(), h: 2600);
+      expect(find.text('MORNING CHECK-IN'), findsOneWidget);
       expect(find.text('RECOVERY'), findsOneWidget);
       expect(find.text('STRAIN'), findsOneWidget);
       expect(find.text('SLEEP'), findsOneWidget);
-      expect(find.text('Last 7 days'), findsOneWidget);
-      expect(find.text('Time in zones'), findsOneWidget);
-      expect(find.text('Cardio load'), findsOneWidget);
+      // Charts moved to Progress; Today leads with the decision.
+      expect(find.text('Time in zones'), findsNothing);
       expect(find.textContaining('Tonight: bed by'), findsOneWidget);
       await teardown(t, db);
     });
 
-    testWidgets('first day: welcome line and first-week card', (t) async {
+    testWidgets('day: progress against the target', (t) async {
+      testHour = 14;
+      addTearDown(() => testHour = 9);
+      final db = (await t.runAsync(() => seededDb(days: 30)))!;
+      await render(t, db, const TodayScreen(), h: 2600);
+      expect(find.text('YOUR DAY SO FAR'), findsOneWidget);
+      // How you feel is a morning question; the journal can still wait.
+      expect(find.text('How do you feel?'), findsNothing);
+      await teardown(t, db);
+    });
+
+    testWidgets('evening: tonight leads', (t) async {
+      testHour = 22;
+      addTearDown(() => testHour = 9);
+      final db = (await t.runAsync(() => seededDb(days: 30)))!;
+      await render(t, db, const TodayScreen(), h: 2600);
+      expect(find.text('Tonight'), findsOneWidget);
+      expect(find.text('TODAY IN ONE LINE'), findsOneWidget);
+      await teardown(t, db);
+    });
+
+    testWidgets('first day: welcome line and what Tempo is learning', (
+      t,
+    ) async {
       final fresh = (await t.runAsync(emptyPaired))!;
       await render(t, fresh, const TodayScreen());
-      expect(find.text('Your first week'), findsOneWidget);
+      expect(find.text('WHAT TEMPO IS LEARNING'), findsOneWidget);
       expect(find.textContaining('Welcome to Tempo.'), findsOneWidget);
       await teardown(t, fresh);
     });

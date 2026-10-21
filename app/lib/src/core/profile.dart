@@ -93,6 +93,18 @@ abstract final class Keys {
 
   /// Profile → Developer shown: 1 after seven taps on the version line.
   static const devMode = 'dev_mode';
+
+  /// Today's insights shown, newest last: JSON [[kind, key, date, title]].
+  static const highlightLog = 'highlight_log';
+
+  /// Date (yyyy-mm-dd) the week review card was put away on Today.
+  static const weekCardDone = 'week_card_done';
+
+  /// Monday (yyyy-mm-dd) of the week whose plan was confirmed in review.
+  static const weekPlanOk = 'week_plan_ok';
+
+  /// 1 once the night-14 card has been seen.
+  static const graduated = 'graduated_seen';
 }
 
 /// Everything the user tells Tempo in onboarding and Profile.

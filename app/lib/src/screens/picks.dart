@@ -321,55 +321,69 @@ class PickDetailView extends StatelessWidget {
 
 /// Today: one quiet row that opens Coach on its picks.
 class PicksEntry extends ConsumerWidget {
-  const PicksEntry({super.key});
+  const PicksEntry({super.key, this.inline = false});
+
+  /// A plain row inside today's plan card instead of a card of its own.
+  final bool inline;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final picks = ref.watch(picksProvider).value;
     if (picks == null || picks.isEmpty) return const SizedBox.shrink();
     final c = context.c;
-    return TempoCard(
-      label: 'Choose a workout',
-      onTap: () => showTempoSheet<void>(
-        context,
-        builder: (ctx) => SingleChildScrollView(
+    void open() => showTempoSheet<void>(
+      context,
+      builder: (ctx) => SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Choose today’s workout',
+              style: TempoType.titleL.c(ctx.c.text1),
+            ),
+            const SizedBox(height: 14),
+            for (final p in picks) ...[
+              PickCard(pick: p),
+              const SizedBox(height: 10),
+            ],
+          ],
+        ),
+      ),
+    );
+    final row = Row(
+      children: [
+        Expanded(
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Choose today’s workout',
-                style: TempoType.titleL.c(ctx.c.text1),
+                inline ? 'Or choose instead' : 'Choose a workout',
+                style: TempoType.label.c(inline ? c.text2 : c.text1),
               ),
-              const SizedBox(height: 14),
-              for (final p in picks) ...[
-                PickCard(pick: p),
-                const SizedBox(height: 10),
-              ],
+              const SizedBox(height: 2),
+              Text(
+                picks.map((p) => p.session.title).join(' · '),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TempoType.bodyS.c(c.text2),
+              ),
             ],
           ),
         ),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Choose a workout', style: TempoType.label.c(c.text1)),
-                const SizedBox(height: 2),
-                Text(
-                  picks.map((p) => p.session.title).join(' · '),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TempoType.bodyS.c(c.text2),
-                ),
-              ],
-            ),
-          ),
-          TempoIcon(TempoIcons.chevron, size: 16, color: c.text3),
-        ],
-      ),
+        TempoIcon(TempoIcons.chevron, size: 16, color: c.text3),
+      ],
     );
+    if (inline) {
+      return Pressable(
+        label: 'Choose a workout',
+        onTap: open,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          child: row,
+        ),
+      );
+    }
+    return TempoCard(label: 'Choose a workout', onTap: open, child: row);
   }
 }

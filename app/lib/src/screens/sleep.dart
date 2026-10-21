@@ -300,8 +300,6 @@ class SleepScreen extends ConsumerWidget {
     final c = context.c, s = context.s;
     final perf = t.sleepPerf;
     final strainYesterday = t.history.isEmpty ? 0.0 : t.history.first.strain;
-    final strainPart = t.strain * const sc.SleepParams().strainFactor;
-    final debtPart = t.debt * const sc.SleepParams().debtFactor;
     return TempoPage(
       gap: 22,
       children: [
@@ -516,144 +514,159 @@ class SleepScreen extends ConsumerWidget {
           ),
           BreathingCard(breathing: night.breathing),
         ],
-        TempoCard(
-          color: s.tintSleep,
-          padding: const EdgeInsets.fromLTRB(16, 18, 16, 18),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                children: [
-                  Overline('Tonight', color: s.sleepChannel),
-                  const Spacer(),
-                  Text(
-                    'Wake ${clockShort(DateTime(2000, 1, 1, t.wakeMinute ~/ 60, t.wakeMinute % 60))}${t.wakeFromUsual ? ' · from your usual' : ''}',
-                    style: TempoType.caption.c(c.text2),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.baseline,
-                textBaseline: TextBaseline.alphabetic,
-                children: [
-                  Text(
-                    clockShort(
-                      DateTime(
-                        2000,
-                        1,
-                        1,
-                        t.bedtimeMinute ~/ 60,
-                        t.bedtimeMinute % 60,
-                      ),
-                    ),
-                    style: TempoType.scoreL.copyWith(
-                      fontSize: 48,
-                      height: 50 / 48,
-                      color: c.text1,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Text(
-                    '${t.bedtimeMinute < 720 ? 'am' : 'pm'} bedtime',
-                    style: TempoType.titleM.c(c.text2),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
-              SegmentBar(
-                height: 8,
-                parts: [
-                  (t.baseNeed, s.sleepChannel),
-                  (strainPart, s.strain[1]),
-                  (debtPart, c.text2),
-                ],
-              ),
-              const SizedBox(height: 14),
-              Text.rich(
-                TextSpan(
-                  children: [
-                    TextSpan(
-                      text:
-                          '${hmShort(t.baseNeed)} ${t.baseNeedLearned ? 'your base' : 'starting base'} + ${hmShort(strainPart)} for today’s strain + ${hmShort(debtPart)} toward debt = ',
-                    ),
-                    TextSpan(
-                      text: hmShort(t.needTonight),
-                      style: TextStyle(color: c.text1),
-                    ),
-                    const TextSpan(text: '. Allow ~10 min to fall asleep.'),
-                  ],
-                ),
-                style: TempoType.bodyS.c(c.text2).tnum,
-              ),
-              const SizedBox(height: 14),
-              Row(
-                children: [
-                  Expanded(
-                    child: TempoButton(
-                      'Remind me at ${clock12((t.bedtimeMinute - 30) % 1440)}',
-                      small: true,
-                      expand: true,
-                      onTap: () async {
-                        final db = ref.read(dbProvider);
-                        await db.putSetting(Keys.bedtimeNudge, '30');
-                        await rescheduleNotifications(db, t);
-                        if (context.mounted) {
-                          showTempoToast(
-                            context,
-                            'Reminder set for ${clock12((t.bedtimeMinute - 30) % 1440)}',
-                          );
-                        }
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  TempoButton(
-                    'Change wake',
-                    small: true,
-                    kind: ButtonKind.ghost,
-                    onTap: () => pickWakeTime(context, ref, t.wakeMinute),
-                  ),
-                ],
-              ),
-              // The smart alarm buzzes the band; there is no band to buzz
-              // with a Health source.
-              if (ref.watch(dataSourceProvider).can.bandControls) ...[
-                const SizedBox(height: 10),
-                const Hair(),
-                Pressable(
-                  label: 'Smart alarm',
-                  onTap: () => pickSmartAlarm(context, ref, t),
-                  child: SizedBox(
-                    height: 44,
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            'Smart alarm',
-                            style: TempoType.body.c(c.text1),
-                          ),
-                        ),
-                        Text(
-                          t.smartAlarm == null
-                              ? 'Off'
-                              : 'By ${clock12(t.smartAlarm!)} · light sleep',
-                          style: TempoType.bodyS.c(c.text2).tnum,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
+        TonightCard(t: t),
         const RhythmCard(),
         Text(
           '${ref.watch(dataSourceProvider).isHealth ? 'Your watch marks when you sleep and its stages, as it wrote them to Health; treat them as a guide.' : 'The band marks when you sleep; Tempo estimates the stages from your heart rate and movement, so treat them as a guide.'} Need starts at 7 h 30 m; after 14 scored nights it learns from the nights you recover best after, then adjusts to strain and debt.${strainYesterday > 0 ? '' : ''}',
           style: TempoType.caption.c(c.text3),
         ),
       ],
+    );
+  }
+}
+
+/// Tonight: bedtime, how tonight's need adds up, a reminder and the smart
+/// alarm. On Sleep, and on Today in the evening.
+class TonightCard extends ConsumerWidget {
+  const TonightCard({super.key, required this.t});
+  final TodayData t;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final c = context.c, s = context.s;
+    final strainPart = t.strain * const sc.SleepParams().strainFactor;
+    final debtPart = t.debt * const sc.SleepParams().debtFactor;
+    return TempoCard(
+      color: s.tintSleep,
+      padding: const EdgeInsets.fromLTRB(16, 18, 16, 18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Overline('Tonight', color: s.sleepChannel),
+              const Spacer(),
+              Text(
+                'Wake ${clockShort(DateTime(2000, 1, 1, t.wakeMinute ~/ 60, t.wakeMinute % 60))}${t.wakeFromUsual ? ' · from your usual' : ''}',
+                style: TempoType.caption.c(c.text2),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              Text(
+                clockShort(
+                  DateTime(
+                    2000,
+                    1,
+                    1,
+                    t.bedtimeMinute ~/ 60,
+                    t.bedtimeMinute % 60,
+                  ),
+                ),
+                style: TempoType.scoreL.copyWith(
+                  fontSize: 48,
+                  height: 50 / 48,
+                  color: c.text1,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                '${t.bedtimeMinute < 720 ? 'am' : 'pm'} bedtime',
+                style: TempoType.titleM.c(c.text2),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          SegmentBar(
+            height: 8,
+            parts: [
+              (t.baseNeed, s.sleepChannel),
+              (strainPart, s.strain[1]),
+              (debtPart, c.text2),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Text.rich(
+            TextSpan(
+              children: [
+                TextSpan(
+                  text:
+                      '${hmShort(t.baseNeed)} ${t.baseNeedLearned ? 'your base' : 'starting base'} + ${hmShort(strainPart)} for today’s strain + ${hmShort(debtPart)} toward debt = ',
+                ),
+                TextSpan(
+                  text: hmShort(t.needTonight),
+                  style: TextStyle(color: c.text1),
+                ),
+                const TextSpan(text: '. Allow ~10 min to fall asleep.'),
+              ],
+            ),
+            style: TempoType.bodyS.c(c.text2).tnum,
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: TempoButton(
+                  'Remind me at ${clock12((t.bedtimeMinute - 30) % 1440)}',
+                  small: true,
+                  expand: true,
+                  onTap: () async {
+                    final db = ref.read(dbProvider);
+                    await db.putSetting(Keys.bedtimeNudge, '30');
+                    await rescheduleNotifications(db, t);
+                    if (context.mounted) {
+                      showTempoToast(
+                        context,
+                        'Reminder set for ${clock12((t.bedtimeMinute - 30) % 1440)}',
+                      );
+                    }
+                  },
+                ),
+              ),
+              const SizedBox(width: 10),
+              TempoButton(
+                'Change wake',
+                small: true,
+                kind: ButtonKind.ghost,
+                onTap: () => pickWakeTime(context, ref, t.wakeMinute),
+              ),
+            ],
+          ),
+          // The smart alarm buzzes the band; there is no band to buzz
+          // with a Health source.
+          if (ref.watch(dataSourceProvider).can.bandControls) ...[
+            const SizedBox(height: 10),
+            const Hair(),
+            Pressable(
+              label: 'Smart alarm',
+              onTap: () => pickSmartAlarm(context, ref, t),
+              child: SizedBox(
+                height: 44,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Smart alarm',
+                        style: TempoType.body.c(c.text1),
+                      ),
+                    ),
+                    Text(
+                      t.smartAlarm == null
+                          ? 'Off'
+                          : 'By ${clock12(t.smartAlarm!)} · light sleep',
+                      style: TempoType.bodyS.c(c.text2).tnum,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }

@@ -30,7 +30,6 @@ import 'screens/today.dart';
 import 'screens/trends.dart';
 import 'screens/weekly_review.dart';
 import 'screens/workouts.dart';
-import 'screens/longevity.dart';
 import 'state/live_session.dart';
 import 'state/providers.dart';
 
@@ -167,21 +166,21 @@ class _SplashState extends State<Splash> {
 }
 
 class _Tab {
-  const _Tab(this.label, this.icon, this.fab);
+  const _Tab(this.label, this.icon);
   final String label, icon;
-  final bool fab;
 }
 
+/// Tabs by time horizon: the day, the week and goal, the long run, you.
 const _tabs = [
-  _Tab('Today', TempoIcons.today, true),
-  _Tab('Coach', TempoIcons.coach, true),
-  _Tab('Trends', TempoIcons.trends, false),
-  _Tab('Longevity', TempoIcons.longevity, false),
-  _Tab('Profile', TempoIcons.profile, false),
+  _Tab('Today', TempoIcons.today),
+  _Tab('Plan', TempoIcons.coach),
+  _Tab('Progress', TempoIcons.trends),
+  _Tab('You', TempoIcons.profile),
 ];
 
-/// Five tabs (Today, Coach, Trends, Longevity, Profile) + start button. Syncs on open and on resume (the iOS fallback,
-/// since background wakes are not guaranteed).
+/// Four tabs (Today, Plan, Progress, You) around the start / log button.
+/// Syncs on open and on resume (the iOS fallback, since background wakes
+/// are not guaranteed).
 class Shell extends ConsumerStatefulWidget {
   const Shell({super.key});
   @override
@@ -223,8 +222,9 @@ class _ShellState extends ConsumerState<Shell> with WidgetsBindingObserver {
   Future<void> _openFromNotification(String target) async {
     if (!mounted) return;
     Navigator.of(context).popUntil((r) => r.isFirst);
-    if (target == 'coach') coachTab.value = CoachTab.today;
-    select(target == 'workouts' ? 0 : 1);
+    // Each nudge lands on the part of the day it's about: Today for the
+    // call, the session and the evening; Progress for the week review.
+    select(target == 'review' ? 2 : 0);
     switch (target) {
       case 'workouts':
         await push(context, const WorkoutsScreen());
@@ -380,7 +380,6 @@ class _ShellState extends ConsumerState<Shell> with WidgetsBindingObserver {
                 TodayScreen(onTab: select),
                 const CoachScreen(),
                 const TrendsScreen(tab: true),
-                const LongevityScreen(),
                 const SettingsScreen(),
               ],
             ),
@@ -388,43 +387,22 @@ class _ShellState extends ConsumerState<Shell> with WidgetsBindingObserver {
           if (live != null && live.phase != LivePhase.ended)
             Positioned(
               left: 20,
-              right: 92,
-              bottom: 49 + bottom + 16,
-              child: _LivePill(state: live),
-            ),
-          if (_tabs[_tab].fab)
-            Positioned(
               right: 20,
               bottom: 49 + bottom + 16,
-              child: Pressable(
-                label: 'Start a workout',
-                onTap: () {
-                  TempoHaptics.light();
-                  openLive(context, ref, ask: true);
-                },
-                child: Container(
-                  width: 56,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    color: c.text1,
-                    shape: BoxShape.circle,
-                    boxShadow: c.shadowFloat,
-                  ),
-                  alignment: Alignment.center,
-                  child: TempoIcon(
-                    TempoIcons.play,
-                    size: 20,
-                    color: c.textInverse,
-                    fill: true,
-                  ),
-                ),
-              ),
+              child: _LivePill(state: live),
             ),
           Positioned(
             left: 0,
             right: 0,
             bottom: 0,
-            child: _NavBar(tab: _tab, onTab: select),
+            child: _NavBar(
+              tab: _tab,
+              onTab: select,
+              onAdd: () {
+                TempoHaptics.light();
+                showStartSheet(context, ref);
+              },
+            ),
           ),
         ],
       ),
@@ -433,12 +411,51 @@ class _ShellState extends ConsumerState<Shell> with WidgetsBindingObserver {
 }
 
 class _NavBar extends StatelessWidget {
-  const _NavBar({required this.tab, required this.onTab});
+  const _NavBar({required this.tab, required this.onTab, required this.onAdd});
   final int tab;
   final ValueChanged<int> onTab;
+  final VoidCallback onAdd;
   @override
   Widget build(BuildContext context) {
     final c = context.c;
+    Widget item(int i) {
+      final t = _tabs[i];
+      return Expanded(
+        child: Pressable(
+          label: t.label,
+          selected: i == tab,
+          onTap: () => onTab(i),
+          child: SizedBox(
+            height: 43,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
+                const SizedBox(height: 3),
+                TempoIcon(
+                  t.icon,
+                  size: 24,
+                  color: i == tab ? c.text1 : c.text3,
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  t.label,
+                  textScaler: TextScaler.noScaling,
+                  style: TextStyle(
+                    fontFamily: TempoType.family,
+                    fontSize: 10,
+                    height: 1.2,
+                    fontWeight: FontWeight.w500,
+                    letterSpacing: .1,
+                    color: i == tab ? c.text1 : c.text3,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     return Container(
       height: 49 + MediaQuery.of(context).padding.bottom,
       padding: const EdgeInsets.fromLTRB(8, 6, 8, 0),
@@ -448,42 +465,35 @@ class _NavBar extends StatelessWidget {
       ),
       alignment: Alignment.topCenter,
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          for (final (i, t) in _tabs.indexed)
-            Expanded(
+          item(0),
+          item(1),
+          Expanded(
+            child: Center(
               child: Pressable(
-                label: t.label,
-                selected: i == tab,
-                onTap: () => onTab(i),
-                child: SizedBox(
-                  height: 43,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 3),
-                      TempoIcon(
-                        t.icon,
-                        size: 24,
-                        color: i == tab ? c.text1 : c.text3,
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        t.label,
-                        textScaler: TextScaler.noScaling,
-                        style: TextStyle(
-                          fontFamily: TempoType.family,
-                          fontSize: 10,
-                          height: 1.2,
-                          fontWeight: FontWeight.w500,
-                          letterSpacing: .1,
-                          color: i == tab ? c.text1 : c.text3,
-                        ),
-                      ),
-                    ],
+                label: 'Start or log',
+                onTap: onAdd,
+                child: Container(
+                  width: 44,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: c.text1,
+                    borderRadius: BorderRadius.circular(TempoRadii.pill),
+                  ),
+                  alignment: Alignment.center,
+                  child: TempoIcon(
+                    TempoIcons.plus,
+                    size: 20,
+                    color: c.textInverse,
+                    stroke: 2.25,
                   ),
                 ),
               ),
             ),
+          ),
+          item(2),
+          item(3),
         ],
       ),
     );

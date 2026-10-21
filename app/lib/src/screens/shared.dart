@@ -282,76 +282,18 @@ String recoveryWhy(TodayData t, List<Contributor> cs) {
   bool noPermission = false,
   bool health = false,
 }) {
-  final c = context.c, s = context.s;
-  final target = t.target;
-  final device = health ? 'watch' : 'band';
-  if (noBand || noPermission) {
-    return (
-      health ? 'Connect Health' : 'Connect your band',
-      c.text1,
-      ' to see today’s recovery, strain and sleep.',
-    );
-  }
-  if (t.stale) {
-    return (
-      'Yesterday’s data',
-      c.text2,
-      health
-          ? ' — let your watch sync to Health before you train so today’s plan uses last night’s sleep.'
-          : ' — sync before you train so today’s plan uses last night’s sleep.',
-    );
-  }
-  if (t.firstDay) {
-    return (
-      'Welcome to Tempo.',
-      c.text1,
-      ' Wear your $device tonight — your first sleep and recovery arrive tomorrow morning.',
-    );
-  }
-  if (t.calibrating) {
-    return ('Learning your normal.', c.text1, ' Keep today moderate.');
-  }
-  final r = t.recovery;
-  if (r == null) {
-    return (
-      'Last night isn’t in yet',
-      c.text1,
-      health
-          ? ' — once your watch syncs last night to Health, recovery appears here.'
-          : ' — sync near your band to see today’s recovery.',
-    );
-  }
-  final lead = 'Recovery ${r.round()}%';
-  final col = s.recoveryFor(r);
-  if (target.cap) {
-    return (
-      lead,
-      col,
-      ' — rest day. Keep strain under ${target.hi.round()} and be in bed by ${clock12(t.bedtimeMinute)}.',
-    );
-  }
-  if (r >= 67) {
-    final plan = t.plan;
-    final what = plan == null || plan.isRest
-        ? 'a hard session'
-        : plan.isHard
-        ? plan.title.toLowerCase()
-        : 'a solid session';
-    return (
-      lead,
-      col,
-      ' — you’re primed. A good day for $what; aim for ${target.lo.round()}–${target.hi.round()} strain.',
-    );
-  }
-  if (r < 50) {
-    return (lead, col, ' — keep strain under ${target.hi.round()} today.');
-  }
-  return (
-    lead,
-    col,
-    ' — a steady day. Keep it moderate; aim for ${target.lo.round()}–${target.hi.round()} strain.',
-  );
+  final call = callFor(t, noData: noBand || noPermission, health: health);
+  return (call.lead, callColor(context, call.tone), call.rest);
 }
+
+/// Colour for a call's lead words.
+Color callColor(BuildContext context, sc.CallTone tone) => switch (tone) {
+  sc.CallTone.good => context.s.recHigh,
+  sc.CallTone.mid => context.s.recMid,
+  sc.CallTone.low => context.s.recLow,
+  sc.CallTone.plain => context.c.text1,
+  sc.CallTone.muted => context.c.text2,
+};
 
 /// Strain status against today's target.
 (String, String) strainStatus(TodayData t, {double? planAdds}) {

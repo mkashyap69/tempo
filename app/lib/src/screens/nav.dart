@@ -11,10 +11,13 @@ import '../design/tokens.dart';
 import '../design/type.dart';
 import '../state/live_session.dart';
 import '../state/providers.dart';
+import 'journal.dart';
 import 'live_workout.dart';
 import 'pairing.dart';
+import 'strength_log.dart';
+import 'today_parts.dart' show NotTodayCard;
 
-/// The selected tab (0 Today, 1 Coach, 2 Trends, 3 Longevity, 4 Profile).
+/// The selected tab (0 Today, 1 Plan, 2 Progress, 3 You).
 /// The shell follows it, so any screen can switch tabs.
 final shellTab = ValueNotifier<int>(0);
 
@@ -182,6 +185,57 @@ Future<(sc.Session?, sc.Sport?)?> pickWorkout(
       ],
     ),
   );
+}
+
+/// The centre button: start a workout (today's suggestion or an open
+/// session), log a lift, check in, or say "not today".
+Future<void> showStartSheet(BuildContext context, WidgetRef ref) async {
+  final pick = await showTempoSheet<String>(
+    context,
+    builder: (ctx) {
+      final c = ctx.c;
+      Widget row(String key, String title, String sub) =>
+          ListRow(title, sub: sub, onTap: () => Navigator.pop(ctx, key));
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text('Start or log', style: TempoType.titleL.c(c.text1)),
+          const SizedBox(height: 16),
+          TempoButton(
+            'Start a workout',
+            icon: TempoIcons.play,
+            expand: true,
+            onTap: () => Navigator.pop(ctx, 'start'),
+          ),
+          const SizedBox(height: 14),
+          CardList(
+            children: [
+              row('strength', 'Log strength', 'Sets, reps and weight'),
+              const Hair(),
+              row('checkin', 'Check in', 'Yesterday’s journal'),
+              const Hair(),
+              row('pause', 'Not today', 'Ill or travelling: pause the plan'),
+            ],
+          ),
+          const SizedBox(height: 8),
+        ],
+      );
+    },
+  );
+  if (pick == null || !context.mounted) return;
+  switch (pick) {
+    case 'start':
+      await openLive(context, ref, ask: true);
+    case 'strength':
+      await push(context, const StrengthLogScreen());
+    case 'checkin':
+      await push(context, const JournalScreen(standalone: true));
+    case 'pause':
+      await showTempoSheet<void>(
+        context,
+        builder: (ctx) => NotTodayCard(onDone: () => Navigator.pop(ctx)),
+      );
+  }
 }
 
 /// Info button that opens an explainer sheet.

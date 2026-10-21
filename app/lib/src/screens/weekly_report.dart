@@ -104,10 +104,14 @@ class WeekReport {
   ][i];
 }
 
-final weekReportProvider = FutureProvider<WeekReport>((ref) async {
+/// The report for the week starting [monday] (a date key).
+final weekReportProvider = FutureProvider.family<WeekReport, String>((
+  ref,
+  monday,
+) async {
   ref.watch(dbTickProvider);
   final db = ref.watch(dbProvider);
-  final mon = mondayOf(DateTime.now());
+  final mon = DateTime.parse(monday);
   final sun = mon.add(const Duration(days: 6));
   final scores = {for (final s in await db.scoresBetween(mon, sun)) s.date: s};
   final plan = await CoachService(db).ensureWeek(mon);
@@ -133,14 +137,20 @@ final weekReportProvider = FutureProvider<WeekReport>((ref) async {
     sleep: sleep,
     sessions: ws.length,
     minutes: ws.fold(0, (a, w) => a + ((w.end - w.start) / 60).round()),
-    load: await loadFor(db, dayOf(DateTime.now())),
+    load: await loadFor(
+      db,
+      dayOf(DateTime.now()).isAfter(sun) ? sun : dayOf(DateTime.now()),
+    ),
     inPlan: inPlan,
     changes: plan.where((p) => p.reason != null).toList(),
   );
 });
 
 class WeeklyReportScreen extends ConsumerStatefulWidget {
-  const WeeklyReportScreen({super.key});
+  const WeeklyReportScreen({super.key, this.monday});
+
+  /// Week to share; null for this week.
+  final DateTime? monday;
   @override
   ConsumerState<WeeklyReportScreen> createState() => _WeeklyReportState();
 }
@@ -148,13 +158,15 @@ class WeeklyReportScreen extends ConsumerStatefulWidget {
 class _WeeklyReportState extends ConsumerState<WeeklyReportScreen> {
   final _key = GlobalKey();
 
+  String get _week => st.dateKey(widget.monday ?? mondayOf(DateTime.now()));
+
   Future<File> _render() async {
     final boundary =
         _key.currentContext!.findRenderObject()! as RenderRepaintBoundary;
     final img = await boundary.toImage(pixelRatio: 1080 / boundary.size.width);
     final bytes = await img.toByteData(format: ui.ImageByteFormat.png);
     final dir = await getApplicationDocumentsDirectory();
-    final r = ref.read(weekReportProvider).value!;
+    final r = ref.read(weekReportProvider(_week)).value!;
     final f = File('${dir.path}/tempo-week-${r.week}.png');
     await f.writeAsBytes(bytes!.buffer.asUint8List());
     return f;
@@ -162,7 +174,7 @@ class _WeeklyReportState extends ConsumerState<WeeklyReportScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final r = ref.watch(weekReportProvider).value;
+    final r = ref.watch(weekReportProvider(_week)).value;
     final c = context.c;
     final cardTheme =
         ref.watch(settingProvider(Keys.reportCardTheme)).value ??

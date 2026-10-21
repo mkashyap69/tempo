@@ -564,7 +564,7 @@ class _OnboardingState extends ConsumerState<OnboardingScreen> {
           children: [
             _title(
               'What matters most?',
-              'Pick one. It shapes which workouts Coach suggests. You can set a race goal later on Weekly plan.',
+              'Pick one. It shapes which workouts Coach suggests. You can add a race or event goal any time in Plan → Goal.',
             ),
             const SizedBox(height: 24),
             for (final g in sc.Goal.values) ...[

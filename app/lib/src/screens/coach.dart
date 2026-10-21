@@ -16,15 +16,13 @@ import '../design/tokens.dart';
 import '../design/type.dart';
 import '../state/providers.dart';
 import 'cardio_load.dart';
+import 'coach_settings.dart';
 import 'goal.dart';
 import 'coach_parts.dart';
 import 'nav.dart';
-import 'picks.dart';
 import 'shared.dart';
-import 'today.dart' show WorkoutCard;
 import 'weekly_plan.dart';
 import 'weekly_review.dart';
-import 'workout_detail.dart';
 
 /// The current week: plan rows and actual strain per day.
 class WeekView {
@@ -67,15 +65,15 @@ final loadHistoryProvider =
       );
     });
 
-/// The three parts of Coach.
-enum CoachTab { today, week, goal }
+/// The two parts of Plan. Today's session lives on Today.
+enum CoachTab { week, goal }
 
-/// Which part of Coach is showing. Other screens set it to open Coach at
-/// the week or the goal.
-final coachTab = ValueNotifier<CoachTab>(CoachTab.today);
+/// Which part of Plan is showing. Other screens set it to open Plan at the
+/// week or the goal.
+final coachTab = ValueNotifier<CoachTab>(CoachTab.week);
 
-/// Shows Coach at [t]: switches to the Coach tab, or pushes Coach where
-/// there is no tab bar.
+/// Shows Plan at [t]: switches to the Plan tab, or pushes Plan where there
+/// is no tab bar.
 void openCoachAt(BuildContext context, CoachTab t) {
   coachTab.value = t;
   if (shellMounted) {
@@ -99,11 +97,8 @@ class CoachScreen extends ConsumerWidget {
     final x = ref.watch(coachExtrasProvider).value;
     final gv = ref.watch(goalViewProvider).value;
     if (t == null || w == null) return Scaffold(backgroundColor: context.c.bg);
-    final c = context.c, s = context.s;
     final general = t.planRow?.general ?? t.calibrating;
-    final (lead, leadColor, rest) = _readiness(context, t);
-    final adds = planAdds(t);
-    final todayIdx = t.day.weekday - 1;
+    final c = context.c;
 
     return ValueListenableBuilder<CoachTab>(
       valueListenable: coachTab,
@@ -111,149 +106,58 @@ class CoachScreen extends ConsumerWidget {
         bottom: standalone ? 48 : 100,
         children: [
           if (standalone)
-            const DetailHeader(title: 'Tempo Coach')
+            const DetailHeader(title: 'Plan')
           else
             SizedBox(
               height: 44,
               child: Row(
                 children: [
                   Expanded(
-                    child: Text('Coach', style: TempoType.pageTitle.c(c.text1)),
+                    child: Text('Plan', style: TempoType.pageTitle.c(c.text1)),
                   ),
                   TempoBadge(general ? 'General plan' : 'Personal plan'),
                 ],
               ),
             ),
           if (t.pause != null)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              decoration: BoxDecoration(
-                color: c.surface2,
-                borderRadius: BorderRadius.circular(TempoRadii.md),
-              ),
-              child: Row(
-                children: [
-                  TempoIcon(TempoIcons.clock, size: 18, color: c.text1),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      'Paused (${pauseLabel(t.pause!.reason).toLowerCase()}). The plan won’t adapt and nothing is carried forward; do what feels right.',
-                      style: TempoType.bodyS.c(c.text2),
-                    ),
-                  ),
-                ],
-              ),
+            _Note(
+              'Paused (${pauseLabel(t.pause!.reason).toLowerCase()}). The plan won’t adapt and nothing is carried forward; do what feels right.',
             )
           else if (t.stale)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              decoration: BoxDecoration(
-                color: c.surface2,
-                borderRadius: BorderRadius.circular(TempoRadii.md),
-              ),
-              child: Row(
-                children: [
-                  TempoIcon(TempoIcons.clock, size: 18, color: c.text1),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      'Plan is from ${t.lastSync == null ? 'before your last sync' : clockOf(t.lastSync!)}. Sync to adapt it to last night.',
-                      style: TempoType.bodyS.c(c.text2),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  TempoButton(
-                    'Sync',
-                    small: true,
-                    kind: ButtonKind.secondary,
-                    onTap: () => ref.read(syncProvider.notifier).syncNow(),
-                  ),
-                ],
+            _Note(
+              'Plan is from ${t.lastSync == null ? 'before your last sync' : clockOf(t.lastSync!)}. Sync to adapt it to last night.',
+              action: TempoButton(
+                'Sync',
+                small: true,
+                kind: ButtonKind.secondary,
+                onTap: () => ref.read(syncProvider.notifier).syncNow(),
               ),
             ),
           if (tab != CoachTab.goal)
             GoalCard(onOpen: () => coachTab.value = CoachTab.goal),
           TempoSegmented<CoachTab>(
             values: CoachTab.values,
-            labels: const ['Today', 'Week', 'Goal'],
+            labels: const ['This week', 'Goal'],
             selected: tab,
             onChanged: (v) => coachTab.value = v,
           ),
-          if (tab == CoachTab.today) ...[
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Overline('Today’s readiness'),
-                const SizedBox(height: 10),
-                Text.rich(
-                  TextSpan(
-                    children: [
-                      TextSpan(
-                        text: lead,
-                        style: TextStyle(color: leadColor),
-                      ),
-                      TextSpan(text: rest),
-                    ],
-                  ),
-                  style: TempoType.titleL.c(c.text1),
-                ),
-              ],
-            ),
-            if (t.restDay || (t.plan?.isRest ?? false))
-              TempoCard(
-                color: t.restDay ? s.tintRecLow : c.surface1,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Overline(
-                      t.restDay ? '▼ Rest day' : 'Rest day',
-                      color: t.restDay ? s.recLow : null,
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      'Walk, stretch, sleep early',
-                      style: TempoType.titleM.c(c.text1),
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      'Strain cap ${t.target.cap ? t.target.hi.round() : 7} · bedtime ${clock12(t.bedtimeMinute)}.${_carriedNote(w, todayIdx)}',
-                      style: TempoType.bodyS.c(c.text2),
-                    ),
-                  ],
-                ),
-              )
-            else if (t.plan != null)
-              WorkoutCard(
-                session: t.plan!,
-                general: general,
-                adds: adds,
-                overline: 'Suggested workout',
-                why: _why(t, general),
-                chip: statusLabel(t),
-                chipColor: statusColor(context, t.status),
-                footer: t.pause == null ? SessionActions(t) : null,
-                onTap: () => push(context, const WorkoutDetailScreen()),
-              ),
-            if (t.pause == null) SwapNote(t),
-            if (t.pause == null &&
-                !t.restDay &&
-                t.plan != null &&
-                t.status == sc.DayStatus.missedSlot)
-              RescueCard(t),
-            if (x != null && x.realign && t.pause == null) const RealignCard(),
-            if (t.pause == null) const TodayPicks(),
-            if (x != null) AlsoToday(x),
-            if (x != null) FocusSummary(x),
-          ] else if (tab == CoachTab.week) ...[
+          if (tab == CoachTab.week) ...[
+            _TodayRow(t),
             if (gv?.week != null) GoalWeekCard(v: gv!),
             const WeekPlanBody(),
             LoadNote(t: t, monotony: x?.monotony ?? false),
+            if (x != null) FocusSummary(x),
             CardList(
               children: [
                 ListRow(
-                  'Your week so far',
-                  sub: 'Planned vs done, WHO minimums, focus',
+                  'Week in review',
+                  sub: 'Planned vs done, health minimums, Tempo Age',
                   onTap: () => push(context, const WeeklyReviewScreen()),
+                ),
+                ListRow(
+                  'Availability and coach settings',
+                  sub: 'Days, times, preferred workouts, reminders',
+                  onTap: () => push(context, const CoachSettingsScreen()),
                 ),
               ],
             ),
@@ -263,100 +167,73 @@ class CoachScreen extends ConsumerWidget {
       ),
     );
   }
+}
 
-  static String _carriedNote(WeekView w, int today) {
-    for (var i = today + 1; i < 7; i++) {
-      final r = w.rows[i];
-      if (r.reason != null && w.session(i).isHard) {
-        return ' ${w.session(i).title} has moved to ${dayShort(w.date(i)).substring(0, 3)}.';
-      }
-    }
-    return '';
+/// A grey note under the title (paused, stale plan).
+class _Note extends StatelessWidget {
+  const _Note(this.text, {this.action});
+  final String text;
+  final Widget? action;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: c.surface2,
+        borderRadius: BorderRadius.circular(TempoRadii.md),
+      ),
+      child: Row(
+        children: [
+          TempoIcon(TempoIcons.clock, size: 18, color: c.text1),
+          const SizedBox(width: 12),
+          Expanded(child: Text(text, style: TempoType.bodyS.c(c.text2))),
+          if (action != null) ...[const SizedBox(width: 12), action!],
+        ],
+      ),
+    );
   }
+}
 
-  static String _why(TodayData t, bool general) {
-    // What you did replaced the plan: say what moved where.
-    if (t.plan?.key == 'done' && t.planRow?.reason != null) {
-      return t.planRow!.reason!.replaceFirst(RegExp(r'^[▲■▼·] '), '');
-    }
-    if (general) return 'General · built from your goal';
-    final parts = [
-      if (t.recovery != null) 'Recovery ${t.recovery!.round()}%',
-      if (t.load.status != sc.LoadStatus.learning)
-        'load ${loadWord(t.load.status).toLowerCase()}',
-    ];
-    return parts.join(' · ');
-  }
+/// Today's session in one row; the session itself lives on Today.
+class _TodayRow extends StatelessWidget {
+  const _TodayRow(this.t);
+  final TodayData t;
 
-  static (String, Color, String) _readiness(BuildContext context, TodayData t) {
-    final c = context.c, s = context.s;
-    if (t.stale) {
-      return (
-        'Yesterday’s plan.',
-        c.text2,
-        ' Sync first — today’s session depends on last night’s recovery.',
-      );
-    }
-    if (t.firstDay) {
-      return (
-        'First day.',
-        c.text1,
-        ' Wear your ${t.source == sc.bandSource ? 'band' : 'watch'} tonight; the plan stays general and moderate until Tempo knows you.',
-      );
-    }
-    if (t.calibrating) {
-      return (
-        'Night ${t.nights} of 14.',
-        c.text1,
-        ' Until Tempo knows your baseline, sessions stay moderate and general.',
-      );
-    }
-    final r = t.recovery;
-    if (r == null) {
-      return (
-        'Waiting for last night.',
-        c.text1,
-        t.source == sc.bandSource
-            ? ' Sync near your band to adapt today’s plan.'
-            : ' Once your watch syncs to Health, today’s plan adapts.',
-      );
-    }
-    if (t.rhrFlag == sc.RhrFlag.illness) {
-      return (
-        'Take it easy.',
-        s.recLow,
-        ' Your night heart rate ran well above usual — rest today, and pause the plan if you’re coming down with something.',
-      );
-    }
-    if (r >= 67 && t.state == sc.DayState.easeOff && !t.restDay) {
-      final why = t.rhrFlag == sc.RhrFlag.elevated
-          ? 'resting HR is above your usual'
-          : 'last night was short';
-      return (
-        'Steady.',
-        s.recMid,
-        ' Recovery ${r.round()}%, but $why — keep it aerobic today; intensity can wait a day.',
-      );
-    }
-    if (t.restDay) {
-      return (
-        'Rest today.',
-        s.recLow,
-        ' Recovery ${r.round()}%${t.load.status == sc.LoadStatus.overreaching ? ' and your load is overreaching' : ''} — the most productive thing today is nothing hard.',
-      );
-    }
-    if (r >= 67) {
-      final building = t.load.status == sc.LoadStatus.building;
-      return (
-        building ? 'Primed and building.' : 'Primed.',
-        s.recHigh,
-        ' Recovery ${r.round()}%${building ? ' with room in your load' : ''} — make today the hard one, keep tomorrow easy.',
-      );
-    }
-    return (
-      'Steady.',
-      s.recMid,
-      ' Recovery ${r.round()}% — keep it aerobic today; save intensity for a greener morning.',
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c;
+    final p = t.plan;
+    final title = p == null || p.isRest || t.restDay
+        ? 'Rest'
+        : '${p.title} · ${p.minutes} min';
+    return TempoCard(
+      label: 'Today on Today',
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      onTap: () {
+        Navigator.of(context).popUntil((r) => r.isFirst);
+        shellTab.value = 0;
+      },
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Overline('Today'),
+                const SizedBox(height: 4),
+                Text(title, style: TempoType.label.c(c.text1)),
+              ],
+            ),
+          ),
+          if (p != null && !p.isRest && !t.restDay) ...[
+            TempoBadge(statusLabel(t), color: statusColor(context, t.status)),
+            const SizedBox(width: 8),
+          ],
+          TempoIcon(TempoIcons.chevron, size: 16, color: c.text3),
+        ],
+      ),
     );
   }
 }

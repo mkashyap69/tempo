@@ -5,7 +5,6 @@ import 'package:tempo/src/core/coach_service.dart';
 import 'package:tempo/src/core/picks_service.dart';
 import 'package:tempo/src/core/profile.dart';
 import 'package:tempo/src/core/today.dart';
-import 'package:tempo/src/screens/coach.dart';
 import 'package:tempo/src/screens/picks.dart';
 import 'package:tempo/src/screens/today.dart';
 import 'package:tempo/src/screens/workout_detail.dart';
@@ -68,12 +67,28 @@ void main() {
       expect(t.takeException(), isNull);
     }
 
-    testWidgets('Coach shows the three picks; choosing one plans it', (
+    testWidgets('Today offers the three picks; choosing one plans it', (
       t,
     ) async {
-      final db = (await t.runAsync(() => seededDb(days: 30)))!;
-      await render(t, const CoachScreen(standalone: true), db);
-      expect(find.text('CHOOSE TODAY’S WORKOUT'), findsOneWidget);
+      // A session not yet done (the seeded walk runs up to now and can
+      // cover a short plan late in the day).
+      final db = (await t.runAsync(() async {
+        final db = await seededDb(days: 30);
+        final day = dayOf(DateTime.now());
+        await CoachService(db).ensureWeek(day);
+        await CoachService(db).swapToday(sc.sessionTemplate('easy_run'), 't');
+        for (final w in await db.workoutsBetween(
+          day,
+          day.add(const Duration(days: 1)),
+        )) {
+          await db.deleteWorkout(w.id);
+        }
+        return db;
+      }))!;
+      await render(t, const TodayScreen(), db);
+      await t.ensureVisible(find.text('Or choose instead'));
+      await t.tap(find.text('Or choose instead'));
+      await settle(t, frames: 10);
       expect(find.text('Tempo’s pick'), findsOneWidget);
       expect(find.byType(PickCard), findsNWidgets(3));
       // Open the strength pick and make it today's plan.
@@ -108,12 +123,28 @@ void main() {
       await teardown(t, db);
     });
 
-    testWidgets('Today has one quiet row for the picks', (t) async {
-      final db = (await t.runAsync(() => seededDb(days: 30)))!;
+    testWidgets('Today has one quiet row for the picks, in the plan card', (
+      t,
+    ) async {
+      // A session not yet done (the seeded walk runs up to now and can
+      // cover a short plan late in the day).
+      final db = (await t.runAsync(() async {
+        final db = await seededDb(days: 30);
+        final day = dayOf(DateTime.now());
+        await CoachService(db).ensureWeek(day);
+        await CoachService(db).swapToday(sc.sessionTemplate('easy_run'), 't');
+        for (final w in await db.workoutsBetween(
+          day,
+          day.add(const Duration(days: 1)),
+        )) {
+          await db.deleteWorkout(w.id);
+        }
+        return db;
+      }))!;
       await render(t, const TodayScreen(), db);
-      expect(find.text('Choose a workout'), findsOneWidget);
-      await t.ensureVisible(find.text('Choose a workout'));
-      await t.tap(find.text('Choose a workout'));
+      expect(find.text('Or choose instead'), findsOneWidget);
+      await t.ensureVisible(find.text('Or choose instead'));
+      await t.tap(find.text('Or choose instead'));
       await settle(t, frames: 10);
       expect(find.byType(PickCard), findsNWidgets(3));
       expect(t.takeException(), isNull);

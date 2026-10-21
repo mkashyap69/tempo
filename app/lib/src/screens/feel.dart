@@ -1,67 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:scoring/scoring.dart' as sc;
 
 import '../design/components.dart';
 import '../design/tokens.dart';
 import '../design/type.dart';
-import '../state/providers.dart';
-
-/// Morning check-in: how you feel, 1–5, before you read the day's call.
-class FeelCard extends ConsumerWidget {
-  const FeelCard({super.key, required this.day});
-  final DateTime day;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final c = context.c;
-    Widget option(int v) => Expanded(
-      child: Pressable(
-        label: 'Feel $v of 5: ${sc.feelWords[v - 1]}',
-        onTap: () {
-          TempoHaptics.selection();
-          ref.read(dbProvider).setFeel(day, v);
-        },
-        child: Container(
-          height: 58,
-          margin: const EdgeInsets.symmetric(horizontal: 3),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(TempoRadii.md),
-            border: Border.all(color: c.lineStrong),
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 4),
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text('$v', style: TempoType.titleM.c(c.text1).tnum),
-                Text(sc.feelWords[v - 1], style: TempoType.caption.c(c.text2)),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-    return TempoCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const Overline('Morning check-in'),
-          const SizedBox(height: 10),
-          Text('How do you feel?', style: TempoType.titleM.c(c.text1)),
-          const SizedBox(height: 4),
-          Text(
-            'Answer before you look at your scores. Tempo checks whether Recovery matches how you feel.',
-            style: TempoType.bodyS.c(c.text2),
-          ),
-          const SizedBox(height: 14),
-          Row(children: [for (var v = 1; v <= 5; v++) option(v)]),
-        ],
-      ),
-    );
-  }
-}
 
 /// Recovery against the morning check-ins (Recovery screen).
 class FeelVsRecoveryCard extends StatelessWidget {

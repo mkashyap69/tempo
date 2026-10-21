@@ -1073,3 +1073,125 @@ Future<void> _howItWorks(BuildContext context) => showTempoSheet<void>(
     );
   },
 );
+
+/// Tempo Age in a few lines for Progress: the age, this week's change and
+/// the focus. Opens Longevity.
+class TempoAgeSummary extends ConsumerWidget {
+  const TempoAgeSummary({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final d = ref.watch(longevityProvider).value;
+    if (d == null) return const SizedBox(height: 120);
+    final c = context.c, s = context.s;
+    final l = d.latest;
+    void open() => push(context, const LongevityScreen(standalone: true));
+    if (l == null) {
+      return TempoCard(
+        label: 'Tempo Age',
+        onTap: open,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Overline('Tempo Age'),
+            const SizedBox(height: 8),
+            Text(
+              'Tempo Age appears after your first sync. It turns 30 days of heart rate, sleep and activity into an age.',
+              style: TempoType.bodyS.c(c.text2),
+            ),
+          ],
+        ),
+      );
+    }
+    final delta = l.tempoAge - l.realAge;
+    final w = d.weekAgo;
+    final week = w == null ? null : l.tempoAge - w.tempoAge;
+    final f = d.focus;
+    return TempoCard(
+      label: 'Tempo Age',
+      onTap: open,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              const Expanded(child: Overline('Tempo Age')),
+              if (l.calibrating)
+                TempoBadge('Calibrating · ${min(d.days, 30)} of 30 days')
+              else if (l.confidence != null)
+                Text(
+                  '${(l.confidence! * 100).round()}% confidence',
+                  style: TempoType.caption.c(c.text3).tnum,
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              Text(
+                l.tempoAge.toStringAsFixed(1),
+                style: TempoType.scoreL.c(l.calibrating ? c.text2 : c.text1),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      delta.abs() < .05
+                          ? 'Right on age ${l.realAge.round()}'
+                          : '${delta.abs().toStringAsFixed(1)} years ${delta < 0 ? 'younger' : 'older'} than ${l.realAge.round()}',
+                      style: TempoType.bodyS.c(_tone(context, delta)).tnum,
+                    ),
+                    if (week != null)
+                      Text(
+                        '${_years(week)} this week',
+                        style: TempoType.caption.c(c.text3).tnum,
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (f != null) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: c.surface2,
+                borderRadius: BorderRadius.circular(TempoRadii.md),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Your focus', style: TempoType.caption.c(c.text2)),
+                        Text(
+                          leverName(f.lever),
+                          style: TempoType.label.c(c.text1),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Text(
+                    'Week ${f.weekOn(DateTime.now())} of ${f.weeks}',
+                    style: TempoType.bodyS.c(s.recHigh).tnum,
+                  ),
+                ],
+              ),
+            ),
+          ],
+          const SizedBox(height: 10),
+          Text(
+            'Levers, groups and blood tests ›',
+            style: TempoType.bodyS.c(c.text2),
+          ),
+        ],
+      ),
+    );
+  }
+}
