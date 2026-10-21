@@ -469,24 +469,28 @@ class _NavBar extends StatelessWidget {
         children: [
           item(0),
           item(1),
+          // Same height as a tab, centred on the icon-and-label block.
           Expanded(
-            child: Center(
-              child: Pressable(
-                label: 'Start or log',
-                onTap: onAdd,
-                child: Container(
-                  width: 44,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: c.text1,
-                    borderRadius: BorderRadius.circular(TempoRadii.pill),
-                  ),
-                  alignment: Alignment.center,
-                  child: TempoIcon(
-                    TempoIcons.plus,
-                    size: 20,
-                    color: c.textInverse,
-                    stroke: 2.25,
+            child: SizedBox(
+              height: 43,
+              child: Center(
+                child: Pressable(
+                  label: 'Start or log',
+                  onTap: onAdd,
+                  child: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: c.text1,
+                      shape: BoxShape.circle,
+                    ),
+                    alignment: Alignment.center,
+                    child: TempoIcon(
+                      TempoIcons.plus,
+                      size: 20,
+                      color: c.textInverse,
+                      stroke: 2.25,
+                    ),
                   ),
                 ),
               ),
