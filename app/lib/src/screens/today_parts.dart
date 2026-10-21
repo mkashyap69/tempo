@@ -290,60 +290,76 @@ class CallLine extends StatelessWidget {
   }
 }
 
-/// "Not today?": pause the plan for illness or travel in one tap.
-class NotTodayCard extends ConsumerStatefulWidget {
-  const NotTodayCard({super.key, this.onDone});
+/// Opens the "not today" sheet: pause the plan for illness or travel.
+Future<void> showPauseSheet(BuildContext context) => showTempoSheet<void>(
+  context,
+  builder: (ctx) => PauseSheet(onDone: () => Navigator.pop(ctx)),
+);
 
-  /// Called once the pause starts (the start sheet closes itself).
+/// "Not today?" in a sheet: why, then pause. Closing the sheet is the
+/// "no".
+class PauseSheet extends ConsumerStatefulWidget {
+  const PauseSheet({super.key, this.onDone});
+
+  /// Called once the pause starts.
   final VoidCallback? onDone;
   @override
-  ConsumerState<NotTodayCard> createState() => _NotTodayState();
+  ConsumerState<PauseSheet> createState() => _PauseSheetState();
 }
 
-class _NotTodayState extends ConsumerState<NotTodayCard> {
+class _PauseSheetState extends ConsumerState<PauseSheet> {
   var _reason = PauseReason.ill;
 
   @override
   Widget build(BuildContext context) {
     final c = context.c;
-    return TempoCard(
-      label: 'Not today',
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text('Not today?', style: TempoType.titleM.c(c.text1)),
-          const SizedBox(height: 4),
-          Text(
-            'Pause the plan. Scores still show; nothing is carried forward or counted as missed, and baselines hold still.',
-            style: TempoType.bodyS.c(c.text2),
-          ),
-          const SizedBox(height: 14),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final r in PauseReason.values)
-                TempoChip(
-                  pauseLabel(r),
-                  selected: _reason == r,
-                  onTap: () => setState(() => _reason = r),
-                ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          TempoButton(
-            'Pause the plan',
-            expand: true,
-            onTap: () async {
-              await startPause(ref.read(dbProvider), _reason);
-              ref.invalidate(todayProvider);
-              widget.onDone?.call();
-            },
-          ),
-        ],
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text('Not today?', style: TempoType.titleL.c(c.text1)),
+        const SizedBox(height: 6),
+        Text(
+          'Pause the plan. Scores still show; nothing is carried forward or counted as missed, and baselines hold still.',
+          style: TempoType.bodyS.c(c.text2),
+        ),
+        const SizedBox(height: 16),
+        TempoSegmented<PauseReason>(
+          values: PauseReason.values,
+          labels: [for (final r in PauseReason.values) pauseLabel(r)],
+          selected: _reason,
+          onChanged: (r) => setState(() => _reason = r),
+        ),
+        const SizedBox(height: 16),
+        TempoButton(
+          'Pause the plan',
+          expand: true,
+          onTap: () async {
+            await startPause(ref.read(dbProvider), _reason);
+            ref.invalidate(todayProvider);
+            widget.onDone?.call();
+          },
+        ),
+        const SizedBox(height: 8),
+      ],
     );
   }
+}
+
+/// A quiet link to [showPauseSheet], under the call on a rest day.
+class PauseLink extends StatelessWidget {
+  const PauseLink({super.key});
+
+  @override
+  Widget build(BuildContext context) => Align(
+    alignment: Alignment.centerLeft,
+    child: TempoButton(
+      'Not feeling well? Pause the plan',
+      kind: ButtonKind.text,
+      small: true,
+      onTap: () => showPauseSheet(context),
+    ),
+  );
 }
 
 /// Day progress: strain against today's target, then movement.

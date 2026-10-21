@@ -1290,6 +1290,14 @@ class TempoPage extends StatelessWidget {
                 ),
             ],
           ),
+          // Content scrolls under a solid status bar, not behind the clock.
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: MediaQuery.of(context).padding.top,
+            child: ColoredBox(color: context.c.bg),
+          ),
           ?overlay,
         ],
       ),

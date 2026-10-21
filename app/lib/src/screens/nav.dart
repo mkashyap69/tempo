@@ -15,7 +15,7 @@ import 'journal.dart';
 import 'live_workout.dart';
 import 'pairing.dart';
 import 'strength_log.dart';
-import 'today_parts.dart' show NotTodayCard;
+import 'today_parts.dart' show showPauseSheet;
 
 /// The selected tab (0 Today, 1 Plan, 2 Progress, 3 You).
 /// The shell follows it, so any screen can switch tabs.
@@ -231,10 +231,7 @@ Future<void> showStartSheet(BuildContext context, WidgetRef ref) async {
     case 'checkin':
       await push(context, const JournalScreen(standalone: true));
     case 'pause':
-      await showTempoSheet<void>(
-        context,
-        builder: (ctx) => NotTodayCard(onDone: () => Navigator.pop(ctx)),
-      );
+      await showPauseSheet(context);
   }
 }
 

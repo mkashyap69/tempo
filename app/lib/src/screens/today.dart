@@ -390,14 +390,15 @@ abstract final class TodayBody {
           ];
         case sc.DayPhase.rest:
           body = [
-            if (checkIn)
+            if (checkIn && !evening)
               MorningCheckIn(day: t.day, askFeel: askFeel, showDone: morning),
-            call,
-            if (t.pause == null) const NotTodayCard(),
-            ?session,
+            // Evening: tonight is what's left to do; one box, not three.
             if (evening) TonightCard(t: t),
+            call,
+            if (t.pause == null) const PauseLink(),
+            if (!evening) ?session,
             rings,
-            LastNightStrip(t: t),
+            if (!evening) LastNightStrip(t: t),
           ];
         case sc.DayPhase.morning:
           body = [
