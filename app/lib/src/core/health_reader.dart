@@ -18,6 +18,21 @@ enum HealthConnectResult {
   needsInstall,
 }
 
+/// What Health says Tempo may read. Null: Health won't say (Apple Health
+/// hides read access, so every kind there is null).
+final class HealthPermissions {
+  const HealthPermissions({
+    this.kinds = const {},
+    this.history,
+    this.background,
+  });
+  final Map<HealthKind, bool?> kinds;
+
+  /// Health Connect: history older than 30 days / reads while in the
+  /// background. Null where the permission doesn't exist.
+  final bool? history, background;
+}
+
 /// Reads Apple Health or Health Connect. An interface so the sync can be
 /// tested without the plugin.
 abstract class HealthReader {
@@ -36,6 +51,10 @@ abstract class HealthReader {
   /// can't be read while the phone is locked, which surfaces as a failed
   /// read instead.
   Future<bool> canReadInBackground();
+
+  /// Read permission per kind, plus Health Connect's history and
+  /// background permissions (Profile → Developer → Health data check).
+  Future<HealthPermissions> permissions();
 
   /// Records of [kind] starting in [from, to). Throws when the read fails.
   /// (Health Connect turns some failures into an empty list; the sync's
@@ -193,6 +212,51 @@ class PluginHealthReader implements HealthReader {
     } catch (_) {
       return false;
     }
+  }
+
+  /// TODO(verify): what hasPermissions returns per type on a real phone
+  /// (the plugin documents null for iOS reads).
+  @override
+  Future<HealthPermissions> permissions() async {
+    await _ready();
+    final kinds = <HealthKind, bool?>{};
+    for (final e in _types.entries) {
+      if (_ios) {
+        kinds[e.key] = null;
+        continue;
+      }
+      try {
+        kinds[e.key] = await _h.hasPermissions(
+          e.value,
+          permissions: [for (final _ in e.value) HealthDataAccess.READ],
+        );
+      } catch (_) {
+        kinds[e.key] = null;
+      }
+    }
+    if (_ios) return HealthPermissions(kinds: kinds);
+    Future<bool?> ask(
+      Future<bool> Function() available,
+      Future<bool> Function() authorized,
+    ) async {
+      try {
+        return await available() ? await authorized() : null;
+      } catch (_) {
+        return null;
+      }
+    }
+
+    return HealthPermissions(
+      kinds: kinds,
+      history: await ask(
+        _h.isHealthDataHistoryAvailable,
+        _h.isHealthDataHistoryAuthorized,
+      ),
+      background: await ask(
+        _h.isHealthDataInBackgroundAvailable,
+        _h.isHealthDataInBackgroundAuthorized,
+      ),
+    );
   }
 
   @override

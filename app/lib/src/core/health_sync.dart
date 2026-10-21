@@ -423,6 +423,24 @@ class HealthSyncService {
   }
 }
 
+/// Makes the next read reach [back] into the past (Profile → Developer).
+/// Only the cursor moves: records already stored are ignored on the way
+/// in, and nothing stored is touched.
+Future<void> rereadHealth(
+  TempoDb db, {
+  Duration back = HealthSyncService.firstWindow,
+  DateTime? now,
+}) async {
+  final t = now ?? DateTime.now();
+  // The next read is a deep one, from the cursor back [deepWindow].
+  await db.setCursor(
+    HealthSyncService.device,
+    HealthSyncService.cursorType,
+    t.subtract(back).add(HealthSyncService.deepWindow),
+  );
+  await db.deleteSetting(Keys.healthDeepRead);
+}
+
 /// Rebuilds the derived per-minute rows for [from, to) from the stored
 /// records, a week at a time. Records are read a little beyond each week so
 /// heart rate interpolates across the edges and a sleep record that

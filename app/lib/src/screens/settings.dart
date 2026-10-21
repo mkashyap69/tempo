@@ -8,11 +8,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:scoring/scoring.dart' as sc;
 import 'package:share_plus/share_plus.dart';
 
+import '../core/background.dart' show runBackgroundSync;
 import '../core/band_link.dart';
 import '../core/battery.dart';
 import '../core/data_source.dart';
 import '../core/export.dart';
 import '../core/format.dart';
+import '../core/health_sync.dart' show rereadHealth;
 import '../core/home_widgets.dart';
 import '../core/background_guard.dart';
 import '../core/key_store.dart';
@@ -993,6 +995,66 @@ class SettingsScreen extends ConsumerWidget {
               onTap: health
                   ? () => push(context, const HealthCheckScreen())
                   : null,
+            ),
+            if (health)
+              ListRow(
+                'Re-read last 90 days',
+                sub: 'Fills anything a read missed; nothing is deleted',
+                onTap: sync.running
+                    ? null
+                    : () async {
+                        final ok = await confirmSheet(
+                          context,
+                          title: 'Re-read 90 days of ${source.label}?',
+                          body: 'Reads everything again from 90 days back. Records Tempo already has are skipped, and every day it covers is rescored. Takes a minute or two.',
+                          action: 'Re-read',
+                        );
+                        if (!ok) return;
+                        await rereadHealth(db);
+                        final r = await ref
+                            .read(syncProvider.notifier)
+                            .syncNow();
+                        if (context.mounted) {
+                          showTempoToast(
+                            context,
+                            r.message ?? 'Re-read didn’t finish',
+                          );
+                        }
+                      },
+              ),
+            ListRow(
+              'Clear sync error',
+              sub: sync.problem == SyncProblem.none
+                  ? 'No error showing'
+                  : 'Hides the banner until a sync fails again',
+              onTap: sync.problem == SyncProblem.none
+                  ? null
+                  : () => ref.read(syncProvider.notifier).clearProblem(),
+            ),
+            ListRow(
+              'Run background sync now',
+              sub: 'The overnight run, started from here',
+              onTap: sync.running
+                  ? null
+                  : () async {
+                      final ok = await runBackgroundSync(db);
+                      if (!context.mounted) return;
+                      showTempoToast(
+                        context,
+                        ok
+                            ? 'Background run finished · see Sync health'
+                            : 'Background run failed · see Sync health',
+                      );
+                    },
+            ),
+            ListRow(
+              'Send a test notification',
+              sub: 'Arrives in 5 seconds',
+              onTap: () async {
+                await TempoNotifications.instance.requestPermission();
+                await TempoNotifications.instance.test();
+                if (context.mounted) showTempoToast(context, 'Sent');
+              },
             ),
             ListRow(
               'Hide developer settings',
