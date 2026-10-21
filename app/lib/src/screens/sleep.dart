@@ -536,6 +536,21 @@ class TonightCard extends ConsumerWidget {
     final c = context.c, s = context.s;
     final strainPart = t.strain * const sc.SleepParams().strainFactor;
     final debtPart = t.debt * const sc.SleepParams().debtFactor;
+    ref.watch(minuteClockProvider);
+    final now = appNow();
+    final nowMin = now.hour * 60 + now.minute;
+    // Past bedtime: say so, and what going to bed now still buys.
+    final late = sc.minutesPastBedtime(nowMin, t.bedtimeMinute, t.wakeMinute);
+    final left = sc.sleepIfBedNow(nowMin, t.wakeMinute);
+    final short = t.needTonight - left;
+    // A reminder only while it's still ahead.
+    final remind =
+        sc.minutesPastBedtime(
+          nowMin,
+          (t.bedtimeMinute - 30) % 1440,
+          t.wakeMinute,
+        ) ==
+        null;
     return TempoCard(
       color: s.tintSleep,
       padding: const EdgeInsets.fromLTRB(16, 18, 16, 18),
@@ -575,11 +590,18 @@ class TonightCard extends ConsumerWidget {
               ),
               const SizedBox(width: 10),
               Text(
-                '${t.bedtimeMinute < 720 ? 'am' : 'pm'} bedtime',
+                '${t.bedtimeMinute < 720 ? 'am' : 'pm'} bedtime${late == null ? '' : ' · passed'}',
                 style: TempoType.titleM.c(c.text2),
               ),
             ],
           ),
+          if (late != null) ...[
+            const SizedBox(height: 10),
+            Text(
+              'Bed now and you get ${hmShort(left)} before ${clock12(t.wakeMinute)}${short > 1 / 6 ? ', ${hmShort(short)} under tonight’s need' : ''}.',
+              style: TempoType.body.c(c.text1).tnum,
+            ),
+          ],
           const SizedBox(height: 14),
           SegmentBar(
             height: 8,
@@ -609,25 +631,26 @@ class TonightCard extends ConsumerWidget {
           const SizedBox(height: 14),
           Row(
             children: [
-              Expanded(
-                child: TempoButton(
-                  'Remind me at ${clock12((t.bedtimeMinute - 30) % 1440)}',
-                  small: true,
-                  expand: true,
-                  onTap: () async {
-                    final db = ref.read(dbProvider);
-                    await db.putSetting(Keys.bedtimeNudge, '30');
-                    await rescheduleNotifications(db, t);
-                    if (context.mounted) {
-                      showTempoToast(
-                        context,
-                        'Reminder set for ${clock12((t.bedtimeMinute - 30) % 1440)}',
-                      );
-                    }
-                  },
+              if (remind)
+                Expanded(
+                  child: TempoButton(
+                    'Remind me at ${clock12((t.bedtimeMinute - 30) % 1440)}',
+                    small: true,
+                    expand: true,
+                    onTap: () async {
+                      final db = ref.read(dbProvider);
+                      await db.putSetting(Keys.bedtimeNudge, '30');
+                      await rescheduleNotifications(db, t);
+                      if (context.mounted) {
+                        showTempoToast(
+                          context,
+                          'Reminder set for ${clock12((t.bedtimeMinute - 30) % 1440)}',
+                        );
+                      }
+                    },
+                  ),
                 ),
-              ),
-              const SizedBox(width: 10),
+              if (remind) const SizedBox(width: 10),
               TempoButton(
                 'Change wake',
                 small: true,

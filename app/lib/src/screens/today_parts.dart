@@ -781,6 +781,9 @@ class TonightLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.c, s = context.s;
+    final now = appNow();
+    final nowMin = now.hour * 60 + now.minute;
+    final late = sc.minutesPastBedtime(nowMin, t.bedtimeMinute, t.wakeMinute);
     return TempoCard(
       label: 'Tonight',
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -791,7 +794,9 @@ class TonightLine extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              'Tonight · need ${hmShort(t.needTonight)} · bed by ${clock12(t.bedtimeMinute)}',
+              late == null
+                  ? 'Tonight · need ${hmShort(t.needTonight)} · bed by ${clock12(t.bedtimeMinute)}'
+                  : 'Past bedtime · bed now gives ${hmShort(sc.sleepIfBedNow(nowMin, t.wakeMinute))}',
               style: TempoType.bodyS.c(c.text1).tnum,
             ),
           ),

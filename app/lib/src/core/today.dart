@@ -147,6 +147,10 @@ class TodayData {
   ];
 }
 
+/// The clock screens read for the time of day (Today's phases, Tonight).
+/// Tests set it.
+DateTime Function() appNow = DateTime.now;
+
 /// Wellbeing and fat-loss priorities read the day in words, not strain.
 bool plainWords(Profile p) =>
     p.goal == sc.Goal.wellbeing || p.goal == sc.Goal.fatLoss;

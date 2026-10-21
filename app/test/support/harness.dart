@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:store/store.dart';
 import 'package:tempo/src/core/notifications.dart';
 import 'package:tempo/src/design/theme.dart';
-import 'package:tempo/src/screens/today.dart' show todayNow;
+import 'package:tempo/src/core/today.dart' show appNow;
 import 'package:tempo/src/state/providers.dart';
 
 import 'fake_sink.dart';
@@ -32,7 +32,7 @@ Widget harness(
   BluetoothAdapterState adapter = BluetoothAdapterState.on,
 }) {
   notificationSink = FakeNotificationSink();
-  todayNow = clockAt(testHour);
+  appNow = clockAt(testHour);
   return _scope(db, child, b: b, sync: sync, adapter: adapter);
 }
 

@@ -217,4 +217,25 @@ void main() {
       );
     });
   });
+
+  group('past bedtime', () {
+    const bed = 21 * 60 + 17, wake = 6 * 60;
+    test('before bedtime is null', () {
+      expect(minutesPastBedtime(20 * 60, bed, wake), isNull);
+    });
+    test('after bedtime, before midnight and after it', () {
+      expect(minutesPastBedtime(22 * 60 + 49, bed, wake), 92);
+      expect(minutesPastBedtime(60, bed, wake), 223);
+    });
+    test('after waking it is the next day', () {
+      expect(minutesPastBedtime(7 * 60, bed, wake), isNull);
+    });
+    test('a bedtime after midnight', () {
+      expect(minutesPastBedtime(23 * 60, 30, 8 * 60), isNull);
+      expect(minutesPastBedtime(45, 30, 8 * 60), 15);
+    });
+    test('sleep left if you go to bed now', () {
+      expect(sleepIfBedNow(22 * 60 + 50, wake), closeTo(7, .01));
+    });
+  });
 }

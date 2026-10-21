@@ -14,6 +14,20 @@ int bedtimeMinute(
   int latency = fallAsleepMinutes,
 }) => ((wakeMinute - (needHours * 60).round() - latency) % 1440 + 1440) % 1440;
 
+/// Minutes since [bedtime] when [now] falls between bedtime and [wake]
+/// (all minutes of day, across midnight), else null: before bedtime, or
+/// already the next day.
+int? minutesPastBedtime(int now, int bedtime, int wake) {
+  final window = ((wake - bedtime) % 1440 + 1440) % 1440;
+  final since = ((now - bedtime) % 1440 + 1440) % 1440;
+  return since < window ? since : null;
+}
+
+/// Hours of sleep left before [wake] if you go to bed at [now], allowing
+/// [latency] to fall asleep.
+double sleepIfBedNow(int now, int wake, {int latency = fallAsleepMinutes}) =>
+    (((wake - now - latency) % 1440 + 1440) % 1440) / 60;
+
 /// Median of clock times (minutes after midnight), wrapping around midnight
 /// so 23:50 and 00:10 average near midnight. Evening times are shifted.
 int medianClock(List<int> minutes) {

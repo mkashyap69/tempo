@@ -7,7 +7,9 @@ import 'package:tempo/src/core/coach_service.dart';
 import 'package:tempo/src/core/pause.dart';
 import 'package:tempo/src/core/profile.dart';
 import 'package:tempo/src/core/today.dart';
+import 'package:tempo/src/design/components.dart' show TempoPage;
 import 'package:tempo/src/screens/highlight.dart';
+import 'package:tempo/src/screens/sleep.dart' show TonightCard;
 import 'package:tempo/src/screens/today.dart';
 import 'package:tempo/src/screens/weekly_review.dart';
 
@@ -144,6 +146,28 @@ void main() {
     expect(find.text('ENERGY'), findsOneWidget);
     expect(find.text('EFFORT'), findsOneWidget);
     expect(find.textContaining('strain under'), findsNothing);
+    await teardown(t, db);
+  });
+
+  testWidgets('past bedtime: says so, and no reminder in the past', (t) async {
+    final db = (await t.runAsync(() => seededDb(days: 30)))!;
+    final today = (await t.runAsync(() => loadToday(db)))!;
+    // An hour and a half after tonight's bedtime.
+    final late = (today.bedtimeMinute + 90) % 1440;
+    testHour = late ~/ 60;
+    addTearDown(() => testHour = 9);
+    final now = DateTime.now();
+    appNow = () =>
+        DateTime(now.year, now.month, now.day, late ~/ 60, late % 60);
+    await t.pumpWidget(
+      harness(db, TempoPage(children: [TonightCard(t: today)])),
+    );
+    appNow = () =>
+        DateTime(now.year, now.month, now.day, late ~/ 60, late % 60);
+    await settle(t);
+    expect(find.textContaining('bedtime · passed'), findsOneWidget);
+    expect(find.textContaining('Bed now and you get'), findsOneWidget);
+    expect(find.textContaining('Remind me at'), findsNothing);
     await teardown(t, db);
   });
 }

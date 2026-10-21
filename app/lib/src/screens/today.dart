@@ -42,10 +42,6 @@ import 'workout_detail.dart';
 import 'today_charts.dart';
 import 'workouts.dart';
 
-/// The clock Today's layout reads (morning, day, evening). Tests set it.
-@visibleForTesting
-DateTime Function() todayNow = DateTime.now;
-
 class TodayScreen extends ConsumerWidget {
   const TodayScreen({super.key, this.onTab});
   final ValueChanged<int>? onTab;
@@ -103,7 +99,7 @@ abstract final class TodayBody {
         !t.plan!.isRest &&
         (t.status == sc.DayStatus.done || t.status == sc.DayStatus.doneEasier);
     // Asked before the call and the rings, so the score can't sway it.
-    final now = todayNow();
+    final now = appNow();
     final felt = ref.watch(feelProvider(st.dateKey(t.day)));
     final askFeel =
         !noData &&
