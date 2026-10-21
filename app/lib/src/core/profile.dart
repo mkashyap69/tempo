@@ -87,6 +87,10 @@ abstract final class Keys {
   static const experiment = 'journal_experiment';
   static const experimentsDone = 'journal_experiments_done';
 
+  /// ISO|minutes: the last sync found the band's history cleared by
+  /// another app; removed by the next sync without a gap.
+  static const bandCleared = 'band_cleared';
+
   /// Profile → Developer shown: 1 after seven taps on the version line.
   static const devMode = 'dev_mode';
 }

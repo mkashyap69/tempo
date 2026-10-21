@@ -8,6 +8,7 @@ import '../core/data_source.dart';
 import '../core/feel.dart';
 import '../core/health_reader.dart';
 import '../core/format.dart';
+import '../core/profile.dart' show Keys;
 import '../core/pause.dart';
 import '../core/today.dart';
 import '../design/components.dart';
@@ -128,6 +129,13 @@ abstract final class TodayBody {
     }
 
     Widget? banner;
+    // Minutes another app cleared from the band, from the last sync.
+    final clearedRaw = source.isHealth
+        ? null
+        : ref.watch(settingProvider(Keys.bandCleared)).value;
+    final cleared = clearedRaw == null
+        ? null
+        : int.tryParse(clearedRaw.split('|').last);
     final asOf = t.lastSync == null
         ? ''
         : ' Showing data from ${clockOf(t.lastSync!)}.';
@@ -220,6 +228,15 @@ abstract final class TodayBody {
             : '${asOf.trim()} Check Bluetooth and keep the band nearby.'.trim(),
         action: 'Reconnect',
         onAction: () => ref.read(syncProvider.notifier).syncNow(),
+      );
+    } else if (cleared != null && !sync.running) {
+      banner = StatusBanner(
+        icon: TempoIcons.alert,
+        title: 'Another app is clearing your band',
+        body:
+            'An app such as Mi Fitness or Zepp Life read the band and erased its history, so Tempo missed ${hmSpaced(cleared / 60)}. Close it and turn off its Bluetooth access (iPhone: Settings → Mi Fitness → Bluetooth). Don’t remove the band inside it: that changes the auth key.',
+        action: 'Got it',
+        onAction: () => ref.read(dbProvider).deleteSetting(Keys.bandCleared),
       );
     } else if (t.stale && !sync.running) {
       banner = StatusBanner(

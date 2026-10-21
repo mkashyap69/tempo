@@ -31,14 +31,20 @@ class SyncReport {
     this.earliestNew, {
     this.newWorkouts = 0,
     this.gapMinutes = 0,
+    this.clearedByOther = false,
     this.bandWorkouts = 0,
   });
   final Map<String, int> counts;
   final DateTime? earliestNew;
   final int newWorkouts;
 
-  /// Activity minutes the band had already overwritten (memory full).
+  /// Activity minutes between Tempo's cursor and the oldest minute the
+  /// band still had: overwritten (memory full) or cleared by another app.
   final int gapMinutes;
+
+  /// The gap came while the cursor was too recent for a full memory, so
+  /// another app (Mi Fitness, Zepp Life) fetched and cleared the history.
+  final bool clearedByOther;
 
   /// Workouts recorded on the band's Workout app, new this sync.
   final int bandWorkouts;
@@ -94,7 +100,20 @@ class SyncService {
         },
       );
       await db.deleteSetting(Keys.lastError);
-      if (r.gapMinutes > 0) await db.logSync(gapSummary(r.gapMinutes), 'gap');
+      if (r.gapMinutes > 0) {
+        await db.logSync(
+          gapSummary(r.gapMinutes, otherApp: r.clearedByOther),
+          'gap',
+        );
+      }
+      if (r.clearedByOther) {
+        await db.putSetting(
+          Keys.bandCleared,
+          '${DateTime.now().toIso8601String()}|${r.gapMinutes}',
+        );
+      } else if (r.minutes > 0) {
+        await db.deleteSetting(Keys.bandCleared);
+      }
       await db.logSync(_summary(r), 'ok', took: DateTime.now().difference(t0));
       return r;
     } catch (e) {
@@ -214,10 +233,12 @@ class SyncService {
   }
 
   /// "Band memory was full · 3h 20m not recovered".
-  static String gapSummary(int minutes) {
+  static String gapSummary(int minutes, {bool otherApp = false}) {
     final h = minutes ~/ 60, m = minutes % 60;
     final d = h == 0 ? '$m min' : '${h}h ${m.toString().padLeft(2, '0')}m';
-    return 'Band memory was full · $d not recovered';
+    return otherApp
+        ? 'Another app cleared the band · $d not recovered'
+        : 'Band memory was full · $d not recovered';
   }
 
   static String _summary(SyncReport r) {
@@ -263,6 +284,7 @@ class SyncService {
     final counts = <String, int>{};
     DateTime? earliest;
     var gap = 0;
+    var cleared = false;
     for (final type in syncedTypes) {
       // A fetch stops at the end of the band's current block (stress on
       // V1.0.6.20: a fetch from before 17:58 on 5 Oct got only the 9 minutes
@@ -286,7 +308,9 @@ class SyncService {
         // The band starts from the oldest record it still has. Later than
         // our cursor means it overwrote minutes we never fetched.
         if (type == FetchType.activity) {
-          gap += activityGapMinutes(cursor, start);
+          final g = activityGapMinutes(cursor, start);
+          gap += g;
+          if (g > 0 && clearedNotFull(cursor!, DateTime.now())) cleared = true;
         }
         DateTime? last;
         switch (type) {
@@ -425,6 +449,7 @@ class SyncService {
       earliest,
       newWorkouts: (after - before).clamp(0, 999),
       gapMinutes: gap,
+      clearedByOther: cleared,
       bandWorkouts: bandNew,
     );
   }
@@ -455,3 +480,13 @@ int activityGapMinutes(DateTime? cursor, DateTime start) {
   final d = start.difference(cursor).inMinutes;
   return d > 2 ? d : 0;
 }
+
+/// The band keeps about 12.5 days of minutes (18,189 in the 18 Oct
+/// explorer dump). A gap after a cursor younger than this can't be a full
+/// memory: another app fetched the history, and the Huami ack it sends
+/// deletes what it read (Tempo's ack keeps it). TODO(verify) against a
+/// capture of Mi Fitness syncing.
+const bandMemory = Duration(days: 10);
+
+bool clearedNotFull(DateTime cursor, DateTime now) =>
+    now.difference(cursor) < bandMemory;
