@@ -391,7 +391,6 @@ abstract final class TodayBody {
             // Evening: tonight is what's left to do; one box, not three.
             if (evening) TonightCard(t: t),
             call,
-            if (t.pause == null) const PauseLink(),
             if (!evening) ?session,
             rings,
             if (!evening) LastNightStrip(t: t),

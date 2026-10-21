@@ -346,22 +346,6 @@ class _PauseSheetState extends ConsumerState<PauseSheet> {
   }
 }
 
-/// A quiet link to [showPauseSheet], under the call on a rest day.
-class PauseLink extends StatelessWidget {
-  const PauseLink({super.key});
-
-  @override
-  Widget build(BuildContext context) => Align(
-    alignment: Alignment.centerLeft,
-    child: TempoButton(
-      'Not feeling well? Pause the plan',
-      kind: ButtonKind.text,
-      small: true,
-      onTap: () => showPauseSheet(context),
-    ),
-  );
-}
-
 /// Day progress: strain against today's target, then movement.
 class DayProgress extends StatelessWidget {
   const DayProgress({super.key, required this.t});

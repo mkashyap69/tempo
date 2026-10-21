@@ -11,6 +11,7 @@ import 'package:tempo/src/design/components.dart' show TempoPage;
 import 'package:tempo/src/screens/highlight.dart';
 import 'package:tempo/src/screens/sleep.dart' show TonightCard;
 import 'package:tempo/src/screens/today.dart';
+import 'package:tempo/src/screens/today_parts.dart' show showPauseSheet;
 import 'package:tempo/src/screens/weekly_review.dart';
 
 import 'support/harness.dart';
@@ -61,17 +62,34 @@ void main() {
     },
   );
 
-  testWidgets('a rest day: one link to pause, in a sheet you can close', (
-    t,
-  ) async {
+  testWidgets('a rest day is the call, no pause box on the page', (t) async {
     final db = (await t.runAsync(illDb))!;
     await render(t, db, const TodayScreen());
     expect(find.textContaining('Take it easy today.'), findsOneWidget);
     expect(find.text('Body signals are off'), findsOneWidget);
-    expect(find.text('Not today?'), findsNothing); // no card on the page
-    const link = 'Not feeling well? Pause the plan';
+    expect(find.text('Not today?'), findsNothing);
+    expect(find.textContaining('Pause the plan'), findsNothing);
+    await teardown(t, db);
+  });
+
+  testWidgets('the pause sheet (from + and You) closes or pauses', (t) async {
+    final db = (await t.runAsync(illDb))!;
+    await render(
+      t,
+      db,
+      Scaffold(
+        body: Builder(
+          builder: (context) => Center(
+            child: TextButton(
+              onPressed: () => showPauseSheet(context),
+              child: const Text('open'),
+            ),
+          ),
+        ),
+      ),
+    );
     // Closing the sheet is the "no": nothing changes.
-    await t.tap(find.text(link));
+    await t.tap(find.text('open'));
     await settle(t);
     expect(find.text('Not today?'), findsOneWidget);
     await t.tapAt(const Offset(195, 40));
@@ -79,25 +97,23 @@ void main() {
     expect(find.text('Not today?'), findsNothing);
     expect(activePause((await t.runAsync(() => loadPauses(db)))!), isNull);
     // Pausing.
-    await t.tap(find.text(link));
+    await t.tap(find.text('open'));
     await settle(t);
     await t.tap(find.text('Pause the plan'));
     await settle(t);
     final pauses = (await t.runAsync(() => loadPauses(db)))!;
     expect(activePause(pauses)?.reason, PauseReason.ill);
-    expect(find.text(link), findsNothing);
-    expect(find.textContaining('Paused'), findsWidgets);
+    expect(find.text('Not today?'), findsNothing);
     await teardown(t, db);
   });
 
-  testWidgets('a rest evening is tonight, the call and a link', (t) async {
+  testWidgets('a rest evening is tonight and the call', (t) async {
     testHour = 22;
     addTearDown(() => testHour = 9);
     final db = (await t.runAsync(illDb))!;
     await render(t, db, const TodayScreen());
     expect(find.text('TONIGHT'), findsOneWidget);
     expect(find.text('Start easy walk'), findsNothing);
-    expect(find.text('Not feeling well? Pause the plan'), findsOneWidget);
     await teardown(t, db);
   });
 
