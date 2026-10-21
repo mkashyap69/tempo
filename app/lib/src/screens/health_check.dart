@@ -326,6 +326,12 @@ class _Pipeline extends StatelessWidget {
         ('Asleep, records', _hm(q.sleepRecordMin)),
         ('Asleep, minutes', _hm(q.sleepMin)),
         if (stages.isNotEmpty) ('Stages', stages),
+        for (final a in q.sleepApps)
+          (
+            'Sleep app',
+            '${a.label} · ${a.staged ? 'stages' : 'no stages'}${a.used ? '' : ' · not used'}',
+          ),
+        if (q.tempoWrote) ('Sleep app', 'Tempo’s own exports · skipped'),
         ('HR records today', '${q.hrRecords}'),
         (
           'HR minutes today',

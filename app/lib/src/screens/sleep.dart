@@ -14,7 +14,9 @@ import 'package:store/store.dart' as st;
 
 import '../core/alarm.dart';
 import '../core/band_link.dart' show deviceIdKey;
+import '../core/data_source.dart';
 import '../core/format.dart';
+import '../core/health_sync.dart' show NightSleepApp, nightSleepApps;
 import '../core/home_widgets.dart';
 import '../core/profile.dart';
 import '../core/minutes.dart';
@@ -43,14 +45,24 @@ class Night {
     required this.hrBand,
     this.staged = true,
     this.breathing,
+    this.source = DataSource.band,
+    this.sleepApps = const [],
+    this.tempoWrote = false,
   });
   final DateTime morning;
 
   /// Sleep SpO₂ and desaturations, scored; null without enough SpO₂.
   final sc.BreathingNight? breathing;
 
-  /// False when the band sampled HR too rarely to estimate stages.
+  /// False when the band sampled HR too rarely to estimate stages, or
+  /// when no Health app Tempo uses wrote stages for the night.
   final bool staged;
+  final DataSource source;
+
+  /// Health only, for an unstaged night: who wrote sleep for it, and
+  /// whether Tempo has ever written nights to Health (those are skipped).
+  final List<NightSleepApp> sleepApps;
+  final bool tempoWrote;
   final List<sc.Minute> minutes;
   final int latency;
   final List<st.Spo2Sample> spo2;
@@ -112,6 +124,10 @@ final nightProvider = FutureProvider.family<Night, DateTime>((
     morning.add(const Duration(days: 1)),
     limit: 30,
   );
+  final source = await loadDataSource(db);
+  final apps = source.isHealth && decoded.unstaged
+      ? await nightSleepApps(db, a, b)
+      : null;
   // Low-confidence SpO₂ minutes (band quality < 40 of 64) are left out.
   final spo2 = [
     for (final x in await loadSpo2(db, a, b))
@@ -167,6 +183,9 @@ final nightProvider = FutureProvider.family<Night, DateTime>((
     ],
     hrBand: lo == null || hi == null ? null : (lo, hi + 4),
     staged: !decoded.unstaged,
+    source: source,
+    sleepApps: apps?.apps ?? const [],
+    tempoWrote: apps?.tempoWrote ?? false,
   );
 });
 
@@ -398,7 +417,7 @@ class SleepScreen extends ConsumerWidget {
                 const SizedBox(height: 12),
                 if (!night.staged) ...[
                   Text(
-                    'No stages for this night: the band measured heart rate only every 10–30 minutes. Tempo sets it back to every minute on each sync; if this repeats, another app such as Mi Fitness is changing it.',
+                    unstagedNote(night),
                     style: TempoType.caption.c(c.text2),
                   ),
                   const SizedBox(height: 8),
@@ -947,4 +966,28 @@ class Hypnogram extends StatelessWidget {
       ],
     );
   }
+}
+
+/// Why [night] has no stages, in the words of its source.
+String unstagedNote(Night night) {
+  if (!night.source.isHealth) {
+    return 'No stages for this night: the band measured heart rate only every 10–30 minutes. Tempo sets it back to every minute on each sync; if this repeats, another app such as Mi Fitness is changing it.';
+  }
+  final src = night.source.label;
+  String names(Iterable<NightSleepApp> xs) =>
+      xs.map((x) => x.label).join(' and ');
+  final used = night.sleepApps.where((x) => x.used).toList();
+  final staged = night.sleepApps.where((x) => x.staged && !x.used).toList();
+  final own = night.tempoWrote
+      ? ' Tempo has written nights to $src itself; it skips those, so a night isn\'t counted twice, even where $src shows them with stages.'
+      : '';
+  if (used.isEmpty) {
+    return 'No stages for this night: no app wrote stages to $src for it.$own';
+  }
+  final lead =
+      'No stages for this night: ${names(used)} wrote only time asleep or in bed to $src, without light, deep or REM.';
+  if (staged.isNotEmpty) {
+    return '$lead ${names(staged)} wrote stages: choose it in Profile → Data sources → Sleep.$own';
+  }
+  return '$lead$own';
 }

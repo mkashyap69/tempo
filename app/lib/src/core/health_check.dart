@@ -121,6 +121,8 @@ final class PipelineCheck {
     required this.stepsTempo,
     required this.stepsBySource,
     required this.chosen,
+    this.sleepApps = const [],
+    this.tempoWrote = false,
     this.today,
     this.yesterday,
   });
@@ -149,6 +151,11 @@ final class PipelineCheck {
 
   /// Profile → Data sources: chosen app per measure, null = every app.
   final Map<SourceMetric, String?> chosen;
+
+  /// Apps that wrote last night's sleep, and whether Tempo has ever
+  /// written nights to Health (skipped on every read).
+  final List<NightSleepApp> sleepApps;
+  final bool tempoWrote;
   final DailyScore? today, yesterday;
 }
 
@@ -201,6 +208,10 @@ final class HealthCheckReport {
           'Today · HR records ${q.hrRecords} · HR minutes ${q.hrMeasuredMin} measured, '
           '${q.hrMin} with HR · steps ${q.stepsTempo}'
           '${q.stepsBySource.isEmpty ? '' : ' (records: ${[for (final e in q.stepsBySource.entries) '${src(e.key)} ${e.value}'].join(', ')})'}',
+        )
+        ..writeln(
+          'Sleep apps last night · ${q.sleepApps.isEmpty ? 'none' : [for (final a in q.sleepApps) '${a.label} (${a.staged ? 'stages' : 'no stages'}${a.used ? '' : ', not used'})'].join(', ')}'
+          '${q.tempoWrote ? ' · Tempo has exported to Health (its own records are skipped)' : ''}',
         )
         ..writeln(
           'Chosen apps · ${[for (final e in q.chosen.entries) '${e.key.name} ${e.value == null ? 'all' : src(e.value!)}'].join(', ')}',
@@ -447,6 +458,7 @@ Future<PipelineCheck> checkPipeline(TempoDb db, {DateTime? now}) async {
       .where((e) => e.key != 'awake')
       .fold(0, (a, e) => a + e.value);
 
+  final night = await nightSleepApps(db, nightFrom, nightTo);
   final dayMins = await db.healthMinutesBetween(day0, t);
   final hrRecords = (await db.healthRecordsBetween(
     day0,
@@ -478,6 +490,8 @@ Future<PipelineCheck> checkPipeline(TempoDb db, {DateTime? now}) async {
     stepsTempo: dayMins.fold(0, (a, m) => a + m.steps),
     stepsBySource: stepsBySource,
     chosen: {for (final m in SourceMetric.values) m: await metricSource(db, m)},
+    sleepApps: night.apps,
+    tempoWrote: night.tempoWrote,
     today: await db.scoreFor(day0),
     yesterday: await db.scoreFor(day0.subtract(const Duration(days: 1))),
   );

@@ -613,6 +613,69 @@ Future<List<SleepSourceInfo>> metricSources(
   ]..sort((a, b) => b.nights.compareTo(a.nights));
 }
 
+/// An app that wrote sleep for one night, and what it wrote.
+final class NightSleepApp {
+  const NightSleepApp(
+    this.id,
+    this.label, {
+    required this.staged,
+    required this.used,
+  });
+  final String id, label;
+
+  /// Wrote light / core, deep or REM, not only asleep or in bed.
+  final bool staged;
+
+  /// Counted: no sleep app is chosen, or this is the chosen one.
+  final bool used;
+}
+
+/// Who wrote sleep in [from, to) (Sleep screen, for a night without
+/// stages), staged apps first. Tempo's own nights are never stored (every
+/// read drops them), so [tempoWrote] only says whether Tempo has ever
+/// written to Health (Profile → Health export, band source).
+Future<({List<NightSleepApp> apps, bool tempoWrote})> nightSleepApps(
+  TempoDb db,
+  DateTime from,
+  DateTime to,
+) async {
+  final rows = await db.healthRecordsBetween(
+    from,
+    to,
+    kinds: [
+      for (final k in HealthKind.values)
+        if (k.isSleep) k.name,
+    ],
+  );
+  final chosen = await metricSource(db, SourceMetric.sleep);
+  final names = await sourceNames(db);
+  final staged = <String, bool>{};
+  for (final r in rows) {
+    if (r.sourceApp == tempoAppId) continue;
+    final k = HealthKind.values.asNameMap()[r.kind];
+    final stage = switch (k) {
+      HealthKind.sleepLight ||
+      HealthKind.sleepDeep ||
+      HealthKind.sleepRem => true,
+      _ => false,
+    };
+    staged[r.sourceApp] = (staged[r.sourceApp] ?? false) || stage;
+  }
+  final apps = [
+    for (final e in staged.entries)
+      NightSleepApp(
+        e.key,
+        sourceLabel(e.key, names),
+        staged: e.value,
+        used: chosen == null || chosen == e.key,
+      ),
+  ]..sort((a, b) => (b.staged ? 1 : 0) - (a.staged ? 1 : 0));
+  return (
+    apps: apps,
+    tempoWrote: await db.setting(Keys.healthExportedTo) != null,
+  );
+}
+
 /// Uses only [id]'s sleep (null: every app, merged), then rebuilds the
 /// stored Health minutes and rescores everything they cover.
 Future<void> setSleepSource(TempoDb db, String? id) =>
