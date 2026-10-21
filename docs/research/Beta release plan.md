@@ -1,13 +1,13 @@
 # Beta release plan: Tempo as a product
 
-As of Oct 21, 2026 · Status: direction decided by the owner (see "Decided"), open decisions listed with a recommendation each. Nothing in "Open decisions" is built until it lands in `docs/decisions.md`.
+As of Oct 21, 2026 · Status: direction decided by the owner (see "Decided"). B-O1, B-O2, B-O4, B-O5, B-O6 and B-O8 were closed the same day; the backend (GCP) is planned in `docs/research/Backend plan.md`, which wins where the two differ.
 
 ## Summary
 
 Tempo becomes a product, released first as a public beta on TestFlight and Google Play closed testing. Four things change:
 
 1. **Health apps first.** Apple Health (iOS) and Health Connect (Android) are the only data sources offered in onboarding. The Mi Band 6 BLE path stays in the code, works as today, and is reachable only from You → Developer.
-2. **Accounts.** Sign up and sign in (Apple, Google, email). Health data still stays on the phone: the account carries identity, the Pro entitlement and beta membership, not health records.
+2. **Accounts and encrypted sync on GCP.** Sign up and sign in (Apple, Google, email). Health data is backed up to GCP end-to-end encrypted, so a new phone gets its history back and the server can't read it.
 3. **Freemium.** A free tier, plus Pro as a subscription (monthly, yearly) or a one-time lifetime purchase, bought through the App Store and Google Play.
 4. **Beta operations.** Store listings, privacy and health-data compliance, opt-in crash reports and usage events, in-app feedback, and exit criteria for a public launch.
 
@@ -22,15 +22,16 @@ The scoring engine, Coach, Trends, Longevity and the Health connectors already e
 | B-D3 | Health apps (Apple Health / Health Connect) are the first and default source. Mi Band 6 BLE is secondary and hidden in You → Developer. |
 | B-D4 | Freemium: free tier, Pro by subscription or a one-time purchase. |
 | B-D5 | Focus is the beta release. |
+| B-D6 | All backend work on GCP; health data synced end-to-end encrypted; billing on our own GCP service (no RevenueCat). See `docs/research/Backend plan.md`. |
 
 ## What this changes in the project's rules
 
 | Rule today (CLAUDE.md / PLAN.md) | Change |
 | --- | --- |
-| "Fully on-device. No backend or network calls" | **Health data stays on the phone** (unchanged). Network is allowed only for: account sign-in, entitlements and store billing, and opt-in crash reports and usage events that never carry health values. Each call site is listed in `docs/network.md` (new) and reviewed. |
+| "Fully on-device. No backend or network calls" | **Health data leaves the phone only end-to-end encrypted.** Network is allowed for: sign-in, billing, encrypted sync, opt-in crash reports and usage events that never carry health values, and feedback the user chooses to send. Each call site is listed in `docs/network.md` (new) and reviewed. |
 | "Data comes from the Mi Band 6 over direct BLE, or read-only from Apple Health / Health Connect" | Order flips: Health first, band behind Developer. "Never write back what was read from Health" stays. |
 | "The auth key lives only in flutter_secure_storage" | Unchanged. Account tokens live there too, never in the database or logs. |
-| Privacy copy "No account, no cloud" (onboarding, You) | Becomes "Your health data never leaves this phone. Your account holds your email and your plan, nothing else." |
+| Privacy copy "No account, no cloud" (onboarding, You) | Becomes "Your health data is encrypted on this phone before it's backed up. Only you hold the key; we can't read it." |
 
 ## Product shape for the beta
 
@@ -58,8 +59,8 @@ During the beta every tester has Pro free. The paywall still runs, in the stores
   - Pro bought on one platform works on the other (a lifetime purchase on iPhone unlocks the Android app).
   - Restores Pro on a new phone without hunting for receipts.
   - Beta membership: which build cohort, feedback replies.
-  - Later, optional: end-to-end encrypted backup, so a new phone gets history back (see Open decisions, B-O4).
-- **What the account never holds:** health records, scores, journal entries, the band's auth key. The server can't see them even with a breach.
+  - End-to-end encrypted backup, so a new phone gets its history back (Backend plan → Encrypted sync).
+- **What the server can never read:** health records, the journal, workouts, strength sets. They're stored encrypted with a key only the user's phones and recovery key hold. Scores aren't stored at all; they're recomputed. The band's auth key never leaves the phone.
 - **Delete account** inside the app (required by both stores): deletes the account, cancels nothing by itself (the store owns subscriptions; the screen links to it), and offers to also wipe local data.
 - **Sign out:** keeps local data on the phone and locks it to that account. Signing in as another account on the same phone starts a fresh local database; switching back reopens the first. One database file per account id.
 - **Offline:** a signed-in user keeps full use with no network. Entitlements are cached on the phone and refreshed when online; a lapsed subscription locks Pro after a grace period, never the free tier or the data.
@@ -106,12 +107,12 @@ Week counts assume one engineer full-time; part-time doubles them. Each phase ha
 | B0 · Decisions and setup | 1 | Close the open decisions below; Apple Developer and Play Console accounts; final app id and name; backend projects; `docs/network.md` | Every open decision in docs/decisions.md; both store consoles reachable |
 | B1 · Health-first | 1–2 | Onboarding without the band; band behind Developer; Data sources filtered; privacy copy; source check after the first read | A fresh install on iPhone and Android reaches Today without seeing "band" anywhere |
 | B2 · Connector proof | 2–3 (parallel) | Known-answer integration tests (fixed test night and day written to the iOS Simulator and an Android emulator with Health Connect Toolbox, read back through the real plugin); writer quirks (Mi Fitness hour-stamped HR); H2/H3 device gates | Integration tests pass on both; H2 and H3 gates passed; one week each on Apple Watch, Mi Fitness (iOS) and one Android watch with clean Health data checks |
-| B3 · Accounts | 2 | Sign-in methods; token storage; per-account database; sign out and switch; delete account; offline behaviour | Sign up, sign out, sign in on a second phone, delete: all work, offline included |
-| B4 · Freemium | 2 | Products in both stores; paywall; entitlement cache; Pro gates; restore; cross-platform Pro through the account; beta "Pro for testers" | Sandbox purchase, restore, upgrade, cancel and lapse on both platforms; a lifetime purchase on iOS unlocks Android |
-| B5 · Beta operations | 1–2 | Opt-in crash reports and usage events (no health values); in-app "Send feedback" with an attached Health data check report; privacy policy and terms; store listings, privacy labels, Health Connect declaration; beta review | TestFlight external testing approved; Play closed testing live |
+| B3 · Accounts (= G0 + G1) | 3 | GCP foundation; sign-in methods; per-account database; sign out and switch; delete account; offline behaviour | See Backend plan G0, G1 |
+| B4 · Freemium and sync (= G2 + S1) | 3–4 | Billing on GCP, paywall, Pro gates, restore, cross-platform Pro; encrypted sync and restore | See Backend plan G2, S1 |
+| B5 · Beta operations (+ G3, G4) | 2–3 | Opt-in diagnostics, feedback, hardening (Backend plan G3, G4); privacy policy and terms; store listings, privacy labels, Health Connect declaration; beta review | TestFlight external testing approved; Play closed testing live |
 | B6 · Beta | 6–8 | Waves of testers; weekly builds; triage; tune Free/Pro and prices from usage | Exit criteria below |
 
-Order: B0 → B1, then B2 alongside B3/B4, then B5 → B6. B2 is the most important: a beta that gets someone's sleep wrong on day one loses them.
+Order: B0 → B1, then B2 alongside B3, then B4, then B5 → B6. About 14–18 weeks to the external beta for one full-time engineer. Wave 1 (people you know) can start after B1, B2 and B3, with Pro granted, before billing and sync are finished. B2 is the most important: a beta that gets someone's sleep wrong on day one loses them.
 
 ## Beta operations
 
@@ -158,6 +159,10 @@ Order: B0 → B1, then B2 alongside B3/B4, then B5 → B6. B2 is the most import
 Targets are starting values to revisit after the first wave.
 
 ## Open decisions
+
+Closed 2026-10-21: B-O1 (Identity Platform, the GCP edition of Firebase Authentication), B-O2 (billing on GCP, no RevenueCat), B-O4 (encrypted sync in the beta), B-O5 (Crashlytics plus our own events endpoint into BigQuery; no Sentry, PostHog or Google Analytics), B-O6 (domain and organisation account), B-O8 (starting split and prices). Still open: B-O3, B-O7, B-O9, and G-O1…G-O6 in the Backend plan.
+
+As proposed:
 
 | # | Decision | Recommendation |
 | --- | --- | --- |

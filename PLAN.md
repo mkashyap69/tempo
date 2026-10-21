@@ -10,9 +10,9 @@ Decisions locked:
 
 - **Stack:** Flutter, one codebase for Android and iOS.
 - **Data path:** direct BLE. Our app owns the band; Mi Fitness is used once, only to obtain the auth key. Or, without a band, read-only from Apple Health / Health Connect (decided 2026-10-06; one source per install, see `docs/research/Health connectors plan.md`).
-- **Storage:** fully on-device, no backend. Raw data is immutable; scores are recomputed from it whenever the algorithm changes. Backups via data export in Settings.
+- **Storage:** on the phone first. Raw data is immutable; scores are recomputed from it whenever the algorithm changes. Raw and user-entered data is backed up to GCP end-to-end encrypted (decided 2026-10-21; was "fully on-device, no backend"); scores are never synced. Local backups and data export stay.
 - **Hardware:** Mi Band 6 over BLE. Any other watch or ring only through what it writes to Apple Health / Health Connect. No chest straps or other direct sensors.
-- **Audience:** a product, released first as a beta (decided 2026-10-21; supersedes "personal tool, sideloaded"). Accounts with sign-up and sign-in; freemium with Pro by subscription or one-time purchase; Apple Health / Health Connect first, the Mi Band behind Developer. See `docs/research/Beta release plan.md`.
+- **Audience:** a product, released first as a beta (decided 2026-10-21; supersedes "personal tool, sideloaded"). Accounts with sign-up and sign-in; freemium with Pro by subscription or one-time purchase; Apple Health / Health Connect first, the Mi Band behind Developer; backend on GCP with health data synced end-to-end encrypted. See `docs/research/Beta release plan.md` and `docs/research/Backend plan.md`.
 
 The honest ceiling: Mi Band 6 gives per-minute heart rate, steps, sleep stages (light, deep, REM) and a stress index, but not raw beat-to-beat (RR) intervals. Strain and Sleep can match the leading strap's logic closely; Recovery uses the band's stress index as an HRV proxy.
 
@@ -198,9 +198,11 @@ Only one app can hold the band, so Mi Fitness must not be running.
 | B0 · Beta decisions and setup | 1 | Open decisions B-O1…B-O9, store accounts, app id and name, backend projects, `docs/network.md` | Every open decision in docs/decisions.md; both store consoles reachable |
 | B1 · Health-first | 1–2 | Onboarding without the band, band behind Developer, privacy copy, source check after the first read | A fresh install reaches Today without seeing "band" anywhere |
 | B2 · Connector proof | 2–3 | Known-answer integration tests on iOS Simulator and Android emulator, writer quirks (Mi Fitness hour-stamped HR), H2/H3 gates | Tests pass on both; a clean week each on Apple Watch, Mi Fitness (iOS) and one Android watch |
-| B3 · Accounts | 2 | Apple, Google and email sign-in, per-account database, sign out, delete account, offline | Sign up, sign out, sign in on a second phone, delete, offline: all work |
-| B4 · Freemium | 2 | Products, paywall, Pro gates, restore, cross-platform Pro | Sandbox purchase, restore, cancel and lapse on both stores; iOS lifetime unlocks Android |
-| B5 · Beta operations | 1–2 | Opt-in diagnostics, in-app feedback, privacy policy, store forms, beta review | TestFlight external and Play closed testing live |
+| G0 · GCP foundation | 1 | Terraform for dev and prod, Identity Platform, Firestore, buckets, Pub/Sub, Cloud Run skeleton, App Check, CI | `terraform apply` from clean; app flavours reach their project |
+| B3 / G1 · Accounts | 2 | Apple, Google and email-link sign-in, per-account database, sign out, delete account, offline grace | Sign up, sign out, sign in on a second phone, delete, offline: all work |
+| B4 / G2 · Billing on GCP | 3–4 | Products, paywall, verify routes, Apple webhooks, Play notifications on Pub/Sub, entitlement engine, restore, cross-platform Pro | Sandbox purchase, renew, upgrade, refund, lapse, restore on both stores; webhook replay idempotent |
+| B4 / S1 · Encrypted sync | 3 | `packages/sync`, table classification, keychain / Block Store key, recovery key, restore, compaction | A fresh install restores 90 days to identical scores; server copy unreadable |
+| B5 · Beta operations (+ G3, G4) | 2–3 | Crashlytics opt-in, events to BigQuery, feedback, rules tests, alerts, runbooks, privacy policy, store forms, beta review | TestFlight external and Play closed testing live |
 | B6 · Beta | 6–8 | Tester waves, weekly builds, tune Free/Pro | Exit criteria in the beta plan |
 
 Phase 0 is the go/no-go. Week counts assume one engineer part-time.
