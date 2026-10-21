@@ -12,7 +12,7 @@ Decisions locked:
 - **Data path:** direct BLE. Our app owns the band; Mi Fitness is used once, only to obtain the auth key. Or, without a band, read-only from Apple Health / Health Connect (decided 2026-10-06; one source per install, see `docs/research/Health connectors plan.md`).
 - **Storage:** fully on-device, no backend. Raw data is immutable; scores are recomputed from it whenever the algorithm changes. Backups via data export in Settings.
 - **Hardware:** Mi Band 6 over BLE. Any other watch or ring only through what it writes to Apple Health / Health Connect. No chest straps or other direct sensors.
-- **Audience:** personal tool. Pairing takes a pasted auth key (no guided key extraction), sideloaded builds, no multi-user accounts in v1.
+- **Audience:** a product, released first as a beta (decided 2026-10-21; supersedes "personal tool, sideloaded"). Accounts with sign-up and sign-in; freemium with Pro by subscription or one-time purchase; Apple Health / Health Connect first, the Mi Band behind Developer. See `docs/research/Beta release plan.md`.
 
 The honest ceiling: Mi Band 6 gives per-minute heart rate, steps, sleep stages (light, deep, REM) and a stress index, but not raw beat-to-beat (RR) intervals. Strain and Sleep can match the leading strap's logic closely; Recovery uses the band's stress index as an HRV proxy.
 
@@ -194,6 +194,14 @@ Only one app can hold the band, so Mi Fitness must not be running.
 | H4 · Switch and polish | — | Profile → Data source, timer-only live workouts, restore rebuilds Health minutes | Band → Health → band on one install with no lost scores |
 | T1 · Teardown next steps | — | Body-signals alert and journal reminder; Journal v2 (catalogue, amounts, automatic entries) and impact engine with experiments; Tempo Age v2 (groups, overlap, confidence, PhenoAge); strength log, progression and freshness; algo 9 (vitals penalty, sleep score v2, load-aware target, source per metric). See `docs/research/Competitor teardown and next steps.md` | Backtest 2020–2026 on the real export with no week of Tempo Age jumping over a year; 4 weeks of logged lifting where each suggested weight is one a coach would set; 14 days of journal with no wrong automatic entry |
 | F1 · User flow | — | One voice (`dailyCall`, target follows state); Today as the day's story (phases, one check-in, one insight, Tonight); tabs Today · Plan · (+) · Progress · You; Week in review; first-14-days learning card, welcome back; words by priority. See `docs/research/User flow and journey.md` | 5 people per persona find the goal, last week's review, Tempo Age, logging a lift and pausing in ≤ 2 taps unaided; 14 days with no repeated insight inside its cool-down and none on a rest day; Today and Plan never disagree |
+
+| B0 · Beta decisions and setup | 1 | Open decisions B-O1…B-O9, store accounts, app id and name, backend projects, `docs/network.md` | Every open decision in docs/decisions.md; both store consoles reachable |
+| B1 · Health-first | 1–2 | Onboarding without the band, band behind Developer, privacy copy, source check after the first read | A fresh install reaches Today without seeing "band" anywhere |
+| B2 · Connector proof | 2–3 | Known-answer integration tests on iOS Simulator and Android emulator, writer quirks (Mi Fitness hour-stamped HR), H2/H3 gates | Tests pass on both; a clean week each on Apple Watch, Mi Fitness (iOS) and one Android watch |
+| B3 · Accounts | 2 | Apple, Google and email sign-in, per-account database, sign out, delete account, offline | Sign up, sign out, sign in on a second phone, delete, offline: all work |
+| B4 · Freemium | 2 | Products, paywall, Pro gates, restore, cross-platform Pro | Sandbox purchase, restore, cancel and lapse on both stores; iOS lifetime unlocks Android |
+| B5 · Beta operations | 1–2 | Opt-in diagnostics, in-app feedback, privacy policy, store forms, beta review | TestFlight external and Play closed testing live |
+| B6 · Beta | 6–8 | Tester waves, weekly builds, tune Free/Pro | Exit criteria in the beta plan |
 
 Phase 0 is the go/no-go. Week counts assume one engineer part-time.
 
