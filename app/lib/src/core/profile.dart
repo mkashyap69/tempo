@@ -86,6 +86,9 @@ abstract final class Keys {
   /// finished ones as a JSON list.
   static const experiment = 'journal_experiment';
   static const experimentsDone = 'journal_experiments_done';
+
+  /// Profile → Developer shown: 1 after seven taps on the version line.
+  static const devMode = 'dev_mode';
 }
 
 /// Everything the user tells Tempo in onboarding and Profile.

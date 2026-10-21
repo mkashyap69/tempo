@@ -291,7 +291,9 @@ abstract final class TodayBody {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     TempoIcon(
-                      TempoIcons.bandPill,
+                      source.isHealth
+                          ? TempoIcons.heartRate
+                          : TempoIcons.bandPill,
                       size: 14,
                       color: c.text2,
                       stroke: 2,
@@ -313,7 +315,7 @@ abstract final class TodayBody {
           ],
         ),
       ),
-      if (sync.running) _SyncProgress(sync: sync),
+      if (sync.running) _SyncProgress(sync: sync, source: source),
       ?banner,
       // Quiet unless several overnight signals are off together.
       BodySignalsAlert(onOpen: () => push(context, const RecoveryScreen())),
@@ -413,8 +415,9 @@ abstract final class TodayBody {
 }
 
 class _SyncProgress extends StatelessWidget {
-  const _SyncProgress({required this.sync});
+  const _SyncProgress({required this.sync, required this.source});
   final SyncStatus sync;
+  final DataSource source;
   @override
   Widget build(BuildContext context) {
     final c = context.c;
@@ -432,7 +435,10 @@ class _SyncProgress extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Text(
-                sync.connecting || sync.total == 0
+                // A Health read reports percent done, not minutes.
+                source.isHealth
+                    ? 'Reading ${source.label}${sync.total == 0 ? '…' : ' · ${(sync.fraction * 100).round()}%'}'
+                    : sync.connecting || sync.total == 0
                     ? 'Connecting to band…'
                     : 'Reading band · ${sync.read} of ${sync.total} min',
                 style: TempoType.bodyS.c(c.text2).tnum,

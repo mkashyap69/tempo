@@ -259,7 +259,7 @@ class HealthSyncService {
         }
         final keep = [
           for (final r in rs)
-            if (_usable(r)) r,
+            if (usable(r)) r,
         ];
         await db.appendHealthRecords([for (final r in keep) _row(r, t0)]);
         for (final r in keep) {
@@ -362,7 +362,8 @@ class HealthSyncService {
     return report;
   }
 
-  static bool _usable(HealthRecord r) =>
+  /// Whether a read keeps [r]: not Tempo's own, and a sane span and value.
+  static bool usable(HealthRecord r) =>
       !r.fromTempo &&
       !r.end.isBefore(r.start) &&
       r.end.difference(r.start) <= maxRecord &&
