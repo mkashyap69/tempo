@@ -628,9 +628,26 @@ class WorkoutCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.c;
     final segs = [for (final g in session.segments) (g.minutes, g.zone)];
-    final sport = session.sport == null
+    // Strength has no heart-rate zones to aim for: name the focus and the
+    // exercises instead of drawing a zone bar.
+    final strength = session.sport == sc.Sport.strength;
+    final detail = session.detail;
+    final focus = detail is sc.StrengthDetail
+        ? sc.focusName(detail.focus)
+        : session.note.isEmpty
+        ? null
+        : '${session.note[0].toUpperCase()}${session.note.substring(1)}';
+    final names = detail is sc.StrengthDetail
+        ? [for (final e in detail.exercises) e.name]
+        : const <String>[];
+    final strengthLine = names.isEmpty
+        ? 'Log sets as you go; Tempo suggests weights from your last session.'
+        : '${names.take(4).join(' · ')}${names.length > 4 ? ' · +${names.length - 4} more' : ''}';
+    final sport = strength || session.sport == null
         ? ''
         : '${session.sport!.name[0].toUpperCase()}${session.sport!.name.substring(1)} · ';
+    final lead = strength && focus != null ? '$focus · ' : sport;
+    final zones = strength ? '' : ' · ${session.zones}';
     return TempoCard(
       onTap: onTap,
       child: Column(
@@ -651,15 +668,20 @@ class WorkoutCard extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             why != null
-                ? '$sport${session.minutes} min · ${session.zones} · +${session.strainLo > 0 ? (adds - 1).clamp(1, 21).round() : 1} to +${(adds + 1).round()} strain'
-                : '$sport${session.minutes} min · ${session.zones} · adds ~${adds.round()} strain',
+                ? '$lead${session.minutes} min$zones · +${session.strainLo > 0 ? (adds - 1).clamp(1, 21).round() : 1} to +${(adds + 1).round()} strain'
+                : '$lead${session.minutes} min$zones · adds ~${adds.round()} strain',
             style: TempoType.bodyS.c(c.text2).tnum,
           ),
           const SizedBox(height: 14),
-          IntervalBars(segments: segs),
+          if (strength)
+            Text(strengthLine, style: TempoType.bodyS.c(c.text1))
+          else
+            IntervalBars(segments: segs),
           if (why == null) ...[
-            const SizedBox(height: 6),
-            Text(session.structure, style: TempoType.caption.c(c.text3).tnum),
+            if (!strength) ...[
+              const SizedBox(height: 6),
+              Text(session.structure, style: TempoType.caption.c(c.text3).tnum),
+            ],
             const SizedBox(height: 14),
             Row(
               children: [

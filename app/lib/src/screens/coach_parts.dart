@@ -79,7 +79,6 @@ class SessionActions extends ConsumerWidget {
         TempoButton(
           label,
           small: true,
-          expand: true,
           fontSize: 14,
           kind: primary ? ButtonKind.secondary : ButtonKind.ghost,
           onTap: () async {
@@ -115,13 +114,15 @@ class SessionActions extends ConsumerWidget {
         }
     }
     if (buttons.isEmpty) return const SizedBox.shrink();
-    return Row(
-      children: [
-        for (final (i, b) in buttons.indexed) ...[
-          if (i > 0) const SizedBox(width: 8),
-          Expanded(child: b),
-        ],
-      ],
+    // Each button as wide as its label; a long one wraps to a new line
+    // instead of being cut to "Done alr…".
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: [for (final b in buttons) IntrinsicWidth(child: b)],
+      ),
     );
   }
 }
