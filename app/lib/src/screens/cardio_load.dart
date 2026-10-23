@@ -75,12 +75,12 @@ class _CardioLoadState extends ConsumerState<CardioLoadScreen> {
       sc.LoadStatus.learning =>
         'Tempo needs ${sc.loadMinDays} worn days in the last 4 weeks, ${sc.loadMinAcuteDays} of them this week, to compare your week with your normal. You have ${l.chronicDays}, and ${l.acuteDays} this week. A day counts once it has 10 hours of heart rate; days off the band don’t count as rest.',
       sc.LoadStatus.building =>
-        'Your last 7 days are $p% above your 28-day normal. That’s the productive zone: fitness grows if recovery keeps up.',
+        'This week is $p% above your 6-week normal. That’s the productive zone: fitness grows if recovery keeps up.',
       sc.LoadStatus.maintaining => 'Your week matches your normal. Fitness holds steady — fine for a busy week, slow for progress.',
       sc.LoadStatus.detraining =>
-        'Your last 7 days are ${p.abs()}% below your normal. A week or two is a useful rest; longer and fitness starts to fade.',
+        'This week is ${p.abs()}% below your normal. A week or two is a useful rest; longer and fitness starts to fade.',
       sc.LoadStatus.overreaching =>
-        'Your last 7 days are $p% above your normal. That’s more than your body is used to; recovery usually dips next.',
+        'This week is $p% above your normal. That’s more than your body is used to; recovery usually dips next.',
     };
     return TempoPage(
       children: [
@@ -294,10 +294,10 @@ class _CardioLoadState extends ConsumerState<CardioLoadScreen> {
                 spacing: 14,
                 runSpacing: 6,
                 children: [
-                  Legend(c.text1, 'Last 7 days', width: 14, height: 2),
+                  Legend(c.text1, 'This week', width: 14, height: 2),
                   Legend(
                     c.text3,
-                    'Your 28-day normal',
+                    'Your 6-week normal',
                     width: 14,
                     dashed: true,
                   ),
@@ -315,14 +315,14 @@ class _CardioLoadState extends ConsumerState<CardioLoadScreen> {
                 children: [
                   Expanded(
                     child: Stat(
-                      'Last 7 days',
+                      'This week',
                       '${l.acute.round()}',
                       unit: ' /day',
                     ),
                   ),
                   Expanded(
                     child: Stat(
-                      '28-day normal',
+                      '6-week normal',
                       '${l.chronic.round()}',
                       unit: ' /day',
                     ),
@@ -422,13 +422,13 @@ class _CardioLoadState extends ConsumerState<CardioLoadScreen> {
           Row(
             children: [
               box(
-                'Last 7 days',
+                'This week',
                 '${l.acute.round()}/day',
                 'How tired you might be',
               ),
               const SizedBox(width: 10),
               box(
-                'Last 28 days',
+                'Last 6 weeks',
                 '${l.chronic.round()}/day',
                 'What you’re used to',
               ),

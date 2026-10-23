@@ -159,14 +159,15 @@ List<Contributor> contributors(BuildContext context, TodayData t) {
       'sleep',
       'Sleep',
       false,
-      score?.sleepPerf,
+      t.sufficiency,
       t.sleepBase,
       .3,
       false,
       (x) => '${x.round()}%',
       (z, d) {
-        final short = t.need != null && t.slept != null && t.slept! < t.need!
-            ? hmSpaced(t.need! - t.slept!)
+        // Against the base need, as Recovery judges it (algo 10).
+        final short = t.slept != null && t.slept! < t.baseNeed
+            ? hmSpaced(t.baseNeed - t.slept!)
             : null;
         if (z < -.4) {
           return short == null
@@ -179,13 +180,13 @@ List<Contributor> contributors(BuildContext context, TodayData t) {
     ),
   ];
   final si = list.indexWhere((x) => x.key == 'sleep');
-  if (score?.sleepPerf != null && !calib && si >= 0) {
+  if (t.sufficiency != null && !calib && si >= 0) {
     final sl = list[si];
     list[si] = Contributor(
       key: sl.key,
       name: sl.name,
       proxy: false,
-      value: '${score!.sleepPerf!.round()}% of need',
+      value: '${t.sufficiency!.round()}% of base need',
       base: sl.base,
       verdict: sl.verdict,
       glyph: sl.glyph,
@@ -348,10 +349,10 @@ String loadProgress(sc.CardioLoad l) => l.chronicDays < sc.loadMinDays
     ? '${l.chronicDays} of ${sc.loadMinDays} worn days'
     : '${l.acuteDays} of ${sc.loadMinAcuteDays} worn days this week';
 
-/// "7-day load 12% above your 28-day"
+/// "This week's load 12% above your 6-week normal"
 String loadSub(sc.CardioLoad l) {
   if (l.status == sc.LoadStatus.learning) return loadProgress(l);
   final p = l.percentVsNormal;
-  if (p.abs() < 3) return '7-day load matches your 28-day';
-  return '7-day load ${p.abs()}% ${p > 0 ? 'above' : 'below'} your 28-day';
+  if (p.abs() < 3) return 'This week’s load matches your 6-week normal';
+  return 'This week’s load ${p.abs()}% ${p > 0 ? 'above' : 'below'} your 6-week normal';
 }

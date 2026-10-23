@@ -34,6 +34,8 @@ class LiveState {
     this.trace = const [],
     this.hrMax = 190,
     this.hrRest = 60,
+    this.female = false,
+    this.zoneRest,
     this.dayTrimpBefore = 0,
     this.target,
     this.error,
@@ -66,6 +68,12 @@ class LiveState {
   final List<(int, int)> trace;
   final int hrMax;
   final double hrRest;
+
+  /// Banister's female TRIMP weighting, as the day's score uses.
+  final bool female;
+
+  /// Resting HR for reserve zones (Profile), else null: % of max HR.
+  final double? zoneRest;
   final double dayTrimpBefore;
   final sc.StrainTarget? target;
   final String? error;
@@ -85,7 +93,7 @@ class LiveState {
   static const traceWindow = 15 * 60;
 
   bool get guided => plan != null && plan!.segments.isNotEmpty;
-  int get zone => bpm == null ? 0 : sc.zoneFor(bpm!, hrMax);
+  int get zone => bpm == null ? 0 : sc.zoneFor(bpm!, hrMax, hrRest: zoneRest);
   double get dayStrainBefore => sc.strainFromTrimp(dayTrimpBefore);
   double get dayStrain => sc.strainFromTrimp(dayTrimpBefore + trimp);
   double get sessionStrain => dayStrain - dayStrainBefore;
@@ -101,8 +109,15 @@ class LiveState {
     var tr = trace;
     if (b != null) {
       t +=
-          sc.minuteTrimp(b, hrRest: hrRest, hrMax: hrMax.toDouble()) * sec / 60;
-      final z = sc.zoneFor(b, hrMax);
+          sc.minuteTrimp(
+            b,
+            hrRest: hrRest,
+            hrMax: hrMax.toDouble(),
+            female: female,
+          ) *
+          sec /
+          60;
+      final z = sc.zoneFor(b, hrMax, hrRest: zoneRest);
       zones[(z < 1 ? 1 : z) - 1] += sec;
       tr = [
         for (final e in trace)
@@ -143,6 +158,7 @@ class LiveState {
       hr.round(),
       hrRest: hrRest,
       hrMax: hrMax.toDouble(),
+      female: female,
     );
     return sc.strainFromTrimp(dayTrimpBefore + trimp + per) - dayStrain;
   }
@@ -158,6 +174,7 @@ class LiveState {
       hr.round(),
       hrRest: hrRest,
       hrMax: hrMax.toDouble(),
+      female: female,
     );
     if (per <= 0) return null;
     for (var m = 1; m <= 180; m++) {
@@ -210,6 +227,8 @@ class LiveState {
     trace: trace ?? this.trace,
     hrMax: hrMax,
     hrRest: hrRest,
+    female: female,
+    zoneRest: zoneRest,
     dayTrimpBefore: dayTrimpBefore,
     timerOnly: timerOnly,
     target: target,
@@ -283,6 +302,8 @@ class LiveSession extends Notifier<LiveState?> {
         plan: plan,
         hrMax: hrMax,
         hrRest: rest,
+        female: !profile.male,
+        zoneRest: profile.zonesByReserve ? rest : null,
         dayTrimpBefore: today?.trimp ?? 0,
         target: t,
         startedAt: now,
@@ -299,6 +320,8 @@ class LiveSession extends Notifier<LiveState?> {
       plan: plan,
       hrMax: hrMax,
       hrRest: rest,
+      female: !profile.male,
+      zoneRest: profile.zonesByReserve ? rest : null,
       dayTrimpBefore: today?.trimp ?? 0,
       target: t,
     );

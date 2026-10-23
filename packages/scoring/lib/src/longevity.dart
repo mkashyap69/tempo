@@ -148,7 +148,7 @@ final class LongevityInputs {
     this.activeMinutes,
     this.strengthPerWeek,
     this.sleepHours,
-    this.bedtimeSdMinutes,
+    this.sleepRegularityIndex,
     this.breathingScore,
     this.stressIndex,
     this.smoking,
@@ -188,8 +188,10 @@ final class LongevityInputs {
   final double? strengthPerWeek;
   final double? sleepHours;
 
-  /// Standard deviation of bedtimes, minutes.
-  final double? bedtimeSdMinutes;
+  /// Sleep Regularity Index (−100…100, see [sleepRegularity]) over the
+  /// window. Algo 10 (Tempo Age v3): was the SD of bedtimes; the mortality
+  /// evidence (Windred 2024) is SRI-based.
+  final double? sleepRegularityIndex;
 
   /// Breathing score 0–100 (see breathing.dart), averaged.
   final double? breathingScore;
@@ -369,14 +371,19 @@ double hazard(Lever l, double v, {int age = 35, bool male = true}) {
       const f = [(0.0, 1.0), (1.0, .88), (2.0, .83), (4.0, .83)];
       return _lerp(f, v) / _lerp(f, .5);
     case Lever.sleepDuration:
-      // Cappuccio 2010 (Sleep): short 1.12, long 1.30; 7–8.5 h neutral.
+      // Cappuccio 2010 (Sleep): short 1.12 an hour under 7 h. Long sleep
+      // (1.30 there) is mostly illness causing long sleep, not the reverse,
+      // so it counts half and at most a year (Tempo Age v3).
       if (v < 7) return pow(1.12, 7 - v).toDouble();
-      if (v > 8.5) return pow(1.3, v - 8.5).toDouble();
+      if (v > 8.5)
+        return min(pow(1.15, v - 8.5).toDouble(), longSleepMaxHazard);
       return 1;
     case Lever.sleepRegularity:
-      // Windred 2024 (Sleep): regular sleepers ~20 % lower risk than the
-      // least regular. Bedtime SD 45 min typical.
-      return (1 + .004 * (v - 45)).clamp(.88, 1.25).toDouble();
+      // Windred 2024 (Sleep): the least regular fifth by SRI had markedly
+      // higher mortality than the most regular. SRI 75 typical; 1 % a
+      // point, within .88–1.25 (starting values; TODO(verify) against the
+      // paper's quintile table).
+      return (1 + .01 * (75 - v)).clamp(.88, 1.25).toDouble();
     case Lever.breathing:
       // Punjabi 2009 (PLoS Med): moderate–severe sleep-disordered
       // breathing ~1.4. Score 90+ is normal.
@@ -407,6 +414,20 @@ double hazard(Lever l, double v, {int age = 35, bool male = true}) {
   }
 }
 
+/// Hazard that gives one year: the most long sleep can add.
+final longSleepMaxHazard = pow(2, 1 / 8).toDouble();
+
+/// Most years the fitness lever can move when VO₂ max is estimated from
+/// resting HR (Uth 2004 was fitted on 46 trained men; its error in the
+/// general population is ±15–20 %), not measured by a watch.
+const estimatedFitnessCap = 2.0;
+
+/// Shrink on each lever's years when levers from several groups are in
+/// (active people also sleep better and smoke less, so independent hazards
+/// overcount). Smoking and blood, each large and well established on its
+/// own, are left whole. A starting value to calibrate.
+const crossGroupShrink = .85;
+
 /// Most years one lever can add or take away.
 double leverCap(Lever l) => switch (l) {
   Lever.fitness => 5,
@@ -425,7 +446,7 @@ double leverTarget(Lever l, {required int age, required bool male}) =>
       Lever.activeMinutes => 300,
       Lever.strength => 2,
       Lever.sleepDuration => 7.5,
-      Lever.sleepRegularity => 30,
+      Lever.sleepRegularity => 80,
       Lever.breathing => 90,
       Lever.stress => 30,
       Lever.smoking => Smoking.never.index.toDouble(),
@@ -457,7 +478,7 @@ TempoAge tempoAge(LongevityInputs i) {
     Lever.activeMinutes: i.activeMinutes,
     Lever.strength: i.strengthPerWeek,
     Lever.sleepDuration: i.sleepHours,
-    Lever.sleepRegularity: i.bedtimeSdMinutes,
+    Lever.sleepRegularity: i.sleepRegularityIndex,
     Lever.breathing: i.breathingScore,
     Lever.stress: i.stressIndex,
     Lever.smoking: i.smoking?.index.toDouble(),
@@ -466,9 +487,10 @@ TempoAge tempoAge(LongevityInputs i) {
     Lever.waist: i.waistCm,
     Lever.blood: (i.labDaysOld ?? 0) >= 730 ? null : i.phenoAge,
   };
+  final fitnessEstimated = i.vo2max != null && !i.vo2maxMeasured;
   double yearsAt(Lever l, double v) => _clampYears(
     yearsFromHazard(hazard(l, v, age: i.age, male: i.male)),
-    leverCap(l),
+    l == Lever.fitness && fitnessEstimated ? estimatedFitnessCap : leverCap(l),
   );
   // A lever's own weight before overlap.
   double own(Lever l) => switch (l) {
@@ -485,10 +507,16 @@ TempoAge tempoAge(LongevityInputs i) {
   for (final l in present) {
     if (own(l) > 0) perGroup[groupOf(l)] = (perGroup[groupOf(l)] ?? 0) + 1;
   }
+  final cross = perGroup.keys.where((g) => g != AgeGroup.blood).length > 1;
   final out = <Contributor>[];
   for (final l in present) {
     final v = values[l]!;
-    final w = own(l) * groupScale(groupOf(l), perGroup[groupOf(l)] ?? 1);
+    final w =
+        own(l) *
+        groupScale(groupOf(l), perGroup[groupOf(l)] ?? 1) *
+        (cross && l != Lever.smoking && l != Lever.blood
+            ? crossGroupShrink
+            : 1);
     final target = leverTarget(l, age: i.age, male: i.male);
     final y = yearsAt(l, v);
     out.add(
@@ -534,8 +562,9 @@ TempoAge tempoAge(LongevityInputs i) {
     contributors: out,
     calibrating: i.daysOfData < 30 || fromBand < 4,
     confidence: confidence,
-    // ±1.5 years with everything in; up to ±9.5 with nothing.
-    halfRange: 1.5 + 8 * (1 - confidence),
+    // ±1.5 years with everything in; up to ±9.5 with nothing; a year
+    // wider while fitness is estimated rather than measured.
+    halfRange: 1.5 + 8 * (1 - confidence) + (fitnessEstimated ? 1 : 0),
     missing: missing,
   );
 }

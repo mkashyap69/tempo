@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:scoring/scoring.dart';
 import 'package:test/test.dart';
 
@@ -98,11 +100,12 @@ void main() {
         ...List.filled(14, 60.0),
       ];
       final l = cardioLoad(days);
-      expect(l.chronic, 60);
+      expect(l.chronic, closeTo(60, 1e-9));
+      expect(l.acute, closeTo(60, 1e-9));
       expect(l.status, LoadStatus.building);
-      // The old reading (gap as 0) would have called this overreaching.
+      // Counting the gap as 0 would understate fitness by over 10 %.
       final asZero = cardioLoad([for (final d in days) d ?? 0]);
-      expect(asZero.status, LoadStatus.overreaching);
+      expect(asZero.chronic, lessThan(54));
     });
     test('status thresholds', () {
       expect(loadStatusFor(0.79), LoadStatus.detraining);
@@ -110,13 +113,27 @@ void main() {
       expect(loadStatusFor(1.2), LoadStatus.building);
       expect(loadStatusFor(1.31), LoadStatus.overreaching);
     });
-    test('acute vs chronic', () {
+    test('fatigue and fitness are 7- and 42-day exponential averages', () {
+      // Three weeks at 60, then a week at 100 (newest first).
       final days = [...List.filled(7, 100.0), ...List.filled(21, 60.0)];
       final l = cardioLoad(days);
-      expect(l.acute, 100);
-      expect(l.chronic, closeTo(70, 1e-9));
-      expect(l.status, LoadStatus.overreaching);
-      expect(l.percentVsNormal, 43);
+      expect(l.acute, closeTo(100 - 40 * exp(-1), 1e-9));
+      expect(l.chronic, closeTo(100 - 40 * exp(-7 / 42), 1e-9));
+      expect(l.status, LoadStatus.building);
+      expect(l.form, lessThan(0));
+      expect(l.rampPerWeek, closeTo(l.chronic - 60, 1e-9));
+      // A bigger jump overreaches.
+      final big = cardioLoad([
+        ...List.filled(7, 130.0),
+        ...List.filled(21, 60.0),
+      ]);
+      expect(big.status, LoadStatus.overreaching);
+    });
+    test('a steady month is building at ratio 1, form 0', () {
+      final l = cardioLoad(List.filled(42, 50.0));
+      expect(l.ratio, closeTo(1, 1e-9));
+      expect(l.form, closeTo(0, 1e-9));
+      expect(l.percentVsNormal, 0);
     });
     test('history is oldest first', () {
       final h = loadHistory(List.filled(28, 10.0), weeks: 4);
@@ -379,34 +396,6 @@ void main() {
         detectActivities(mins(t, 30, hr: 150, stage: Stage.light), hrMax: 186),
         isEmpty,
       );
-    });
-  });
-
-  group('insights', () {
-    test('needs enough nights in both groups', () {
-      final i = tagInsight([
-        for (var k = 0; k < 4; k++) const TaggedNight(true, 40),
-        for (var k = 0; k < 20; k++) const TaggedNight(false, 70),
-      ]);
-      expect(i.confidence, Confidence.notEnough);
-    });
-    test('moderate effect', () {
-      final i = tagInsight([
-        for (final v in [31, 44, 52, 38, 61, 47, 29, 68, 41])
-          TaggedNight(true, v.toDouble()),
-        for (var k = 0; k < 41; k++)
-          TaggedNight(false, 60 + (k % 20).toDouble()),
-      ]);
-      expect(i.diff, lessThan(-15));
-      expect(i.nWith, 9);
-      expect(i.confidence, Confidence.moderate);
-    });
-    test('no clear effect', () {
-      final i = tagInsight([
-        for (var k = 0; k < 10; k++)
-          TaggedNight(k.isEven, 60 + (k % 3).toDouble()),
-      ]);
-      expect(i.confidence, Confidence.none);
     });
   });
 

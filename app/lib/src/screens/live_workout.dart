@@ -68,7 +68,7 @@ class _Live extends ConsumerWidget {
       pill = 'Below Z1 · warming up';
     } else if (s.guided && seg < plan!.segments.length) {
       final want = plan.segments[seg].zone;
-      final r = sc.zoneRange(want, s.hrMax);
+      final r = sc.zoneRange(want, s.hrMax, hrRest: s.zoneRest);
       inTarget = z == want;
       pill = z == want
           ? 'In target · Z$want ${r.lo}–${r.hi}'
@@ -77,7 +77,7 @@ class _Live extends ConsumerWidget {
           : 'Ease off · Z$want ${r.lo}–${r.hi}';
     } else {
       // Open session: no target to be in, so say where the next zone starts.
-      final r = sc.zoneRange(z, s.hrMax);
+      final r = sc.zoneRange(z, s.hrMax, hrRest: s.zoneRest);
       pill = z == 5
           ? 'Z5 · ${r.lo}+ bpm'
           : 'Z$z ${r.lo}–${r.hi} · Z${z + 1} at ${r.hi + 1}';
@@ -672,6 +672,7 @@ class _HeartCard extends StatelessWidget {
                   now: s.elapsed.inSeconds,
                   window: math.max(window, 60),
                   hrMax: s.hrMax,
+                  zoneRest: s.zoneRest,
                   zones: context.s.zone,
                   line: c.text1,
                 ),
@@ -726,11 +727,13 @@ class _TracePainter extends CustomPainter {
     required this.now,
     required this.window,
     required this.hrMax,
+    this.zoneRest,
     required this.zones,
     required this.line,
   });
   final List<(int, int)> trace;
   final int now, window, hrMax;
+  final double? zoneRest;
   final List<Color> zones;
   final Color line;
 
@@ -752,7 +755,7 @@ class _TracePainter extends CustomPainter {
 
     // Zone bands behind the line.
     for (var z = 1; z <= 5; z++) {
-      final r = sc.zoneRange(z, hrMax);
+      final r = sc.zoneRange(z, hrMax, hrRest: zoneRest);
       final top = math.max(0.0, y(z == 5 ? yHi : r.hi + 1));
       final bottom = math.min(size.height, y(r.lo));
       if (bottom <= top) continue;

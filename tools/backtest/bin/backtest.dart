@@ -4,11 +4,18 @@
 //
 // With --calibrate it prints a strain calibration report instead: the k
 // that puts your hardest days (99th percentile of daily TRIMP) at 18.5.
+//
+// With --report it also prints validation numbers to stderr: each score's
+// spread and day-to-day noise (typical error, MDC95), recovery colours,
+// and with --compare (an earlier run's CSV) how scores and colours moved,
+// with --reference (a CSV of date,sleep_score from another app) the
+// Bland–Altman agreement.
 import 'dart:io';
 
 import 'package:args/args.dart';
 import 'package:backtest/calibrate.dart';
 import 'package:backtest/health_export.dart';
+import 'package:backtest/report.dart';
 import 'package:health_source/health_source.dart';
 import 'package:scoring/scoring.dart';
 
@@ -27,6 +34,17 @@ Future<void> main(List<String> argv) async {
     ..addOption('from', help: 'YYYY-MM-DD')
     ..addOption('to', help: 'YYYY-MM-DD')
     ..addOption('hr-max', help: 'your max HR (default 190)')
+    ..addFlag('female', negatable: false, help: 'female TRIMP weighting')
+    ..addFlag(
+      'report',
+      negatable: false,
+      help: 'print validation numbers to stderr after the CSV',
+    )
+    ..addOption('compare', help: 'an earlier run\'s CSV to compare against')
+    ..addOption(
+      'reference',
+      help: 'CSV of date,sleep_score from another app (Bland–Altman)',
+    )
     ..addFlag(
       'calibrate',
       negatable: false,
@@ -51,9 +69,13 @@ Future<void> main(List<String> argv) async {
     exit(1);
   }
   final calibrating = args['calibrate'] as bool;
+  final female = args['female'] as bool;
   final params = args['hr-max'] == null
-      ? const ScoringParams()
-      : ScoringParams(defaultHrMax: int.parse(args['hr-max'] as String));
+      ? ScoringParams(female: female)
+      : ScoringParams(
+          defaultHrMax: int.parse(args['hr-max'] as String),
+          female: female,
+        );
   final trimpByDay = <DateTime, double>{};
   var day = args['from'] != null
       ? DateTime.parse(args['from'] as String)
@@ -64,10 +86,21 @@ Future<void> main(List<String> argv) async {
 
   if (!calibrating) {
     stdout.writeln(
-      'date,strain,trimp,hr_max,slept_h,need_h,sleep_perf,sleep_score,rhr,recovery,calibrating,algo_version',
+      'date,strain,trimp,hr_max,slept_h,need_h,base_need_h,debt_h,sleep_perf,sleep_score,bed_eff,latency_min,rhr,rhr_kind,recovery,calibrating,algo_version',
     );
   }
   final history = <DailyScore>[];
+  final dates = <String>[];
+  final series = <String, Series>{
+    for (final k in [
+      'strain',
+      'need_h',
+      'sleep_perf',
+      'sleep_score',
+      'recovery',
+    ])
+      k: {},
+  };
   String f(double? v, [int d = 1]) => v == null ? '' : v.toStringAsFixed(d);
   while (!day.isAfter(end)) {
     final minutes = scoringMinutes(
@@ -88,6 +121,7 @@ Future<void> main(List<String> argv) async {
       source: 'apple_health',
       hrv: hrv?.ms,
       hrvKind: hrv?.kind.name,
+      hrvCount: hrv?.n,
       sourceRhr: sourceRestingHr(data.vitals, day),
     );
     history.insert(0, s);
@@ -103,17 +137,30 @@ Future<void> main(List<String> argv) async {
       day = DateTime(day.year, day.month, day.day + 1);
       continue;
     }
+    final key =
+        '${day.year}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}';
+    dates.add(key);
+    series['strain']![key] = s.strain;
+    series['need_h']![key] = s.needHours;
+    series['sleep_perf']![key] = s.sleepPerf;
+    series['sleep_score']![key] = s.sleepScore;
+    series['recovery']![key] = s.calibrating ? null : s.recovery;
     stdout.writeln(
       [
-        '${day.year}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}',
+        key,
         f(s.strain),
         f(s.trimp),
         s.hrMax,
         f(s.sleptHours, 2),
         f(s.needHours, 2),
+        f(s.baseNeedHours, 2),
+        f(s.debtHours, 2),
         f(s.sleepPerf, 0),
         f(s.sleepScore, 0),
+        f(s.bedEfficiency, 2),
+        s.latencyMinutes ?? '',
         f(s.rhr),
+        s.rhrKind ?? '',
         f(s.recovery, 0),
         s.calibrating,
         s.algoVersion,
@@ -122,6 +169,20 @@ Future<void> main(List<String> argv) async {
     day = DateTime(day.year, day.month, day.day + 1);
   }
   if (calibrating) _report(calibrate(trimpByDay), params);
+  if (args['report'] as bool && !calibrating) {
+    final cmp = args['compare'] as String?;
+    final ref = args['reference'] as String?;
+    stderr.write(
+      report(
+        dates: dates,
+        now: series,
+        before: cmp == null ? null : readCsv(File(cmp).readAsLinesSync()),
+        reference: ref == null
+            ? null
+            : readCsv(File(ref).readAsLinesSync())['sleep_score'],
+      ),
+    );
+  }
 }
 
 void _report(Calibration? c, ScoringParams p) {

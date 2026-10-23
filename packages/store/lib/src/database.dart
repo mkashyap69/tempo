@@ -56,7 +56,7 @@ class TempoDb extends _$TempoDb {
   TempoDb(super.e);
 
   @override
-  int get schemaVersion => 13;
+  int get schemaVersion => 14;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -133,6 +133,14 @@ class TempoDb extends _$TempoDb {
         await _addColumns(m, dailyScores, [
           dailyScores.sleepScore,
           dailyScores.vitalsPenalty,
+        ]);
+      }
+      if (from < 14) {
+        await _addColumns(m, dailyScores, [
+          dailyScores.rhrKind,
+          dailyScores.bedEfficiency,
+          dailyScores.latencyMin,
+          dailyScores.debtHours,
         ]);
       }
     },

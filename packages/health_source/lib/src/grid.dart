@@ -100,6 +100,7 @@ final class HealthMinute {
     stage:
         sleep?.stage ?? (hr != null || steps > 0 ? Stage.wake : Stage.unknown),
     offWrist: !hasData,
+    inBed: sleep != null,
   );
 }
 
@@ -122,8 +123,7 @@ final class _Span {
 /// * **Sleep**: a stage beats "asleep", which beats "awake"; deep beats
 ///   REM beats light. In-bed and session records are containers: they mark
 ///   "asleep" only when no app wrote any stage inside them (a phone with
-///   no watch), since the minutes around a watch's stages are time awake
-///   in bed.
+///   no watch); otherwise their minutes without a stage are awake in bed.
 class HealthGrid {
   HealthGrid([this.p = const GridParams()]);
   final GridParams p;
@@ -279,11 +279,13 @@ class HealthGrid {
         if (cur == null || _rank(s.mark!) > _rank(cur)) out[k] = s.mark!;
       }
     }
+    // A container with stages inside it is time in bed: its minutes with
+    // no stage are awake in bed (algo 10, for efficiency and latency).
     for (final c in _containers) {
       if (!c.overlaps(range)) continue;
-      if (_stages.any(c.overlaps)) continue;
+      final mark = _stages.any(c.overlaps) ? SleepMark.awake : SleepMark.asleep;
       for (var k = max(c.from, a); k < min(c.to, b); k++) {
-        out[k] ??= SleepMark.asleep;
+        out[k] ??= mark;
       }
     }
     return out;

@@ -11,32 +11,90 @@ void main() {
     });
   });
 
-  group('sleep score v2', () {
+  group('sleep score v3', () {
     test('all parts perfect is 100; sufficiency alone is itself', () {
-      final s = sleepScoreV2(
-        sleepPerf: 100,
+      final s = sleepScoreV3(
+        sufficiency: 100,
         bedDeviationMinutes: 0,
         efficiency: .95,
+        wasoMin: 5,
         wakeBoutCount: 0,
-        hrDipPct: 20,
+        latencyMinutes: 10,
       );
       expect(s.score, closeTo(100, 1e-9));
-      expect(sleepScoreV2(sleepPerf: 72).score, closeTo(72, 1e-9));
+      expect(sleepScoreV3(sufficiency: 72).score, closeTo(72, 1e-9));
+      // Sufficiency over 100 doesn't lift the score past 100.
+      expect(sleepScoreV3(sufficiency: 115).score, closeTo(100, 1e-9));
     });
 
+    test('Ohayon 2017 bands: good is 100, poor is 0, linear between', () {
+      final good = sleepScoreV3(
+        sufficiency: 100,
+        efficiency: .85,
+        wasoMin: 20,
+        wakeBoutCount: 1,
+        latencyMinutes: 30,
+      );
+      expect(good.efficiency, 100);
+      expect(good.continuity, 100);
+      expect(good.latency, 100);
+      final poor = sleepScoreV3(
+        sufficiency: 100,
+        efficiency: .74,
+        wasoMin: 51,
+        wakeBoutCount: 4,
+        latencyMinutes: 46,
+      );
+      expect(poor.efficiency, 0);
+      expect(poor.continuity, 0);
+      expect(poor.latency, 0);
+      expect(
+        sleepScoreV3(sufficiency: 100, efficiency: .795).efficiency,
+        closeTo(50, 1e-9),
+      );
+    });
+
+    test('bedtime loses its points over three hours', () {
+      expect(
+        sleepScoreV3(sufficiency: 100, bedDeviationMinutes: 90).regularity,
+        closeTo(50, 1e-9),
+      );
+      expect(
+        sleepScoreV3(sufficiency: 100, bedDeviationMinutes: -200).regularity,
+        0,
+      );
+    });
+
+    test(
+      '23 Oct: 7h 07m, 73 min late, 5 min awake scores near Apple\'s 82',
+      () {
+        // Apple Health gave this night 82 (duration 46/50, bedtime 17/30,
+        // interruptions 19/20). Algo 9 gave 73 against an 8h 49m need.
+        final s = sleepScoreV3(
+          sufficiency: sleepSufficiency(7 + 7 / 60, 7.5),
+          bedDeviationMinutes: 73,
+          wasoMin: 5,
+          wakeBoutCount: 0,
+        );
+        // Components: sufficiency 95 (Apple 92), bedtime 59 (Apple 57),
+        // continuity 100 (Apple 95): ~87, against algo 9's 73.
+        expect(s.score, inInclusiveRange(80, 90));
+      },
+    );
+
     test('a late, broken night scores below its sufficiency', () {
-      final s = sleepScoreV2(
-        sleepPerf: 90,
-        bedDeviationMinutes: 120,
+      final s = sleepScoreV3(
+        sufficiency: 90,
+        bedDeviationMinutes: 200,
         efficiency: .70,
+        wasoMin: 60,
         wakeBoutCount: 5,
-        hrDipPct: 3,
+        latencyMinutes: 50,
       );
       expect(s.regularity, 0);
-      expect(s.efficiency, closeTo(20, 1e-9));
-      expect(s.continuity, closeTo(25, 1e-9));
-      expect(s.hrDip, closeTo(20, 1e-9));
-      expect(s.score, lessThan(70));
+      expect(s.efficiency, 0);
+      expect(s.continuity, 0);
+      expect(s.score, closeTo(45, 1e-9));
     });
 
     test('wake bouts count runs of 5+ minutes', () {
@@ -87,5 +145,5 @@ void main() {
     });
   });
 
-  test('algo 9', () => expect(algoVersion, 9));
+  test('algo 10', () => expect(algoVersion, 10));
 }

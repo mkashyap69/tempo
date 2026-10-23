@@ -568,7 +568,7 @@ class _DonutPainter extends CustomPainter {
   bool shouldRepaint(_DonutPainter old) => true;
 }
 
-/// Cardio load as a half gauge: 7-day load against 28-day, 0–2×, with the
+/// Cardio load as a half gauge: this week's load against 6-week, 0–2×, with the
 /// productive band (0.8–1.3×) marked.
 class LoadGaugeCard extends StatelessWidget {
   const LoadGaugeCard({super.key, required this.t});
@@ -620,7 +620,7 @@ class LoadGaugeCard extends StatelessWidget {
                 : '${loadGlyph(load.status)} ${loadWord(load.status)}',
             style: TempoType.caption.c(color),
           ),
-          Text('7 days vs your 28', style: TempoType.caption.c(c.text3)),
+          Text('This week vs 6 weeks', style: TempoType.caption.c(c.text3)),
         ],
       ),
     );

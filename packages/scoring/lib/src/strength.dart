@@ -1258,9 +1258,19 @@ double setTrimp(SetLog s) {
     2 => 1.0,
     _ => .75,
   };
-  // Heavier work (fewer reps) taxes more per set than long light sets.
+  // Heavier work (fewer reps) taxes more per set than long light sets:
+  // session RPE runs higher for low-rep, high-load work at equal volume
+  // (Day 2004). 6–12 reps is the reference (algo 10; starting values to
+  // fit against logged sRPE in the T1 lifting check).
   final timed = s.reps == 0 && s.seconds > 0;
-  return (timed ? .6 : 1.0) * close * 1.6;
+  final heavy = timed
+      ? .6
+      : s.reps <= 5
+      ? 1.15
+      : s.reps > 12
+      ? .85
+      : 1.0;
+  return heavy * close * 1.6;
 }
 
 /// Load of a logged lifting session in TRIMP units.

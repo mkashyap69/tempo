@@ -58,11 +58,19 @@ void main() {
     test('sleep: U-shaped, neutral 7–8.5 h', () {
       expect(hazard(Lever.sleepDuration, 7.5), 1);
       expect(hazard(Lever.sleepDuration, 6), closeTo(1.12, 1e-9));
-      expect(hazard(Lever.sleepDuration, 9.5), closeTo(1.3, 1e-9));
+      // Long sleep counts half (1.15 an hour) and at most a year.
+      expect(hazard(Lever.sleepDuration, 9.5), closeTo(1.09, .01));
+      expect(
+        yearsFromHazard(hazard(Lever.sleepDuration, 12)),
+        closeTo(1, 1e-9),
+      );
     });
     test('regularity, breathing, alcohol, BP, waist, smoking', () {
-      expect(hazard(Lever.sleepRegularity, 45), 1);
-      expect(hazard(Lever.sleepRegularity, 200), 1.25);
+      // SRI: 75 typical, 1 % a point, within .88–1.25.
+      expect(hazard(Lever.sleepRegularity, 75), 1);
+      expect(hazard(Lever.sleepRegularity, 65), closeTo(1.1, 1e-9));
+      expect(hazard(Lever.sleepRegularity, 0), 1.25);
+      expect(hazard(Lever.sleepRegularity, 100), .88);
       expect(hazard(Lever.breathing, 95), 1);
       expect(hazard(Lever.breathing, 60), closeTo(1.18, 1e-9));
       expect(hazard(Lever.alcohol, 10), 1);
@@ -85,7 +93,7 @@ void main() {
       activeMinutes: 75,
       strengthPerWeek: .5,
       sleepHours: 7.5,
-      bedtimeSdMinutes: 45,
+      sleepRegularityIndex: 75,
     );
     test('a typical person is their age', () {
       final t = tempoAge(typical);
@@ -104,7 +112,7 @@ void main() {
           activeMinutes: 320,
           strengthPerWeek: 2,
           sleepHours: 7.6,
-          bedtimeSdMinutes: 25,
+          sleepRegularityIndex: 85,
         ),
       );
       expect(t.delta, lessThan(-5));
@@ -122,7 +130,7 @@ void main() {
           activeMinutes: 20,
           strengthPerWeek: 0,
           sleepHours: 5.8,
-          bedtimeSdMinutes: 100,
+          sleepRegularityIndex: 55,
           smoking: Smoking.current,
         ),
       );
@@ -143,7 +151,7 @@ void main() {
           steps: 0,
           activeMinutes: 0,
           sleepHours: 3,
-          bedtimeSdMinutes: 300,
+          sleepRegularityIndex: 0,
           smoking: Smoking.current,
           systolic: 200,
         ),
@@ -269,7 +277,7 @@ void main() {
       steps: 7000,
       activeMinutes: 75,
       sleepHours: 7.5,
-      bedtimeSdMinutes: 45,
+      sleepRegularityIndex: 75,
     );
     LongevityInputs withRhr(double rhr, {bool measured = false}) =>
         LongevityInputs(
@@ -282,7 +290,7 @@ void main() {
           steps: 7000,
           activeMinutes: 75,
           sleepHours: 7.5,
-          bedtimeSdMinutes: 45,
+          sleepRegularityIndex: 75,
         );
 
     test('resting HR is not counted twice when VO₂ max comes from it', () {
@@ -451,7 +459,7 @@ extension on LongevityInputs {
         activeMinutes: this.activeMinutes,
         strengthPerWeek: this.strengthPerWeek,
         sleepHours: this.sleepHours,
-        bedtimeSdMinutes: this.bedtimeSdMinutes,
+        sleepRegularityIndex: this.sleepRegularityIndex,
         phenoAge: phenoAge,
         labDaysOld: labDaysOld,
       );

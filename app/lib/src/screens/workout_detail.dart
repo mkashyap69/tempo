@@ -52,7 +52,7 @@ class WorkoutDetailScreen extends ConsumerWidget {
     final hrMax = t.hrMax;
     final rest = t.score?.rhr ?? 60;
     String bpm(int z) {
-      final r = sc.zoneRange(z, hrMax);
+      final r = sc.zoneRange(z, hrMax, hrRest: t.zoneRest);
       return '${r.lo}–${r.hi} bpm';
     }
 

@@ -16,6 +16,19 @@ final class Baseline {
         (xs.length - 1);
     return Baseline(mean, sqrt(v), xs.length);
   }
+
+  /// Median and MAD × 1.4826 (the SD a normal distribution with that MAD
+  /// would have) of the non-null [values]; null if fewer than 2. A week of
+  /// illness or travel barely moves either, where it widens a sample SD
+  /// and makes every later day look normal (algo 10). A MAD of 0 (half the
+  /// values equal) falls back to the sample SD.
+  static Baseline? robust(Iterable<double?> values) {
+    final xs = values.whereType<double>().toList();
+    if (xs.length < 2) return null;
+    final med = quantile(xs, .5)!;
+    final mad = quantile([for (final x in xs) (x - med).abs()], .5)! * 1.4826;
+    return Baseline(med, mad > 0 ? mad : of(xs)!.sd, xs.length);
+  }
 }
 
 /// Linear-interpolated quantile of [values] (q in 0..1); null if empty.

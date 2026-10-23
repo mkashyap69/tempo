@@ -13,7 +13,7 @@ import 'everyday.dart' show nightVitalsZ;
 import 'health_sync.dart' show metricSource, SourceMetric;
 import 'minutes.dart';
 import 'pause.dart';
-import 'profile.dart' show Keys, sportLabel;
+import 'profile.dart' show Keys, loadAppProfile, sportLabel;
 import 'strength.dart' show strengthExtraTrimp;
 
 const hrMaxKey = 'hr_max';
@@ -31,9 +31,14 @@ class ScoreService {
   /// each day's history feeds the next. Never before the active source's
   /// first data: earlier days keep the scores another source gave them.
   Future<int> recomputeFrom(DateTime from) async {
+    // HR max: your set max or the age-predicted one (the profile writes
+    // it); 190 only before onboarding.
     final params = sc.ScoringParams(
       defaultHrMax: int.tryParse(await db.setting(hrMaxKey) ?? '') ?? 190,
+      female: (await loadAppProfile(db))?.male == false,
     );
+    _female = params.female;
+    _zonesByReserve = (await loadAppProfile(db))?.zonesByReserve ?? false;
     final source = await loadDataSource(db);
     final first = await firstDataMinute(db, source: source);
     final today = _day(DateTime.now());
@@ -66,6 +71,10 @@ class ScoreService {
   }
 
   List<Pause> _pauses = const [];
+  bool _female = false;
+
+  /// Reserve zones (Profile): workouts' zone time from rest + reserve.
+  bool _zonesByReserve = false;
 
   Future<void> _scoreOne(
     DateTime day,
@@ -99,6 +108,7 @@ class ScoreService {
     ];
     double? hrv, sourceRhr;
     String? hrvKind;
+    int? hrvCount;
     var records = const <hs.HealthRecord>[];
     if (source.isHealth) {
       records = await loadHealthRecords(db, from, to);
@@ -112,6 +122,7 @@ class ScoreService {
         );
         hrv = h?.ms;
         hrvKind = h?.kind.name;
+        hrvCount = h?.n;
       }
       sourceRhr = hs.sourceRestingHr(records, day);
     }
@@ -131,6 +142,7 @@ class ScoreService {
       source: source.key,
       hrv: hrv,
       hrvKind: hrvKind,
+      hrvCount: hrvCount,
       sourceRhr: sourceRhr,
       vitalsZ: vitalsZ,
     );
@@ -188,6 +200,7 @@ class ScoreService {
           if (!m.ts.isBefore(wake) && m.ts.isBefore(t)) m.hr,
       ],
       hrRest: rest,
+      female: _female,
       hrMax: s.hrMax.toDouble(),
     );
     List<int?> hrIn(DateTime a, DateTime b) => [
@@ -226,7 +239,13 @@ class ScoreService {
                   : (hrs.reduce((x, y) => x + y) / hrs.length).round(),
             ),
             maxHr: Value(hrs.isEmpty ? null : hrs.reduce(math.max)),
-            zones: jsonEncode(sc.timeInZones(hrIn(w.start, w.end), s.hrMax)),
+            zones: jsonEncode(
+              sc.timeInZones(
+                hrIn(w.start, w.end),
+                s.hrMax,
+                hrRest: _zonesByReserve ? rest : null,
+              ),
+            ),
           ),
         );
       }
@@ -252,7 +271,15 @@ class ScoreService {
             trimp: Value(t1 - t0),
             avgHr: Value((hrs.reduce((x, y) => x + y) / hrs.length).round()),
             maxHr: Value(hrs.reduce(math.max)),
-            zones: Value(jsonEncode(sc.timeInZones(hrIn(a, z), s.hrMax))),
+            zones: Value(
+              jsonEncode(
+                sc.timeInZones(
+                  hrIn(a, z),
+                  s.hrMax,
+                  hrRest: _zonesByReserve ? rest : null,
+                ),
+              ),
+            ),
           ),
         );
       }
@@ -284,7 +311,13 @@ class ScoreService {
                 : (hrs.reduce((x, y) => x + y) / hrs.length).round(),
           ),
           maxHr: Value(hrs.isEmpty ? null : hrs.reduce(math.max)),
-          zones: jsonEncode(sc.timeInZones(hrIn(a, z), s.hrMax)),
+          zones: jsonEncode(
+            sc.timeInZones(
+              hrIn(a, z),
+              s.hrMax,
+              hrRest: _zonesByReserve ? rest : null,
+            ),
+          ),
         ),
       );
     }
@@ -304,7 +337,13 @@ class ScoreService {
           trimp: t1 - t0,
           avgHr: Value(a.avgHr),
           maxHr: Value(a.maxHr),
-          zones: jsonEncode(sc.timeInZones(inside, s.hrMax)),
+          zones: jsonEncode(
+            sc.timeInZones(
+              inside,
+              s.hrMax,
+              hrRest: _zonesByReserve ? rest : null,
+            ),
+          ),
         ),
       );
     }
@@ -389,6 +428,10 @@ sc.DailyScore toScoring(st.DailyScore d) => sc.DailyScore(
   hrvKind: d.hrvKind,
   sleepScore: d.sleepScore,
   vitalsPenalty: d.vitalsPenalty,
+  rhrKind: d.rhrKind,
+  bedEfficiency: d.bedEfficiency,
+  latencyMinutes: d.latencyMin,
+  debtHours: d.debtHours,
 );
 
 st.DailyScoresCompanion fromScoring(sc.DailyScore s) =>
@@ -414,4 +457,8 @@ st.DailyScoresCompanion fromScoring(sc.DailyScore s) =>
       hrvKind: Value(s.hrvKind),
       sleepScore: Value(s.sleepScore),
       vitalsPenalty: Value(s.vitalsPenalty),
+      rhrKind: Value(s.rhrKind),
+      bedEfficiency: Value(s.bedEfficiency),
+      latencyMin: Value(s.latencyMinutes),
+      debtHours: Value(s.debtHours),
     );

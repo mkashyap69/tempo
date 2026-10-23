@@ -362,7 +362,17 @@ Future<sc.LongevityInputs> longevityInputs(
     return v.isEmpty ? null : v.reduce((a, b) => a + b) / v.length;
   }
 
-  final rhr = median(scores.map((s) => s.rhr));
+  // Resting HR from the nights themselves where there is one (a source's
+  // daytime figure sits 5–10 bpm higher, see DailyScore.rhrKind).
+  final sleepRhr = [
+    for (final s in scores)
+      if (s.rhrKind != sc.rhrFromSource) s.rhr,
+  ];
+  final rhr = median(
+    sleepRhr.whereType<double>().length >= 5
+        ? sleepRhr
+        : scores.map((s) => s.rhr),
+  );
   final hrMax = max(
     p.effectiveMaxHr,
     scores.fold<int>(0, (a, s) => max(a, s.hrMax)),
@@ -370,23 +380,10 @@ Future<sc.LongevityInputs> longevityInputs(
   final weeks = max(1, withData) / 7;
   final steps = await _dailySteps(db, from, to);
 
-  // Bedtime regularity: SD of bedtimes, after-midnight times wrapped.
-  final beds = [
-    for (final s in scores)
-      if (s.sleepStart != null)
-        () {
-          final t = st.fromTs(s.sleepStart!);
-          final m = t.hour * 60 + t.minute;
-          return (m < 12 * 60 ? m + 1440 : m).toDouble();
-        }(),
-  ];
-  double? bedSd;
-  if (beds.length >= 5) {
-    final m = beds.reduce((a, b) => a + b) / beds.length;
-    bedSd = sqrt(
-      beds.fold<double>(0, (a, x) => a + (x - m) * (x - m)) / beds.length,
-    );
-  }
+  // Sleep regularity: the SRI over the window (Tempo Age v3, algo 10;
+  // was the SD of bedtimes). Paused days still count: the index needs
+  // every day-to-day pair.
+  final sri = sc.sleepRegularity((await loadMinutes(db, from, to)).minutes);
 
   // Breathing: mean nightly score where the night had enough SpO₂.
   final breathing = <double>[];
@@ -447,7 +444,7 @@ Future<sc.LongevityInputs> longevityInputs(
         ? null
         : _strength(await db.workoutsBetween(from, to)) / weeks,
     sleepHours: mean(scores.map((s) => s.sleptHours)),
-    bedtimeSdMinutes: bedSd,
+    sleepRegularityIndex: sri,
     breathingScore: breathing.length < 3 ? null : mean(breathing),
     stressIndex: await _meanStress(db, from, to),
     smoking: manual.smoking,
@@ -460,7 +457,8 @@ Future<sc.LongevityInputs> longevityInputs(
 }
 
 /// Version of the Tempo Age method, stored on snapshots.
-const longevityAlgo = 3; // 2: weekly change cap; 3: v2 groups, labs
+const longevityAlgo =
+    4; // 2: weekly change cap; 3: v2 groups, labs; 4: SRI, caps (algo 10)
 
 Map<String, Object?> _contributorJson(sc.Contributor c) => {
   'lever': c.lever.name,

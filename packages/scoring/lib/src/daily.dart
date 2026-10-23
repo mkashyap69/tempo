@@ -33,6 +33,10 @@ final class DailyScore {
     this.hrvKind,
     this.sleepScore,
     this.vitalsPenalty = 0,
+    this.rhrKind,
+    this.bedEfficiency,
+    this.latencyMinutes,
+    this.debtHours,
   });
 
   final DateTime date; // local midnight
@@ -63,11 +67,25 @@ final class DailyScore {
   /// `sdnn` or `rmssd`: different scales, never one baseline.
   final String? hrvKind;
 
-  /// Sleep score v2 (0–100; see [sleepScoreV2]); null without a night.
+  /// Sleep score (0–100; v3 from algo 10, see [sleepScoreV3]); null without
+  /// a night.
   final double? sleepScore;
 
   /// Recovery points taken off for night vitals (algo 9).
   final double vitalsPenalty;
+
+  /// Where [rhr] came from: [rhrFromSleep] or [rhrFromSource]. Baselines
+  /// only compare one kind (algo 10). Null on rows before algo 10.
+  final String? rhrKind;
+
+  /// Asleep ÷ time in bed, when the source gave time in bed (algo 10).
+  final double? bedEfficiency;
+
+  /// Minutes from getting into bed to falling asleep, same condition.
+  final int? latencyMinutes;
+
+  /// Sleep debt going into the night that ended this morning, hours.
+  final double? debtHours;
 }
 
 /// [DailyScore.source] of days scored from the Mi Band.
@@ -88,6 +106,7 @@ final class ScoringParams {
     this.defaultHrRest = 60,
     this.baselineDays = 30,
     this.needDays = 60,
+    this.female = false,
   });
   final StrainParams strain;
   final SleepParams sleep;
@@ -98,6 +117,9 @@ final class ScoringParams {
 
   /// Days of history the base sleep need is learned from.
   final int needDays;
+
+  /// Banister's female TRIMP weighting (see [minuteTrimp]).
+  final bool female;
 }
 
 /// The main sleep ending on the morning of a day, the naps after it, and
@@ -179,6 +201,89 @@ DaySleep daySleep({
   return DaySleep(night: night, naps: naps, wake: wake, nextSleep: nextSleep);
 }
 
+/// Each day's autonomic recovery: the mean of its HRV and resting-HR
+/// z-scores (HRV up, resting HR down = better) against the median and MAD
+/// of [days] themselves, one kind of each at a time. Sleep length never
+/// enters, so it can rank nights for [learnedBaseNeed] without picking the
+/// longest ones (algo 10, loop L2). Days with no signal are left out.
+List<NeedSample> needSamples(List<DailyScore> days) {
+  String rk(DailyScore d) => d.rhrKind ?? rhrFromSleep;
+  final rhrBase = Baseline.robust([
+    for (final d in days)
+      if (rk(d) == rhrFromSleep) d.rhr,
+  ]);
+  final hrvBase = <String, Baseline?>{
+    for (final k in {for (final d in days) ?d.hrvKind})
+      k: Baseline.robust([
+        for (final d in days)
+          if (d.hrvKind == k && d.hrv != null && d.hrv! > 0) log(d.hrv!),
+      ]),
+  };
+  final proxyBase = Baseline.robust(days.map((d) => d.hrvProxy));
+  double? z(double? v, Baseline? b, {bool up = true}) {
+    if (v == null || b == null || b.sd <= 0) return null;
+    final raw = (v - b.mean) / b.sd;
+    return up ? raw : -raw;
+  }
+
+  return [
+    for (final d in days)
+      if (d.sleptHours != null)
+        if ([
+              z(rk(d) == rhrFromSleep ? d.rhr : null, rhrBase, up: false),
+              z(
+                d.hrv != null && d.hrv! > 0 ? log(d.hrv!) : null,
+                hrvBase[d.hrvKind],
+              ),
+              z(d.hrvProxy, proxyBase, up: false),
+            ].whereType<double>().toList()
+            case final zs when zs.isNotEmpty)
+          NeedSample(
+            sleptHours: d.sleptHours!,
+            autonomic: zs.reduce((a, b) => a + b) / zs.length,
+          ),
+  ];
+}
+
+/// Tonight's need from [history] (newest first, the night just scored
+/// included when known): the learned base from [needDays] same-source
+/// days, the debt from the last nights against each night's base, and
+/// yesterday's strain. Shared by [scoreDay] and the app's Tonight card so
+/// they can't disagree.
+({double base, double debt, double need}) sleepNeedFrom({
+  required List<DailyScore> history,
+  required String source,
+  ScoringParams p = const ScoringParams(),
+  double? strainYesterday,
+}) {
+  final same = [
+    for (final d in history)
+      if (d.source == source) d,
+  ];
+  final base = learnedBaseNeed(
+    needSamples(same.take(p.needDays).toList()),
+    p.sleep,
+  );
+  final debt = sleepDebtHours([
+    for (final d in history.take(p.sleep.debtNights))
+      if (d.sleptHours != null)
+        NightRecord(
+          baseHours: (d.baseNeedHours ?? base)
+              .clamp(p.sleep.minNeedHours, p.sleep.maxNeedHours)
+              .toDouble(),
+          sleptHours: d.sleptHours! + d.napHours,
+        ),
+  ], p.sleep);
+  final need = sleepNeedHours(
+    debtHours: debt,
+    strainYesterday:
+        strainYesterday ?? (history.isEmpty ? 0 : history.first.strain),
+    p: p.sleep,
+    baseHours: base,
+  );
+  return (base: base, debt: debt, need: need);
+}
+
 /// Scores [date]. [minutes] should cover at least noon the day before to
 /// noon the day after. [history] holds earlier days, newest first.
 /// [extraTrimp] adds load HR misses (strength sessions, see
@@ -187,8 +292,10 @@ DaySleep daySleep({
 /// [source] tags the day; baselines, calibration and the learned sleep
 /// need use only earlier days of the same source, because a watch's resting
 /// HR or HRV sits on a different level from the band's. [hrv] (ms) and
-/// [hrvKind] are the night's real HRV from a Health source. [sourceRhr] is
-/// the source's own resting HR, used only when the night has no HR.
+/// [hrvKind] are the night's real HRV from a Health source, from
+/// [hrvCount] readings. [sourceRhr] is the source's own resting HR, used
+/// only when the night has no HR (and then never in one baseline with the
+/// night's own, see [DailyScore.rhrKind]).
 DailyScore scoreDay({
   required DateTime date,
   required List<Minute> minutes,
@@ -199,6 +306,7 @@ DailyScore scoreDay({
   String source = bandSource,
   double? hrv,
   String? hrvKind,
+  int? hrvCount,
   double? sourceRhr,
   List<double?> vitalsZ = const [],
 }) {
@@ -211,20 +319,41 @@ DailyScore scoreDay({
         !m.ts.isBefore(wake) && (nextSleep == null || m.ts.isBefore(nextSleep)),
   );
 
-  // defaultHrMax doubles as a user-set floor (Settings → HR max).
+  // defaultHrMax doubles as a user-set floor (Settings → HR max; the app
+  // passes the age-predicted max when none is set).
   final prevMax = history.isEmpty
       ? p.defaultHrMax
       : max(history.first.hrMax, p.defaultHrMax);
   final hrMax = updatedHrMax(prevMax, minutes.map((m) => m.hr));
 
-  final rhr = night == null ? null : restingHr(night.minutes) ?? sourceRhr;
+  final nightRhr = night == null ? null : restingHr(night.minutes);
+  final rhr = night == null ? null : nightRhr ?? sourceRhr;
+  final rhrKind = rhr == null
+      ? null
+      : nightRhr != null
+      ? rhrFromSleep
+      : rhrFromSource;
   final same = [
     for (final d in history)
       if (d.source == source) d,
   ];
   final recent = same.take(p.baselineDays).toList();
-  final rhrBase = Baseline.of(recent.map((d) => d.rhr));
-  final hrRest = rhr ?? rhrBase?.mean ?? p.defaultHrRest;
+  // Days whose night vitals were off don't shape the normal (algo 10).
+  final normal = [
+    for (final d in recent)
+      if (d.vitalsPenalty <= 0) d,
+  ];
+  String rk(DailyScore d) => d.rhrKind ?? rhrFromSleep;
+  final rhrBase = rhrKind == null
+      ? null
+      : Baseline.robust([
+          for (final d in normal)
+            if (rk(d) == rhrKind) d.rhr,
+        ]);
+  final hrRest =
+      rhr ??
+      Baseline.robust([for (final d in recent) d.rhr])?.mean ??
+      p.defaultHrRest;
 
   final t =
       trimp(
@@ -232,33 +361,20 @@ DailyScore scoreDay({
         hrRest: hrRest,
         hrMax: hrMax.toDouble(),
         floor: p.strain.floor,
+        female: p.female,
       ) +
       max(0, extraTrimp);
   final strain = strainFromTrimp(t, p.strain);
 
-  final baseNeed = learnedBaseNeed([
-    for (final d in same.take(p.needDays))
-      if (d.sleptHours != null && d.recovery != null && !d.calibrating)
-        NeedSample(sleptHours: d.sleptHours!, recovery: d.recovery!),
-  ], p.sleep);
-  double? slept, need, perf;
+  double? slept, need, perf, suff, base, debt;
   if (night != null) {
     slept = night.asleep.inMinutes / 60;
-    final debt = sleepDebtHours([
-      for (final d in history.take(7))
-        if (d.needHours != null && d.sleptHours != null)
-          NightRecord(
-            needHours: d.needHours!,
-            sleptHours: d.sleptHours! + d.napHours,
-          ),
-    ], p.sleep);
-    need = sleepNeedHours(
-      debtHours: debt,
-      strainYesterday: history.isEmpty ? 0 : history.first.strain,
-      p: p.sleep,
-      baseHours: baseNeed,
-    );
+    final n = sleepNeedFrom(history: history, source: source, p: p);
+    base = n.base;
+    debt = n.debt;
+    need = n.need;
     perf = sleepPerformance(slept, need);
+    suff = sleepSufficiency(slept, base);
   }
 
   double? stressHrv;
@@ -275,22 +391,42 @@ DailyScore scoreDay({
 
   final nights = recent.where((d) => d.sleptHours != null).length;
   final calibrating = nights < p.recovery.calibrationNights;
+
+  // HRV: tonight blended with the week's ln HRV, since one night's reading
+  // swings 7–10 % on its own (Plews 2012); a night with few readings counts
+  // for less (algo 10).
+  final pastLn = [
+    for (final d in normal)
+      if (d.hrv != null && d.hrv! > 0 && d.hrvKind == hrvKind) log(d.hrv!),
+  ];
+  double? hrvValue;
+  if (realHrv != null) {
+    final week = [log(realHrv), ...pastLn.take(6)];
+    hrvValue =
+        .5 * log(realHrv) + .5 * week.reduce((a, b) => a + b) / week.length;
+  }
+  final hrvWeight =
+      p.recovery.wHrv * (hrvCount == null ? 1 : min(1, hrvCount / 3));
+
+  double? suffOf(DailyScore d) => d.sleptHours == null
+      ? null
+      : sleepSufficiency(
+          d.sleptHours!,
+          d.baseNeedHours ?? base ?? p.sleep.baseNeedHours,
+        );
   final rec = recoveryScore([
     RecoveryInput(
       value: stressHrv,
-      baseline: Baseline.of(recent.map((d) => d.hrvProxy)),
+      baseline: Baseline.robust(normal.map((d) => d.hrvProxy)),
       higherIsBetter: false,
       weight: p.recovery.wHrv,
     ),
     // HRV is log-normal: compare ln(ms) against ln(ms) of the same kind.
     RecoveryInput(
-      value: realHrv == null ? null : log(realHrv),
-      baseline: Baseline.of([
-        for (final d in recent)
-          if (d.hrv != null && d.hrv! > 0 && d.hrvKind == hrvKind) log(d.hrv!),
-      ]),
+      value: hrvValue,
+      baseline: Baseline.robust(pastLn),
       higherIsBetter: true,
-      weight: p.recovery.wHrv,
+      weight: hrvWeight,
     ),
     RecoveryInput(
       value: rhr,
@@ -298,50 +434,41 @@ DailyScore scoreDay({
       higherIsBetter: false,
       weight: p.recovery.wRhr,
     ),
+    // Sleep against the base need, free of debt (algo 10, loop L3).
     RecoveryInput(
-      value: perf,
-      baseline: Baseline.of(recent.map((d) => d.sleepPerf)),
+      value: suff,
+      baseline: Baseline.robust(normal.map(suffOf)),
       higherIsBetter: true,
       weight: p.recovery.wSleep,
     ),
   ], p.recovery);
   final penalty = rec == null ? 0.0 : recoveryPenalty(vitalsZ);
 
-  // Sleep score v2: bedtime against the 14-night median, the night's
-  // efficiency and wake bouts, and the heart-rate dip from the 3 h before.
-  double? score;
-  if (night != null && perf != null) {
+  // Sleep score v3: base-need sufficiency, bedtime against the 14-night
+  // median, continuity, and efficiency and latency from time in bed.
+  double? score, bedEff;
+  int? latency;
+  if (night != null && suff != null) {
     int toNoon(DateTime t) => ((t.hour - 12) % 24) * 60 + t.minute;
     final beds = [
       for (final d in same.take(14))
         if (d.sleepStart != null) toNoon(d.sleepStart!),
     ]..sort();
-    final evening = [
-      for (final m in minutes)
-        if (m.hr != null &&
-            !m.stage.asleep &&
-            m.ts.isBefore(night.start) &&
-            !m.ts.isBefore(night.start.subtract(const Duration(hours: 3))))
-          m.hr!,
-    ];
-    final asleepHr = [
-      for (final m in night.minutes)
-        if (m.hr != null && m.stage.asleep) m.hr!,
-    ];
-    double? dip;
-    if (evening.length >= 30 && asleepHr.length >= 60) {
-      final e = evening.reduce((a, b) => a + b) / evening.length;
-      final a = asleepHr.reduce((a, b) => a + b) / asleepHr.length;
-      dip = (1 - a / e) * 100;
+    final span = bedSpan(night, minutes);
+    if (span != null) {
+      final inBed = span.end.difference(span.start).inMinutes;
+      bedEff = inBed <= 0 ? null : night.asleep.inMinutes / inBed;
+      latency = night.start.difference(span.start).inMinutes;
     }
-    score = sleepScoreV2(
-      sleepPerf: perf,
+    score = sleepScoreV3(
+      sufficiency: suff,
       bedDeviationMinutes: beds.length < 5
           ? null
           : toNoon(night.start) - beds[beds.length ~/ 2],
-      efficiency: night.efficiency,
+      efficiency: bedEff,
+      wasoMin: wasoMinutes(night),
       wakeBoutCount: wakeBouts(night),
-      hrDipPct: dip,
+      latencyMinutes: latency,
     ).score;
   }
 
@@ -355,13 +482,17 @@ DailyScore scoreDay({
     sleptHours: slept,
     needHours: need,
     napHours: napHours,
-    baseNeedHours: baseNeed,
+    baseNeedHours: base,
     sleepPerf: perf,
     rhr: rhr,
+    rhrKind: rhrKind,
     hrvProxy: stressHrv,
     recovery: rec == null ? null : max(0, rec - penalty).toDouble(),
     vitalsPenalty: penalty,
     sleepScore: score,
+    bedEfficiency: bedEff,
+    latencyMinutes: latency,
+    debtHours: debt,
     calibrating: calibrating,
     source: source,
     hrv: realHrv,

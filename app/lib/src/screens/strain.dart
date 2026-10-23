@@ -31,8 +31,10 @@ class StrainDay {
     this.wake,
     this.rest,
     this.hrMax,
-    this.workouts,
-  );
+    this.workouts, {
+    this.female = false,
+    this.zoneRest,
+  });
   final DateTime day;
   final List<st.MinuteSample> minutes;
   final DateTime wake;
@@ -40,10 +42,20 @@ class StrainDay {
   final int hrMax;
   final List<st.Workout> workouts;
 
+  /// Banister's female TRIMP weighting, as the day's score uses.
+  final bool female;
+
+  /// Resting HR for reserve zones (Profile), else null: % of max HR.
+  final double? zoneRest;
+
   Iterable<st.MinuteSample> get awake =>
       minutes.where((m) => !st.fromTs(m.ts).isBefore(wake));
-  List<int> get zones =>
-      sc.timeInZones(awake.map((m) => m.hr), hrMax, includeBelow: false);
+  List<int> get zones => sc.timeInZones(
+    awake.map((m) => m.hr),
+    hrMax,
+    includeBelow: false,
+    hrRest: zoneRest,
+  );
   int? get peak => minutes
       .map((m) => m.hr)
       .whereType<int>()
@@ -55,7 +67,12 @@ class StrainDay {
     final out = <(int, double)>[(wake.hour * 60 + wake.minute, 0)];
     for (final m in awake) {
       if (m.hr != null) {
-        trimp += sc.minuteTrimp(m.hr!, hrRest: rest, hrMax: hrMax.toDouble());
+        trimp += sc.minuteTrimp(
+          m.hr!,
+          hrRest: rest,
+          hrMax: hrMax.toDouble(),
+          female: female,
+        );
       }
       final t = st.fromTs(m.ts);
       out.add((t.hour * 60 + t.minute, sc.strainFromTrimp(trimp)));
@@ -80,6 +97,8 @@ final strainDayProvider = FutureProvider.family<StrainDay, DateTime>((
     s?.rhr ?? 60,
     s?.hrMax ?? profile.effectiveMaxHr,
     await db.workoutsBetween(day, day.add(const Duration(days: 1))),
+    female: !profile.male,
+    zoneRest: profile.zonesByReserve ? (s?.rhr ?? 60) : null,
   );
 });
 
@@ -234,7 +253,12 @@ class StrainScreen extends ConsumerWidget {
                 parts: [for (var i = 0; i < 5; i++) (zones[i], s.zone[i])],
               ),
               const SizedBox(height: 12),
-              ZoneRows(minutes: zones, hrMax: d.hrMax, max: zmax),
+              ZoneRows(
+                minutes: zones,
+                hrMax: d.hrMax,
+                max: zmax,
+                zoneRest: d.zoneRest,
+              ),
             ],
           ),
         ),
@@ -536,9 +560,13 @@ class ZoneRows extends StatelessWidget {
     required this.minutes,
     required this.hrMax,
     required this.max,
+    this.zoneRest,
   });
   final List<int> minutes;
   final int hrMax, max;
+
+  /// Resting HR for reserve zones, else null: % of max HR.
+  final double? zoneRest;
   @override
   Widget build(BuildContext context) {
     final c = context.c, s = context.s;
@@ -561,7 +589,7 @@ class ZoneRows extends StatelessWidget {
                 SizedBox(
                   width: 96,
                   child: Text(
-                    '${sc.zoneRange(i + 1, hrMax).lo}–${sc.zoneRange(i + 1, hrMax).hi} bpm',
+                    '${sc.zoneRange(i + 1, hrMax, hrRest: zoneRest).lo}–${sc.zoneRange(i + 1, hrMax, hrRest: zoneRest).hi} bpm',
                     style: TempoType.caption.c(c.text3).tnum,
                   ),
                 ),
@@ -594,7 +622,7 @@ class DayHrChart extends StatelessWidget {
       double x(int m) => m / 1440 * 490;
       double y(num b) => 200 - (b - 40) / 140 * 200;
       for (var z = 1; z <= 5; z++) {
-        final b = sc.zoneRange(z, day.hrMax).lo;
+        final b = sc.zoneRange(z, day.hrMax, hrRest: day.zoneRest).lo;
         ink.line(Offset(0, y(b)), Offset(490, y(b)), ink.c.line, dash: [2, 4]);
         ink.text('Z$z', Offset(520, y(b) + 5), align: TextAlign.right);
       }

@@ -79,8 +79,12 @@ class _ActivityData {
     this.similar, {
     this.gait,
     this.strideFromBand = false,
+    this.zoneRest,
   });
   final st.Workout w;
+
+  /// Resting HR for reserve zones (Profile), else null: % of max HR.
+  final double? zoneRest;
 
   /// Steps, cadence and estimated distance and pace (walks, runs and other
   /// on-foot sessions); null without steps.
@@ -170,6 +174,7 @@ final _activityProvider = FutureProvider.family<_ActivityData?, int>((
     similar,
     gait: gait,
     strideFromBand: fromBand,
+    zoneRest: profile.zonesByReserve ? (s?.rhr ?? 60) : null,
   );
 });
 
@@ -287,7 +292,11 @@ class ActivityDetailScreen extends ConsumerWidget {
                         hi = math.max(data.hrMax, hrs.reduce(math.max) + 5);
                     double y(num v) => 196 - (v - lo) / (hi - lo) * 192;
                     for (var z = 1; z <= 5; z++) {
-                      final r = sc.zoneRange(z, data.hrMax);
+                      final r = sc.zoneRange(
+                        z,
+                        data.hrMax,
+                        hrRest: data.zoneRest,
+                      );
                       final top = y(math.min(hi, r.hi + 1)),
                           bot = y(math.max(lo, r.lo));
                       if (bot <= top) continue;

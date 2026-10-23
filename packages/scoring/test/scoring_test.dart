@@ -112,24 +112,43 @@ void main() {
       );
       expect(strengthCorrection(hrTrimp: 80, rpe: 7, minutes: 60), 0);
     });
-    test('hr max only rises', () {
+    test('hr max rises only on two sustained minutes, 5 bpm a day', () {
       expect(updatedHrMax(190, [150, null, 185]), 190);
-      expect(updatedHrMax(190, [195]), 195);
+      // One spike is an artefact.
+      expect(updatedHrMax(190, [150, 210, 150]), 190);
+      expect(updatedHrMax(190, [193, 195]), 193);
+      expect(updatedHrMax(190, [205, 206, 207]), 195);
+      expect(updatedHrMax(190, [193, null, 195]), 190);
+    });
+    test('female Banister weighting', () {
+      const r = 0.2 / 0.7;
+      expect(
+        minuteTrimp(125, hrRest: 60, hrMax: 190, female: true),
+        closeTo(r * 0.86 * exp(1.67 * r), 1e-9),
+      );
     });
   });
 
   group('resting HR', () {
-    test('lowest 5-minute average', () {
+    test('10th percentile of asleep HR, one dropout can\'t set it', () {
       final t = DateTime(2026);
       final m = [
-        for (final (i, hr) in [70, 60, 50, 50, 50, 50, 50, 80].indexed)
-          Minute(t.add(Duration(minutes: i)), hr: hr),
+        for (var i = 0; i < 100; i++)
+          Minute(
+            t.add(Duration(minutes: i)),
+            hr: i == 50 ? 38 : 50 + i % 10, // one 38 bpm glitch
+            stage: Stage.light,
+          ),
+        // Awake minutes before falling asleep don't count.
+        for (var i = 100; i < 130; i++)
+          Minute(t.add(Duration(minutes: i)), hr: 40, stage: Stage.wake),
       ];
-      expect(restingHr(m), 50);
+      expect(restingHr(m), closeTo(50.9, 1e-9));
     });
-    test('needs half the window covered', () {
+    test('needs 20 readings', () {
       final t = DateTime(2026);
-      expect(restingHr(run(t, 10)), isNull);
+      expect(restingHr(run(t, 19, hr: 50, stage: Stage.light)), isNull);
+      expect(restingHr(run(t, 20, hr: 50, stage: Stage.light)), 50);
     });
   });
 
@@ -141,6 +160,15 @@ void main() {
       expect(b.n, 8);
     });
     test('needs two values', () => expect(Baseline.of([1, null]), isNull));
+    test('robust: median and MAD, a sick week barely moves it', () {
+      final calm = [for (var i = 0; i < 23; i++) 50.0 + i % 3];
+      final sick = [...calm, 62.0, 64.0, 63.0, 65.0, 61.0, 66.0, 64.0];
+      expect(Baseline.robust(calm)!.mean, 51);
+      expect(Baseline.robust(sick)!.mean, lessThanOrEqualTo(52));
+      expect(Baseline.robust(sick)!.sd, lessThan(Baseline.of(sick)!.sd / 2));
+      // MAD 0 falls back to the sample SD.
+      expect(Baseline.robust([5, 5, 5, 9])!.sd, Baseline.of([5, 5, 5, 9])!.sd);
+    });
   });
 
   group('sleep', () {
@@ -214,10 +242,10 @@ void main() {
     test('drops sessions shorter than the minimum', () {
       expect(detectSessions(run(t, 30, stage: Stage.light)), isEmpty);
     });
-    test('need = 7.5 + 0.5·debt + 0.03·strain', () {
+    test('need = 7.5 + 0.5·debt + 0.01·strain', () {
       expect(
         sleepNeedHours(debtHours: 1, strainYesterday: 10),
-        closeTo(8.3, 1e-9),
+        closeTo(8.1, 1e-9),
       );
     });
     test('need starts from a learned base when given', () {
@@ -229,35 +257,52 @@ void main() {
     group('learned base need', () {
       List<NeedSample> nights(int n, double Function(int) slept) => [
         for (var i = 0; i < n; i++)
-          NeedSample(sleptHours: slept(i), recovery: i.toDouble()),
+          NeedSample(sleptHours: slept(i), autonomic: i.toDouble()),
       ];
       test('falls back to 7.5 under 14 nights', () {
         expect(learnedBaseNeed(nights(13, (_) => 9)), 7.5);
       });
-      test('median of the best-recovered third', () {
-        // Recovery rises with i; the top third (i 10..14) slept 8.0–8.4.
+      test('median of the third with the best HRV and resting HR', () {
+        // Autonomic recovery rises with i; the top third slept 8.0–8.4.
         final n = nights(15, (i) => i >= 10 ? 8 + (i - 10) / 10 : 6.5);
         expect(learnedBaseNeed(n), closeTo(8.2, 1e-9));
       });
-      test('clamped to 6.5–9.5', () {
-        expect(learnedBaseNeed(nights(15, (_) => 5)), 6.5);
-        expect(learnedBaseNeed(nights(15, (_) => 11)), 9.5);
+      test('clamped to 7–9 (adult consensus)', () {
+        expect(learnedBaseNeed(nights(15, (_) => 5)), 7);
+        expect(learnedBaseNeed(nights(15, (_) => 11)), 9);
       });
     });
-    test('debt sums shortfall, ignores surplus, caps at 2h', () {
-      expect(
-        sleepDebtHours([
-          const NightRecord(needHours: 8, sleptHours: 7.5),
-          const NightRecord(needHours: 8, sleptHours: 9),
-        ]),
-        0.5,
-      );
-      expect(
-        sleepDebtHours(
-          List.filled(7, const NightRecord(needHours: 8, sleptHours: 6)),
-        ),
-        2,
-      );
+    group('debt against the base need', () {
+      NightRecord n(double slept) =>
+          NightRecord(baseHours: 7.5, sleptHours: slept);
+      test('one short night adds its shortfall', () {
+        expect(sleepDebtHours([n(6.5)]), closeTo(1, 1e-9));
+      });
+      test('fades by half in four nights at base', () {
+        // Newest first: the short night was four nights ago.
+        expect(
+          sleepDebtHours([n(7.5), n(7.5), n(7.5), n(7.5), n(6.5)]),
+          closeTo(.5, 1e-9),
+        );
+      });
+      test('surplus repays half of itself, never below 0', () {
+        expect(
+          sleepDebtHours([n(8.5), n(6.5)]),
+          closeTo(.5 * pow(.5, .25) * 2 - .5, 1e-9),
+        );
+        expect(sleepDebtHours([n(10), n(7)]), 0);
+      });
+      test('capped at 2 h', () {
+        expect(sleepDebtHours(List.filled(14, n(5))), 2);
+      });
+      test('only the last 14 nights count', () {
+        expect(sleepDebtHours([...List.filled(14, n(7.5)), n(0)]), 0);
+      });
+    });
+    test('sufficiency is against the base, uncapped to 120', () {
+      expect(sleepSufficiency(6, 7.5), closeTo(80, 1e-9));
+      expect(sleepSufficiency(8.25, 7.5), closeTo(110, 1e-9));
+      expect(sleepSufficiency(12, 7.5), 120);
     });
     test('performance capped at 100', () {
       expect(sleepPerformance(6, 8), 75);
@@ -377,7 +422,11 @@ void main() {
       expect(s.calibrating, isFalse);
       // Lower RHR and better sleep than baseline → above 50.
       expect(s.recovery, greaterThan(50));
-      expect(s.needHours, closeTo(7.5 + 0.5 * 2 + 0.03 * 10, 1e-9));
+      // 20 nights of 7 h with resting HR teach a base of 7 h (the floor),
+      // so 7 h a night is no debt: 7 + 0.01 · strain 10.
+      expect(s.baseNeedHours, 7);
+      expect(s.debtHours, 0);
+      expect(s.needHours, closeTo(7 + 0.01 * 10, 1e-9));
     });
 
     test('a daytime nap is found and counted in tomorrow\'s debt', () {
@@ -423,7 +472,8 @@ void main() {
             hrMax: 190,
             sleptHours: i <= 7 ? 8.5 : 7,
             needHours: 7,
-            recovery: i <= 7 ? 90 : 40,
+            // Resting HR is lowest after the 8.5 h nights.
+            rhr: i <= 7 ? 50 : 56,
             calibrating: false,
           ),
       ];
@@ -458,8 +508,9 @@ void main() {
         expect(s.source, 'apple_health');
         expect(s.calibrating, isTrue);
         expect(s.recovery, isNull);
-        // Strain and sleep need still use yesterday whatever its source.
-        expect(s.needHours, closeTo(7.5 + 0.5 * 2 + 0.03 * 10, 1e-9));
+        // Strain and sleep debt still use earlier nights whatever their
+        // source: 7 h a night against the default 7.5 h base caps the debt.
+        expect(s.needHours, closeTo(7.5 + 0.5 * 2 + 0.01 * 10, 1e-9));
       });
 
       test('real HRV above its baseline lifts recovery', () {

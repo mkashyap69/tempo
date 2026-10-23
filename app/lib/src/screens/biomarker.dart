@@ -33,7 +33,7 @@ String groupName(sc.AgeGroup g) => switch (g) {
   sc.Lever.activeMinutes => (0, 450),
   sc.Lever.strength => (0, 4),
   sc.Lever.sleepDuration => (5, 10),
-  sc.Lever.sleepRegularity => (0, 120),
+  sc.Lever.sleepRegularity => (20, 100),
   sc.Lever.breathing => (50, 100),
   sc.Lever.stress => (0, 100),
   sc.Lever.smoking => (0, 2),
@@ -387,7 +387,10 @@ class _History extends StatelessWidget {
     final from = DateTime(now.year, now.month - months, now.day);
     final pts = <(DateTime, double)>[
       for (final r in d.history)
-        if (!parseDateKey(r.date).isBefore(from))
+        // Earlier methods stored some levers in other units (regularity
+        // was bedtime SD before Tempo Age v3).
+        if (!parseDateKey(r.date).isBefore(from) &&
+            r.algoVersion == longevityAlgo)
           for (final x in decodeContributors(r.contributors))
             if (x.lever == lever) (parseDateKey(r.date), x.value),
     ];

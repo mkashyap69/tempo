@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:health_source/health_source.dart';
+import 'package:scoring/scoring.dart' as sc;
 import 'package:store/store.dart';
 import 'package:tempo/src/core/health_sync.dart';
 import 'package:tempo/src/core/profile.dart' show Keys;
@@ -98,9 +99,9 @@ void main() {
       expect(phone, lessThan(merged)); // the watch counted a little more
       await setMetricSource(db, SourceMetric.steps, null);
       expect(await steps(), merged);
-      // Scores carry algo 9's sleep score.
+      // Scores carry the current algo's sleep score.
       final s = (await db.scoresBetween(day, day)).single;
-      expect(s.algoVersion, 9);
+      expect(s.algoVersion, sc.algoVersion);
       expect(s.sleepScore, isNotNull);
       await db.close();
     },

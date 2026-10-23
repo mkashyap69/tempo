@@ -172,8 +172,25 @@ void main() {
         ..add(rec(HealthKind.sleepLight, m(2), m(4), 2, src: 'watch'));
       expect(
         [for (final x in withWatch.minutes(m(0), m(6))) x.sleep],
-        [null, null, SleepMark.light, SleepMark.light, null, null],
+        [
+          SleepMark.awake,
+          SleepMark.awake,
+          SleepMark.light,
+          SleepMark.light,
+          SleepMark.awake,
+          SleepMark.awake,
+        ],
       );
+      // As scoring sees it: awake, but in bed (efficiency and latency).
+      final mins = [
+        for (final x in withWatch.minutes(m(0), m(7))) x.toMinute(),
+      ];
+      expect(
+        [for (final x in mins) x.inBed],
+        [true, true, true, true, true, true, false],
+      );
+      expect(mins.first.stage, Stage.wake);
+      expect(mins.first.offWrist, isFalse);
     });
 
     test('a Health Connect session with stages uses the stages', () {

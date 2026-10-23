@@ -126,8 +126,11 @@ StagedSleep stageSleep(
   ];
   final relLo = quantile([for (final i in idx) rel[i]], p.deepQuantile)!;
   final med = quantile(asleepSmooth, .5)!;
-  final sdLo = quantile(asleepVary, .5)!;
-  final sdHi = quantile(asleepVary, .5)!;
+  // One threshold for both: deep is steadier than the night's median
+  // variability, REM livelier. (Two names for one median hid that; split
+  // quantiles would shift deep and REM with nothing to check them
+  // against, see docs/research/Algorithm review.md §3.)
+  final sdMid = quantile(asleepVary, .5)!;
 
   // Only between the first and last ≥ 10-minute runs of flagged sleep,
   // so a stray flagged minute can't pull onset or wake-up outward.
@@ -165,12 +168,12 @@ StagedSleep stageSleep(
         m.steps > 0 ||
         smooth[i] > med + p.wakeHrAbove) {
       stages[i] = Stage.wake;
-    } else if (still && rel[i] <= relLo && vary[i] <= sdLo) {
+    } else if (still && rel[i] <= relLo && vary[i] <= sdMid) {
       stages[i] = Stage.deep;
     } else if (still &&
         sinceOnset >= p.remDelayMinutes &&
         smooth[i] >= med &&
-        vary[i] >= sdHi) {
+        vary[i] >= sdMid) {
       stages[i] = Stage.rem;
     } else {
       stages[i] = Stage.light;

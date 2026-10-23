@@ -100,6 +100,12 @@ class DailyScores extends Table {
   // v13 (algo 9): sleep score v2 and recovery points taken off for vitals.
   RealColumn get sleepScore => real().nullable()();
   RealColumn get vitalsPenalty => real().withDefault(const Constant(0.0))();
+  // v14 (algo 10): resting HR kind (sleep | source), efficiency and latency
+  // from the source's time in bed, and the debt going into the night.
+  TextColumn get rhrKind => text().nullable()();
+  RealColumn get bedEfficiency => real().nullable()();
+  IntColumn get latencyMin => integer().nullable()();
+  RealColumn get debtHours => real().nullable()();
   @override
   Set<Column> get primaryKey => {date};
 }

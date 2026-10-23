@@ -97,6 +97,53 @@ const impactRidge = 4.0;
 /// Bootstrap resamples for the range.
 const impactBoot = 200;
 
+/// Days per bootstrap block. Days are autocorrelated (a good morning
+/// follows a good morning), so resampling single days gives ranges that
+/// are too narrow; blocks of a week keep that structure (Künsch 1989,
+/// algo 10).
+const impactBlockDays = 7;
+
+/// False discovery rates across the behaviours tested together
+/// (Benjamini–Hochberg 1995): an effect shows as moderate only when it
+/// survives at [impactFdr], high only at [impactFdrHigh]. With 15
+/// behaviours, about one would otherwise look real by chance.
+const impactFdr = .2, impactFdrHigh = .05;
+
+/// One moving-block bootstrap sample of [rows] (circular, blocks of
+/// [block] days, cut to the original length).
+List<T> blockSample<T>(
+  List<T> rows,
+  Random rng, {
+  int block = impactBlockDays,
+}) {
+  final n = rows.length;
+  final b = min(block, n);
+  final out = <T>[];
+  while (out.length < n) {
+    final start = rng.nextInt(n);
+    for (var k = 0; k < b && out.length < n; k++) {
+      out.add(rows[(start + k) % n]);
+    }
+  }
+  return out;
+}
+
+/// Which of [p] (two-sided p-values) survive Benjamini–Hochberg at [q].
+List<bool> benjaminiHochberg(List<double> p, double q) {
+  final m = p.length;
+  final order = [for (var i = 0; i < m; i++) i]
+    ..sort((a, b) => p[a].compareTo(p[b]));
+  var cut = -1;
+  for (var r = 0; r < m; r++) {
+    if (p[order[r]] <= (r + 1) / m * q) cut = r;
+  }
+  final out = List<bool>.filled(m, false);
+  for (var r = 0; r <= cut; r++) {
+    out[order[r]] = true;
+  }
+  return out;
+}
+
 /// Effects of every behaviour with enough data on [outcome].
 List<Impact> impacts(
   List<ImpactDay> days,
@@ -140,15 +187,31 @@ List<Impact> impacts(
   final rng = Random(seed);
   final boots = <List<double>>[];
   for (var i = 0; i < impactBoot; i++) {
-    final sample = [
-      for (var k = 0; k < rows.length; k++) rows[rng.nextInt(rows.length)],
-    ];
-    final f = _fit(sample, usable, outcome);
+    final f = _fit(blockSample(rows, rng), usable, outcome);
     if (f != null) boots.add(f);
   }
   final half = rows.length ~/ 2;
   final early = _fit(rows.sublist(0, half), usable, outcome);
   final late = _fit(rows.sublist(half), usable, outcome);
+  // Bootstrap two-sided p-value per usable behaviour, then FDR control
+  // across them.
+  final pv = [
+    for (var j = 0; j < usable.length; j++)
+      if (boots.isEmpty || full == null)
+        1.0
+      else
+        min(
+          1.0,
+          2 *
+              min(
+                boots.where((f) => f[j] <= 0).length,
+                boots.where((f) => f[j] >= 0).length,
+              ) /
+              boots.length,
+        ),
+  ];
+  final survives = benjaminiHochberg(pv, impactFdr);
+  final survivesHigh = benjaminiHochberg(pv, impactFdrHigh);
   for (final b in behaviours) {
     final j = usable.indexOf(b);
     final (yes, no) = counts[b.key]!;
@@ -184,9 +247,9 @@ List<Impact> impacts(
         late[j].sign == e.sign;
     final c = !excludes || !big
         ? ImpactConfidence.none
-        : !halvesAgree
+        : !halvesAgree || !survives[j]
         ? ImpactConfidence.low
-        : (lo95 > 0 || hi95 < 0) && yes + no >= 30
+        : (lo95 > 0 || hi95 < 0) && yes + no >= 30 && survivesHigh[j]
         ? ImpactConfidence.high
         : ImpactConfidence.moderate;
     out.add(

@@ -490,7 +490,7 @@ class _LearnCardsState extends ConsumerState<LearnCardsScreen> {
                     ),
                   ),
                   Text(
-                    '${sc.zoneRange(z, t.hrMax).lo}–${sc.zoneRange(z, t.hrMax).hi} bpm',
+                    '${sc.zoneRange(z, t.hrMax, hrRest: t.zoneRest).lo}–${sc.zoneRange(z, t.hrMax, hrRest: t.zoneRest).hi} bpm',
                     style: TempoType.caption.c(c.text2).tnum,
                   ),
                 ],
@@ -537,14 +537,14 @@ class _LearnCardsState extends ConsumerState<LearnCardsScreen> {
     return _frame(
       '4 / 6 · Cardio load',
       'This week, against what you’re used to',
-      'Load adds up every minute of effort, weighted by intensity. Tempo compares your last 7 days with your last 28.',
+      'Load adds up every minute of effort, weighted by intensity. Tempo compares your fatigue (the last week, recent days counting most) with your fitness (about six weeks), as training platforms do.',
       Row(
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          col('${l.chronic.round()}', l.chronic / hi, '28-day /day'),
+          col('${l.chronic.round()}', l.chronic / hi, '6-week /day'),
           const SizedBox(width: 40),
-          col('${l.acute.round()}', l.acute / hi, '7-day /day', fill: true),
+          col('${l.acute.round()}', l.acute / hi, 'This week /day', fill: true),
         ],
       ),
       _foot(
@@ -599,7 +599,7 @@ class _LearnCardsState extends ConsumerState<LearnCardsScreen> {
     return _frame(
       '5 / 6 · Sleep need & debt',
       'Tonight’s target, explained',
-      'Your baseline need, plus a little for today’s strain, plus a share of any debt from recent short nights. Naps pay debt down. The baseline starts at 7 h 30 m and, after 14 nights, learns from the nights you recover best after.',
+      'Your baseline need, plus a little for today’s strain, plus a share of any debt from recent short nights. Debt is counted against your baseline, fades over about two weeks, and longer nights and naps pay it down. The baseline starts at 7 h 30 m and, after 14 nights, learns from the nights after which your heart rate and HRV recover best, within 7–9 h.',
       Column(
         mainAxisSize: MainAxisSize.min,
         children: [

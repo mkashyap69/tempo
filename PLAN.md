@@ -98,44 +98,50 @@ A "day" runs wake to wake, not midnight to midnight: the sleep that ends a day's
 
 A pure Dart package, unit-tested and backtested before band integration exists. The backtest set is an Apple Health export with Mi Fit heart rate, 2020–2026. Every constant is a starting value to calibrate.
 
+Algo 10 (2026-10-23) reworked every formula below after `docs/research/Algorithm review.md`; that document has the evidence, and `docs/decisions.md` the details.
+
 ### Strain (0–21)
 
-Per-minute Banister TRIMP from heart-rate reserve, summed over the day, compressed to 0–21.
+Per-minute Banister TRIMP from heart-rate reserve above a 30 % floor, summed over the day, compressed to 0–21.
 
 ```
-HR_r       = (HR - HR_rest) / (HR_max - HR_rest)
-TRIMP_day  = Σ_minutes HR_r · 0.64 · e^(1.92 · HR_r)
-Strain     = 21 · (1 - e^(-TRIMP_day / k))
+HR_r       = (HR - HR_rest) / (HR_max - HR_rest), rescaled above 0.3
+TRIMP_day  = Σ_minutes HR_r · 0.64 · e^(1.92 · HR_r)   (women: 0.86 · e^(1.67 · HR_r))
+Strain     = 21 · (1 - e^(-TRIMP_day / k)),  k = 40
 ```
 
-HR_max starts at 190 bpm and is raised whenever the band records higher. HR_rest is the rolling resting HR from Recovery. Calibrate k so the hardest known training days land around 18–19.
+HR_max starts at your set or age-predicted max (Tanaka) and rises only on two sustained minutes above it, at most 5 bpm a day. HR_rest is the night's resting HR.
 
-### Sleep performance (%)
-
-Hours slept ÷ hours needed, capped at 100%.
+### Sleep need, debt and the sleep score
 
 ```
-Need = 7.5 h + 0.5 · Debt_7d + a · Strain_yesterday
+Base   = median sleep on the third of nights after which HRV and resting HR were best (7–9 h; 7.5 h until 14 nights)
+Debt   = running balance against Base over 14 nights: fades by half in 4 nights, a shortfall adds, a surplus repays half; cap 2 h
+Need   = Base + 0.5 · Debt + 0.01 · Strain_yesterday
 ```
 
-Debt = shortfall against need over the last 7 nights, capped at 2 h of carry-over. Start with a = 0.03 h per strain point. Efficiency (asleep ÷ in bed) and deep-sleep share are shown on the detail screen but don't change the score in v1.
+The sleep score (0–100) is sleep against the base need 50 %, bedtime against your 14-night median 20 % (0 at 3 h off), continuity 15 % (WASO and awakenings over 5 min), efficiency 10 % and time to fall asleep 5 % (both only when the source gives time in bed), on the National Sleep Foundation's quality bands (Ohayon 2017). Need and debt are shown as tonight's guidance, not as a penalty on last night.
 
 ### Recovery (0–100%)
 
-Last night vs. the 30-day personal baseline. Each input becomes a signed z-score (higher = better); a weighted sum maps through a logistic curve.
+Last night vs. a robust 30-day personal baseline (median and MAD; days with night vitals off left out). Each input becomes a signed z-score (higher = better); a weighted sum maps through a logistic curve.
 
 ```
-z_i      = s_i · (x_i - μ_i,30d) / σ_i,30d
-Recovery = 100 / (1 + e^(-1.5 · Σ w_i · z_i))
+z_i      = s_i · (x_i - median_i) / (1.4826 · MAD_i)
+Recovery = 100 / (1 + e^(-1.5 · Σ w_i · z_i)) − vitals penalty (≤ 15)
 ```
 
 | Input | From | Sign | Weight |
 | --- | --- | --- | --- |
-| HRV proxy | Band stress index during sleep | Lower is better | 0.4 |
-| Resting HR | Lowest 5-minute average during sleep | Lower is better | 0.3 |
-| Sleep performance | Score above | Higher is better | 0.3 |
+| HRV | Health: night's ln HRV blended half with the week's; band: stress index during sleep | Higher is better (stress: lower) | 0.4 (less with under 3 readings) |
+| Resting HR | 10th percentile of asleep HR; one kind per baseline (night vs the source's daytime figure) | Lower is better | 0.3 |
+| Sleep | Sleep against the base need, up to 120 % | Higher is better | 0.3 |
 
 Show "Calibrating" for the first 14 nights. Green 67–100, yellow 34–66, red 0–33.
+
+### Cardio load
+
+Banister fitness–fatigue: fatigue is daily TRIMP exponentially weighted over 7 days, fitness over 42; form = fitness − fatigue; status from fatigue ÷ fitness (under 0.8 detraining, to 1.0 maintaining, to 1.3 building, above overreaching). A training guide, not an injury predictor.
 
 ## App experience
 
@@ -194,6 +200,7 @@ Only one app can hold the band, so Mi Fitness must not be running.
 | H4 · Switch and polish | — | Profile → Data source, timer-only live workouts, restore rebuilds Health minutes | Band → Health → band on one install with no lost scores |
 | T1 · Teardown next steps | — | Body-signals alert and journal reminder; Journal v2 (catalogue, amounts, automatic entries) and impact engine with experiments; Tempo Age v2 (groups, overlap, confidence, PhenoAge); strength log, progression and freshness; algo 9 (vitals penalty, sleep score v2, load-aware target, source per metric). See `docs/research/Competitor teardown and next steps.md` | Backtest 2020–2026 on the real export with no week of Tempo Age jumping over a year; 4 weeks of logged lifting where each suggested weight is one a coach would set; 14 days of journal with no wrong automatic entry |
 | F1 · User flow | — | One voice (`dailyCall`, target follows state); Today as the day's story (phases, one check-in, one insight, Tonight); tabs Today · Plan · (+) · Progress · You; Week in review; first-14-days learning card, welcome back; words by priority. See `docs/research/User flow and journey.md` | 5 people per persona find the goal, last week's review, Tempo Age, logging a lift and pausing in ≤ 2 taps unaided; 14 days with no repeated insight inside its cool-down and none on a rest day; Today and Plan never disagree |
+| A0–A4 · Algorithm review | — | Validation harness (loop tests, backtest `--report`/`--compare`/`--reference`, Developer → Score check); algo 10: debt against the base need, need learned from HRV and resting HR, sleep score v3, in-bed efficiency and latency, robust baselines, 7-day HRV blend, resting HR percentile and kind, sustained HR max, female TRIMP, fitness–fatigue load, reserve zones; Tempo Age v3 (SRI, caps, cross-group shrink); journal block bootstrap and FDR. See `docs/research/Algorithm review.md` | The 2020–2026 backtest with `--report --compare` against algo 9 reviewed (colour changes and score shifts explained); 14 days where Developer → Score check shows feel ↔ recovery ρ ≥ 0.3 and body-signal days below the median in ≥ 70 %; the sleep score within ±5 of Apple's on 14 nights (Bland–Altman bias) |
 
 | B0 · Beta decisions and setup | 1 | Open decisions B-O1…B-O9, store accounts, app id and name, backend projects, `docs/network.md` | Every open decision in docs/decisions.md; both store consoles reachable |
 | B1 · Health-first | 1–2 | Onboarding without the band, band behind Developer, privacy copy, source check after the first read | A fresh install reaches Today without seeing "band" anywhere |

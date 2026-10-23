@@ -543,6 +543,11 @@ void main() {
     final s = (await old.scoreFor(DateTime(2026, 10, 5)))!;
     expect(s.source, 'band');
     expect(s.hrv, isNull);
+    // v14 (algo 10) columns come in empty; the stale-algo pass fills them.
+    expect(s.rhrKind, isNull);
+    expect(s.bedEfficiency, isNull);
+    expect(s.latencyMin, isNull);
+    expect(s.debtHours, isNull);
     await old.appendHealthRecords([
       HealthRecordsCompanion.insert(
         key: 'k',

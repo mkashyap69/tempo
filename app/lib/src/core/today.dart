@@ -8,6 +8,7 @@ import 'data_source.dart';
 import 'format.dart';
 import 'pause.dart';
 import 'profile.dart';
+import 'score_service.dart' show toScoring;
 
 /// Everything the Today and Coach screens, the widgets and the bedtime
 /// nudge derive from the DB for one day.
@@ -125,9 +126,19 @@ class TodayData {
   double? get sleepScore => score?.sleepScore ?? score?.sleepPerf;
   double? get slept => score?.sleptHours;
   double? get need => score?.needHours;
+
+  /// Last night against the base need (Recovery's sleep input, algo 10).
+  double? get sufficiency => score?.sleptHours == null
+      ? null
+      : sc.sleepSufficiency(score!.sleptHours!, score!.baseNeed ?? baseNeed);
   bool get hasNight => score?.sleepEnd != null;
   bool get restDay => target.cap;
   int get hrMax => score?.hrMax ?? profile.effectiveMaxHr;
+
+  /// Resting HR for reserve zones when chosen in Profile, else null (zones
+  /// as a share of max HR).
+  double? get zoneRest =>
+      profile.zonesByReserve ? (score?.rhr ?? rhrBase?.mean ?? 60) : null;
 
   Duration? get syncAge =>
       lastSync == null ? null : DateTime.now().difference(lastSync!);
@@ -239,33 +250,31 @@ Future<TodayData> loadToday(st.TempoDb db, {DateTime? at}) async {
   // recovery, an ease-off day tops out lower.
   final target = sc.targetForState(baseTarget, state);
 
-  // Sleep need tonight: your base + today's strain + a share of the debt.
-  // Naps count against the debt. Paused nights don't teach the base.
+  // Sleep need tonight: your base + today's strain + a share of the debt,
+  // from the same function scoring uses (algo 10). Naps count against the
+  // debt. Paused days are left out, as scoring leaves them out.
   final pauses = await loadPauses(db);
-  final nightsForDebt = [
-    for (final d in [?score, ...history.take(6)])
-      if (d.needHours != null && d.sleptHours != null)
-        sc.NightRecord(
-          needHours: d.needHours!,
-          sleptHours: d.sleptHours! + d.napHours,
-        ),
+  final kept = [
+    for (final d in [?score, ...history])
+      if (!isPaused(pauses, DateTime.parse(d.date))) toScoring(d),
   ];
   const sleepParams = sc.SleepParams();
-  final needSamples = [
-    for (final d in [?score, ...same.take(59)])
-      if (d.sleptHours != null &&
-          d.recovery != null &&
-          !d.calibrating &&
-          !isPaused(pauses, DateTime.parse(d.date)))
-        sc.NeedSample(sleptHours: d.sleptHours!, recovery: d.recovery!),
-  ];
-  final baseNeed = sc.learnedBaseNeed(needSamples);
-  final debt = sc.sleepDebtHours(nightsForDebt);
-  final needTonight = sc.sleepNeedHours(
-    debtHours: debt,
+  final needNow = sc.sleepNeedFrom(
+    history: kept,
+    source: source,
     strainYesterday: score?.strain ?? 0,
-    baseHours: baseNeed,
   );
+  final baseNeed = needNow.base;
+  final debt = needNow.debt;
+  final needTonight = needNow.need;
+  final learnedFrom = sc
+      .needSamples(
+        [
+          for (final d in kept)
+            if (d.source == source) d,
+        ].take(60).toList(),
+      )
+      .length;
   final set = parseHm(await db.setting(Keys.wakeTime));
   final ends = [
     for (final d in recent30.take(14))
@@ -334,11 +343,26 @@ Future<TodayData> loadToday(st.TempoDb db, {DateTime? at}) async {
               p75 != null &&
               plan.strainLo >= p75,
         );
-  final rhrBase = sc.Baseline.of(same.take(30).map((d) => d.rhr));
-  final stressBase = sc.Baseline.of(same.take(30).map((d) => d.hrvProxy));
-  final sleepBase = sc.Baseline.of(same.take(30).map((d) => d.sleepPerf));
-  final hrvBase = sc.Baseline.of([
+  // The normals Recovery was judged against (scoring does the same):
+  // median and MAD, without days whose night vitals were off, resting HR
+  // of one kind, sleep against the base need (algo 10).
+  final normal = [
     for (final d in same.take(30))
+      if (d.vitalsPenalty <= 0) d,
+  ];
+  final rhrKind = score?.rhrKind ?? sc.rhrFromSleep;
+  final rhrBase = sc.Baseline.robust([
+    for (final d in normal)
+      if ((d.rhrKind ?? sc.rhrFromSleep) == rhrKind) d.rhr,
+  ]);
+  final stressBase = sc.Baseline.robust(normal.map((d) => d.hrvProxy));
+  final sleepBase = sc.Baseline.robust([
+    for (final d in normal)
+      if (d.sleptHours != null)
+        sc.sleepSufficiency(d.sleptHours!, d.baseNeed ?? baseNeed),
+  ]);
+  final hrvBase = sc.Baseline.robust([
+    for (final d in normal)
       if (d.hrv != null &&
           (score?.hrvKind == null || d.hrvKind == score!.hrvKind))
         d.hrv,
@@ -358,7 +382,7 @@ Future<TodayData> loadToday(st.TempoDb db, {DateTime? at}) async {
     needTonight: needTonight,
     debt: debt,
     baseNeed: baseNeed,
-    baseNeedLearned: needSamples.length >= sleepParams.learnNights,
+    baseNeedLearned: learnedFrom >= sleepParams.learnNights,
     wakeMinute: wake,
     wakeFromUsual: set == null,
     bedtimeMinute: bedtime,

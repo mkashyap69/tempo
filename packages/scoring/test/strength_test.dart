@@ -184,6 +184,15 @@ void main() {
       setTrimp(s('bench_press', 60, 8, rir: 0)),
       greaterThan(setTrimp(s('bench_press', 60, 8, rir: 2))),
     );
+    // Heavy low-rep sets count more, long light ones less (algo 10).
+    expect(
+      setTrimp(s('bench_press', 90, 3)),
+      closeTo(1.15 * setTrimp(s('bench_press', 60, 8)), 1e-9),
+    );
+    expect(
+      setTrimp(s('bench_press', 30, 20)),
+      closeTo(.85 * setTrimp(s('bench_press', 60, 8)), 1e-9),
+    );
     final sets = [for (var i = 0; i < 15; i++) s('bench_press', 60, 8)];
     expect(trimpFromSets(sets), closeTo(24, 1e-9));
     expect(

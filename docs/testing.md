@@ -34,6 +34,21 @@ dart run bin/backtest.dart ~/export.xml > scores.csv
 Check that hard training days land near 18–19 strain; if not, tune `k`
 in `packages/scoring/lib/src/strain.dart` and bump `algoVersion`.
 
+Validation numbers (docs/research/Algorithm review.md §11) go to stderr
+with `--report`: each score's spread, its day-to-day typical error and
+MDC95, and recovery colours. Before a scoring change, keep the old run's
+CSV and compare: how far each score moved and on how many days recovery
+changed colour.
+```
+dart run bin/backtest.dart ~/export.xml > before.csv          # old algo
+dart run bin/backtest.dart ~/export.xml --report --compare before.csv > after.csv
+```
+`--reference apple.csv` (columns `date,sleep_score`, copied from the Health
+app) adds the Bland–Altman agreement of Tempo's sleep score with Apple's.
+`--female` uses the female TRIMP weighting. On the phone, Profile →
+Developer → Score check shows the same numbers for the last 90 days, with
+recovery against morning feel and body-signal days.
+
 ## Most likely failure points
 1. Auth opcodes (modern vs legacy) — the log shows which got a reply.
 2. Fetch type codes and activity record size (4 bytes assumed).

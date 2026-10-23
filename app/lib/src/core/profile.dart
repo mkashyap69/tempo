@@ -127,6 +127,7 @@ final class Profile {
     this.maxMinutes = 75,
     this.wornOn = 'Left wrist',
     this.games = const {},
+    this.zonesByReserve = false,
   });
 
   final int age, heightCm;
@@ -144,6 +145,10 @@ final class Profile {
   /// Games and sports you play (badminton, table tennis…), for today's
   /// picks.
   final Set<Game> games;
+
+  /// Heart-rate zones as a share of heart-rate reserve (Karvonen) instead
+  /// of max HR (algo 10).
+  final bool zonesByReserve;
 
   int get effectiveMaxHr => maxHr ?? maxHrFromAge(age);
   bool get wornLeft => wornOn != 'Right wrist';
@@ -172,6 +177,7 @@ final class Profile {
     int? maxMinutes,
     String? wornOn,
     Set<Game>? games,
+    bool? zonesByReserve,
   }) => Profile(
     age: age ?? this.age,
     heightCm: heightCm ?? this.heightCm,
@@ -185,6 +191,7 @@ final class Profile {
     maxMinutes: maxMinutes ?? this.maxMinutes,
     wornOn: wornOn ?? this.wornOn,
     games: games ?? this.games,
+    zonesByReserve: zonesByReserve ?? this.zonesByReserve,
   );
 
   Map<String, Object?> toJson() => {
@@ -200,6 +207,7 @@ final class Profile {
     'maxMinutes': maxMinutes,
     'wornOn': wornOn,
     'games': [for (final g in games) g.name],
+    'zonesByReserve': zonesByReserve,
   };
 
   static Profile fromJson(Map<String, dynamic> j) => Profile(
@@ -222,6 +230,7 @@ final class Profile {
       for (final g in (j['games'] as List? ?? const []))
         if (Game.values.asNameMap()[g] != null) Game.values.byName(g as String),
     },
+    zonesByReserve: j['zonesByReserve'] as bool? ?? false,
   );
 }
 

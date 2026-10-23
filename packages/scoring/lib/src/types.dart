@@ -11,7 +11,13 @@
 /// 8: data sources (band, Apple Health, Health Connect): baselines and
 ///    calibration per source; real HRV (ln ms, higher is better) as the
 ///    recovery HRV input; the source's resting HR when the night has none.
-const algoVersion = 9;
+/// 9: sleep score v2, vitals penalty, night temperature.
+/// 10: algorithm review (docs/research/Algorithm review.md): debt against
+///    the base need, base need learned from autonomic recovery (7–9 h),
+///    sufficiency against base in Recovery, sleep score v3, in-bed time
+///    for efficiency and latency, resting HR as the 10th percentile of
+///    asleep HR, robust HR max, smaller strain term in need.
+const algoVersion = 10;
 
 enum Stage { wake, light, deep, rem, unknown }
 
@@ -30,6 +36,7 @@ final class Minute {
     this.motion = 0,
     this.bandWalking = false,
     this.offWrist = false,
+    this.inBed = false,
   });
 
   /// Start of the minute.
@@ -49,6 +56,10 @@ final class Minute {
   /// The band said it was not worn this minute.
   final bool offWrist;
 
+  /// The source counted this minute as in bed (any sleep record, awake
+  /// ones included). Only Health sources set it; the band never does.
+  final bool inBed;
+
   Minute withStage(Stage s) => Minute(
     ts,
     hr: hr,
@@ -57,5 +68,6 @@ final class Minute {
     motion: motion,
     bandWalking: bandWalking,
     offWrist: offWrist,
+    inBed: inBed,
   );
 }

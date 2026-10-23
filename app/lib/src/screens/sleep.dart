@@ -48,8 +48,13 @@ class Night {
     this.source = DataSource.band,
     this.sleepApps = const [],
     this.tempoWrote = false,
+    this.bedEfficiency,
   });
   final DateTime morning;
+
+  /// Asleep ÷ time in bed from the source's in-bed time; null when it
+  /// gave none (the band, a watch that only writes sleep), algo 10.
+  final double? bedEfficiency;
 
   /// Sleep SpO₂ and desaturations, scored; null without enough SpO₂.
   final sc.BreathingNight? breathing;
@@ -160,7 +165,10 @@ final nightProvider = FutureProvider.family<Night, DateTime>((
   return Night(
     morning: morning,
     minutes: mins,
-    latency: sc.sleepLatency(before),
+    // From the source's time in bed when it gave one, else estimated from
+    // the still minutes before falling asleep.
+    latency: s.latencyMin ?? sc.sleepLatency(before),
+    bedEfficiency: s.bedEfficiency,
     spo2: spo2,
     breathing: sc.breathingNight(
       start: a,
@@ -298,7 +306,7 @@ class SleepScreen extends ConsumerWidget {
       return Scaffold(backgroundColor: context.c.bg);
     }
     final c = context.c, s = context.s;
-    final perf = t.sleepPerf;
+    final perf = t.sufficiency;
     final strainYesterday = t.history.isEmpty ? 0.0 : t.history.first.strain;
     return TempoPage(
       gap: 22,
@@ -333,7 +341,7 @@ class SleepScreen extends ConsumerWidget {
               ),
               if (perf != null)
                 Text(
-                  '${perf.round()}% of need · bedtime, efficiency, wake-ups and heart-rate dip make up the rest',
+                  '${perf.round()}% of your base need · bedtime, wake-ups and time in bed make up the rest',
                   style: TempoType.caption.c(c.text2).tnum,
                 ),
               const SizedBox(height: 10),
@@ -473,15 +481,19 @@ class SleepScreen extends ConsumerWidget {
                     child: _StatTile(
                       'Sleep debt',
                       hmShort(t.debt),
-                      '7-day · naps count',
+                      '2-week, fading · naps count',
                     ),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: _StatTile(
                       'Efficiency',
-                      '${(night.session.efficiency * 100).round()}%',
-                      'Asleep vs in bed',
+                      night.bedEfficiency == null
+                          ? '—'
+                          : '${(night.bedEfficiency! * 100).round()}%',
+                      night.bedEfficiency == null
+                          ? 'Needs time in bed from your source'
+                          : 'Asleep vs in bed',
                     ),
                   ),
                 ],
@@ -517,7 +529,7 @@ class SleepScreen extends ConsumerWidget {
         TonightCard(t: t),
         const RhythmCard(),
         Text(
-          '${ref.watch(dataSourceProvider).isHealth ? 'Your watch marks when you sleep and its stages, as it wrote them to Health; treat them as a guide.' : 'The band marks when you sleep; Tempo estimates the stages from your heart rate and movement, so treat them as a guide.'} Need starts at 7 h 30 m; after 14 scored nights it learns from the nights you recover best after, then adjusts to strain and debt.${strainYesterday > 0 ? '' : ''}',
+          '${ref.watch(dataSourceProvider).isHealth ? 'Your watch marks when you sleep and its stages, as it wrote them to Health; treat them as a guide.' : 'The band marks when you sleep; Tempo estimates the stages from your heart rate and movement, so treat them as a guide.'} Need starts at 7 h 30 m; after 14 scored nights it learns from the nights after which your heart rate and HRV recover best (kept within 7–9 h). The score judges last night against that base; tonight’s need adds strain and debt.${strainYesterday > 0 ? '' : ''}',
           style: TempoType.caption.c(c.text3),
         ),
       ],

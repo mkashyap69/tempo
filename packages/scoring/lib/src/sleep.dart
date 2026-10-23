@@ -23,21 +23,40 @@ final class SleepParams {
   const SleepParams({
     this.baseNeedHours = 7.5,
     this.debtFactor = 0.5,
-    this.strainFactor = 0.03,
+    this.strainFactor = 0.01,
     this.debtCapHours = 2,
+    this.debtHalfLifeNights = 4,
+    this.repayRate = 0.5,
+    this.debtNights = 14,
     this.maxWakeGapMinutes = 30,
     this.maxQuietGapMinutes = 90,
     this.quietGapMaxSteps = 30,
     this.minSessionMinutes = 60,
     this.minNapMinutes = 20,
     this.learnNights = 14,
-    this.minNeedHours = 6.5,
-    this.maxNeedHours = 9.5,
+    this.minNeedHours = 7,
+    this.maxNeedHours = 9,
   });
   final double baseNeedHours;
   final double debtFactor;
+
+  /// Hours of extra need per point of yesterday's strain. Hard exercise
+  /// adds only ~10 min of sleep in meta-analyses (Kredlow 2015), so a
+  /// strain-21 day adds ~13 min (algo 10; was 0.03 → 38 min).
   final double strainFactor;
   final double debtCapHours;
+
+  /// Debt fades by half over this many nights (Kitamura 2016: ~4 days of
+  /// extra sleep to repay an hour), so a short week stops counting after
+  /// two or three.
+  final double debtHalfLifeNights;
+
+  /// Share of a night's surplus over the base need that pays debt back
+  /// (repayment is partial: Kitamura 2016, Belenky 2003).
+  final double repayRate;
+
+  /// Nights of history the debt looks back over.
+  final int debtNights;
   final int maxWakeGapMinutes;
 
   /// A longer wake still belongs to the same sleep when it's quiet: up to
@@ -52,8 +71,12 @@ final class SleepParams {
   /// Daytime sleep at least this long counts as a nap.
   final int minNapMinutes;
 
-  /// Nights with recovery needed before the base need is learned.
+  /// Nights with an autonomic recovery needed before the base need is
+  /// learned.
   final int learnNights;
+
+  /// The learned base need stays within the adult consensus of 7–9 h
+  /// (Hirshkowitz 2015; Watson 2015).
   final double minNeedHours, maxNeedHours;
 }
 
@@ -106,48 +129,69 @@ List<SleepSession> detectSessions(
   ];
 }
 
-/// One past night for the debt calculation.
+/// One past night for the debt calculation: what you slept (naps
+/// included) against your *base* need that night.
 final class NightRecord {
-  const NightRecord({required this.needHours, required this.sleptHours});
-  final double needHours;
+  const NightRecord({required this.baseHours, required this.sleptHours});
+  final double baseHours;
   final double sleptHours;
 }
 
-/// Shortfall over up to the last 7 nights, capped.
+/// Sleep debt in hours, from up to [SleepParams.debtNights] nights,
+/// **newest first**. A running balance against the base need: each night
+/// the balance fades by [SleepParams.debtHalfLifeNights], a shortfall adds
+/// to it and a surplus pays [SleepParams.repayRate] of itself back. Capped
+/// at [SleepParams.debtCapHours].
+///
+/// Algo 10: debt was a 7-night sum against each night's stored need, which
+/// already held debt, so once at the cap a normal night kept it there
+/// (docs/research/Algorithm review.md, loop L1).
 double sleepDebtHours(
-  List<NightRecord> last7, [
+  List<NightRecord> nights, [
   SleepParams p = const SleepParams(),
 ]) {
-  final debt = last7
-      .take(7)
-      .fold<double>(0, (a, n) => a + (n.needHours - n.sleptHours).clamp(0, 24));
-  return debt.clamp(0, p.debtCapHours);
+  final fade = pow(.5, 1 / p.debtHalfLifeNights).toDouble();
+  var debt = 0.0;
+  for (final n in nights.take(p.debtNights).toList().reversed) {
+    final short = n.baseHours - n.sleptHours;
+    debt = debt * fade + (short > 0 ? short : p.repayRate * short);
+    debt = debt.clamp(0, p.debtCapHours).toDouble();
+  }
+  return debt;
 }
 
-/// One night for learning the base need.
+/// One night for learning the base need: hours slept, and the next
+/// morning's autonomic recovery (HRV and resting HR only, never sleep
+/// length; see [autonomicScores]).
 final class NeedSample {
-  const NeedSample({required this.sleptHours, required this.recovery});
+  const NeedSample({required this.sleptHours, required this.autonomic});
   final double sleptHours;
-  final double recovery;
+  final double autonomic;
 }
 
-/// Your base need: the median sleep on the best-recovered third of nights,
-/// clamped to [SleepParams.minNeedHours]–[SleepParams.maxNeedHours]. Falls
-/// back to [SleepParams.baseNeedHours] with fewer than
-/// [SleepParams.learnNights] nights.
+/// Your base need: the median sleep on the third of nights after which
+/// HRV and resting HR were best, clamped to
+/// [SleepParams.minNeedHours]–[SleepParams.maxNeedHours]. Falls back to
+/// [SleepParams.baseNeedHours] with fewer than [SleepParams.learnNights]
+/// nights.
+///
+/// Algo 10: ranked by autonomic recovery instead of Recovery, which holds
+/// sleep performance and so picked the longest nights (loop L2).
 double learnedBaseNeed(
   List<NeedSample> nights, [
   SleepParams p = const SleepParams(),
 ]) {
-  if (nights.length < p.learnNights) return p.baseNeedHours;
-  final byRecovery = [...nights]
-    ..sort((a, b) => b.recovery.compareTo(a.recovery));
+  if (nights.length < p.learnNights) {
+    return p.baseNeedHours.clamp(p.minNeedHours, p.maxNeedHours).toDouble();
+  }
+  final ranked = [...nights]
+    ..sort((a, b) => b.autonomic.compareTo(a.autonomic));
   final top = [
-    for (final n in byRecovery.take((nights.length / 3).ceil())) n.sleptHours,
+    for (final n in ranked.take((nights.length / 3).ceil())) n.sleptHours,
   ]..sort();
   final mid = top.length ~/ 2;
   final median = top.length.isOdd ? top[mid] : (top[mid - 1] + top[mid]) / 2;
-  return median.clamp(p.minNeedHours, p.maxNeedHours);
+  return median.clamp(p.minNeedHours, p.maxNeedHours).toDouble();
 }
 
 double sleepNeedHours({
@@ -160,11 +204,21 @@ double sleepNeedHours({
     p.debtFactor * debtHours +
     p.strainFactor * strainYesterday;
 
-/// 0–100, capped.
+/// 0–100, capped: share of tonight's need (debt and strain included).
+/// Shown as "% of need"; the score and Recovery use [sleepSufficiency].
 double sleepPerformance(double sleptHours, double needHours) =>
     needHours <= 0 ? 100 : (100 * sleptHours / needHours).clamp(0, 100);
 
-// ---- Sleep score v2 -----------------------------------------------------------
+/// Sleep against your base need, 0–[cap] (algo 10). Uncapped above 100 up
+/// to [cap] so a long night after a short one still reads as more, and
+/// free of debt so a short week doesn't lower every later night (L1, L3).
+double sleepSufficiency(
+  double sleptHours,
+  double baseHours, {
+  double cap = 120,
+}) => baseHours <= 0 ? 100 : (100 * sleptHours / baseHours).clamp(0, cap);
+
+// ---- Sleep score v3 -----------------------------------------------------------
 
 /// The parts of the sleep score, each 0–100 (null when not measurable).
 final class SleepScore {
@@ -174,20 +228,26 @@ final class SleepScore {
     this.regularity,
     this.efficiency,
     this.continuity,
-    this.hrDip,
+    this.latency,
   });
   final double score, sufficiency;
-  final double? regularity, efficiency, continuity, hrDip;
+  final double? regularity, efficiency, continuity, latency;
 }
 
 /// Weights of the parts; missing parts drop out and the rest renormalise.
+/// Duration against base need half, as Apple (50/30/20) and Fitbit do.
 const sleepScoreWeights = (
-  sufficiency: .60,
-  regularity: .15,
+  sufficiency: .50,
+  regularity: .20,
+  continuity: .15,
   efficiency: .10,
-  continuity: .10,
-  hrDip: .05,
+  latency: .05,
 );
+
+/// [v] mapped linearly from [poor] (0) to [good] (100), clamped; works in
+/// either direction.
+double band(double v, double good, double poor) =>
+    ((v - poor) / (good - poor) * 100).clamp(0, 100).toDouble();
 
 /// Wake bouts of [minMinutes]+ inside a night.
 int wakeBouts(SleepSession s, {int minMinutes = 5}) {
@@ -203,36 +263,53 @@ int wakeBouts(SleepSession s, {int minMinutes = 5}) {
   return n;
 }
 
-/// Sleep score v2: how long against need (sleep performance) 60 %,
-/// bedtime within your usual 15 %, efficiency 10 %, few wake bouts 10 %
-/// and the night's heart-rate dip 5 %. Band stages are left out (wrist
-/// staging is too rough to score). [bedDeviationMinutes] is tonight's
-/// bedtime against your 14-night median; [hrDipPct] is 1 − sleeping HR ÷
-/// evening HR, in percent.
-SleepScore sleepScoreV2({
-  required double sleepPerf,
+/// Minutes awake inside a night after first falling asleep (WASO).
+int wasoMinutes(SleepSession s) =>
+    s.minutes.where((m) => m.stage == Stage.wake).length;
+
+/// Sleep score v3 (algo 10): sleep against your base need 50 %, bedtime
+/// against your usual 20 %, continuity 15 %, efficiency 10 % and time to
+/// fall asleep 5 %. Thresholds are the National Sleep Foundation's
+/// sleep-quality consensus (Ohayon 2017): efficiency ≥ 85 % good, ≤ 74 %
+/// poor; WASO ≤ 20 min good, ≥ 51 min poor; awakenings over 5 min 0–1
+/// good, ≥ 4 poor; latency ≤ 30 min good, ≥ 46 min poor. Bedtime loses
+/// its points over 3 h (Apple's curve is about this gentle; v2's 90 min
+/// cost 15 points for an ordinary late Friday).
+///
+/// [efficiency] and [latencyMinutes] need the source's time in bed (see
+/// [bedSpan]); without it they drop out rather than read a flat 99 %.
+/// Wrist stages and the heart-rate dip stay out.
+SleepScore sleepScoreV3({
+  required double sufficiency,
   int? bedDeviationMinutes,
   double? efficiency,
+  int? wasoMin,
   int? wakeBoutCount,
-  double? hrDipPct,
+  int? latencyMinutes,
 }) {
-  double lin(double v, double lo, double hi) =>
-      ((v - lo) / (hi - lo) * 100).clamp(0, 100).toDouble();
   final reg = bedDeviationMinutes == null
       ? null
-      : 100 - lin(bedDeviationMinutes.abs().toDouble(), 0, 90);
-  final eff = efficiency == null ? null : lin(efficiency, .65, .90);
-  final cont = wakeBoutCount == null
+      : band(bedDeviationMinutes.abs().toDouble(), 0, 180);
+  final eff = efficiency == null ? null : band(efficiency, .85, .74);
+  double? cont;
+  if (wasoMin != null || wakeBoutCount != null) {
+    final parts = [
+      if (wasoMin != null) band(wasoMin.toDouble(), 20, 51),
+      if (wakeBoutCount != null) band(wakeBoutCount.toDouble(), 1, 4),
+    ];
+    cont = parts.reduce((a, b) => a + b) / parts.length;
+  }
+  final lat = latencyMinutes == null
       ? null
-      : max(0, 100 - 15.0 * wakeBoutCount).toDouble();
-  final dip = hrDipPct == null ? null : lin(hrDipPct, 0, 15);
+      : band(latencyMinutes.toDouble(), 30, 46);
+  final suff = min(100.0, sufficiency);
   const w = sleepScoreWeights;
-  var acc = w.sufficiency * sleepPerf, ws = w.sufficiency;
+  var acc = w.sufficiency * suff, ws = w.sufficiency;
   for (final (v, wt) in [
     (reg, w.regularity),
-    (eff, w.efficiency),
     (cont, w.continuity),
-    (dip, w.hrDip),
+    (eff, w.efficiency),
+    (lat, w.latency),
   ]) {
     if (v == null) continue;
     acc += wt * v;
@@ -240,10 +317,42 @@ SleepScore sleepScoreV2({
   }
   return SleepScore(
     score: acc / ws,
-    sufficiency: sleepPerf,
+    sufficiency: suff,
     regularity: reg,
     efficiency: eff,
     continuity: cont,
-    hrDip: dip,
+    latency: lat,
   );
+}
+
+/// The source's time in bed around [night]: the run of in-bed minutes
+/// ([Minute.inBed]) touching it, extended back from its first asleep
+/// minute and on from its last. Null when the source gave no in-bed time
+/// beyond the asleep span (the band; a watch that only writes sleep), as
+/// efficiency and latency then can't be told. TODO(verify) on phones which
+/// apps write in-bed time before falling asleep.
+({DateTime start, DateTime end})? bedSpan(
+  SleepSession night,
+  List<Minute> minutes,
+) {
+  final i0 = minutes.indexWhere((m) => !m.ts.isBefore(night.start));
+  if (i0 < 0) return null;
+  var a = i0;
+  while (a > 0 &&
+      minutes[a - 1].inBed &&
+      minutes[a].ts.difference(minutes[a - 1].ts).inMinutes <= 1) {
+    a--;
+  }
+  final lastIdx = minutes.lastIndexWhere((m) => m.ts.isBefore(night.end));
+  var b = lastIdx;
+  while (b >= 0 &&
+      b + 1 < minutes.length &&
+      minutes[b + 1].inBed &&
+      minutes[b + 1].ts.difference(minutes[b].ts).inMinutes <= 1) {
+    b++;
+  }
+  final start = minutes[a].ts;
+  final end = minutes[b].ts.add(const Duration(minutes: 1));
+  if (!start.isBefore(night.start) && !end.isAfter(night.end)) return null;
+  return (start: start, end: end);
 }

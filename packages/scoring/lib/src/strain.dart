@@ -23,18 +23,26 @@ final class StrainParams {
   final double rpeScale;
 }
 
-/// Banister TRIMP for one minute at [hr], above [floor] of HR reserve.
+/// Banister TRIMP for one minute at [hr], above [floor] of HR reserve
+/// (the reserve above the floor is rescaled to 0–1). Banister's weighting
+/// is sex-specific (Morton, Fitz-Clarke & Banister 1990): 0.64·e^(1.92x)
+/// for men, 0.86·e^(1.67x) for women ([female], algo 10).
+///
+/// The rescale is kept on purpose: without it a 45-minute walk day reads
+/// strain ~10 instead of ~3 and no k keeps the calibration days in range
+/// (checked for algo 10, see docs/decisions.md).
 double minuteTrimp(
   int hr, {
   required double hrRest,
   required double hrMax,
   double floor = trimpFloor,
+  bool female = false,
 }) {
   if (hrMax <= hrRest) return 0;
   var r = ((hr - hrRest) / (hrMax - hrRest)).clamp(0.0, 1.0);
   if (r <= floor) return 0;
   r = (r - floor) / (1 - floor);
-  return r * 0.64 * exp(1.92 * r);
+  return female ? r * 0.86 * exp(1.67 * r) : r * 0.64 * exp(1.92 * r);
 }
 
 /// Sum of per-minute TRIMP over [hrs] (one reading per minute, nulls skipped).
@@ -43,11 +51,18 @@ double trimp(
   required double hrRest,
   required double hrMax,
   double floor = trimpFloor,
+  bool female = false,
 }) {
   var sum = 0.0;
   for (final hr in hrs) {
     if (hr != null) {
-      sum += minuteTrimp(hr, hrRest: hrRest, hrMax: hrMax, floor: floor);
+      sum += minuteTrimp(
+        hr,
+        hrRest: hrRest,
+        hrMax: hrMax,
+        floor: floor,
+        female: female,
+      );
     }
   }
   return sum;
@@ -88,11 +103,33 @@ double strengthCorrection({
   max(rpe == null ? 0.0 : trimpFromRpe(rpe, minutes, p), setsTrimp) - hrTrimp,
 );
 
-/// HR max starts at 190 and only goes up when the band records higher.
-int updatedHrMax(int current, Iterable<int?> hrs) {
-  var m = current;
+/// HR max after a day of [hrs] (one reading per minute, in order),
+/// starting from [current] (your age-predicted or set max, then the last
+/// day's). It goes up only when at least [sustain] consecutive minutes sit
+/// above it, to the lowest of them, and by at most [maxStep] bpm a day.
+///
+/// Algo 10: was the highest single minute ever, so one optical artefact
+/// (cadence lock at 200+ during intervals) raised it for good and
+/// lowered every later day's strain and zones. TODO(verify) against a
+/// chest strap.
+int updatedHrMax(
+  int current,
+  Iterable<int?> hrs, {
+  int sustain = 2,
+  int maxStep = 5,
+}) {
+  var best = current;
+  final run = <int>[];
   for (final hr in hrs) {
-    if (hr != null && hr > m) m = hr;
+    if (hr != null && hr > current) {
+      run.add(hr);
+      if (run.length >= sustain) {
+        final low = run.sublist(run.length - sustain).reduce(min);
+        if (low > best) best = low;
+      }
+    } else {
+      run.clear();
+    }
   }
-  return m;
+  return min(best, current + maxStep);
 }

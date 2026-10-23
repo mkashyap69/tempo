@@ -2,6 +2,8 @@
 
 Written 2026-10-23, against `algoVersion` 9. This goes through every formula in `packages/scoring` (plus the sleep and HR parts of `health_source`), checks it against published research and against what other apps publicly say they do, and ends with a prioritised plan (§12).
 
+> **Status (2026-10-23): implemented as algo 10.** A0–A4 below are built; the open decisions were taken at their recommendations. Where the build differs from this plan: the TRIMP floor rescale was kept (dropping it broke strain calibration); the HRV smallest-worthwhile-change bands, the logistic slope fit, reading the watch's VO₂ max from Health and the HUNT non-exercise VO₂ estimate were not done; the stager's thresholds were only renamed. Details, numbers and reasons are in `docs/decisions.md` (2026-10-23). The gates in §12 still need real data.
+
 It started from a sleep score comparison on 23 Oct: Tempo 73, Apple Health 82, same night (2:02 → 9:14, 7 h 07 m asleep). Working through that gap uncovered bugs that reach well beyond the sleep score.
 
 **How to read the verdicts:** ✅ sound · ⚠️ works but weaker than the evidence supports · ❌ a bug or a choice that conflicts with the evidence. Citations are to the primary papers; industry practice is what companies say publicly, since their formulas are proprietary.

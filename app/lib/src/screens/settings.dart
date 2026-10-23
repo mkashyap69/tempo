@@ -42,6 +42,7 @@ import 'learn.dart';
 import 'nav.dart';
 import 'onboarding.dart' show AvailabilityEditor, WorkoutsEditor;
 import 'pairing.dart';
+import 'score_check.dart';
 
 final _bandInfoProvider = FutureProvider<Map<String, String?>>((ref) async {
   ref.watch(dbTickProvider);
@@ -598,6 +599,19 @@ class SettingsScreen extends ConsumerWidget {
             },
           ),
           ListRow(
+            'Heart-rate zones',
+            sub: p.zonesByReserve
+                ? 'From resting to max HR (Karvonen)'
+                : 'As a share of max HR',
+            value: p.zonesByReserve ? '% of reserve' : '% of max',
+            onTap: () async {
+              await save(p.copyWith(zonesByReserve: !p.zonesByReserve));
+              final first = await db.firstMinute();
+              if (first != null) await ScoreService(db).recomputeFrom(first);
+              if (context.mounted) showTempoToast(context, 'Zones updated');
+            },
+          ),
+          ListRow(
             'Units',
             value: p.metric ? 'Metric' : 'Imperial',
             onTap: () => save(p.copyWith(metric: !p.metric)),
@@ -992,6 +1006,11 @@ class SettingsScreen extends ConsumerWidget {
               onTap: health || !paired
                   ? null
                   : () => push(context, const BandExplorerScreen()),
+            ),
+            ListRow(
+              'Score check',
+              sub: 'How your scores spread and whether they track you',
+              onTap: () => push(context, const ScoreCheckScreen()),
             ),
             ListRow(
               'Health data check',
