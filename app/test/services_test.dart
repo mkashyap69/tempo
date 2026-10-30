@@ -786,6 +786,61 @@ void main() {
       expect(t.intent, sc.Intent.planned);
     });
 
+    test('move: swaps two days; moving back clears the change', () async {
+      await saveAppProfile(db, const Profile());
+      final coach = CoachService(db);
+      final mon = mondayOf(today), sun = mon.add(const Duration(days: 6));
+      await coach.ensureWeek(mon);
+      Future<void> put(DateTime d, String key) => db.putPlanDay(
+        PlanDaysCompanion.insert(
+          date: dateKey(d),
+          session: jsonEncode(sc.sessionTemplate(key).toJson()),
+          general: false,
+        ),
+      );
+      String key(PlanDay r) =>
+          (jsonDecode(r.session) as Map<String, dynamic>)['key'] as String;
+      await put(mon, 'long_run');
+      await put(sun, 'rest');
+      await coach.moveDay(mon, sun);
+      var a = (await db.planDay(mon))!, b = (await db.planDay(sun))!;
+      expect(key(a), 'rest');
+      expect(key(b), 'long_run');
+      expect(b.reason, contains('Moved from Monday'));
+      expect(a.reason, contains('Swapped with Sunday'));
+      expect(b.status, sc.Intent.planned.name);
+      await coach.moveDay(sun, mon);
+      a = (await db.planDay(mon))!;
+      b = (await db.planDay(sun))!;
+      expect(key(a), 'long_run');
+      expect(a.original, isNull);
+      expect(b.original, isNull);
+    });
+
+    test('missed sessions: found, then let go together', () async {
+      await saveAppProfile(db, const Profile());
+      final mon = mondayOf(today);
+      await CoachService(db).ensureWeek(mon);
+      final easy = sc.sessionTemplate('easy_run');
+      DateTime d(int i) => mon.add(Duration(days: i));
+      final days = [
+        DayCredit(d(0), easy, 0, 'planned'), // missed
+        DayCredit(d(1), sc.sessionTemplate('rest'), 0, 'planned'),
+        DayCredit(d(2), easy, 1, 'planned'), // done
+        DayCredit(d(3), easy, 0, 'skipped'), // already let go
+        DayCredit(d(4), easy, 0, 'moved'), // missed after a move
+        DayCredit(d(5), easy, 0, 'planned'), // today
+        DayCredit(d(6), easy, 0, 'planned'),
+      ];
+      expect(missedDays(days, 5), [0, 4]);
+      expect(missedDays(days, 0), isEmpty);
+      await letGoAll(db, days, 5);
+      expect((await db.planDay(d(0)))!.status, sc.Intent.skipped.name);
+      expect((await db.planDay(d(4)))!.status, sc.Intent.skipped.name);
+      expect((await db.planDay(d(5)))!.status, sc.Intent.planned.name);
+      expect(await db.setting(Keys.realignDismissed), dateKey(DateTime.now()));
+    });
+
     test(
       'a missed key session yesterday is carried; an easy one drops',
       () async {

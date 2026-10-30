@@ -166,7 +166,7 @@ Two lessons hold across all of them. **They cut the number of tabs and organise 
 | Tab | The question | What's in it |
 | --- | --- | --- |
 | **Today** | "How am I, and what do I do today?" | The day as a story (§7): check-in, the call, rings, the plan with swaps, one insight, day progress, the evening wind-down |
-| **Plan** | "What's my week, and where is it going?" | Goal strip, this week (days with status), the goal block and phases, picks library, coach settings at the bottom. Today's session shows here as a single row that links to Today, not as a second card |
+| **Plan** | "What do I do, and where is it going?" | Today's session first (How, Why, Start · Move · Skip), this week as an agenda (missed sessions as one line with options, Move/Skip on the days ahead), the goal as one card that opens the Goal screen (weeks as a list, how next week is set), coach settings at the bottom. Revised 2026-10-30 (option E, see `docs/decisions.md`): Plan used to show today as one row linking to Today, and in use it didn't say what to do |
 | **( + )** | "I want to do or record something." | Sheet: **Start workout** (suggested + sports), **Log strength**, **Add activity**, **Check in** (feel + journal), **Not today** (pause: ill / injured / travel) |
 | **Progress** | "Am I getting better?" | Top: **This week** (review card, Mondays bigger). Then **Tempo Age** (hero, focus lever). **Discoveries** (journal impacts, experiments, past insights). **Trends** (recovery, sleep, fitness, body, activity, with cardio load inside Fitness). **History** (calendar, workouts, day timeline) |
 | **You** | "Me, my data, my settings." | Profile, goal/priority, data source and band, notifications, **How Tempo works** (Learn), data health, backups, export, developer |

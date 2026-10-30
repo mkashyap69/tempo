@@ -486,6 +486,31 @@ Future<void> letGo(st.TempoDb db, GoalView v) async {
   await _clearCarried(db, v.days[m].session);
 }
 
+/// Days before [today] (0 = Monday) with a session that wasn't done and
+/// wasn't let go: what Plan offers to sort out.
+List<int> missedDays(List<DayCredit> days, int today) => [
+  for (var i = 0; i < today && i < days.length; i++)
+    if (!days[i].session.isRest &&
+        days[i].credit == 0 &&
+        days[i].status != sc.Intent.skipped.name &&
+        days[i].status != sc.Intent.done.name)
+      i,
+];
+
+/// Lets every missed session this week go: each is marked skipped, none is
+/// carried, and the realign prompt rests for the week.
+Future<void> letGoAll(st.TempoDb db, List<DayCredit> days, int today) async {
+  for (final i in missedDays(days, today)) {
+    await db.setPlanIntent(
+      days[i].date,
+      sc.Intent.skipped.name,
+      source: 'realign',
+    );
+    await _clearCarried(db, days[i].session);
+  }
+  await db.putSetting(Keys.realignDismissed, st.dateKey(DateTime.now()));
+}
+
 /// Makes the rest of the week easy (recovery or feel already low).
 Future<void> easeWeek(st.TempoDb db, GoalView v) async {
   final e = v.ease;

@@ -220,6 +220,37 @@ class CoachService {
     await db.setPlanIntent(day, sc.Intent.planned.name, source: 'user');
   }
 
+  /// Moves [from]'s session to [to] (same week) by swapping the two days,
+  /// as offered by [sc.moveTargets]. Each day keeps its first version, so
+  /// moving it back clears the change.
+  Future<void> moveDay(DateTime from, DateTime to) async {
+    await ensureWeek(from);
+    final a = await db.planDay(from), b = await db.planDay(to);
+    if (a == null || b == null) return;
+    final stamp = st.toTs(DateTime.now());
+    Future<void> put(st.PlanDay row, String session, String why) {
+      final first = row.original ?? row.session;
+      final back = first == session;
+      return db.putPlanDay(
+        st.PlanDaysCompanion.insert(
+          date: row.date,
+          session: session,
+          original: Value(back ? null : first),
+          reason: Value(back ? null : '· $why'),
+          adaptedAt: Value(back ? null : stamp),
+          general: row.general,
+          algoVersion: Value(row.algoVersion),
+        ),
+      );
+    }
+
+    await put(a, b.session, 'Swapped with ${_weekday[to.weekday - 1]} by you.');
+    await put(b, a.session, 'Moved from ${_weekday[from.weekday - 1]} by you.');
+    for (final d in [from, to]) {
+      await db.setPlanIntent(d, sc.Intent.planned.name, source: 'user');
+    }
+  }
+
   /// Readiness for [day]: the day state from recovery and load, then the
   /// band's extra signals (resting HR against your baseline, a short night).
   Future<(sc.DayState, sc.RhrFlag, bool)> readinessFor(
@@ -473,3 +504,13 @@ class CoachService {
     return r;
   }
 }
+
+const _weekday = [
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
+  'Sunday',
+];

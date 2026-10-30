@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
@@ -81,7 +83,7 @@ void main() {
 
   final screens = <String, (Widget Function(), String)>{
     'Today': (() => const TodayScreen(), 'Today'),
-    'Plan': (() => const CoachScreen(standalone: true), 'This week'),
+    'Plan': (() => const CoachScreen(standalone: true), 'THIS WEEK'),
     'Cardio load': (() => const CardioLoadScreen(), 'WHAT TO DO THIS WEEK'),
     'Workout detail': (() => const WorkoutDetailScreen(), 'WHY THIS, TODAY'),
     'Weekly plan': (
@@ -181,13 +183,26 @@ void main() {
           return db;
         }))!;
         await render(t, db, const GoalScreen(), b: b, h: 3200);
-        expect(find.text('Half marathon'), findsOneWidget);
-        expect(find.text('Base starts'), findsOneWidget);
-        expect(find.text('THE BLOCK'), findsOneWidget);
-        expect(find.textContaining('THIS WEEK ·'), findsOneWidget);
-        expect(find.text('Sessions'), findsOneWidget);
+        expect(
+          find.text(
+            'Half marathon · ${dayShort(mondayOf(DateTime.now()).add(const Duration(days: 7 * 11 + 6)))}',
+          ),
+          findsOneWidget,
+        );
+        expect(find.text('THE 12 WEEKS'), findsOneWidget);
+        expect(find.text('Week 1 · Build the base'), findsOneWidget);
+        expect(find.text('Now'), findsOneWidget);
+        expect(find.text('HOW NEXT WEEK IS SET'), findsOneWidget);
+        expect(find.text('Sessions done'), findsOneWidget);
+        expect(find.text('Next week grows about 5%'), findsOneWidget);
+        // The old gauges and phase card are gone.
+        expect(find.text('Base starts'), findsNothing);
+        expect(find.textContaining('Step up at'), findsNothing);
         expect(find.text('ALSO ON YOUR PLAN'), findsOneWidget);
-        expect(find.textContaining('10K tune-up'), findsOneWidget);
+        expect(
+          find.textContaining('10K tune-up'),
+          findsNWidgets(2),
+        ); // its week, and Also
         await t.tap(find.text('How the plan grows'));
         await settle(t);
         expect(
@@ -198,9 +213,6 @@ void main() {
           find.textContaining('You earn each step.', findRichText: true),
           findsOneWidget,
         );
-        await t.tap(find.text('Got it'));
-        await settle(t);
-        expect(find.text('Base starts'), findsNothing);
         expect(t.takeException(), isNull);
         await teardown(t, db);
       });
@@ -400,30 +412,28 @@ void main() {
     });
 
     for (final b in Brightness.values) {
-      testWidgets('Plan: goal strip and This week / Goal (${b.name})', (
-        t,
-      ) async {
-        coachTab.value = CoachTab.week;
-        addTearDown(() => coachTab.value = CoachTab.week);
+      testWidgets('Plan: today, the week, the goal (${b.name})', (t) async {
         final db = (await t.runAsync(() => seededDb(days: 30)))!;
         await render(t, db, const CoachScreen(standalone: true), b: b, h: 3600);
-        expect(find.text('No training goal'), findsOneWidget); // the strip
-        expect(find.text('PLANNED VS ACTUAL STRAIN'), findsOneWidget);
+        expect(find.text('THIS WEEK'), findsOneWidget);
+        expect(find.text('YOUR GOAL'), findsOneWidget);
+        expect(find.text('No training goal'), findsOneWidget);
+        expect(find.text('Set a goal'), findsOneWidget); // the header pill
         expect(find.text('Week in review'), findsOneWidget);
-        // Today's session is one row here; the card lives on Today.
-        expect(find.text('TODAY’S READINESS'), findsNothing);
-        expect(find.text('TODAY'), findsOneWidget);
-        await t.tap(find.text('Goal'));
+        // No tab switcher and no gauges any more.
+        expect(find.text('Goal'), findsNothing);
+        expect(find.text('Sessions'), findsNothing);
+        await t.tap(find.text('Strain by day'));
         await settle(t);
-        expect(find.text('Set a goal'), findsOneWidget);
+        expect(find.text('PLANNED VS ACTUAL STRAIN'), findsOneWidget);
         expect(t.takeException(), isNull);
         await teardown(t, db);
       });
     }
 
-    testWidgets('Coach week shows the goal scorecard', (t) async {
-      coachTab.value = CoachTab.week;
-      addTearDown(() => coachTab.value = CoachTab.week);
+    testWidgets('Plan with a goal: the pill, the stages, the week rule', (
+      t,
+    ) async {
       final db = (await t.runAsync(() async {
         final d = await seededDb(days: 30);
         await saveBlock(
@@ -434,9 +444,67 @@ void main() {
         return d;
       }))!;
       await render(t, db, const CoachScreen(standalone: true), h: 3600);
-      expect(find.textContaining('THIS WEEK ·'), findsOneWidget);
-      expect(find.text('Sessions'), findsOneWidget);
-      expect(find.textContaining('Week 1 of 12 · Base'), findsOneWidget);
+      expect(find.textContaining('Half marathon in '), findsOneWidget);
+      expect(find.text('Week 1 of 12: build the base.'), findsOneWidget);
+      expect(find.text('See the whole plan →'), findsOneWidget);
+      expect(find.textContaining('THIS WEEK ·'), findsNothing);
+      await t.tap(find.text('See the whole plan →'));
+      await settle(t);
+      expect(find.text('THE 12 WEEKS'), findsOneWidget);
+      await teardown(t, db);
+    });
+
+    testWidgets('Plan: Move, Skip and Undo, missed sessions let go', (t) async {
+      final today = dayOf(DateTime.now());
+      final mon = mondayOf(today);
+      final db = (await t.runAsync(() async {
+        final d = await seededDb(days: 30);
+        final coach = CoachService(d);
+        // Strength: no seeded workout matches it, so it stays to do.
+        await coach.swapToday(sc.sessionTemplate('strength_full'), 'test');
+        // A strength day earlier this week that nothing matches: missed.
+        if (today.isAfter(mon)) {
+          await d.putPlanDay(
+            PlanDaysCompanion.insert(
+              date: dateKey(mon),
+              session: jsonEncode(sc.sessionTemplate('strength_full').toJson()),
+              general: false,
+            ),
+          );
+        }
+        return d;
+      }))!;
+      await render(t, db, const CoachScreen(standalone: true), h: 3600);
+      expect(find.text('Strength'), findsOneWidget);
+      expect(find.textContaining('How: '), findsWidgets);
+      expect(find.textContaining('Why: '), findsWidgets);
+
+      // Move opens the sheet; Keep it closes it.
+      await t.tap(find.text('Move').first);
+      await settle(t);
+      expect(find.text('Move strength'), findsOneWidget);
+      await t.tap(find.text('Keep it'));
+      await settle(t);
+
+      // Skip, then Undo on the card.
+      await t.tap(find.text('Skip').first);
+      await settle(t);
+      expect(find.text('Skipped. Nothing to make up.'), findsWidgets);
+      await t.tap(find.text('Undo').first);
+      await settle(t);
+      expect(find.text('Start'), findsOneWidget);
+
+      if (today.isAfter(mon)) {
+        expect(find.textContaining('missed. '), findsOneWidget);
+        await t.tap(find.text('Options ›'));
+        await settle(t);
+        expect(find.text('Let them go'), findsOneWidget);
+        await t.tap(find.text('Let them go'));
+        await settle(t);
+        expect(find.textContaining('missed. '), findsNothing);
+        expect(find.text('Let go'), findsWidgets);
+      }
+      expect(t.takeException(), isNull);
       await teardown(t, db);
     });
 

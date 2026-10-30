@@ -20,6 +20,7 @@ import 'coach_settings.dart';
 import 'goal.dart';
 import 'coach_parts.dart';
 import 'nav.dart';
+import 'plan_parts.dart';
 import 'shared.dart';
 import 'weekly_plan.dart';
 import 'weekly_review.dart';
@@ -65,25 +66,34 @@ final loadHistoryProvider =
       );
     });
 
-/// The two parts of Plan. Today's session lives on Today.
+/// Where to open Plan: the week (the tab itself) or the goal (pushed on
+/// top of it).
 enum CoachTab { week, goal }
 
-/// Which part of Plan is showing. Other screens set it to open Plan at the
-/// week or the goal.
+/// The last place Plan was opened at, for tests and deep links.
 final coachTab = ValueNotifier<CoachTab>(CoachTab.week);
 
-/// Shows Plan at [t]: switches to the Plan tab, or pushes Plan where there
-/// is no tab bar.
+/// Shows Plan at [t]: switches to the Plan tab (or pushes Plan where there
+/// is no tab bar), then opens the goal on top for [CoachTab.goal].
 void openCoachAt(BuildContext context, CoachTab t) {
   coachTab.value = t;
   if (shellMounted) {
     Navigator.of(context).popUntil((r) => r.isFirst);
     shellTab.value = 1;
+    if (t == CoachTab.goal) push(context, const GoalScreen());
   } else {
-    push(context, const CoachScreen(standalone: true));
+    push(
+      context,
+      t == CoachTab.goal
+          ? const GoalScreen()
+          : const CoachScreen(standalone: true),
+    );
   }
 }
 
+/// Plan: today's session with how and why, the week as an agenda (missed
+/// sessions as one line with options, Move / Skip on the days ahead) and
+/// the goal in one card.
 class CoachScreen extends ConsumerWidget {
   const CoachScreen({super.key, this.standalone = false});
 
@@ -95,78 +105,80 @@ class CoachScreen extends ConsumerWidget {
     final t = ref.watch(todayProvider).value;
     final w = ref.watch(weekProvider).value;
     final x = ref.watch(coachExtrasProvider).value;
-    final gv = ref.watch(goalViewProvider).value;
     if (t == null || w == null) return Scaffold(backgroundColor: context.c.bg);
-    final general = t.planRow?.general ?? t.calibrating;
     final c = context.c;
 
-    return ValueListenableBuilder<CoachTab>(
-      valueListenable: coachTab,
-      builder: (context, tab, _) => TempoPage(
-        bottom: standalone ? 48 : 100,
-        children: [
-          if (standalone)
-            const DetailHeader(title: 'Plan')
-          else
-            SizedBox(
-              height: 44,
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text('Plan', style: TempoType.pageTitle.c(c.text1)),
-                  ),
-                  TempoBadge(general ? 'General plan' : 'Personal plan'),
-                ],
-              ),
-            ),
-          if (t.pause != null)
-            _Note(
-              'Paused (${pauseLabel(t.pause!.reason).toLowerCase()}). The plan won’t adapt and nothing is carried forward; do what feels right.',
-            )
-          else if (t.stale)
-            _Note(
-              'Plan is from ${t.lastSync == null ? 'before your last sync' : clockOf(t.lastSync!)}. Sync to adapt it to last night.',
-              action: TempoButton(
-                'Sync',
-                small: true,
-                kind: ButtonKind.secondary,
-                onTap: () => ref.read(syncProvider.notifier).syncNow(),
-              ),
-            ),
-          if (tab != CoachTab.goal)
-            GoalCard(onOpen: () => coachTab.value = CoachTab.goal),
-          TempoSegmented<CoachTab>(
-            values: CoachTab.values,
-            labels: const ['This week', 'Goal'],
-            selected: tab,
-            onChanged: (v) => coachTab.value = v,
-          ),
-          if (tab == CoachTab.week) ...[
-            _TodayRow(t),
-            if (gv?.week != null) GoalWeekCard(v: gv!),
-            const WeekPlanBody(),
-            LoadNote(t: t, monotony: x?.monotony ?? false),
-            if (x != null) FocusSummary(x),
-            CardList(
+    return TempoPage(
+      bottom: standalone ? 48 : 100,
+      children: [
+        if (standalone)
+          const DetailHeader(title: 'Plan', trailing: GoalPill())
+        else
+          SizedBox(
+            height: 44,
+            child: Row(
               children: [
-                ListRow(
-                  'Week in review',
-                  sub: 'Planned vs done, health minimums, Tempo Age',
-                  onTap: () => push(context, const WeeklyReviewScreen()),
+                Expanded(
+                  child: Text('Plan', style: TempoType.pageTitle.c(c.text1)),
                 ),
-                ListRow(
-                  'Availability and coach settings',
-                  sub: 'Days, times, preferred workouts, reminders',
-                  onTap: () => push(context, const CoachSettingsScreen()),
-                ),
+                const GoalPill(),
               ],
             ),
-          ] else
-            const GoalBody(week: false),
-        ],
-      ),
+          ),
+        if (t.pause != null)
+          _Note(
+            'Paused (${pauseLabel(t.pause!.reason).toLowerCase()}). The plan won’t adapt and nothing is carried forward; do what feels right.',
+          )
+        else if (t.stale)
+          _Note(
+            'Plan is from ${t.lastSync == null ? 'before your last sync' : clockOf(t.lastSync!)}. Sync to adapt it to last night.',
+            action: TempoButton(
+              'Sync',
+              small: true,
+              kind: ButtonKind.secondary,
+              onTap: () => ref.read(syncProvider.notifier).syncNow(),
+            ),
+          ),
+        PlanTodayCard(t),
+        PlanWeekCard(t),
+        const PlanGoalCard(),
+        LoadNote(t: t, monotony: x?.monotony ?? false),
+        if (x != null) FocusSummary(x),
+        CardList(
+          children: [
+            ListRow(
+              'Week in review',
+              sub: 'Planned vs done, health minimums, Tempo Age',
+              onTap: () => push(context, const WeeklyReviewScreen()),
+            ),
+            ListRow(
+              'Strain by day',
+              sub: 'Planned vs actual, and what the coach changed',
+              onTap: () => push(context, const WeekStrainScreen()),
+            ),
+            ListRow(
+              'Availability and coach settings',
+              sub: 'Days, times, preferred workouts, reminders',
+              onTap: () => push(context, const CoachSettingsScreen()),
+            ),
+          ],
+        ),
+      ],
     );
   }
+}
+
+/// The week's strain, plan against actual, day by day.
+class WeekStrainScreen extends StatelessWidget {
+  const WeekStrainScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) => const TempoPage(
+    children: [
+      DetailHeader(title: 'Strain by day'),
+      WeekPlanBody(),
+    ],
+  );
 }
 
 /// A grey note under the title (paused, stale plan).
@@ -190,48 +202,6 @@ class _Note extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(child: Text(text, style: TempoType.bodyS.c(c.text2))),
           if (action != null) ...[const SizedBox(width: 12), action!],
-        ],
-      ),
-    );
-  }
-}
-
-/// Today's session in one row; the session itself lives on Today.
-class _TodayRow extends StatelessWidget {
-  const _TodayRow(this.t);
-  final TodayData t;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.c;
-    final p = t.plan;
-    final title = p == null || p.isRest || t.restDay
-        ? 'Rest'
-        : '${p.title} · ${p.minutes} min';
-    return TempoCard(
-      label: 'Today on Today',
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      onTap: () {
-        Navigator.of(context).popUntil((r) => r.isFirst);
-        shellTab.value = 0;
-      },
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Overline('Today'),
-                const SizedBox(height: 4),
-                Text(title, style: TempoType.label.c(c.text1)),
-              ],
-            ),
-          ),
-          if (p != null && !p.isRest && !t.restDay) ...[
-            TempoBadge(statusLabel(t), color: statusColor(context, t.status)),
-            const SizedBox(width: 8),
-          ],
-          TempoIcon(TempoIcons.chevron, size: 16, color: c.text3),
         ],
       ),
     );
