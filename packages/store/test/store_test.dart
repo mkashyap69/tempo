@@ -272,20 +272,28 @@ void main() {
   });
 
   test(
-    'clearRawHistoryFrom: only on request, then append-only again',
+    'replaceMinutesBetween: only that span, then append-only again',
     () async {
-      await db.appendMinutes([m(60, hr: 50), m(120, hr: 51), m(180, hr: 52)]);
-      await db.setCursor('band', 'activity', fromTs(240));
-      final n = await db.clearRawHistoryFrom(fromTs(120));
+      await db.appendMinutes([
+        m(60, hr: 50),
+        m(120, hr: 51),
+        m(180, hr: 52),
+        m(240, hr: 53),
+      ]);
+      await db.setCursor('band', 'activity', fromTs(300));
+      final n = await db.replaceMinutesBetween(fromTs(120), fromTs(180), [
+        m(120, hr: 70),
+      ]);
       expect(n, 2);
       expect(
-        (await db.minutesBetween(fromTs(0), fromTs(1000))).map((r) => r.ts),
-        [60],
+        (await db.minutesBetween(
+          fromTs(0),
+          fromTs(1000),
+        )).map((r) => (r.ts, r.hr)),
+        [(60, 50), (120, 70), (240, 53)],
       );
-      expect(await db.cursor('band', 'activity'), isNull);
-      // Corrected rows can land in the freed minutes.
-      await db.appendMinutes([m(120, hr: 70)]);
-      expect((await db.minutesBetween(fromTs(100), fromTs(130))).single.hr, 70);
+      // Cursors and everything outside the span are kept.
+      expect(await db.cursor('band', 'activity'), fromTs(300));
       // The guard is back.
       expect(
         () => db.customStatement('DELETE FROM minute_samples'),

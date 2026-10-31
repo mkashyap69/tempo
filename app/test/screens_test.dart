@@ -203,18 +203,22 @@ void main() {
       await teardown(t, db);
     });
 
-    testWidgets('Today: your numbers, edited', (t) async {
+    testWidgets('Today: at a glance, edited', (t) async {
       final db = (await t.runAsync(() => seededDb(days: 30)))!;
       await render(t, db, const TodayScreen(), h: 4200);
-      expect(find.text('Your numbers'), findsOneWidget);
-      // Calm by default: steps and strain never stand out on their own.
+      expect(find.text('At a glance'), findsOneWidget);
+      // Every tile by default.
+      for (final n in ['Sleep', 'Recovery', 'Resting HR', 'Steps', 'Strain']) {
+        expect(find.text(n), findsWidgets, reason: n);
+      }
+      // Calm: steps and strain never stand out on their own.
+      await t.tap(find.text('Calm'));
+      await settle(t);
+      expect(await t.runAsync(() => db.setting(Keys.todayTilesAll)), '0');
       expect(find.textContaining('others normal'), findsOneWidget);
       await t.tap(find.text('Show all'));
       await settle(t);
       expect(await t.runAsync(() => db.setting(Keys.todayTilesAll)), '1');
-      for (final n in ['Sleep', 'Recovery', 'Resting HR', 'Steps', 'Strain']) {
-        expect(find.text(n), findsWidgets, reason: n);
-      }
       await t.tap(find.text('Edit'));
       await settle(t);
       await t.tap(find.bySemanticsLabel('Show Steps'));

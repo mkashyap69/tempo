@@ -89,6 +89,10 @@ final class TileData {
 
 bool _moved(sc.VsNormal? v) => v != null && v.trend != sc.Trend.flat;
 
+/// A night number with no night behind it: say so, rather than "learning"
+/// after weeks of data.
+const _noNight = 'no sleep recorded last night';
+
 String _delta(sc.VsNormal? v, String Function(double) f) => v == null
     ? 'learning your normal'
     : v.trend == sc.Trend.flat
@@ -117,7 +121,9 @@ final todayTilesProvider = FutureProvider<List<TileData>>((ref) async {
       id: TileId.sleep,
       value: t.sleepScore == null ? '–' : '${t.sleepScore!.round()}',
       unit: 'score',
-      line: _delta(sleepV, (x) => '${x.round()}'),
+      line: t.sleepScore == null
+          ? _noNight
+          : _delta(sleepV, (x) => '${x.round()}'),
       good: sleepV?.good,
       unusual: _moved(sleepV),
       spark: spark((d) => d.sleepScore ?? d.sleepPerf),
@@ -133,7 +139,9 @@ final todayTilesProvider = FutureProvider<List<TileData>>((ref) async {
       value: t.recovery == null ? '–' : '${t.recovery!.round()}',
       unit: '%',
       line: t.recovery == null
-          ? 'learning · ${t.nights} of 14 nights'
+          ? t.nights < 14
+                ? 'learning · ${t.nights} of 14 nights'
+                : _noNight
           : _delta(recV, (x) => '${x.round()}'),
       good: recV?.good,
       unusual: _moved(recV),
@@ -151,7 +159,7 @@ final todayTilesProvider = FutureProvider<List<TileData>>((ref) async {
       id: TileId.rhr,
       value: s?.rhr == null ? '–' : '${s!.rhr!.round()}',
       unit: 'bpm',
-      line: _delta(rhrV, (x) => '${x.round()}'),
+      line: s?.rhr == null ? _noNight : _delta(rhrV, (x) => '${x.round()}'),
       good: rhrV?.good,
       unusual: _moved(rhrV),
       spark: spark((d) => d.rhr),
@@ -249,7 +257,7 @@ final _tilesOrderProvider = dbQuery((db, _) async {
   return (
     order: p.order,
     hidden: p.hidden,
-    all: await db.setting(Keys.todayTilesAll) == '1',
+    all: await db.setting(Keys.todayTilesAll) != '0',
   );
 });
 
@@ -379,9 +387,9 @@ String tileHow(TileId id) => switch (id) {
         'more. Longevity shows every part.',
 };
 
-/// Today: "Your numbers". Calm by default: only the tiles that moved away
-/// from your normal show, the rest fold into one line; "Show all" is
-/// remembered. Tap a tile to open it in place (7 days, 30 days, 6 months,
+/// Today: "At a glance". Every tile by default; Calm shows only the tiles
+/// that moved away from your normal and folds the rest into one line. The
+/// choice is remembered. Tap a tile to open it in place (7 days, 30 days, 6 months,
 /// your normal band, how it's calculated). Edit reorders and hides.
 class TodayTiles extends ConsumerStatefulWidget {
   const TodayTiles({super.key});
@@ -458,7 +466,7 @@ class _TodayTilesState extends ConsumerState<TodayTiles> {
         Row(
           children: [
             Expanded(
-              child: Text('Your numbers', style: TempoType.titleM.c(c.text1)),
+              child: Text('At a glance', style: TempoType.titleM.c(c.text1)),
             ),
             TempoButton(
               calm ? 'Show all' : 'Calm',
@@ -887,7 +895,7 @@ class _EditTilesState extends ConsumerState<_EditTiles> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('Your numbers', style: TempoType.titleM.c(c.text1)),
+        Text('At a glance', style: TempoType.titleM.c(c.text1)),
         const SizedBox(height: 4),
         Text(
           'Show, hide and reorder the tiles on Today.',

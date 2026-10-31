@@ -185,36 +185,39 @@ class TempoDb extends _$TempoDb {
   // ---- raw (append-only) -------------------------------------------------
 
   /// The one exception to append-only, run only on the user's explicit
-  /// "Re-download band history": deletes raw samples from [from] on and
-  /// every sync cursor, so the next sync fetches them again from the band.
-  /// Used to replace rows an older build stored at the wrong time. The
-  /// guard triggers are dropped and recreated inside the transaction.
-  /// Returns the minutes removed.
-  Future<int> clearRawHistoryFrom(DateTime from) => transaction(() async {
-    const tables = ['minute_samples', 'stress_samples', 'spo2_samples'];
-    var removed = 0;
-    for (final t in tables) {
-      await customStatement('DROP TRIGGER IF EXISTS ${t}_no_delete');
-      final n = await customUpdate(
-        'DELETE FROM $t WHERE ts >= ?',
-        variables: [Variable.withInt(toTs(from))],
-        updates: {
-          for (final tb in allTables)
-            if (tb.actualTableName == t) tb,
-        },
-        updateKind: UpdateKind.delete,
-      );
-      if (t == 'minute_samples') removed = n;
-      await customStatement(
-        'CREATE TRIGGER ${t}_no_delete BEFORE DELETE ON $t '
-        "BEGIN SELECT RAISE(ABORT, '$t is append-only'); END",
-      );
-    }
-    await delete(syncState).go();
+  /// "Re-download band history": replaces the stored minutes in
+  /// [from, to] (inclusive) with [rows], the minutes the band sent again
+  /// for that span. Minutes outside it, and stress and SpO₂, are never
+  /// touched, so a band that hands back less than asked can't cost data
+  /// (2026-10-31: the old version deleted everything from 5 Oct on, the
+  /// band returned up to 20 Oct, and 11 days were lost). Used to replace
+  /// rows an older build stored at the wrong time. The guard trigger is
+  /// dropped and recreated inside the transaction. Returns the minutes
+  /// removed.
+  Future<int> replaceMinutesBetween(
+    DateTime from,
+    DateTime to,
+    List<MinuteSamplesCompanion> rows,
+  ) => transaction(() async {
+    const t = 'minute_samples';
+    await customStatement('DROP TRIGGER IF EXISTS ${t}_no_delete');
+    final removed = await customUpdate(
+      'DELETE FROM $t WHERE ts >= ? AND ts <= ?',
+      variables: [Variable.withInt(toTs(from)), Variable.withInt(toTs(to))],
+      updates: {minuteSamples},
+      updateKind: UpdateKind.delete,
+    );
+    await customStatement(
+      'CREATE TRIGGER ${t}_no_delete BEFORE DELETE ON $t '
+      "BEGIN SELECT RAISE(ABORT, '$t is append-only'); END",
+    );
+    await batch(
+      (b) => b.insertAll(minuteSamples, rows, mode: InsertMode.insertOrIgnore),
+    );
     return removed;
   });
 
-  /// The second exception to append-only: per-minute rows stamped after
+  /// The other exception to append-only: per-minute rows stamped after
   /// [now] can't be real. A band block whose stamps ran past the sync
   /// (2026-10-31: hourly "walks" until 23:42, synced at 15:47) left such
   /// rows; they would also block the real minutes for those times, since

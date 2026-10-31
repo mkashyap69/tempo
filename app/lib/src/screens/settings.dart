@@ -218,7 +218,7 @@ Future<void> redownloadHistory(BuildContext context, WidgetRef ref) async {
   final ok = await confirmSheet(
     context,
     title: 'Re-download band history?',
-    body: 'Tempo fetches everything your band still holds and replaces what’s stored from that point on. Use it if sleep or activity times look shifted. Older days the band no longer has stay as they are.',
+    body: 'Tempo fetches the activity your band still holds and replaces only the days it gets back. Use it if sleep or activity times look shifted. Anything the band doesn’t send again stays as it is.',
     action: 'Re-download',
   );
   if (!ok || !context.mounted) return;

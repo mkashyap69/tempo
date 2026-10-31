@@ -138,29 +138,39 @@ class SyncService {
     }
   }
 
-  /// Re-downloads everything the band still holds and replaces what is
-  /// stored from that point on. Fixes rows an older build saved at the
-  /// wrong time (the 2026-10-04 builds read fetch times as UTC, putting
-  /// minutes 5 h 30 m late in India). Fetches first, so nothing the band
-  /// no longer has is ever deleted. Returns a message for the user.
+  /// Re-downloads the band's activity history, block by block, and
+  /// replaces only the span it got back. Fixes rows an older build saved at
+  /// the wrong time (the 2026-10-04 builds read fetch times as UTC, putting
+  /// minutes 5 h 30 m late in India). Fetches first and keeps everything
+  /// outside what came back: on 31 Oct the band stopped answering past
+  /// 20 Oct, and the old version, which cleared everything from the first
+  /// block on, lost 11 days. Returns a message for the user.
   Future<String> redownload() async {
     final link = await BandLink.open(db);
     try {
       final band = link.band;
-      final r = await band.fetch(
-        FetchType.activity,
-        DateTime.now().subtract(const Duration(days: 30)),
-      );
-      final start = r.start;
-      if (start == null || r.data.isEmpty) {
-        return 'The band has no history to re-download.';
+      final recs = <ActivityRecord>[];
+      var since = DateTime.now().subtract(const Duration(days: 30));
+      for (var round = 0; round < maxRedownloadRounds; round++) {
+        final r = await band.fetch(FetchType.activity, since);
+        final start = r.start;
+        if (start == null || r.data.isEmpty) break;
+        final block = parseActivity(r.data, start);
+        // Stamps past now are wrong; a block that doesn't move on means
+        // the band is repeating itself. Either way, stop there.
+        if (futureMinutes(start, block.length, DateTime.now()) > 0) break;
+        final fresh = [
+          for (final a in block)
+            if (recs.isEmpty || a.ts.isAfter(recs.last.ts)) a,
+        ];
+        if (fresh.isEmpty) break;
+        recs.addAll(fresh);
+        since = fresh.last.ts.add(const Duration(minutes: 1));
+        if (DateTime.now().difference(fresh.last.ts).inMinutes <= 5) break;
       }
-      final recs = parseActivity(r.data, start);
-      if (futureMinutes(start, recs.length, DateTime.now()) > 0) {
-        return "The band's times run past now, so nothing was replaced.";
-      }
-      final removed = await db.clearRawHistoryFrom(start);
-      await db.appendMinutes([
+      if (recs.isEmpty) return 'The band has no history to re-download.';
+      final first = recs.first.ts, last = recs.last.ts;
+      final removed = await db.replaceMinutesBetween(first, last, [
         for (final a in recs)
           MinuteSamplesCompanion.insert(
             ts: Value(toTs(a.ts)),
@@ -171,22 +181,25 @@ class SyncService {
             aux: Value(a.aux),
           ),
       ]);
-      if (recs.isNotEmpty) {
-        await db.setCursor(
-          band.id,
-          FetchType.activity.key,
-          recs.last.ts.add(const Duration(minutes: 1)),
-        );
+      // The cursor only moves forward: minutes after [last] stay as stored.
+      final next = last.add(const Duration(minutes: 1));
+      final cur = await db.cursor(band.id, FetchType.activity.key);
+      if (cur == null || cur.isBefore(next)) {
+        await db.setCursor(band.id, FetchType.activity.key, next);
       }
-      await syncWith(band); // stress, SpO₂, workouts; rescoring
+      await syncWith(band); // newer minutes, stress, SpO₂, workouts
       await ScoreService(db)
-          .recomputeFrom(start.subtract(const Duration(days: 1)));
+          .recomputeFrom(first.subtract(const Duration(days: 1)));
       final h = recs.length ~/ 60;
       await db.logSync(
-        'Re-downloaded ${h}h ${recs.length % 60}m from the band (replaced $removed min)',
+        'Re-downloaded ${h}h ${recs.length % 60}m from the band, '
+            '${first.day}/${first.month}–${last.day}/${last.month} '
+            '(replaced $removed min)',
         'repair',
       );
-      return 'Re-downloaded $h hours of history from ${start.day}/${start.month}. Scores updated.';
+      return 'Re-downloaded $h hours of history, '
+          '${first.day}/${first.month} to ${last.day}/${last.month}. '
+          'Everything else is kept. Scores updated.';
     } finally {
       await link.close();
     }
@@ -495,6 +508,10 @@ class SyncService {
 
 /// Fetches per data type in one sync, at most.
 const maxFetchRounds = 8;
+
+/// Blocks one re-download reads, at most (the 31 Oct explorer dump read
+/// 5–20 Oct in 8 blocks).
+const maxRedownloadRounds = 64;
 
 /// Whether to fetch [type] again after a batch that ended at [last]: only
 /// per-minute stores, which the band splits into blocks, and only when the
