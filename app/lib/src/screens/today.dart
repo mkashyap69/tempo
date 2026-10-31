@@ -41,7 +41,6 @@ import 'strain.dart';
 import 'workout_detail.dart';
 import 'today_charts.dart';
 import 'workouts.dart';
-import 'day_story.dart';
 import 'sleep_type.dart' show SleepPlanRow;
 import 'today_tiles.dart';
 
@@ -428,7 +427,6 @@ abstract final class TodayBody {
             insight,
             if (x != null && t.pause == null) AlsoToday(x),
             const TodayTiles(),
-            DayStoryCard(t: t),
             const SleepPlanRow(),
             const TodayGoalLine(),
             const WeekRow(),
@@ -443,13 +441,11 @@ abstract final class TodayBody {
             rings,
             insight,
             const TodayTiles(),
-            DayStoryCard(t: t),
           ];
         case sc.DayPhase.evening:
           body = [
             TonightCard(t: t),
             const SleepPlanRow(),
-            DayStoryCard(t: t),
             if (!done) ?session,
             ...coachNotes,
             rings,

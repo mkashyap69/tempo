@@ -259,23 +259,15 @@ void main() {
     await teardown(t, db);
   });
 
-  testWidgets('Today: tag a coffee on the timeline', (t) async {
-    testHour = 16;
+  testWidgets('Today: no day timeline, at any time of day', (t) async {
     addTearDown(() => testHour = 9);
     final db = (await t.runAsync(() => seededDb(days: 30)))!;
-    await render(t, db, const TodayScreen(), h: 5200);
-    expect(find.text('YOUR DAY'), findsOneWidget);
-    expect(find.text('Tomorrow'), findsOneWidget);
-    expect(find.text('Heart rate'), findsOneWidget);
-    await t.tap(find.text('+ Coffee'));
-    await settle(t);
-    final today = dayOf(DateTime.now());
-    var j = await t.runAsync(() => db.journalFor(today));
-    expect(
-      j!.map((e) => e.tag),
-      containsAll(['last_caffeine', 'caffeine_late']),
-    );
-    expect(find.text('Coffee'), findsOneWidget);
+    for (final h in [9, 14, 16, 22]) {
+      testHour = h;
+      await render(t, db, const TodayScreen(), h: 5200);
+      expect(find.text('YOUR DAY'), findsNothing, reason: '$h:00');
+      expect(find.text('+ Coffee'), findsNothing, reason: '$h:00');
+    }
     expect(t.takeException(), isNull);
     await teardown(t, db);
   });
@@ -780,8 +772,7 @@ void main() {
       final db = (await t.runAsync(() => seededDb(days: 30)))!;
       await render(t, db, const TodayScreen(), h: 2600);
       expect(find.text('Tonight'), findsOneWidget);
-      expect(find.text('YOUR DAY'), findsOneWidget);
-      expect(find.text('Now'), findsOneWidget);
+      expect(find.text('YOUR DAY'), findsNothing);
       await teardown(t, db);
     });
 
