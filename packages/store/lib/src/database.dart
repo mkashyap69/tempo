@@ -331,7 +331,7 @@ class TempoDb extends _$TempoDb {
   }) async {
     final r = await customSelect(
       'SELECT COUNT(*) AS n FROM ${_minuteTable(health)} '
-      'WHERE ts >= ? AND ts < ? AND hr IS NOT NULL',
+      'WHERE ts >= ? AND ts < ? AND hr IS NOT NULL${health ? '' : _worn}',
       variables: [Variable.withInt(toTs(from)), Variable.withInt(toTs(to))],
     ).getSingle();
     return r.read<int>('n');
@@ -345,11 +345,16 @@ class TempoDb extends _$TempoDb {
   }) async {
     final r = await customSelect(
       'SELECT COALESCE(SUM(steps), 0) AS s FROM ${_minuteTable(health)} '
-      'WHERE ts >= ? AND ts < ?',
+      'WHERE ts >= ? AND ts < ?${health ? '' : _worn}',
       variables: [Variable.withInt(toTs(from)), Variable.withInt(toTs(to))],
     ).getSingle();
     return r.read<int>('s');
   }
+
+  /// Band minutes the band marked not worn (the kind byte's low nibble is
+  /// 3, see band_ble `kindNotWorn`) never count as worn time or steps.
+  /// Health minutes have kind-free rows, so this is for minute_samples only.
+  static const _worn = ' AND (kind & 15) != 3';
 
   static String _minuteTable(bool health) =>
       health ? 'health_minutes' : 'minute_samples';

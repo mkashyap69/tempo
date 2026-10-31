@@ -271,6 +271,16 @@ void main() {
     expect((await db.watchAllWorkouts(sport: 'cycling').first), isEmpty);
   });
 
+  test('minutes the band marked not worn add no steps or worn time', () async {
+    await db.appendMinutes([
+      m(60, hr: 70, steps: 100),
+      m(120, hr: 80, steps: 30).copyWith(kind: const Value(0xf3)),
+      m(180, steps: 12).copyWith(kind: const Value(0x83)),
+    ]);
+    expect(await db.stepsBetween(fromTs(0), fromTs(1000)), 100);
+    expect(await db.hrMinutesBetween(fromTs(0), fromTs(1000)), 1);
+  });
+
   test(
     'replaceMinutesBetween: only that span, then append-only again',
     () async {

@@ -144,7 +144,9 @@ Future<List<st.MinuteSample>> loadMinuteRows(
   DataSource? source,
 }) async {
   final s = source ?? await loadDataSource(db);
-  if (!s.isHealth) return db.minutesBetween(from, to);
+  if (!s.isHealth) {
+    return [for (final r in await db.minutesBetween(from, to)) worn(r)];
+  }
   return [
     for (final r in await db.healthMinutesBetween(from, to))
       st.MinuteSample(

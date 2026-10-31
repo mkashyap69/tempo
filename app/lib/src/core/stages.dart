@@ -1,4 +1,5 @@
 import 'package:band_ble/band_ble.dart';
+import 'package:drift/drift.dart' show Value;
 import 'package:scoring/scoring.dart';
 import 'package:store/store.dart' as st;
 
@@ -10,7 +11,24 @@ Stage stageForKind(int kind) => kindAsleep(kind)
     ? Stage.unknown
     : Stage.wake;
 
-Minute minuteOf(st.MinuteSample m) => Minute(
+/// A band minute as every number reads it: a minute the band says it was
+/// not worn keeps no heart rate and no steps, and a heart rate outside
+/// 25–220 is a glitch, not a reading (227 bpm on 31 Oct). The raw row is
+/// never changed. In 5–20 Oct, 18 of 3,879 unworn minutes had a heart rate
+/// and 18 had steps.
+st.MinuteSample worn(st.MinuteSample m) {
+  final off = kindNotWorn(m.kind);
+  final hr = m.hr;
+  final glitch = hr != null && (hr < minPlausibleHr || hr > maxPlausibleHr);
+  if (!off && !glitch) return m;
+  return m.copyWith(hr: const Value(null), steps: off ? 0 : m.steps);
+}
+
+const minPlausibleHr = 25, maxPlausibleHr = 220;
+
+Minute minuteOf(st.MinuteSample raw) => _minuteOf(worn(raw));
+
+Minute _minuteOf(st.MinuteSample m) => Minute(
   st.fromTs(m.ts),
   hr: m.hr,
   steps: m.steps,

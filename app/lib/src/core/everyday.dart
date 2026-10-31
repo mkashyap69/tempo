@@ -9,6 +9,7 @@ import 'data_source.dart';
 import 'minutes.dart';
 import 'pause.dart';
 import 'score_service.dart' show parseDateKey;
+import 'stages.dart' show worn;
 
 /// Everyday metrics for one day, from the active source (decisions.md,
 /// 2026-10-15). Each loader reads only what its card needs.
@@ -291,7 +292,7 @@ Future<List<sc.Minute>> _measuredAround(
   if (!source.isHealth) {
     return [
       for (final r in await db.minutesBetween(a, b))
-        sc.Minute(st.fromTs(r.ts), hr: r.hr),
+        sc.Minute(st.fromTs(r.ts), hr: worn(r).hr),
     ];
   }
   return [
