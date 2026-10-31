@@ -362,11 +362,9 @@ class _TrendsState extends ConsumerState<TrendsScreen> {
                 debt: sp.key == 'sleep' ? debt : null,
               ),
         Text('History', style: TempoType.titleM.c(c.text1)),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            for (final (t, icon, page) in [
+        Builder(
+          builder: (context) {
+            final items = [
               ('Workouts', TempoIcons.run, () => const WorkoutsScreen()),
               (
                 'Day timeline',
@@ -379,28 +377,50 @@ class _TrendsState extends ConsumerState<TrendsScreen> {
                 TempoIcons.baselines,
                 () => const BaselinesScreen(),
               ),
-            ])
-              Pressable(
-                label: t,
-                onTap: () => push(context, page()),
-                child: Container(
-                  height: 40,
-                  padding: const EdgeInsets.symmetric(horizontal: 14),
-                  decoration: BoxDecoration(
-                    color: c.surface1,
-                    borderRadius: BorderRadius.circular(TempoRadii.pill),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      TempoIcon(icon, size: 16, color: c.text1),
-                      const SizedBox(width: 8),
-                      Text(t, style: TempoType.label.c(c.text1)),
-                    ],
-                  ),
+            ];
+            Widget tile((String, String, Widget Function()) e) => Pressable(
+              label: e.$1,
+              onTap: () => push(context, e.$3()),
+              child: Container(
+                height: 52,
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                decoration: BoxDecoration(
+                  color: c.surface1,
+                  borderRadius: BorderRadius.circular(TempoRadii.md),
+                ),
+                child: Row(
+                  children: [
+                    TempoIcon(e.$2, size: 18, color: c.text1),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        e.$1,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TempoType.label.c(c.text1),
+                      ),
+                    ),
+                    TempoIcon(TempoIcons.chevron, size: 14, color: c.text3),
+                  ],
                 ),
               ),
-          ],
+            );
+            // An even 2 × 2 grid: every tile the same width and height.
+            return Column(
+              children: [
+                for (var r = 0; r < items.length; r += 2) ...[
+                  if (r > 0) const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(child: tile(items[r])),
+                      const SizedBox(width: 8),
+                      Expanded(child: tile(items[r + 1])),
+                    ],
+                  ),
+                ],
+              ],
+            );
+          },
         ),
       ],
     );

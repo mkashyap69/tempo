@@ -255,6 +255,7 @@ class RealignCard extends ConsumerWidget {
           const SizedBox(height: 12),
           Wrap(
             spacing: 8,
+            runSpacing: 8,
             children: [
               TempoButton(
                 'Rebuild from today',

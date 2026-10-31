@@ -28,7 +28,7 @@ import 'package:tempo/src/screens/feel.dart';
 import 'package:tempo/src/screens/goal.dart';
 import 'package:tempo/src/screens/goal_setup.dart';
 import 'package:tempo/src/screens/nav.dart' show present;
-import 'package:tempo/src/core/format.dart' show dayShort;
+import 'package:tempo/src/core/format.dart' show dayShort, nightLabel;
 import 'package:tempo/src/design/components.dart' show Pressable, TempoPage;
 import 'package:tempo/src/screens/day_timeline.dart';
 import 'package:tempo/src/screens/insight_detail.dart';
@@ -147,6 +147,30 @@ void main() {
       });
     }
   }
+
+  testWidgets('Sleep: arrows step through earlier nights', (t) async {
+    final db = (await t.runAsync(() => seededDb(days: 30)))!;
+    await render(t, db, const SleepScreen(), h: 2600);
+    final today = dayOf(DateTime.now());
+    expect(find.text(nightLabel(today)), findsOneWidget);
+    expect(find.text('TONIGHT'), findsWidgets);
+    await t.tap(find.bySemanticsLabel('Previous night'));
+    await settle(t);
+    final y = today.subtract(const Duration(days: 1));
+    expect(find.text(nightLabel(y)), findsOneWidget);
+    expect(find.text('sleep score', findRichText: true), findsNothing);
+    expect(
+      find.textContaining('sleep score', findRichText: true),
+      findsOneWidget,
+    );
+    // Tonight belongs to the latest night only.
+    expect(find.text('TONIGHT'), findsNothing);
+    await t.tap(find.bySemanticsLabel('Next night'));
+    await settle(t);
+    expect(find.text(nightLabel(today)), findsOneWidget);
+    expect(t.takeException(), isNull);
+    await teardown(t, db);
+  });
 
   group('Training goal', () {
     Future<void> half(TempoDb db) => saveBlock(

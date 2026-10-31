@@ -339,6 +339,7 @@ abstract final class TodayBody {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   SessionActions(t),
+                  const SizedBox(height: 14),
                   const Hair(),
                   const PicksEntry(inline: true),
                 ],

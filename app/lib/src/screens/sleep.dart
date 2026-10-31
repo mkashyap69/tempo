@@ -23,6 +23,7 @@ import '../core/minutes.dart';
 import '../core/today.dart';
 import '../design/chart.dart';
 import '../design/components.dart';
+import '../design/icons.dart';
 import '../design/meter.dart';
 import '../design/tokens.dart';
 import '../design/type.dart';
@@ -295,32 +296,103 @@ class _NapRow extends StatelessWidget {
   }
 }
 
-class SleepScreen extends ConsumerWidget {
+/// The stored score for the night ending on a morning (earlier nights).
+final _scoreForProvider = FutureProvider.family<st.DailyScore?, DateTime>((
+  ref,
+  morning,
+) async {
+  ref.watch(dbTickProvider);
+  return ref.watch(dbProvider).scoreFor(morning);
+});
+
+/// How far back the Sleep header arrows go.
+const sleepDaysBack = 60;
+
+class SleepScreen extends ConsumerStatefulWidget {
   const SleepScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SleepScreen> createState() => _SleepScreenState();
+}
+
+class _SleepScreenState extends ConsumerState<SleepScreen> {
+  /// Nights back from last night (0 = last night).
+  int _back = 0;
+
+  @override
+  Widget build(BuildContext context) {
     final t = ref.watch(todayProvider).value;
-    final night = t == null ? null : ref.watch(nightProvider(t.day)).value;
-    if (t == null || night == null) {
+    final day = t?.day.subtract(Duration(days: _back));
+    final night = day == null ? null : ref.watch(nightProvider(day)).value;
+    final earlier = _back == 0 || day == null
+        ? null
+        : ref.watch(_scoreForProvider(day));
+    if (t == null || night == null || (earlier != null && !earlier.hasValue)) {
       return Scaffold(backgroundColor: context.c.bg);
     }
     final c = context.c, s = context.s;
-    final perf = t.sufficiency;
+    final latest = _back == 0;
+    // Last night comes from today's data; earlier nights from their score.
+    final e = earlier?.value;
+    final sleepScore = latest ? t.sleepScore : e?.sleepScore ?? e?.sleepPerf;
+    final slept = latest ? t.slept : e?.sleptHours;
+    final need = latest ? t.need : e?.needHours;
+    final napHours = latest ? t.napHours : e?.napHours ?? 0;
+    final debt = latest ? t.debt : e?.debtHours;
+    final perf = latest
+        ? t.sufficiency
+        : e?.sleptHours == null
+        ? null
+        : sc.sleepSufficiency(e!.sleptHours!, e.baseNeed ?? t.baseNeed);
     final strainYesterday = t.history.isEmpty ? 0.0 : t.history.first.strain;
     return TempoPage(
       gap: 22,
       children: [
         DetailHeader(
           title: 'Sleep',
-          subtitle: nightLabel(t.day),
+          center: Row(
+            children: [
+              TempoIconButton(
+                TempoIcons.back,
+                label: 'Previous night',
+                size: 18,
+                onTap: _back >= sleepDaysBack
+                    ? null
+                    : () => setState(() => _back++),
+              ),
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('Sleep', style: TempoType.label.c(c.text1)),
+                    Text(
+                      nightLabel(day!),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TempoType.caption.c(c.text3).tnum,
+                    ),
+                  ],
+                ),
+              ),
+              TempoIconButton(
+                TempoIcons.chevron,
+                label: 'Next night',
+                size: 18,
+                onTap: latest ? null : () => setState(() => _back--),
+              ),
+            ],
+          ),
           trailing: InfoButton(
             label: 'How sleep need works',
             onTap: () => push(context, const LearnCardsScreen(initial: 4)),
           ),
         ),
         if (night.empty)
-          const TempoEmpty('No sleep yet — wear your band tonight.')
+          TempoEmpty(
+            latest
+                ? 'No sleep yet — wear your band tonight.'
+                : 'No sleep recorded this night.',
+          )
         else ...[
           Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -329,7 +401,7 @@ class SleepScreen extends ConsumerWidget {
                 TextSpan(
                   children: [
                     TextSpan(
-                      text: '${t.sleepScore?.round() ?? '—'}',
+                      text: '${sleepScore?.round() ?? '—'}',
                       style: TempoType.hero.c(c.text1),
                     ),
                     TextSpan(
@@ -346,7 +418,7 @@ class SleepScreen extends ConsumerWidget {
                 ),
               const SizedBox(height: 10),
               TargetStrip(
-                value: (t.sleepScore ?? 0),
+                value: (sleepScore ?? 0),
                 max: 100,
                 color: s.sleepChannel,
                 height: 10,
@@ -360,7 +432,7 @@ class SleepScreen extends ConsumerWidget {
                     TextSpan(
                       children: [
                         TextSpan(
-                          text: hmShort(t.slept ?? 0),
+                          text: hmShort(slept ?? 0),
                           style: TextStyle(color: c.text1),
                         ),
                         const TextSpan(text: ' asleep'),
@@ -374,7 +446,7 @@ class SleepScreen extends ConsumerWidget {
                       children: [
                         const TextSpan(text: 'needed '),
                         TextSpan(
-                          text: hmShort(t.need ?? 0),
+                          text: hmShort(need ?? 0),
                           style: TextStyle(
                             color: c.text1,
                             decoration: TextDecoration.underline,
@@ -388,17 +460,17 @@ class SleepScreen extends ConsumerWidget {
                   ),
                 ],
               ),
-              if (t.napHours > 0) ...[
+              if (napHours > 0) ...[
                 const SizedBox(height: 6),
                 Text(
-                  '+ ${hmShort(t.napHours)} napping today · counts against your sleep debt',
+                  '+ ${hmShort(napHours)} napping ${latest ? 'today' : 'that day'} · counts against your sleep debt',
                   style: TempoType.caption.c(c.text2).tnum,
                 ),
               ],
             ],
           ),
           TempoCard(
-            onTap: () => push(context, NightDetailScreen(morning: t.day)),
+            onTap: () => push(context, NightDetailScreen(morning: day)),
             label: 'Night detail',
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -471,7 +543,7 @@ class SleepScreen extends ConsumerWidget {
               ],
             ),
           ),
-          NapsCard(morning: t.day),
+          NapsCard(morning: day),
           Column(
             children: [
               Row(
@@ -480,7 +552,7 @@ class SleepScreen extends ConsumerWidget {
                   Expanded(
                     child: _StatTile(
                       'Sleep debt',
-                      hmShort(t.debt),
+                      debt == null ? '—' : hmShort(debt),
                       '2-week, fading · naps count',
                     ),
                   ),
@@ -526,7 +598,7 @@ class SleepScreen extends ConsumerWidget {
           ),
           BreathingCard(breathing: night.breathing),
         ],
-        TonightCard(t: t),
+        if (latest) TonightCard(t: t),
         const RhythmCard(),
         Text(
           '${ref.watch(dataSourceProvider).isHealth ? 'Your watch marks when you sleep and its stages, as it wrote them to Health; treat them as a guide.' : 'The band marks when you sleep; Tempo estimates the stages from your heart rate and movement, so treat them as a guide.'} Need starts at 7 h 30 m; after 14 scored nights it learns from the nights after which your heart rate and HRV recover best (kept within 7–9 h). The score judges last night against that base; tonight’s need adds strain and debt.${strainYesterday > 0 ? '' : ''}',
