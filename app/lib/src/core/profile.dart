@@ -114,6 +114,13 @@ abstract final class Keys {
 
   /// Today's number tiles in order, hidden ones prefixed with '-'.
   static const todayTiles = 'today_tiles';
+
+  /// '1' = Today shows every tile, not only the unusual ones (calm mode).
+  static const todayTilesAll = 'today_tiles_all';
+
+  /// Quick tags for Today's timeline: JSON {yyyy-mm-dd: [[tag, minute]]}.
+  /// The Journal entries they mean are written to `journal` as well.
+  static const dayTags = 'day_tags';
 }
 
 /// Everything the user tells Tempo in onboarding and Profile.

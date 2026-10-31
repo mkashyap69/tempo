@@ -6,6 +6,7 @@ import 'package:scoring/scoring.dart' as sc;
 import 'package:store/store.dart' as st;
 
 import 'coach_extras.dart' show stepsToday;
+import 'sleep_coach.dart' show loadSleepPlan;
 import 'coach_service.dart';
 import 'everyday.dart' show loadBodySignals;
 import 'journal.dart' show journalCheckedIn;
@@ -93,6 +94,7 @@ class CoachNotifier {
         minutes: s.minutes,
         rest: s.isRest,
         hard: s.isHard,
+        key: sc.isKeySession(s),
         plannedMinute: s.isRest
             ? null
             : tRow.plannedMinute ?? slots.minuteFor(s),
@@ -165,6 +167,7 @@ class CoachNotifier {
 
     final model = learnedModel(log, now);
     _algo = model == null ? sc.nudgeAlgo : sc.nudgeAlgoLearned;
+    final sleepPlan = await loadSleepPlan(db, now: now);
     return sc.NudgeContext(
       model: model,
       seed: day.year * 1000 + day.month * 40 + day.day,
@@ -200,6 +203,10 @@ class CoachNotifier {
         db,
         day.subtract(const Duration(days: 1)),
       ),
+      needTonight: t.needTonight,
+      sleepPlanLine: sleepPlan == null || sleepPlan.finished
+          ? null
+          : 'day ${sleepPlan.day + 1} · up by ${fmtHm(sleepPlan.plan.wake)}',
       healthSentToday: log.any(
         (r) =>
             r.kind == sc.NudgeKind.health.name &&

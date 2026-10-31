@@ -207,6 +207,11 @@ void main() {
       final db = (await t.runAsync(() => seededDb(days: 30)))!;
       await render(t, db, const TodayScreen(), h: 4200);
       expect(find.text('Your numbers'), findsOneWidget);
+      // Calm by default: steps and strain never stand out on their own.
+      expect(find.textContaining('others normal'), findsOneWidget);
+      await t.tap(find.text('Show all'));
+      await settle(t);
+      expect(await t.runAsync(() => db.setting(Keys.todayTilesAll)), '1');
       for (final n in ['Sleep', 'Recovery', 'Resting HR', 'Steps', 'Strain']) {
         expect(find.text(n), findsWidgets, reason: n);
       }
@@ -226,6 +231,49 @@ void main() {
       expect(t.takeException(), isNull);
       await teardown(t, db);
     });
+  });
+
+  testWidgets('Today: a tile opens in place with its trend', (t) async {
+    final db = (await t.runAsync(() async {
+      final d = await seededDb(days: 30);
+      await d.putSetting(Keys.todayTilesAll, '1');
+      return d;
+    }))!;
+    await render(t, db, const TodayScreen(), h: 4200);
+    await t.tap(find.bySemanticsLabel(RegExp(r'^Strain .*')).first);
+    await settle(t);
+    expect(find.text('How it’s worked out'), findsOneWidget);
+    expect(find.text('6 months'), findsOneWidget);
+    expect(find.textContaining('usual range'), findsOneWidget);
+    await t.tap(find.text('7 days'));
+    await settle(t);
+    expect(find.textContaining('· 7 days'), findsOneWidget);
+    await t.tap(find.text('Close'));
+    await settle(t);
+    expect(find.text('How it’s worked out'), findsNothing);
+    expect(t.takeException(), isNull);
+    await teardown(t, db);
+  });
+
+  testWidgets('Today: tag a coffee on the timeline', (t) async {
+    testHour = 16;
+    addTearDown(() => testHour = 9);
+    final db = (await t.runAsync(() => seededDb(days: 30)))!;
+    await render(t, db, const TodayScreen(), h: 5200);
+    expect(find.text('YOUR DAY'), findsOneWidget);
+    expect(find.text('Tomorrow'), findsOneWidget);
+    expect(find.text('Heart rate'), findsOneWidget);
+    await t.tap(find.text('+ Coffee'));
+    await settle(t);
+    final today = dayOf(DateTime.now());
+    var j = await t.runAsync(() => db.journalFor(today));
+    expect(
+      j!.map((e) => e.tag),
+      containsAll(['last_caffeine', 'caffeine_late']),
+    );
+    expect(find.text('Coffee'), findsOneWidget);
+    expect(t.takeException(), isNull);
+    await teardown(t, db);
   });
 
   group('Training goal', () {

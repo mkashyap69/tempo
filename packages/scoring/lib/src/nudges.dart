@@ -93,10 +93,14 @@ final class NudgeDay {
     this.plannedMinute,
     this.status = DayStatus.pending,
     this.hard = false,
+    this.key = false,
   });
   final String title;
   final int minutes;
   final bool rest, hard;
+
+  /// A key session (hard or long): the night before it matters most.
+  final bool key;
 
   /// Minute of day it's planned for, or null (any time).
   final int? plannedMinute;
@@ -131,6 +135,8 @@ final class NudgeContext {
     this.journalPending = false,
     this.model,
     this.seed = 0,
+    this.needTonight,
+    this.sleepPlanLine,
   });
 
   final DateTime now;
@@ -185,6 +191,40 @@ final class NudgeContext {
 
   /// Seeds the sampler so one day's refreshes agree with each other.
   final int seed;
+
+  /// Tonight's sleep need in hours, for the wind-down.
+  final double? needTonight;
+
+  /// "Day 9 · up by 8:00" while a sleep plan runs.
+  final String? sleepPlanLine;
+}
+
+String _hours(double h) {
+  final m = (h * 60).round();
+  return m % 60 == 0 ? '${m ~/ 60} h' : '${m ~/ 60} h ${m % 60} m';
+}
+
+/// The wind-down's title and body for the night [offset] days from now:
+/// tomorrow's key session first, then the sleep plan, then the plain need.
+(String, String) winddownCopy(NudgeContext c, int offset) {
+  final bed = 'bed by ${_hm(c.bedtime)}';
+  final need = c.needTonight == null
+      ? 'tonight’s sleep need'
+      : '${_hours(c.needTonight!)} of sleep';
+  final next = offset == 0 ? c.tomorrow : null;
+  if (next != null && !next.rest && next.key) {
+    return (
+      '${next.title} tomorrow · $bed',
+      'Wind down now for $need. A full night is the best prep for it.',
+    );
+  }
+  if (c.sleepPlanLine != null) {
+    return (
+      'Wind down · $bed',
+      'Sleep plan, ${c.sleepPlanLine}. Screens off, lights low.',
+    );
+  }
+  return ('In bed by ${_hm(c.bedtime)}?', 'Wind down now to cover $need');
 }
 
 /// Caps and spacing.
@@ -396,10 +436,10 @@ List<NudgeSpec> planNudges(NudgeContext c) {
           kind: NudgeKind.winddown,
           id: nudgeId(NudgeKind.winddown, o),
           fireAt: t,
-          title: 'In bed by ${_hm(c.bedtime)}?',
-          body: 'Wind down now to cover tonight’s sleep need',
+          title: winddownCopy(c, o).$1,
+          body: winddownCopy(c, o).$2,
           actions: const [
-            NudgeAction('got_it', 'Got it'),
+            NudgeAction('got_it', 'Winding down'),
             NudgeAction('not_today', 'Not tonight'),
           ],
           requested: true,

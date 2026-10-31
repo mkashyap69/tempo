@@ -9,6 +9,7 @@ import '../core/coach_extras.dart' show stepsToday;
 import '../core/data_source.dart';
 import '../core/everyday.dart' show loadMovement;
 import '../core/format.dart';
+import '../core/minutes.dart' show loadMinutes;
 import '../core/profile.dart';
 import '../design/components.dart';
 import '../design/icons.dart';
@@ -67,6 +68,7 @@ final class TileData {
     this.good,
     this.spark = const [],
     this.progress,
+    this.unusual = false,
   });
   final TileId id;
   final String value, unit;
@@ -80,7 +82,12 @@ final class TileData {
 
   /// 0–1 towards today's goal, instead of a sparkline.
   final double? progress;
+
+  /// Moved away from your normal: shown in calm mode.
+  final bool unusual;
 }
+
+bool _moved(sc.VsNormal? v) => v != null && v.trend != sc.Trend.flat;
 
 String _delta(sc.VsNormal? v, String Function(double) f) => v == null
     ? 'learning your normal'
@@ -112,6 +119,7 @@ final todayTilesProvider = FutureProvider<List<TileData>>((ref) async {
       unit: 'score',
       line: _delta(sleepV, (x) => '${x.round()}'),
       good: sleepV?.good,
+      unusual: _moved(sleepV),
       spark: spark((d) => d.sleepScore ?? d.sleepPerf),
     ),
   );
@@ -128,6 +136,7 @@ final todayTilesProvider = FutureProvider<List<TileData>>((ref) async {
           ? 'learning · ${t.nights} of 14 nights'
           : _delta(recV, (x) => '${x.round()}'),
       good: recV?.good,
+      unusual: _moved(recV),
       spark: spark((d) => d.calibrating ? null : d.recovery),
     ),
   );
@@ -144,6 +153,7 @@ final todayTilesProvider = FutureProvider<List<TileData>>((ref) async {
       unit: 'bpm',
       line: _delta(rhrV, (x) => '${x.round()}'),
       good: rhrV?.good,
+      unusual: _moved(rhrV),
       spark: spark((d) => d.rhr),
     ),
   );
@@ -159,6 +169,7 @@ final todayTilesProvider = FutureProvider<List<TileData>>((ref) async {
         unit: 'ms',
         line: _delta(hrvV, (x) => '${x.round()}'),
         good: hrvV?.good,
+        unusual: _moved(hrvV),
         spark: spark((d) => d.hrvKind == s.hrvKind ? d.hrv : null),
       ),
     );
@@ -223,6 +234,7 @@ final todayTilesProvider = FutureProvider<List<TileData>>((ref) async {
             ? 'steady this month'
             : '${d < 0 ? '▼' : '▲'} ${d.abs().toStringAsFixed(1)} this month',
         good: ages.length < 2 || d.abs() < .05 ? null : d < 0,
+        unusual: ages.length >= 2 && d.abs() >= .3,
         spark: [
           for (final a in ages.skip(math.max(0, ages.length - 7))) a.tempoAge,
         ],
@@ -232,9 +244,14 @@ final todayTilesProvider = FutureProvider<List<TileData>>((ref) async {
   return tiles;
 });
 
-final _tilesOrderProvider = dbQuery(
-  (db, _) async => parseTiles(await db.setting(Keys.todayTiles)),
-);
+final _tilesOrderProvider = dbQuery((db, _) async {
+  final p = parseTiles(await db.setting(Keys.todayTiles));
+  return (
+    order: p.order,
+    hidden: p.hidden,
+    all: await db.setting(Keys.todayTilesAll) == '1',
+  );
+});
 
 Widget _detail(TileId id) => switch (id) {
   TileId.sleep => const SleepScreen(),
@@ -260,23 +277,181 @@ Color _tint(BuildContext context, TileId id) {
   };
 }
 
-/// Today: "Your numbers", a 2-column grid of tiles (today against your
-/// normal, a 7-day line or progress to the goal). Tap opens the detail;
-/// Edit reorders and hides.
-class TodayTiles extends ConsumerWidget {
+/// Days of history each tile can show when expanded (brisk minutes are
+/// decoded from minutes, so they stop at 30).
+List<int> tileRanges(TileId id) =>
+    id == TileId.brisk ? const [7, 30] : const [7, 30, 180];
+
+/// One value a day for [id] over the [days] up to [today], oldest first.
+Future<List<double?>> loadTileSeries(
+  st.TempoDb db,
+  TileId id,
+  int days, {
+  required DateTime today,
+}) async {
+  final from = today.subtract(Duration(days: days - 1));
+  final keys = [
+    for (var i = 0; i < days; i++) st.dateKey(from.add(Duration(days: i))),
+  ];
+  switch (id) {
+    case TileId.steps || TileId.brisk:
+      final health = (await loadDataSource(db)).isHealth;
+      final out = <double?>[];
+      for (var i = 0; i < days; i++) {
+        final a = from.add(Duration(days: i));
+        if (id == TileId.steps) {
+          final n = await db.stepsBetween(
+            a,
+            a.add(const Duration(days: 1)),
+            health: health,
+          );
+          out.add(n == 0 ? null : n.toDouble());
+        } else {
+          final m = (await loadMinutes(
+            db,
+            a,
+            a.add(const Duration(days: 1)),
+          )).minutes;
+          out.add(
+            m.any((x) => x.steps > 0) ? sc.briskMinutes(m).toDouble() : null,
+          );
+        }
+      }
+      return out;
+    case TileId.age:
+      final byDay = {
+        for (final l in await db.longevitySince(from)) l.date: l.tempoAge,
+      };
+      return [for (final k in keys) byDay[k]];
+    case _:
+      final byDay = {
+        for (final s in await db.scoresBetween(from, today)) s.date: s,
+      };
+      final kind = byDay[st.dateKey(today)]?.hrvKind;
+      double? pick(st.DailyScore? s) => s == null
+          ? null
+          : switch (id) {
+              TileId.sleep => s.sleepScore ?? s.sleepPerf,
+              TileId.recovery => s.calibrating ? null : s.recovery,
+              TileId.rhr => s.rhr,
+              TileId.hrv => s.hrvKind == kind ? s.hrv : null,
+              _ => s.strain,
+            };
+      return [for (final k in keys) pick(byDay[k])];
+  }
+}
+
+final _seriesProvider = FutureProvider.family<List<double?>, (TileId, int)>((
+  ref,
+  key,
+) async {
+  ref.watch(dbTickProvider);
+  final t = await ref.watch(todayProvider.future);
+  return loadTileSeries(ref.watch(dbProvider), key.$1, key.$2, today: t.day);
+});
+
+/// How each number is worked out, for the expanded tile.
+String tileHow(TileId id) => switch (id) {
+  TileId.sleep =>
+    'Sleep score, 0–100: hours asleep against your need, then bedtime, '
+        'wake-ups and time in bed.',
+  TileId.recovery =>
+    'From last night’s HRV (or the band’s stress index), resting heart '
+        'rate and sleep, each against your own baseline.',
+  TileId.rhr =>
+    'Your lowest steady heart rate overnight. Lower than usual is usually '
+        'good; 5 bpm or more above it can mean strain or illness coming.',
+  TileId.hrv =>
+    'Overnight heart-rate variability as your watch wrote it to Health '
+        '(SDNN on Apple Watch, RMSSD on Android), only compared with nights '
+        'of the same kind.',
+  TileId.steps =>
+    'Steps from midnight to now, from your band or Health. Usual is the '
+        'average of the last 7 days with steps.',
+  TileId.brisk =>
+    'Minutes at 100 or more steps a minute: a simple measure of moderate '
+        'activity.',
+  TileId.strain =>
+    'Effort 0–21 from time in heart-rate zones today. The target comes '
+        'from this morning’s recovery.',
+  TileId.age =>
+    'Your age adjusted by fitness, resting heart rate, activity, sleep and '
+        'more. Longevity shows every part.',
+};
+
+/// Today: "Your numbers". Calm by default: only the tiles that moved away
+/// from your normal show, the rest fold into one line; "Show all" is
+/// remembered. Tap a tile to open it in place (7 days, 30 days, 6 months,
+/// your normal band, how it's calculated). Edit reorders and hides.
+class TodayTiles extends ConsumerStatefulWidget {
   const TodayTiles({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<TodayTiles> createState() => _TodayTilesState();
+}
+
+class _TodayTilesState extends ConsumerState<TodayTiles> {
+  TileId? _open;
+
+  @override
+  Widget build(BuildContext context) {
     final c = context.c;
     final data = ref.watch(todayTilesProvider).value;
     final cfg = ref.watch(_tilesOrderProvider).value;
     if (data == null || cfg == null) return const SizedBox.shrink();
+    final db = ref.read(dbProvider);
     final byId = {for (final d in data) d.id: d};
-    final shown = [
+    final visible = [
       for (final id in cfg.order)
         if (!cfg.hidden.contains(id) && byId[id] != null) byId[id]!,
     ];
+    final calm = !cfg.all;
+    final shown = calm
+        ? [
+            for (final d in visible)
+              if (d.unusual) d,
+          ]
+        : visible;
+    final rest = [
+      for (final d in visible)
+        if (!shown.contains(d)) d,
+    ];
+    Future<void> setAll(bool on) =>
+        db.putSetting(Keys.todayTilesAll, on ? '1' : '0');
+
+    final rows = <Widget>[];
+    var i = 0;
+    while (i < shown.length) {
+      final d = shown[i];
+      if (d.id == _open) {
+        rows.add(_Expanded(d: d, onClose: () => setState(() => _open = null)));
+        i++;
+        continue;
+      }
+      final next = i + 1 < shown.length && shown[i + 1].id != _open
+          ? shown[i + 1]
+          : null;
+      rows.add(
+        IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: _Tile(d, onTap: () => setState(() => _open = d.id)),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: next == null
+                    ? const SizedBox.shrink()
+                    : _Tile(next, onTap: () => setState(() => _open = next.id)),
+              ),
+            ],
+          ),
+        ),
+      );
+      i += next == null ? 1 : 2;
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -285,6 +460,13 @@ class TodayTiles extends ConsumerWidget {
             Expanded(
               child: Text('Your numbers', style: TempoType.titleM.c(c.text1)),
             ),
+            TempoButton(
+              calm ? 'Show all' : 'Calm',
+              small: true,
+              kind: ButtonKind.secondary,
+              onTap: () => setAll(calm),
+            ),
+            const SizedBox(width: 8),
             TempoButton(
               'Edit',
               small: true,
@@ -297,26 +479,45 @@ class TodayTiles extends ConsumerWidget {
             ),
           ],
         ),
-        const SizedBox(height: 12),
-        if (shown.isEmpty)
-          Text(
-            'All tiles are hidden. Edit to bring some back.',
-            style: TempoType.bodyS.c(c.text2),
-          ),
-        for (var r = 0; r < shown.length; r += 2) ...[
-          if (r > 0) const SizedBox(height: 10),
-          IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(child: _Tile(shown[r])),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: r + 1 < shown.length
-                      ? _Tile(shown[r + 1])
-                      : const SizedBox.shrink(),
-                ),
-              ],
+        const SizedBox(height: 6),
+        Text(
+          visible.isEmpty
+              ? 'All tiles are hidden. Edit to bring some back.'
+              : !calm
+              ? 'All your numbers. Tap one to see its trend.'
+              : shown.isEmpty
+              ? 'Everything is in your normal range today.'
+              : shown.length == 1
+              ? 'One thing stands out today. Everything else is normal.'
+              : '${shown.length} things stand out today. Everything else is '
+                    'normal.',
+          style: TempoType.bodyS.c(c.text2),
+        ),
+        for (final r in rows) ...[const SizedBox(height: 10), r],
+        if (calm && rest.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          Pressable(
+            label: 'Show the others',
+            onTap: () => setAll(true),
+            child: Container(
+              constraints: const BoxConstraints(minHeight: 52),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(TempoRadii.lg),
+                border: Border.all(color: c.lineStrong, width: 1.5),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      '${rest.map((d) => tileName(d.id)).join(', ')} · '
+                      '${rest.length == 1 ? '1 other normal' : '${rest.length} others normal'}',
+                      style: TempoType.bodyS.c(c.text2),
+                    ),
+                  ),
+                  Text('›', style: TempoType.titleM.c(c.text3)),
+                ],
+              ),
             ),
           ),
         ],
@@ -325,9 +526,203 @@ class TodayTiles extends ConsumerWidget {
   }
 }
 
-class _Tile extends StatelessWidget {
-  const _Tile(this.d);
+/// A tile opened in place: its trend over 7 days, 30 days or 6 months on
+/// your normal band, the numbers behind it and how it's worked out.
+class _Expanded extends ConsumerStatefulWidget {
+  const _Expanded({required this.d, required this.onClose});
   final TileData d;
+  final VoidCallback onClose;
+
+  @override
+  ConsumerState<_Expanded> createState() => _ExpandedState();
+}
+
+class _ExpandedState extends ConsumerState<_Expanded> {
+  int _days = 30;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c;
+    final d = widget.d;
+    final ranges = tileRanges(d.id);
+    final days = ranges.contains(_days) ? _days : ranges.last;
+    final series = ref.watch(_seriesProvider((d.id, days))).value;
+    final xs = [for (final x in series ?? const <double?>[]) ?x];
+    final mean = xs.isEmpty ? null : xs.reduce((a, b) => a + b) / xs.length;
+    final sd = mean == null
+        ? null
+        : math.sqrt(
+            xs.fold<double>(0, (a, x) => a + (x - mean) * (x - mean)) /
+                xs.length,
+          );
+    String f(double x) => switch (d.id) {
+      TileId.steps => grouped(x.round()),
+      TileId.strain || TileId.age => x.toStringAsFixed(1),
+      _ => '${x.round()}',
+    };
+    final tint = _tint(context, d.id);
+    return TempoCard(
+      label: '${tileName(d.id)}, open',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(tileName(d.id), style: TempoType.caption.c(c.text2)),
+                    Text(
+                      '${d.value}${d.unit.isEmpty ? '' : ' ${d.unit}'}',
+                      style: TempoType.titleL.c(c.text1).tnum,
+                    ),
+                    Text(d.line, style: TempoType.caption.c(c.text2).tnum),
+                  ],
+                ),
+              ),
+              TempoButton(
+                'Close',
+                small: true,
+                kind: ButtonKind.secondary,
+                onTap: widget.onClose,
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              for (final r in ranges) ...[
+                TempoButton(
+                  r == 7
+                      ? '7 days'
+                      : r == 30
+                      ? '30 days'
+                      : '6 months',
+                  small: true,
+                  kind: r == days ? ButtonKind.primary : ButtonKind.secondary,
+                  onTap: () => setState(() => _days = r),
+                ),
+                const SizedBox(width: 6),
+              ],
+            ],
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 120,
+            width: double.infinity,
+            child: series == null
+                ? const SizedBox.shrink()
+                : xs.length < 2
+                ? Center(
+                    child: Text(
+                      'Not enough days yet',
+                      style: TempoType.bodyS.c(c.text3),
+                    ),
+                  )
+                : Semantics(
+                    label:
+                        '${tileName(d.id)} over $days days, with your normal '
+                        'range shaded',
+                    child: CustomPaint(
+                      painter: _Trend(
+                        series,
+                        tint,
+                        band: c.surface2,
+                        lo: mean! - sd!,
+                        hi: mean + sd,
+                      ),
+                    ),
+                  ),
+          ),
+          if (mean != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              'Average ${f(mean)} · usual range ${f(mean - sd!)}–${f(mean + sd)} '
+              '· ${xs.length} days',
+              style: TempoType.caption.c(c.text2).tnum,
+            ),
+          ],
+          const SizedBox(height: 12),
+          Text('How it’s worked out', style: TempoType.label.c(c.text1)),
+          const SizedBox(height: 2),
+          Text(tileHow(d.id), style: TempoType.bodyS.c(c.text2)),
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TempoButton(
+              'Open ${tileName(d.id)} ›',
+              small: true,
+              kind: ButtonKind.text,
+              onTap: () => push(context, _detail(d.id)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A line over the shaded usual range (mean ± one standard deviation).
+class _Trend extends CustomPainter {
+  _Trend(
+    this.values,
+    this.color, {
+    required this.band,
+    required this.lo,
+    required this.hi,
+  });
+  final List<double?> values;
+  final Color color, band;
+  final double lo, hi;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final xs = values.whereType<double>();
+    final min = math.min(xs.reduce(math.min), lo);
+    final max = math.max(xs.reduce(math.max), hi);
+    final span = max - min == 0 ? 1 : max - min;
+    double y(double v) =>
+        size.height - 4 - (v - min) / span * (size.height - 8);
+    canvas.drawRRect(
+      RRect.fromLTRBR(0, y(hi), size.width, y(lo), const Radius.circular(6)),
+      Paint()..color = band,
+    );
+    final step = size.width / math.max(1, values.length - 1);
+    final path = Path();
+    var started = false;
+    Offset? last;
+    for (final (i, v) in values.indexed) {
+      if (v == null) {
+        started = false;
+        continue;
+      }
+      final o = Offset(i * step, y(v));
+      started ? path.lineTo(o.dx, o.dy) : path.moveTo(o.dx, o.dy);
+      started = true;
+      last = o;
+    }
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = color
+        ..strokeWidth = 2
+        ..style = PaintingStyle.stroke
+        ..strokeJoin = StrokeJoin.round,
+    );
+    if (last != null) canvas.drawCircle(last, 3.5, Paint()..color = color);
+  }
+
+  @override
+  bool shouldRepaint(_Trend o) =>
+      o.values != values || o.color != color || o.lo != lo || o.hi != hi;
+}
+
+class _Tile extends StatelessWidget {
+  const _Tile(this.d, {required this.onTap});
+  final TileData d;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -341,7 +736,7 @@ class _Tile extends StatelessWidget {
     return TempoCard(
       label: '${tileName(d.id)} ${d.value} ${d.unit}',
       padding: const EdgeInsets.all(14),
-      onTap: () => push(context, _detail(d.id)),
+      onTap: onTap,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

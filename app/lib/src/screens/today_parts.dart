@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:scoring/scoring.dart' as sc;
@@ -664,51 +662,6 @@ class WeekRow extends ConsumerWidget {
           ),
           const SizedBox(width: 8),
           TempoIcon(TempoIcons.chevron, size: 16, color: c.text3),
-        ],
-      ),
-    );
-  }
-}
-
-/// Tomorrow's session in one line; opens Plan.
-class TomorrowRow extends StatelessWidget {
-  const TomorrowRow({super.key, required this.t});
-  final TodayData t;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.c;
-    final key = st.dateKey(t.day.add(const Duration(days: 1)));
-    final row = t.week.where((r) => r.date == key).firstOrNull;
-    if (row == null) return const SizedBox.shrink();
-    final s = sc.Session.fromJson(
-      jsonDecode(row.session) as Map<String, dynamic>,
-    );
-    return TempoCard(
-      label: 'Tomorrow',
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      onTap: () => openCoachAt(context, CoachTab.week),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  s.isRest
-                      ? 'Tomorrow · rest'
-                      : 'Tomorrow · ${s.title} ${s.minutes} min',
-                  style: TempoType.label.c(c.text1),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'Adapts to tonight’s sleep in the morning',
-                  style: TempoType.caption.c(c.text2),
-                ),
-              ],
-            ),
-          ),
-          Text('Week ›', style: TempoType.bodyS.c(c.text2)),
         ],
       ),
     );

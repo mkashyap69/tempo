@@ -48,6 +48,53 @@ void main() {
   );
   Iterable<NudgeKind> kinds(List<NudgeSpec> s) => s.map((n) => n.kind);
 
+  group('wind-down copy', () {
+    NudgeContext c({NudgeDay? tomorrow, String? plan, double? need}) =>
+        NudgeContext(
+          now: t(12),
+          wake: 6 * 60 + 30,
+          bedtime: 22 * 60 + 30,
+          today: run,
+          tomorrow: tomorrow,
+          winddownBefore: 45,
+          needTonight: need,
+          sleepPlanLine: plan,
+        );
+    const long = NudgeDay(
+      title: 'Long run',
+      minutes: 75,
+      rest: false,
+      key: true,
+    );
+
+    test('a key session tomorrow leads', () {
+      final (title, body) = winddownCopy(
+        c(tomorrow: long, plan: 'day 9 · up by 8:00', need: 7.5),
+        0,
+      );
+      expect(title, 'Long run tomorrow · bed by 22:30');
+      expect(body, contains('7 h 30 m of sleep'));
+    });
+    test('then the sleep plan, then the plain need', () {
+      expect(
+        winddownCopy(c(tomorrow: run, plan: 'day 9 · up by 8:00'), 0).$2,
+        'Sleep plan, day 9 · up by 8:00. Screens off, lights low.',
+      );
+      expect(winddownCopy(c(tomorrow: run, need: 8), 0), (
+        'In bed by 22:30?',
+        'Wind down now to cover 8 h of sleep',
+      ));
+      // Tomorrow's session is only known for tonight.
+      expect(winddownCopy(c(tomorrow: long), 1).$1, 'In bed by 22:30?');
+    });
+    test('the scheduled wind-down carries the copy', () {
+      final w = planNudges(c(tomorrow: long, need: 7.5))
+          .firstWhere((n) => n.kind == NudgeKind.winddown);
+      expect(w.title, 'Long run tomorrow · bed by 22:30');
+      expect(w.actions.first.title, 'Winding down');
+    });
+  });
+
   test('a normal day: brief, session, missed question, wind-down', () {
     final s = planNudges(ctx());
     final today = s.where((n) => n.fireAt.day == 5).toList();

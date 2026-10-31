@@ -428,6 +428,7 @@ abstract final class TodayBody {
             insight,
             if (x != null && t.pause == null) AlsoToday(x),
             const TodayTiles(),
+            DayStoryCard(t: t),
             const SleepPlanRow(),
             const TodayGoalLine(),
             const WeekRow(),
@@ -442,7 +443,7 @@ abstract final class TodayBody {
             rings,
             insight,
             const TodayTiles(),
-            TomorrowRow(t: t),
+            DayStoryCard(t: t),
           ];
         case sc.DayPhase.evening:
           body = [
@@ -452,7 +453,6 @@ abstract final class TodayBody {
             if (!done) ?session,
             ...coachNotes,
             rings,
-            TomorrowRow(t: t),
           ];
       }
     }

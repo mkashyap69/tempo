@@ -22,6 +22,7 @@ import 'package:tempo/src/core/today.dart';
 import 'package:tempo/src/core/coach_extras.dart' show stepsToday;
 import 'package:tempo/src/core/week_review.dart';
 import 'package:tempo/src/core/sleep_coach.dart';
+import 'package:tempo/src/core/day_tags.dart';
 import 'package:tempo/src/screens/today_tiles.dart'
     show TileId, parseTiles, writeTiles;
 
@@ -830,6 +831,26 @@ void main() {
       expect(v.since, 100);
       expect(v.sinceNights, 4);
     });
+  });
+
+  test('quick tags write the journal and undo restores it', () async {
+    final day = DateTime(2026, 10, 31);
+    await db.setJournal(day, 'last_caffeine', true, amount: 540);
+    final undo = await addQuickTag(
+      db,
+      sc.QuickTag.coffee,
+      DateTime(2026, 10, 31, 16, 30),
+      bedtime: 23 * 60,
+    );
+    var j = {for (final e in await db.journalFor(day)) e.tag: e};
+    expect(j['last_caffeine']!.amount, 990);
+    expect(j['caffeine_late']!.value, isTrue);
+    expect(await loadDayTags(db, day), [(sc.QuickTag.coffee, 990)]);
+    await undo();
+    j = {for (final e in await db.journalFor(day)) e.tag: e};
+    expect(j['last_caffeine']!.amount, 540);
+    expect(j.containsKey('caffeine_late'), isFalse);
+    expect(await loadDayTags(db, day), isEmpty);
   });
 
   test('today tiles: order and hidden round-trip', () {
