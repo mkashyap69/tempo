@@ -105,6 +105,15 @@ abstract final class Keys {
 
   /// 1 once the night-14 card has been seen.
   static const graduated = 'graduated_seen';
+
+  /// The 21-day sleep plan: JSON {focus, start, wake, bed}; absent = none.
+  static const sleepPlan = 'sleep_plan';
+
+  /// Habits ticked by hand in the sleep plan: JSON {yyyy-mm-dd: [ids]}.
+  static const sleepPlanTicks = 'sleep_plan_ticks';
+
+  /// Today's number tiles in order, hidden ones prefixed with '-'.
+  static const todayTiles = 'today_tiles';
 }
 
 /// Everything the user tells Tempo in onboarding and Profile.

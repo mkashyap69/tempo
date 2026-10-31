@@ -34,6 +34,7 @@ abstract final class TempoIcons {
   static const back = 'M15 6l-6 6 6 6';
   static const chevron = 'M9 6l6 6-6 6';
   static const down = 'M6 9l6 6 6-6';
+  static const up = 'M6 15l6-6 6 6';
   static const close = 'M6 6l12 12M18 6L6 18';
   static const plus = 'M12 5v14M5 12h14';
   static const minus = 'M5 12h14';

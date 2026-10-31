@@ -41,6 +41,9 @@ import 'strain.dart';
 import 'workout_detail.dart';
 import 'today_charts.dart';
 import 'workouts.dart';
+import 'day_story.dart';
+import 'sleep_type.dart' show SleepPlanRow;
+import 'today_tiles.dart';
 
 class TodayScreen extends ConsumerWidget {
   const TodayScreen({super.key, this.onTab});
@@ -407,6 +410,8 @@ abstract final class TodayBody {
             ?session,
             ...coachNotes,
             insight,
+            const SleepPlanRow(),
+            const TodayTiles(),
             const TodayGoalLine(),
             const WeekRow(),
             LastNightStrip(t: t),
@@ -422,6 +427,8 @@ abstract final class TodayBody {
             rings,
             insight,
             if (x != null && t.pause == null) AlsoToday(x),
+            const TodayTiles(),
+            const SleepPlanRow(),
             const TodayGoalLine(),
             const WeekRow(),
           ];
@@ -434,12 +441,14 @@ abstract final class TodayBody {
             TonightLine(t: t),
             rings,
             insight,
+            const TodayTiles(),
             TomorrowRow(t: t),
           ];
         case sc.DayPhase.evening:
           body = [
             TonightCard(t: t),
-            TodayInOneLine(t: t),
+            const SleepPlanRow(),
+            DayStoryCard(t: t),
             if (!done) ?session,
             ...coachNotes,
             rings,

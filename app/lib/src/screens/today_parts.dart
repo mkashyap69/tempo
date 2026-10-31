@@ -715,48 +715,6 @@ class TomorrowRow extends StatelessWidget {
   }
 }
 
-/// The evening's summary line: what the day added up to.
-class TodayInOneLine extends StatelessWidget {
-  const TodayInOneLine({super.key, required this.t});
-  final TodayData t;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.c;
-    final tg = t.target;
-    final inRange = !tg.general && t.strain >= tg.lo && t.strain <= tg.hi;
-    final done =
-        t.status == sc.DayStatus.done || t.status == sc.DayStatus.doneEasier;
-    final parts = [
-      if (done && t.plan != null) '${t.plan!.title} done',
-      'strain ${n1(t.strain)}${tg.general
-          ? ''
-          : inRange
-          ? ', in range'
-          : t.strain > tg.hi
-          ? ', above range'
-          : ', under range'}',
-      if (t.workouts.isNotEmpty)
-        '${t.workouts.length} ${t.workouts.length == 1 ? 'workout' : 'workouts'}',
-    ];
-    final line = parts.join(' · ');
-    return TempoCard(
-      label: 'Today in one line',
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Overline('Today in one line'),
-          const SizedBox(height: 8),
-          Text(
-            '${line[0].toUpperCase()}${line.substring(1)}.',
-            style: TempoType.body.c(c.text1).tnum,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 /// Bedtime in one line, for the hours before the evening.
 class TonightLine extends StatelessWidget {
   const TonightLine({super.key, required this.t});

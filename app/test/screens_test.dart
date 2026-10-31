@@ -172,6 +172,62 @@ void main() {
     await teardown(t, db);
   });
 
+  group('Sleep type, sleep plan, your numbers', () {
+    testWidgets('Sleep shows the type and starts a plan', (t) async {
+      final db = (await t.runAsync(() => seededDb(days: 30)))!;
+      await render(t, db, const SleepScreen(), h: 4200);
+      expect(find.text('YOUR SLEEP TYPE'), findsOneWidget);
+      expect(
+        find.textContaining(
+          RegExp(r'^(Steady|Wandering|Restless) (lark|dove|owl)$'),
+        ),
+        findsOneWidget,
+      );
+      await t.tap(find.text('Start a 21-day sleep plan'));
+      await settle(t);
+      expect(find.text('21 days, one habit a week'), findsOneWidget);
+      expect(find.text('Your weakest area'), findsOneWidget);
+      await t.tap(find.text('Start the plan'));
+      await settle(t);
+      expect(find.textContaining('Week 1: '), findsOneWidget);
+      expect(find.text('THE THREE WEEKS'), findsOneWidget);
+      expect(find.text('Now'), findsOneWidget);
+      // A hand-ticked habit appears from week 2; week 1's is automatic.
+      expect(find.text('Auto'), findsWidgets);
+      await t.tap(find.text('End the plan'));
+      await settle(t);
+      await t.tap(find.text('End plan'));
+      await settle(t);
+      expect(find.text('21 days, one habit a week'), findsOneWidget);
+      expect(t.takeException(), isNull);
+      await teardown(t, db);
+    });
+
+    testWidgets('Today: your numbers, edited', (t) async {
+      final db = (await t.runAsync(() => seededDb(days: 30)))!;
+      await render(t, db, const TodayScreen(), h: 4200);
+      expect(find.text('Your numbers'), findsOneWidget);
+      for (final n in ['Sleep', 'Recovery', 'Resting HR', 'Steps', 'Strain']) {
+        expect(find.text(n), findsWidgets, reason: n);
+      }
+      await t.tap(find.text('Edit'));
+      await settle(t);
+      await t.tap(find.bySemanticsLabel('Show Steps'));
+      await settle(t);
+      await t.tap(find.bySemanticsLabel('Move Strain up'));
+      await settle(t);
+      await t.tap(find.text('Done'));
+      await settle(t);
+      final raw = await t.runAsync(() => db.setting(Keys.todayTiles));
+      expect(raw, contains('-steps'));
+      // Strain moved up one place, from 7th to 6th.
+      expect(raw!.split(',').indexOf('strain'), 5);
+      expect(find.text('Steps'), findsNothing);
+      expect(t.takeException(), isNull);
+      await teardown(t, db);
+    });
+  });
+
   group('Training goal', () {
     Future<void> half(TempoDb db) => saveBlock(
       db,
@@ -672,7 +728,8 @@ void main() {
       final db = (await t.runAsync(() => seededDb(days: 30)))!;
       await render(t, db, const TodayScreen(), h: 2600);
       expect(find.text('Tonight'), findsOneWidget);
-      expect(find.text('TODAY IN ONE LINE'), findsOneWidget);
+      expect(find.text('YOUR DAY'), findsOneWidget);
+      expect(find.text('Now'), findsOneWidget);
       await teardown(t, db);
     });
 

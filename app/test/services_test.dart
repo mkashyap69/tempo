@@ -21,6 +21,9 @@ import 'package:tempo/src/core/sync_service.dart';
 import 'package:tempo/src/core/today.dart';
 import 'package:tempo/src/core/coach_extras.dart' show stepsToday;
 import 'package:tempo/src/core/week_review.dart';
+import 'package:tempo/src/core/sleep_coach.dart';
+import 'package:tempo/src/screens/today_tiles.dart'
+    show TileId, parseTiles, writeTiles;
 
 import 'support/fake_sink.dart';
 import 'support/seed.dart';
@@ -721,6 +724,121 @@ void main() {
       await setFocus(db, null);
       expect(await loadFocus(db), isNull);
     });
+  });
+
+  group('sleep plan', () {
+    final start = DateTime(2026, 10, 26);
+    Future<void> night(DateTime morning, int bedMin, int wakeMin) =>
+        db.upsertScore(
+          DailyScoresCompanion.insert(
+            date: dateKey(morning),
+            strain: 0,
+            trimp: 0,
+            hrMax: 190,
+            sleptHours: const Value(8),
+            needHours: const Value(7.5),
+            calibrating: false,
+            algoVersion: sc.algoVersion,
+            sleepStart: Value(
+              toTs(
+                DateTime(morning.year, morning.month, morning.day)
+                    .subtract(const Duration(days: 1))
+                    .add(Duration(minutes: bedMin)),
+              ),
+            ),
+            sleepEnd: Value(
+              toTs(
+                DateTime(
+                  morning.year,
+                  morning.month,
+                  morning.day,
+                ).add(Duration(minutes: wakeMin)),
+              ),
+            ),
+          ),
+        );
+
+    test('wake is ticked from sleep; days are kept at two thirds', () async {
+      await startSleepPlan(
+        db,
+        sc.SleepFocus.regularity,
+        wake: 8 * 60,
+        bed: 23 * 60,
+        now: start,
+      );
+      await night(start, 23 * 60, 7 * 60 + 50); // up 7:50: kept
+      await night(start.add(const Duration(days: 1)), 23 * 60 + 30, 9 * 60 + 9);
+      await night(start.add(const Duration(days: 2)), 23 * 60, 8 * 60 + 20);
+      final v = (await loadSleepPlan(
+        db,
+        now: start.add(const Duration(days: 2, hours: 12)),
+      ))!;
+      expect(v.day, 2);
+      expect(v.days.take(4), [
+        PlanDayState.kept,
+        PlanDayState.missed,
+        PlanDayState.today,
+        PlanDayState.ahead,
+      ]);
+      expect(v.today.single.habit.id, 'wake');
+      expect(v.today.single.state, HabitState.done);
+      expect(v.today.single.note, 'Woke 8:20');
+    });
+
+    test('week 2 adds a hand-ticked habit; ticks round-trip', () async {
+      await startSleepPlan(
+        db,
+        sc.SleepFocus.regularity,
+        wake: 8 * 60,
+        bed: 23 * 60,
+        now: start,
+      );
+      final d8 = start.add(const Duration(days: 8));
+      await tickHabit(db, d8, 'light', true);
+      var v = (await loadSleepPlan(db, now: d8.add(const Duration(hours: 9))))!;
+      expect(v.week, 1);
+      expect(v.today.map((h) => h.habit.id), ['wake', 'light']);
+      expect(v.today.last.state, HabitState.done);
+      expect(v.today.first.state, HabitState.open); // no night recorded
+      await tickHabit(db, d8, 'light', false);
+      v = (await loadSleepPlan(db, now: d8.add(const Duration(hours: 9))))!;
+      expect(v.today.last.state, HabitState.open);
+      await endSleepPlan(db);
+      expect(await loadSleepPlan(db), isNull);
+    });
+
+    test('the focus metric before and since', () async {
+      for (var i = 1; i <= 5; i++) {
+        // Before: bedtimes all over the place.
+        await night(start.subtract(Duration(days: i)), 22 * 60 + i * 40, 480);
+      }
+      for (var i = 1; i <= 4; i++) {
+        await night(start.add(Duration(days: i)), 23 * 60, 480);
+      }
+      await startSleepPlan(
+        db,
+        sc.SleepFocus.regularity,
+        wake: 480,
+        bed: 1380,
+        now: start,
+      );
+      final v = (await loadSleepPlan(
+        db,
+        now: start.add(const Duration(days: 4, hours: 12)),
+      ))!;
+      expect(v.before, lessThan(50));
+      expect(v.since, 100);
+      expect(v.sinceNights, 4);
+    });
+  });
+
+  test('today tiles: order and hidden round-trip', () {
+    final p = parseTiles('strain,-steps,sleep,bogus');
+    expect(p.order.take(3), [TileId.strain, TileId.steps, TileId.sleep]);
+    expect(p.order.length, TileId.values.length);
+    expect(p.hidden, {TileId.steps});
+    expect(writeTiles(p.order, p.hidden), startsWith('strain,-steps,sleep,'));
+    expect(parseTiles(null).order, TileId.values);
   });
 
   group('tempo coach', () {

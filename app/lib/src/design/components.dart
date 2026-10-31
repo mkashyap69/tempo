@@ -773,6 +773,9 @@ void showTempoToast(
 }) {
   final overlay = Overlay.maybeOf(context, rootOverlay: true);
   if (overlay == null) return;
+  // Read the theme now: the widget that asked may be gone by the time the
+  // toast builds (an undo that removes its own row, a view that swaps).
+  final c = context.c;
   late OverlayEntry entry;
   var removed = false;
   void remove() {
@@ -783,7 +786,6 @@ void showTempoToast(
 
   entry = OverlayEntry(
     builder: (ctx) {
-      final c = context.c;
       return Positioned(
         left: 20,
         right: 20,
