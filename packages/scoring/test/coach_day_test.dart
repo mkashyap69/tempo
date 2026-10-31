@@ -330,6 +330,20 @@ void main() {
       );
       expect(a.first.title, '20′ in Zone 2+ today');
     });
+    test('a day never asks for more than 45 Zone 2+ minutes', () {
+      // 31 Oct: 9 of 300 with 2 days left asked for 146′ in one day.
+      final a = leverActions(
+        focus: Lever.activeMinutes,
+        nowMinute: 600,
+        wakeMinute: 420,
+        bedtime: 1350,
+        activeWeek: 9,
+        activeTarget: 300,
+        daysLeft: 2,
+      );
+      expect(a.first.title, '45′ in Zone 2+ today');
+      expect(a.first.detail, '9 of 300 min this week');
+    });
   });
 
   group('realignWeek', () {

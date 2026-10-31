@@ -86,6 +86,14 @@ void main() {
         return db;
       }))!;
       await render(t, const TodayScreen(), db);
+      // The picks sit behind the plan card's More (31 Oct).
+      await t.tap(
+        find.descendant(
+          of: find.byType(WorkoutCard),
+          matching: find.text('More'),
+        ),
+      );
+      await settle(t);
       await t.ensureVisible(find.text('Or choose instead'));
       await t.tap(find.text('Or choose instead'));
       await settle(t, frames: 10);
@@ -142,6 +150,15 @@ void main() {
         return db;
       }))!;
       await render(t, const TodayScreen(), db);
+      expect(find.text('Or choose instead'), findsNothing);
+      // The picks sit behind the plan card's More (31 Oct).
+      await t.tap(
+        find.descendant(
+          of: find.byType(WorkoutCard),
+          matching: find.text('More'),
+        ),
+      );
+      await settle(t);
       expect(find.text('Or choose instead'), findsOneWidget);
       await t.ensureVisible(find.text('Or choose instead'));
       await t.tap(find.text('Or choose instead'));

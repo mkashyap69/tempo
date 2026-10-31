@@ -144,7 +144,7 @@ void main() {
           impact: (
             key: 'late_meal',
             name: 'Late meal',
-            effect: '−6 points on Recovery',
+            effect: '6 points',
             hurts: true,
           ),
         ),
@@ -157,6 +157,10 @@ void main() {
         ),
       ];
       expect(pickHighlight(c, shown, today), isNull);
+      final h = pickHighlight(c, const [], today)!;
+      expect(h.title, 'Late meal days: recovery 6 points lower');
+      expect(h.body, contains('The morning after you log late meal'));
+      expect(h.actionLabel, 'Start a 2-week test');
       expect(
         pickHighlight(c, [
           (

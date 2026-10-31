@@ -68,14 +68,13 @@ class TodayRings extends StatelessWidget {
         : ('${r.round()}%', recoveryWord(r));
 
     final tg = t.target;
-    // Wellbeing and fat-loss priorities read energy and effort.
-    final plain = plainWords(t.profile);
     final legend = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
         _LegendItem(
-          label: plain ? 'ENERGY' : 'RECOVERY',
+          // One name per number everywhere (31 Oct): no "Energy"/"Effort".
+          label: 'RECOVERY',
           color: noData ? c.text3 : recColor,
           value: calibrating ? 'Learning' : big,
           sub: noData
@@ -87,7 +86,7 @@ class TodayRings extends StatelessWidget {
         ),
         const SizedBox(height: 10),
         _LegendItem(
-          label: plain ? 'EFFORT' : 'STRAIN',
+          label: 'STRAIN',
           color: noData ? c.text3 : strainColor,
           value: noData ? '—' : n1(t.strain),
           trailing: noData || t.firstDay
@@ -113,7 +112,7 @@ class TodayRings extends StatelessWidget {
               ? ''
               : sp == null
               ? 'Wear the band tonight'
-              : '${hmShort(t.slept!)} of ${hmShort(t.need!)}',
+              : '${hmShort(t.slept!)} · needed ${hmShort(t.need!)}',
           onTap: noData ? null : () => push(context, const SleepScreen()),
         ),
       ],

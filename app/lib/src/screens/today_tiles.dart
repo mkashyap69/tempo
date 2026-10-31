@@ -37,6 +37,9 @@ String tileName(TileId id) => switch (id) {
   TileId.age => 'Tempo Age',
 };
 
+/// Shown in Today's rings already, so never repeated as tiles (31 Oct).
+const ringTiles = {TileId.sleep, TileId.recovery, TileId.strain};
+
 /// The order and the hidden tiles, from settings ("-hrv" is hidden).
 ({List<TileId> order, Set<TileId> hidden}) parseTiles(String? raw) {
   final order = <TileId>[];
@@ -411,7 +414,7 @@ class _TodayTilesState extends ConsumerState<TodayTiles> {
     final byId = {for (final d in data) d.id: d};
     final visible = [
       for (final id in cfg.order)
-        if (!cfg.hidden.contains(id) && byId[id] != null) byId[id]!,
+        if (!ringTiles.contains(id) && !cfg.hidden.contains(id)) ?byId[id],
     ];
     final calm = !cfg.all;
     final shown = calm
@@ -481,8 +484,13 @@ class _TodayTilesState extends ConsumerState<TodayTiles> {
               kind: ButtonKind.secondary,
               onTap: () => showTempoSheet<void>(
                 context,
-                builder: (_) =>
-                    _EditTiles(order: cfg.order, hidden: cfg.hidden),
+                builder: (_) => _EditTiles(
+                  order: [
+                    for (final id in cfg.order)
+                      if (!ringTiles.contains(id)) id,
+                  ],
+                  hidden: cfg.hidden,
+                ),
               ),
             ),
           ],

@@ -20,13 +20,7 @@ import '../state/providers.dart';
 import 'coach_parts.dart' show statusLabel, statusColor;
 import 'everyday_cards.dart';
 import 'coach_parts.dart'
-    show
-        AlsoToday,
-        RealignCard,
-        RescueCard,
-        SessionActions,
-        SwapNote,
-        coachExtrasProvider;
+    show RealignCard, RescueCard, SessionActions, SwapNote, coachExtrasProvider;
 import 'goal.dart' show TodayGoalLine;
 import 'highlight.dart';
 import 'journal.dart' show journalProvider;
@@ -335,17 +329,27 @@ abstract final class TodayBody {
         chipColor: statusColor(context, t.status),
         onStart: () => openLive(context, ref, plan: t.plan),
         onWhy: () => push(context, const WorkoutDetailScreen()),
-        footer: t.pause != null
-            ? null
-            : Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  SessionActions(t),
-                  const SizedBox(height: 14),
-                  const Hair(),
-                  const PicksEntry(inline: true),
-                ],
+        more: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TempoButton(
+                'Why this?',
+                small: true,
+                fontSize: 14,
+                kind: ButtonKind.ghost,
+                onTap: () => push(context, const WorkoutDetailScreen()),
               ),
+            ),
+            if (t.pause == null) ...[
+              SessionActions(t),
+              const SizedBox(height: 14),
+              const Hair(),
+              const PicksEntry(inline: true),
+            ],
+          ],
+        ),
       );
     }
     // A planned rest day has no plan card; the picks stand on their own.
@@ -371,17 +375,19 @@ abstract final class TodayBody {
         : const TodayInsightCard();
     final latest = t.workouts.isEmpty ? null : t.workouts.last;
 
+    // Rings first, then the day's one line, then the session (31 Oct
+    // layout: no repeated numbers, no "Your day so far", no "Also today").
     final List<Widget> body;
     if (noData) {
-      body = [call, rings];
+      body = [rings, call];
     } else {
       switch (phase) {
         case sc.DayPhase.newcomer:
           body = [
             if (checkIn)
               MorningCheckIn(day: t.day, askFeel: askFeel, showDone: morning),
-            call,
             rings,
+            call,
             LearningCard(t: t, checkins: checkins),
             if (!t.firstDay) LessonCard(t: t),
             ?session,
@@ -393,9 +399,9 @@ abstract final class TodayBody {
               MorningCheckIn(day: t.day, askFeel: askFeel, showDone: morning),
             // Evening: tonight is what's left to do; one box, not three.
             if (evening) TonightCard(t: t),
+            rings,
             call,
             if (!evening) ?session,
-            rings,
             if (!evening) LastNightStrip(t: t),
           ];
         case sc.DayPhase.morning:
@@ -404,13 +410,13 @@ abstract final class TodayBody {
             if (away != null) WelcomeBackCard(days: away),
             if (checkIn)
               MorningCheckIn(day: t.day, askFeel: askFeel, showDone: morning),
-            call,
             rings,
+            call,
             ?session,
             ...coachNotes,
             insight,
-            const SleepPlanRow(),
             const TodayTiles(),
+            const SleepPlanRow(),
             const TodayGoalLine(),
             const WeekRow(),
             LastNightStrip(t: t),
@@ -419,36 +425,35 @@ abstract final class TodayBody {
           body = [
             if (checkIn)
               MorningCheckIn(day: t.day, askFeel: askFeel, showDone: morning),
+            rings,
             call,
             ?session,
             ...coachNotes,
-            DayProgress(t: t),
-            rings,
             insight,
-            if (x != null && t.pause == null) AlsoToday(x),
             const TodayTiles(),
+            TonightLine(t: t),
             const SleepPlanRow(),
             const TodayGoalLine(),
             const WeekRow(),
           ];
         case sc.DayPhase.done:
           body = [
+            rings,
             call,
             ?session,
             if (latest != null) RecoveryHrCard(workoutId: latest.id),
             ...coachNotes,
             TonightLine(t: t),
-            rings,
             insight,
             const TodayTiles(),
           ];
         case sc.DayPhase.evening:
           body = [
             TonightCard(t: t),
+            rings,
             const SleepPlanRow(),
             if (!done) ?session,
             ...coachNotes,
-            rings,
           ];
       }
     }
@@ -615,8 +620,13 @@ class WorkoutCard extends StatelessWidget {
     this.chip,
     this.chipColor,
     this.footer,
+    this.more,
   });
   final sc.Session session;
+
+  /// Folded under a "More" button next to Start, in place of "Why this?":
+  /// Today keeps the card to the session and one action (31 Oct).
+  final Widget? more;
 
   /// Status chip (Planned 18:00, Done ✓, …) and actions under the card.
   final String? chip;
@@ -689,20 +699,27 @@ class WorkoutCard extends StatelessWidget {
               Text(session.structure, style: TempoType.caption.c(c.text3).tnum),
             ],
             const SizedBox(height: 14),
-            Row(
-              children: [
-                Expanded(
-                  child: TempoButton(
-                    'Start',
-                    icon: TempoIcons.play,
-                    expand: true,
-                    onTap: onStart,
+            if (more != null)
+              _StartMore(onStart: onStart, more: more!)
+            else
+              Row(
+                children: [
+                  Expanded(
+                    child: TempoButton(
+                      'Start',
+                      icon: TempoIcons.play,
+                      expand: true,
+                      onTap: onStart,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 10),
-                TempoButton('Why this?', kind: ButtonKind.ghost, onTap: onWhy),
-              ],
-            ),
+                  const SizedBox(width: 10),
+                  TempoButton(
+                    'Why this?',
+                    kind: ButtonKind.ghost,
+                    onTap: onWhy,
+                  ),
+                ],
+              ),
           ] else ...[
             const SizedBox(height: 14),
             Row(
@@ -722,6 +739,46 @@ class WorkoutCard extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Start, and "More" that unfolds the rest of the card's actions.
+class _StartMore extends StatefulWidget {
+  const _StartMore({required this.onStart, required this.more});
+  final VoidCallback? onStart;
+  final Widget more;
+
+  @override
+  State<_StartMore> createState() => _StartMoreState();
+}
+
+class _StartMoreState extends State<_StartMore> {
+  var _open = false;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      Row(
+        children: [
+          Expanded(
+            child: TempoButton(
+              'Start',
+              icon: TempoIcons.play,
+              expand: true,
+              onTap: widget.onStart,
+            ),
+          ),
+          const SizedBox(width: 10),
+          TempoButton(
+            _open ? 'Less' : 'More',
+            kind: ButtonKind.ghost,
+            onTap: () => setState(() => _open = !_open),
+          ),
+        ],
+      ),
+      if (_open) ...[const SizedBox(height: 4), widget.more],
+    ],
+  );
 }
 
 class RestCard extends StatelessWidget {

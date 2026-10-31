@@ -207,9 +207,13 @@ void main() {
       final db = (await t.runAsync(() => seededDb(days: 30)))!;
       await render(t, db, const TodayScreen(), h: 4200);
       expect(find.text('At a glance'), findsOneWidget);
-      // Every tile by default.
-      for (final n in ['Sleep', 'Recovery', 'Resting HR', 'Steps', 'Strain']) {
+      // Every tile by default, minus what the rings already show.
+      for (final n in ['Resting HR', 'Steps', 'Brisk minutes']) {
         expect(find.text(n), findsWidgets, reason: n);
+      }
+      // ("Sleep" also names the sleep plan row, so it isn't checked here.)
+      for (final n in ['Recovery', 'Strain']) {
+        expect(find.text(n), findsNothing, reason: n);
       }
       // Calm: steps and strain never stand out on their own.
       await t.tap(find.text('Calm'));
@@ -223,14 +227,15 @@ void main() {
       await settle(t);
       await t.tap(find.bySemanticsLabel('Show Steps'));
       await settle(t);
-      await t.tap(find.bySemanticsLabel('Move Strain up'));
+      await t.tap(find.bySemanticsLabel('Move Brisk minutes up'));
       await settle(t);
       await t.tap(find.text('Done'));
       await settle(t);
       final raw = await t.runAsync(() => db.setting(Keys.todayTiles));
       expect(raw, contains('-steps'));
-      // Strain moved up one place, from 7th to 6th.
-      expect(raw!.split(',').indexOf('strain'), 5);
+      // Brisk minutes moved up one place, ahead of steps.
+      final order = raw!.split(',');
+      expect(order.indexOf('brisk'), lessThan(order.indexOf('-steps')));
       expect(find.text('Steps'), findsNothing);
       expect(t.takeException(), isNull);
       await teardown(t, db);
@@ -244,7 +249,7 @@ void main() {
       return d;
     }))!;
     await render(t, db, const TodayScreen(), h: 4200);
-    await t.tap(find.bySemanticsLabel(RegExp(r'^Strain .*')).first);
+    await t.tap(find.bySemanticsLabel(RegExp(r'^Resting HR .*')).first);
     await settle(t);
     expect(find.text('How it’s worked out'), findsOneWidget);
     expect(find.text('6 months'), findsOneWidget);
@@ -530,8 +535,23 @@ void main() {
       addTearDown(() => testHour = 9);
       final db = (await t.runAsync(() => seededDb(days: 30)))!;
       await render(t, db, const TodayScreen(), h: 3600);
-      expect(find.text('ALSO TODAY'), findsOneWidget);
-      expect(find.textContaining('In bed by'), findsWidgets);
+      // 31 Oct layout: rings lead, no "Also today", bedtime in one line.
+      expect(find.text('ALSO TODAY'), findsNothing);
+      expect(find.textContaining('Tonight · need'), findsOneWidget);
+      final ringsY = t.getTopLeft(find.text('RECOVERY')).dy;
+      expect(ringsY, lessThan(t.getTopLeft(find.text('TODAY’S PLAN')).dy));
+      // The card shows Start and More; the rest unfolds.
+      expect(find.text('Skip'), findsNothing);
+      await t.tap(
+        find.descendant(
+          of: find.byType(WorkoutCard),
+          matching: find.text('More'),
+        ),
+      );
+      await settle(t);
+      expect(find.text('Why this?'), findsOneWidget);
+      expect(find.text('Skip'), findsOneWidget);
+      expect(t.takeException(), isNull);
       await teardown(t, db);
     });
 
@@ -760,7 +780,10 @@ void main() {
       addTearDown(() => testHour = 9);
       final db = (await t.runAsync(() => seededDb(days: 30)))!;
       await render(t, db, const TodayScreen(), h: 2600);
-      expect(find.text('YOUR DAY SO FAR'), findsOneWidget);
+      // Strain against its target lives under the rings now.
+      expect(find.text('YOUR DAY SO FAR'), findsNothing);
+      expect(find.text('STRAIN'), findsOneWidget);
+      expect(find.text('EFFORT'), findsNothing);
       // How you feel is a morning question; the journal can still wait.
       expect(find.text('How do you feel?'), findsNothing);
       await teardown(t, db);

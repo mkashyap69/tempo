@@ -11,13 +11,11 @@ import '../core/profile.dart' show Keys;
 import '../core/today.dart';
 import '../design/components.dart';
 import '../design/icons.dart';
-import '../design/meter.dart';
 import '../design/tokens.dart';
 import '../design/type.dart';
 import '../state/providers.dart';
 import 'coach.dart' show CoachTab, openCoachAt;
 import 'coach_parts.dart' show WeekStatusRow, coachExtrasProvider;
-import 'everyday_cards.dart';
 import 'journal.dart';
 import 'learn.dart';
 import 'nav.dart';
@@ -339,67 +337,6 @@ class _PauseSheetState extends ConsumerState<PauseSheet> {
           },
         ),
         const SizedBox(height: 8),
-      ],
-    );
-  }
-}
-
-/// Day progress: strain against today's target, then movement.
-class DayProgress extends StatelessWidget {
-  const DayProgress({super.key, required this.t});
-  final TodayData t;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.c, s = context.s;
-    final adds = planAdds(t);
-    final (word, line) = strainStatus(t, planAdds: adds > 0 ? adds : null);
-    final plain = plainWords(t.profile);
-    final tg = t.target;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        TempoCard(
-          label: 'Your day so far',
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Overline('Your day so far'),
-              const SizedBox(height: 12),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.baseline,
-                textBaseline: TextBaseline.alphabetic,
-                children: [
-                  Expanded(
-                    child: Text(
-                      plain ? 'Effort' : 'Strain',
-                      style: TempoType.body.c(c.text1),
-                    ),
-                  ),
-                  Text(n1(t.strain), style: TempoType.label.c(c.text1).tnum),
-                  Text(
-                    tg.cap
-                        ? ' · cap ${tg.hi.round()}'
-                        : ' · target ${tg.lo.round()}–${tg.hi.round()}',
-                    style: TempoType.bodyS.c(c.text2).tnum,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              TargetStrip(
-                value: t.strain,
-                max: 21,
-                lo: tg.cap ? null : tg.lo,
-                hi: tg.hi,
-                color: s.strain[2],
-              ),
-              const SizedBox(height: 8),
-              Text('$word · $line', style: TempoType.caption.c(c.text2)),
-            ],
-          ),
-        ),
-        const SizedBox(height: 10),
-        const MovementCard(),
       ],
     );
   }

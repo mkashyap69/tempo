@@ -124,8 +124,9 @@ final class HighlightFacts {
   final double? briskAvg;
   final int weekday;
 
-  /// The journal behaviour with the clearest effect: its key, name and
-  /// the effect in words ("−6 points on Recovery").
+  /// The journal behaviour with the clearest effect on Recovery: its key,
+  /// name, the size of the effect without a sign ("6 points") and whether
+  /// it lowers Recovery.
   final ({String key, String name, String effect, bool hurts})? impact;
 
   /// An experiment that ended in the last 3 days.
@@ -228,12 +229,13 @@ List<Highlight> highlightCandidates(HighlightFacts f) {
         kind: HighlightKind.journalImpact,
         key: 'journal:${i.key}',
         tag: 'Journal',
-        title: '${i.name}: ${i.effect}',
+        title:
+            '${i.name} days: recovery ${i.effect} ${i.hurts ? 'lower' : 'higher'}',
         body: i.hurts
-            ? 'From your check-ins. Two weeks without it would show if it’s real for you.'
-            : 'From your check-ins. Two weeks of doing it daily would show if it’s real for you.',
+            ? 'The morning after you log ${i.name.toLowerCase()} in your check-in, your recovery is ${i.effect} lower on average. Go 2 weeks without it to see if it’s the cause.'
+            : 'The morning after you log ${i.name.toLowerCase()} in your check-in, your recovery is ${i.effect} higher on average. Do it every day for 2 weeks to see if it’s the cause.',
         action: HighlightAction.tryExperiment,
-        actionLabel: 'Try 14 days',
+        actionLabel: 'Start a 2-week test',
         priority: 65,
       ),
     );

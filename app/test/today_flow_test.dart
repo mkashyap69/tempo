@@ -149,7 +149,7 @@ void main() {
     await teardown(t, db);
   });
 
-  testWidgets('wellbeing reads energy and effort, without strain numbers', (
+  testWidgets('wellbeing: the same names, without strain numbers in words', (
     t,
   ) async {
     final db = (await t.runAsync(() async {
@@ -159,8 +159,10 @@ void main() {
       return db;
     }))!;
     await render(t, db, const TodayScreen());
-    expect(find.text('ENERGY'), findsOneWidget);
-    expect(find.text('EFFORT'), findsOneWidget);
+    // One name per number for every goal (31 Oct).
+    expect(find.text('RECOVERY'), findsOneWidget);
+    expect(find.text('STRAIN'), findsOneWidget);
+    expect(find.text('ENERGY'), findsNothing);
     expect(find.textContaining('strain under'), findsNothing);
     await teardown(t, db);
   });

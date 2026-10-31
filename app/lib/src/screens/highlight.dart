@@ -91,7 +91,8 @@ Future<sc.HighlightFacts> highlightFacts(
       impact = (
         key: i.key,
         name: config.def(i.key)?.name ?? i.key,
-        effect: '${effectText(i.outcome, i.effect)} on Recovery',
+        // Unsigned: the card says "lower" or "higher" in words.
+        effect: effectText(i.outcome, i.effect).substring(1),
         hurts: !i.helps,
       );
     }

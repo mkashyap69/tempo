@@ -352,6 +352,9 @@ final class LeverAction {
 
 /// Turns the focus lever into at most two actions for today, plus tonight's
 /// bedtime. [nowMinute], [wakeMinute], [bedtime] are minutes of day.
+/// The most Zone 2+ minutes one day's action asks for.
+const maxActivePerDay = 45;
+
 List<LeverAction> leverActions({
   Lever? focus,
   required int nowMinute,
@@ -393,7 +396,9 @@ List<LeverAction> leverActions({
       );
     case Lever.activeMinutes:
       final left = max(0.0, activeTarget - activeWeek);
-      final perDay = (left / max(1, daysLeft)).ceil();
+      // Spread over the days left, but never more than a day can hold: on
+      // 31 Oct "146′ in Zone 2+ today" (291 left over 2 days).
+      final perDay = min(maxActivePerDay, (left / max(1, daysLeft)).ceil());
       out.add(
         LeverAction(
           Lever.activeMinutes,
