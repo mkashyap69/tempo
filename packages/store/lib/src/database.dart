@@ -214,6 +214,38 @@ class TempoDb extends _$TempoDb {
     return removed;
   });
 
+  /// The second exception to append-only: per-minute rows stamped after
+  /// [now] can't be real. A band block whose stamps ran past the sync
+  /// (2026-10-31: hourly "walks" until 23:42, synced at 15:47) left such
+  /// rows; they would also block the real minutes for those times, since
+  /// a minute already stored is never replaced. Deletes them and pulls
+  /// any cursor past [now] back to it. Returns the minute rows removed.
+  Future<int> dropFutureRaw(DateTime now) => transaction(() async {
+    const tables = ['minute_samples', 'stress_samples'];
+    var removed = 0;
+    for (final t in tables) {
+      await customStatement('DROP TRIGGER IF EXISTS ${t}_no_delete');
+      final n = await customUpdate(
+        'DELETE FROM $t WHERE ts > ?',
+        variables: [Variable.withInt(toTs(now))],
+        updates: {
+          for (final tb in allTables)
+            if (tb.actualTableName == t) tb,
+        },
+        updateKind: UpdateKind.delete,
+      );
+      if (t == 'minute_samples') removed = n;
+      await customStatement(
+        'CREATE TRIGGER ${t}_no_delete BEFORE DELETE ON $t '
+        "BEGIN SELECT RAISE(ABORT, '$t is append-only'); END",
+      );
+    }
+    await (update(syncState)
+          ..where((s) => s.lastTs.isBiggerThanValue(toTs(now))))
+        .write(SyncStateCompanion(lastTs: Value(toTs(now))));
+    return removed;
+  });
+
   /// Stores band workout summaries; ones already stored are ignored.
   Future<void> appendBandWorkouts(List<BandWorkoutsCompanion> rows) => batch(
     (b) => b.insertAll(bandWorkouts, rows, mode: InsertMode.insertOrIgnore),

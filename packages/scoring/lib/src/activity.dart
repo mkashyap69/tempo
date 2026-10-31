@@ -44,7 +44,14 @@ final class ActivityParams {
   final int maxGap;
 }
 
-/// [minutes] sorted, one per minute. Sleep minutes are never active.
+/// A band walking mark only counts with steps in the same minute, so a
+/// mark alone can't turn a band lying still into a walk (2026-10-31: a
+/// day of hourly "walks" with 8 steps on the band's counter).
+bool _walked(Minute m) => m.bandWalking && m.steps > 0;
+
+/// [minutes] sorted, one per minute. Sleep minutes and minutes the band
+/// says it was not worn are never active: an unworn band's optical sensor
+/// can still report a heart rate.
 List<DetectedActivity> detectActivities(
   List<Minute> minutes, {
   required int hrMax,
@@ -52,9 +59,10 @@ List<DetectedActivity> detectActivities(
 }) {
   bool active(Minute m) =>
       !m.stage.asleep &&
+      !m.offWrist &&
       ((m.hr != null && m.hr! >= p.hrPct * hrMax) ||
           m.steps >= p.minSteps ||
-          m.bandWalking);
+          _walked(m));
 
   final out = <DetectedActivity>[];
   int? start, last;
@@ -92,7 +100,7 @@ DetectedActivity _describe(List<Minute> run, int hrMax) {
   final hrShare = avgHr == null ? 0 : avgHr / hrMax;
   // The band marks walking minutes itself; half the run marked is enough,
   // even when cadence is uneven (stops at crossings).
-  final bandWalk = run.where((m) => m.bandWalking).length >= run.length / 2;
+  final bandWalk = run.where(_walked).length >= run.length / 2;
   final Sport? sport = spm >= 130 && hrShare >= 0.7
       ? Sport.running
       : spm >= 80 || bandWalk

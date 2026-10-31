@@ -608,4 +608,37 @@ void main() {
       isNot(Sport.walking),
     );
   });
+
+  test('an unworn band makes no activity', () {
+    final t = DateTime(2026, 10, 31, 10, 25);
+    List<Minute> mins({required bool offWrist, required int steps}) => [
+      for (var i = 0; i < 20; i++)
+        Minute(
+          t.add(Duration(minutes: i)),
+          hr: 120, // above 60% of max: an optical reading off the wrist
+          steps: steps,
+          stage: offWrist ? Stage.unknown : Stage.wake,
+          bandWalking: true,
+          offWrist: offWrist,
+        ),
+    ];
+    expect(
+      detectActivities(mins(offWrist: true, steps: 100), hrMax: 175),
+      isEmpty,
+    );
+    // Worn, but walking marks with no steps: HR still finds the activity,
+    // and it is not called a walk.
+    final still = detectActivities([
+      for (final m in mins(offWrist: false, steps: 0))
+        Minute(m.ts, hr: 80, steps: 0, stage: m.stage, bandWalking: true),
+    ], hrMax: 175);
+    expect(still, isEmpty);
+    expect(
+      detectActivities(
+        mins(offWrist: false, steps: 0),
+        hrMax: 175,
+      ).single.sport,
+      isNot(Sport.walking),
+    );
+  });
 }

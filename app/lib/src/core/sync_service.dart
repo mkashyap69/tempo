@@ -33,6 +33,7 @@ class SyncReport {
     this.gapMinutes = 0,
     this.clearedByOther = false,
     this.bandWorkouts = 0,
+    this.misdatedMinutes = 0,
   });
   final Map<String, int> counts;
   final DateTime? earliestNew;
@@ -48,6 +49,11 @@ class SyncReport {
 
   /// Workouts recorded on the band's Workout app, new this sync.
   final int bandWorkouts;
+
+  /// Per-minute records not stored because their stamps ran past the
+  /// sync (see [futureMinutes]), plus stored rows removed for the same
+  /// reason. Their real times can't be known.
+  final int misdatedMinutes;
 
   int get minutes => counts[FetchType.activity.key] ?? 0;
   @override
@@ -106,6 +112,9 @@ class SyncService {
           'gap',
         );
       }
+      if (r.misdatedMinutes > 0) {
+        await db.logSync(misdatedSummary(r.misdatedMinutes), 'gap');
+      }
       if (r.clearedByOther) {
         await db.putSetting(
           Keys.bandCleared,
@@ -147,6 +156,9 @@ class SyncService {
         return 'The band has no history to re-download.';
       }
       final recs = parseActivity(r.data, start);
+      if (futureMinutes(start, recs.length, DateTime.now()) > 0) {
+        return "The band's times run past now, so nothing was replaced.";
+      }
       final removed = await db.clearRawHistoryFrom(start);
       await db.appendMinutes([
         for (final a in recs)
@@ -241,6 +253,12 @@ class SyncService {
         : 'Band memory was full · $d not recovered';
   }
 
+  static String misdatedSummary(int minutes) {
+    final h = minutes ~/ 60, m = minutes % 60;
+    final d = h == 0 ? '$m min' : '${h}h ${m.toString().padLeft(2, '0')}m';
+    return "Band times ran past now · $d skipped, their real times aren't known";
+  }
+
   static String _summary(SyncReport r) {
     final m = r.minutes;
     final h = m ~/ 60, mm = m % 60;
@@ -285,6 +303,10 @@ class SyncService {
     DateTime? earliest;
     var gap = 0;
     var cleared = false;
+    // Rows an earlier sync stamped in the future go first, so the real
+    // minutes for those times can be stored and the day is rescored.
+    var misdated = await db.dropFutureRaw(DateTime.now());
+    if (misdated > 0) earliest = DateTime.now();
     for (final type in syncedTypes) {
       // A fetch stops at the end of the band's current block (stress on
       // V1.0.6.20: a fetch from before 17:58 on 5 Oct got only the 9 minutes
@@ -304,6 +326,21 @@ class SyncService {
         if (start == null || r.data.isEmpty) {
           counts[type.key] ??= 0;
           break;
+        }
+        // Minutes are stamped from the block's start, one per record. A
+        // block that would run past now has wrong stamps somewhere (a band
+        // clock change inside it?); where is unknown, so none of it is
+        // stored and the cursor moves to now. TODO(verify) with a capture.
+        if (type == FetchType.activity || type == FetchType.stress) {
+          final n = type == FetchType.activity
+              ? r.data.length ~/ activityRecordSize
+              : r.data.length;
+          final now = DateTime.now();
+          if (futureMinutes(start, n, now) > 0) {
+            misdated += n;
+            await db.setCursor(band.id, type.key, now);
+            break;
+          }
         }
         // The band starts from the oldest record it still has. Later than
         // our cursor means it overwrote minutes we never fetched.
@@ -451,6 +488,7 @@ class SyncService {
       gapMinutes: gap,
       clearedByOther: cleared,
       bandWorkouts: bandNew,
+      misdatedMinutes: misdated,
     );
   }
 }
@@ -472,6 +510,14 @@ bool fetchAgain(
     last != null &&
     (cursor == null || last.isAfter(cursor)) &&
     now.difference(last).inMinutes > 5;
+
+/// Minutes a block of [records] per-minute records from [start] runs past
+/// [now]; a couple of minutes of slack for clock rounding. Anything above
+/// 0 means the stamps are wrong.
+int futureMinutes(DateTime start, int records, DateTime now) {
+  final d = start.add(Duration(minutes: records)).difference(now).inMinutes;
+  return d > 2 ? d : 0;
+}
 
 /// Minutes lost between [cursor] and the first record the band sent; a
 /// couple of minutes of slack for clock rounding. 0 on the first sync.

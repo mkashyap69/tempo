@@ -546,6 +546,45 @@ void main() {
     expect(SyncService.gapSummary(200), contains('3h 20m'));
   });
 
+  test('sync: a block stamped past now is caught', () {
+    final now = DateTime(2026, 10, 31, 15, 47);
+    final start = DateTime(2026, 10, 31, 9);
+    // 9:00 → 15:47 is 407 minutes; ending at now (or a minute over) is fine.
+    expect(futureMinutes(start, 407, now), 0);
+    expect(futureMinutes(start, 409, now), 0);
+    // 31 Oct: minutes until 23:42 from a sync at 15:47.
+    expect(futureMinutes(start, 882, now), 475);
+    expect(SyncService.misdatedSummary(475), contains('7h 55m'));
+  });
+
+  test('rows stamped in the future are removed, cursors pulled back', () async {
+    final now = DateTime(2026, 10, 31, 15, 47);
+    await db.appendMinutes([
+      for (final h in [10, 15, 16, 23])
+        MinuteSamplesCompanion.insert(
+          ts: Value(toTs(DateTime(2026, 10, 31, h, 20))),
+          steps: 0,
+          intensity: 0,
+          kind: 0x50,
+        ),
+    ]);
+    await db.setCursor('band', 'activity', DateTime(2026, 10, 31, 23, 43));
+    await db.setCursor('band', 'stress', DateTime(2026, 10, 31, 12));
+    expect(await db.dropFutureRaw(now), 2);
+    final left = await db.minutesBetween(
+      DateTime(2026, 10, 31),
+      DateTime(2026, 11, 1),
+    );
+    expect(left.map((m) => fromTs(m.ts).hour), [10, 15]);
+    expect(await db.cursor('band', 'activity'), now);
+    expect(await db.cursor('band', 'stress'), DateTime(2026, 10, 31, 12));
+    // Still append-only for everything else.
+    expect(
+      () => db.customStatement('DELETE FROM minute_samples'),
+      throwsA(anything),
+    );
+  });
+
   test('widget links name a detail screen', () {
     expect(widgetTarget(Uri.parse('tempo://recovery')), 'recovery');
     expect(widgetTarget(Uri.parse('tempo://sleep')), 'sleep');
