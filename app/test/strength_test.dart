@@ -145,4 +145,32 @@ void main() {
     expect(find.text('Two sessions are needed for a line.'), findsOneWidget);
     await teardown(t, db);
   });
+
+  testWidgets('empty log offers the last session, with next weights (U1)', (
+    t,
+  ) async {
+    final db = (await t.runAsync(() => seededDb(days: 3)))!;
+    await t.runAsync(() async {
+      for (var i = 0; i < 3; i++) {
+        await logSet(
+          db,
+          exercise: 'bench_press',
+          setNo: i + 1,
+          kg: 60,
+          reps: 8,
+          rir: 2,
+          at: ago(2).add(Duration(minutes: i * 3)),
+        );
+      }
+    });
+    await render(t, db, const StrengthLogScreen());
+    expect(find.textContaining('LAST SESSION · '), findsOneWidget);
+    expect(find.text('Bench press'), findsOneWidget);
+    await t.tap(find.text('Repeat it'));
+    await settle(t, frames: 40);
+    expect(find.text('Repeat it'), findsNothing);
+    expect(find.text('Bench press'), findsOneWidget);
+    expect(find.bySemanticsLabel('Done set 1'), findsWidgets);
+    await teardown(t, db);
+  });
 }

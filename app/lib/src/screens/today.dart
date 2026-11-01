@@ -322,6 +322,7 @@ abstract final class TodayBody {
     } else if (!noData && !t.firstDay && t.plan != null && !t.plan!.isRest) {
       session = WorkoutCard(
         session: t.plan!,
+        onWatch: source.isHealth,
         general: t.planRow?.general ?? t.calibrating,
         adds: adds,
         overline: 'Today’s plan',
@@ -624,8 +625,13 @@ class WorkoutCard extends StatelessWidget {
     this.chipColor,
     this.footer,
     this.more,
+    this.onWatch = false,
   });
   final sc.Session session;
+
+  /// The source is Apple Health / Health Connect: Tempo can't show live
+  /// heart rate, so the watch records the session (U1).
+  final bool onWatch;
 
   /// Folded under a "More" button next to Start, in place of "Why this?":
   /// Today keeps the card to the session and one action (31 Oct).
@@ -700,6 +706,13 @@ class WorkoutCard extends StatelessWidget {
             if (!strength) ...[
               const SizedBox(height: 6),
               Text(session.structure, style: TempoType.caption.c(c.text3).tnum),
+              if (onWatch) ...[
+                const SizedBox(height: 10),
+                Text(
+                  'Record it on your watch. Tempo reads it from Health afterwards and ticks it off.',
+                  style: TempoType.bodyS.c(c.text2),
+                ),
+              ],
             ],
             const SizedBox(height: 14),
             if (more != null)

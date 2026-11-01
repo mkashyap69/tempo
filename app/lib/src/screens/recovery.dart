@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:scoring/scoring.dart' as sc;
 import 'package:store/store.dart' as st;
 
+import '../core/body.dart' show loadCycle;
 import '../core/feel.dart';
 import '../core/format.dart';
 import '../core/today.dart';
@@ -204,6 +205,7 @@ class RecoveryScreen extends ConsumerWidget {
           ),
         ),
         const BodySignalsSection(),
+        const CycleNote(),
         TempoCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -404,3 +406,38 @@ final scoresLastProvider = FutureProvider.family<List<st.DailyScore>, int>((
 
 /// Convenience for screens that only need TodayData.
 TodayData? todayOf(WidgetRef ref) => ref.watch(todayProvider).value;
+
+final _cycleProvider = dbQuery((db, _) => loadCycle(db));
+
+/// The cycle day from Health, with what it means for recovery (U2). Only
+/// when Health has period days in the last 60 days.
+class CycleNote extends ConsumerWidget {
+  const CycleNote({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final cy = ref.watch(_cycleProvider).value;
+    if (cy == null) return const SizedBox.shrink();
+    final c = context.c;
+    return TempoCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Overline(
+            'Cycle · day ${cy.day}${cy.typicalLength == null ? '' : ' of about ${cy.typicalLength}'}',
+          ),
+          const SizedBox(height: 8),
+          Text(
+            cy.late
+                ? 'In the week before a period, resting heart rate and night '
+                      'temperature often run higher and HRV lower. A lower '
+                      'recovery now isn’t a step back.'
+                : 'From the period days in Health. Recovery can dip in the '
+                      'week before a period; Tempo says so when you’re there.',
+            style: TempoType.bodyS.c(c.text2),
+          ),
+        ],
+      ),
+    );
+  }
+}

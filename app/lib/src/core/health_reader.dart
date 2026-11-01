@@ -98,6 +98,9 @@ class PluginHealthReader implements HealthReader {
           HealthKind.water: [HealthDataType.WATER],
           HealthKind.caffeine: [HealthDataType.DIETARY_CAFFEINE],
           HealthKind.wristTemp: [HealthDataType.SLEEP_WRIST_TEMPERATURE],
+          HealthKind.weight: [HealthDataType.WEIGHT],
+          HealthKind.bodyFat: [HealthDataType.BODY_FAT_PERCENTAGE],
+          HealthKind.menstruation: [HealthDataType.MENSTRUATION_FLOW],
         }
       : const {
           HealthKind.heartRate: [HealthDataType.HEART_RATE],
@@ -119,6 +122,9 @@ class PluginHealthReader implements HealthReader {
           HealthKind.respiratoryRate: [HealthDataType.RESPIRATORY_RATE],
           HealthKind.water: [HealthDataType.WATER],
           HealthKind.wristTemp: [HealthDataType.SKIN_TEMPERATURE],
+          HealthKind.weight: [HealthDataType.WEIGHT],
+          HealthKind.bodyFat: [HealthDataType.BODY_FAT_PERCENTAGE],
+          HealthKind.menstruation: [HealthDataType.MENSTRUATION_FLOW],
         };
 
   @override
@@ -295,6 +301,15 @@ class PluginHealthReader implements HealthReader {
       value = 0;
     } else if (v is NumericHealthValue) {
       value = v.numericValue.toDouble();
+    } else if (v is MenstruationFlowHealthValue) {
+      value = switch (v.flow) {
+        MenstrualFlow.none => 0,
+        MenstrualFlow.spotting => .5,
+        MenstrualFlow.medium => 2,
+        MenstrualFlow.heavy => 3,
+        _ => 1, // light, unspecified
+      };
+      if (v.isStartOfCycle == true) extra = 'start';
     } else {
       return null;
     }

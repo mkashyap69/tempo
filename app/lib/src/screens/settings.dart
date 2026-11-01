@@ -620,7 +620,7 @@ class SettingsScreen extends ConsumerWidget {
         group('Training', [
           ListRow(
             'Priority',
-            sub: 'What workouts lean toward. Race goals are on Weekly plan.',
+            sub: 'What workouts lean toward. Race goals are in Plan → Goal.',
             value: goalLabel(p.goal),
             onTap: () async {
               final g = await pickOption<sc.Goal>(
@@ -651,6 +651,26 @@ class SettingsScreen extends ConsumerWidget {
                 builder: (ctx) => WorkoutsEditor(profile: p, sheet: true),
               );
               if (next != null) await save(next);
+            },
+          ),
+          ListRow(
+            'Daily step goal',
+            sub: p.stepGoal == null ? 'Default for your age' : null,
+            value: grouped(p.effectiveStepGoal),
+            onTap: () async {
+              final v = await editNumber(
+                context,
+                title: 'Daily step goal',
+                initial: p.effectiveStepGoal,
+                suffix: 'steps',
+                min: 1000,
+                max: 40000,
+                note:
+                    'Tempo’s default is ${p.age >= 60 ? '6,000' : '8,000'} for your age. The steps tile and the journal’s “Step goal” use this.',
+              );
+              if (v == null) return;
+              final def = p.age >= 60 ? 6000 : 8000;
+              await save(p.copyWith(stepGoal: () => v == def ? null : v));
             },
           ),
           ListRow(

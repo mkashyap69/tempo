@@ -217,6 +217,9 @@ class HealthGrid {
           HealthKind.water ||
           HealthKind.caffeine ||
           HealthKind.wristTemp ||
+          HealthKind.weight ||
+          HealthKind.bodyFat ||
+          HealthKind.menstruation ||
           HealthKind.workout:
         break; // read per night / per day, see vitals.dart, workouts.dart
     }

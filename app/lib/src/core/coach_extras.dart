@@ -150,7 +150,7 @@ Future<CoachExtras> loadCoachExtras(st.TempoDb db, TodayData t) async {
     stepsToday: steps,
     stepTarget: focus?.lever == sc.Lever.steps && progress != null
         ? progress.$2
-        : 10000,
+        : t.profile.effectiveStepGoal.toDouble(),
     activeWeek: focus?.lever == sc.Lever.activeMinutes && progress != null
         ? progress.$1
         : 0,

@@ -94,8 +94,16 @@ class TodayRings extends StatelessWidget {
               : tg.cap
               ? ' / cap ${tg.hi.round()}'
               : ' / ${tg.lo.round()}–${tg.hi.round()}',
+          // A plain word first for the wellbeing and fat-loss priorities
+          // (U1): 0–21 means little to someone who isn't training.
           sub: noData || t.firstDay
               ? ''
+              : plainWords(t.profile)
+              ? '${sc.strainWord(t.strain)} · ${t.strain >= tg.hi
+                    ? (tg.cap ? 'at cap' : 'target met')
+                    : t.strain >= tg.lo
+                    ? 'in range'
+                    : '${n1(tg.lo - t.strain)} to go'}'
               : t.strain >= tg.hi
               ? (tg.cap ? 'Cap reached' : 'Target reached')
               : t.strain >= tg.lo

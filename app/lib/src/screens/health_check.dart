@@ -189,6 +189,9 @@ String kindName(HealthKind k) => switch (k) {
   HealthKind.water => 'Water',
   HealthKind.caffeine => 'Caffeine',
   HealthKind.wristTemp => 'Night temperature',
+  HealthKind.weight => 'Weight',
+  HealthKind.bodyFat => 'Body fat',
+  HealthKind.menstruation => 'Menstrual flow',
 };
 
 String _when(DateTime t) => '${dayShort(t)} ${clockOf(t)}';

@@ -41,6 +41,7 @@ class LabsScreen extends ConsumerWidget {
           'for 6 months, then less until it drops out at 2 years.',
           style: TempoType.bodyS.c(c.text2),
         ),
+        const _AskTheLab(),
         if (v != null && v.$1.isNotEmpty)
           CardList(
             children: [
@@ -215,6 +216,47 @@ class _LabFormState extends State<_LabForm> {
             onTap: () => Navigator.pop(context, const _LabResult(delete: true)),
           ),
       ],
+    );
+  }
+}
+
+/// What to ask for so one blood draw covers all nine markers (U1).
+class _AskTheLab extends StatelessWidget {
+  const _AskTheLab();
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c;
+    Widget row(String panel, String gives) => Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(panel, style: TempoType.label.c(c.text1)),
+          const SizedBox(height: 2),
+          Text(gives, style: TempoType.bodyS.c(c.text2)),
+        ],
+      ),
+    );
+    return TempoCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Overline('What to ask the lab for'),
+          row(
+            'Complete blood count with differential',
+            'White cells, lymphocytes %, MCV, RDW',
+          ),
+          row(
+            'Metabolic panel, fasting',
+            'Albumin, creatinine, glucose, alkaline phosphatase (ALP)',
+          ),
+          row(
+            'High-sensitivity CRP (hs-CRP)',
+            'A standard CRP often reads "under 5", which PhenoAge can’t use',
+          ),
+        ],
+      ),
     );
   }
 }

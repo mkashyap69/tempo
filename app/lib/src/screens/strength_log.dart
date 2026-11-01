@@ -10,6 +10,7 @@ import 'package:store/store.dart' as st;
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../core/coach_service.dart' show dayOf;
+import '../core/format.dart' show dm;
 import '../core/score_service.dart';
 import '../core/strength.dart';
 import '../design/chart.dart';
@@ -77,11 +78,46 @@ class _LogState extends ConsumerState<StrengthLogScreen> {
     super.dispose();
   }
 
+  /// The newest earlier session, offered when the log opens empty (U1).
+  sc.Routine? _last;
+  DateTime? _lastDay;
+
   Future<void> _load() async {
     final db = ref.read(dbProvider);
     final d = widget.plan?.detail;
     if (d is sc.StrengthDetail) {
-      for (final x in d.exercises) {
+      await _fill(d.exercises);
+    } else {
+      final today = DateTime(_started.year, _started.month, _started.day);
+      final sets = [
+        for (final r in await db.strengthSetsBetween(
+          today.subtract(const Duration(days: 120)),
+          today,
+        ))
+          setLog(r),
+      ];
+      _last = sc.lastSessionRoutine(sets);
+      if (_last != null) {
+        final t = sets.last.at;
+        _lastDay = DateTime(t.year, t.month, t.day);
+      }
+    }
+    if (mounted) setState(() => _ready = true);
+  }
+
+  /// Starts [r] with the next weights from your history filled in.
+  Future<void> _repeat(sc.Routine r) async {
+    final db = ref.read(dbProvider);
+    final state = ref.read(todayProvider).value?.state ?? sc.DayState.general;
+    final xs = await withTargets(db, r.items, await liftDay(db, state));
+    await _fill(xs);
+    if (mounted) setState(() => _last = null);
+  }
+
+  Future<void> _fill(List<sc.Exercise> exercises) async {
+    final db = ref.read(dbProvider);
+    {
+      for (final x in exercises) {
         final def = sc.exerciseByName(x.name);
         if (def == null) continue;
         final e = _Ex(def, rest: x.restSeconds, target: x.reps, why: x.target);
@@ -104,7 +140,6 @@ class _LogState extends ConsumerState<StrengthLogScreen> {
         _ex.add(e);
       }
     }
-    if (mounted) setState(() => _ready = true);
   }
 
   static int? _seconds(String reps) {
@@ -227,6 +262,12 @@ class _LogState extends ConsumerState<StrengthLogScreen> {
                 if (!_ready)
                   const SizedBox(height: 300)
                 else ...[
+                  if (_ex.isEmpty && _last != null)
+                    _RepeatCard(
+                      routine: _last!,
+                      day: _lastDay!,
+                      onTap: () => _repeat(_last!),
+                    ),
                   for (final (k, e) in _ex.indexed) ...[
                     _ExerciseCard(
                       e,
@@ -1120,6 +1161,46 @@ class FreshnessCard extends ConsumerWidget {
           Text(
             'Hard sets in the last week fade by half every 48 h; runs count on the legs.',
             style: TempoType.caption.c(c.text3),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// "Repeat Thu 29 Oct": the last session's exercises, one tap to load.
+class _RepeatCard extends StatelessWidget {
+  const _RepeatCard({
+    required this.routine,
+    required this.day,
+    required this.onTap,
+  });
+  final sc.Routine routine;
+  final DateTime day;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c;
+    final names = [for (final x in routine.items) x.name];
+    return TempoCard(
+      onTap: onTap,
+      label: 'Repeat last session',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Overline('Last session · ${dm(day)}'),
+          const SizedBox(height: 8),
+          Text(
+            '${names.take(4).join(' · ')}${names.length > 4 ? ' · +${names.length - 4} more' : ''}',
+            style: TempoType.bodyS.c(c.text1),
+          ),
+          const SizedBox(height: 12),
+          TempoButton(
+            'Repeat it',
+            kind: ButtonKind.secondary,
+            expand: true,
+            onTap: onTap,
           ),
         ],
       ),

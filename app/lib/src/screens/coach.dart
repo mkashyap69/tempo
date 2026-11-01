@@ -60,9 +60,11 @@ final loadHistoryProvider =
         await dailyTrimp(
           ref.watch(dbProvider),
           dayOf(DateTime.now()),
-          days: 28 * 5,
+          // A year of weeks (U1), plus the 6 weeks the first one's
+          // normal is built from.
+          days: 7 * (52 + 6),
         ),
-        weeks: 12,
+        weeks: 52,
       );
     });
 

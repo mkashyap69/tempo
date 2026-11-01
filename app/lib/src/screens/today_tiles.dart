@@ -5,11 +5,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:scoring/scoring.dart' as sc;
 import 'package:store/store.dart' as st;
 
+import 'package:health_source/health_source.dart' as hs;
+
+import '../core/body.dart';
 import '../core/coach_extras.dart' show stepsToday;
 import '../core/data_source.dart';
 import '../core/everyday.dart' show loadMovement;
 import '../core/format.dart';
-import '../core/minutes.dart' show loadMinutes;
+import '../core/minutes.dart' show loadHealthRecords, loadMinutes;
 import '../core/profile.dart';
 import '../design/components.dart';
 import '../design/icons.dart';
@@ -22,9 +25,21 @@ import 'nav.dart';
 import 'recovery.dart';
 import 'sleep.dart';
 import 'strain.dart';
+import 'trends.dart' show TrendsScreen;
 
 /// Today's number tiles, in the default order.
-enum TileId { sleep, recovery, rhr, hrv, steps, brisk, strain, age }
+enum TileId {
+  sleep,
+  recovery,
+  rhr,
+  hrv,
+  steps,
+  brisk,
+  strain,
+  age,
+  weight,
+  cycle,
+}
 
 String tileName(TileId id) => switch (id) {
   TileId.sleep => 'Sleep',
@@ -35,6 +50,8 @@ String tileName(TileId id) => switch (id) {
   TileId.brisk => 'Brisk minutes',
   TileId.strain => 'Strain',
   TileId.age => 'Tempo Age',
+  TileId.weight => 'Weight',
+  TileId.cycle => 'Cycle',
 };
 
 /// Shown in Today's rings already, so never repeated as tiles (31 Oct).
@@ -201,12 +218,17 @@ final todayTilesProvider = FutureProvider<List<TileData>>((ref) async {
   final usual = daily.isEmpty
       ? null
       : daily.reduce((a, b) => a + b) / daily.length;
+  final goal = t.profile.effectiveStepGoal;
   tiles.add(
     TileData(
       id: TileId.steps,
       value: grouped(steps),
-      line: usual == null ? 'today' : 'usual ${grouped(usual.round())} a day',
-      progress: usual == null || usual == 0 ? null : steps / usual,
+      line: steps >= goal
+          ? 'goal ${grouped(goal)} reached'
+          : usual == null
+          ? 'goal ${grouped(goal)}'
+          : 'goal ${grouped(goal)} · usual ${grouped(usual.round())}',
+      progress: steps / goal,
     ),
   );
   final move = await loadMovement(db);
@@ -252,6 +274,53 @@ final todayTilesProvider = FutureProvider<List<TileData>>((ref) async {
       ),
     );
   }
+  // From Health only, and only when it has them (U2).
+  final weight = await loadWeightTrend(db, now: now);
+  if (weight != null) {
+    final kg = t.profile.metric;
+    final fat = await latestBodyFat(db, now: now);
+    double u(double x) => kg ? x : x * 2.2046;
+    final ch = weight.change4w;
+    final days = await loadWeights(
+      db,
+      t.day.subtract(const Duration(days: 6)),
+      t.day,
+    );
+    final byDay = {for (final d in days) d.day: d.kg};
+    tiles.add(
+      TileData(
+        id: TileId.weight,
+        value: u(weight.weekMean).toStringAsFixed(1),
+        unit: kg ? 'kg' : 'lb',
+        line:
+            '${ch == null || ch.abs() < .3 ? weight.word.toLowerCase() : '${ch < 0 ? '▼' : '▲'} ${u(ch.abs()).toStringAsFixed(1)} in 4 weeks'}'
+            '${fat == null ? '' : ' · ${fat.round()}% fat'}',
+        spark: [
+          for (var i = 6; i >= 0; i--)
+            if (byDay[t.day.subtract(Duration(days: i))] case final x?)
+              u(x)
+            else
+              null,
+        ],
+        unusual: ch != null && ch.abs() >= 1,
+      ),
+    );
+  }
+  final cycle = await loadCycle(db, now: now);
+  if (cycle != null) {
+    tiles.add(
+      TileData(
+        id: TileId.cycle,
+        value: 'Day ${cycle.day}',
+        line: cycle.late
+            ? 'resting HR often runs higher now'
+            : cycle.typicalLength == null
+            ? 'from your last period'
+            : 'of about ${cycle.typicalLength}',
+        unusual: cycle.late,
+      ),
+    );
+  }
   return tiles;
 });
 
@@ -272,6 +341,8 @@ Widget _detail(TileId id) => switch (id) {
   TileId.brisk => const BiomarkerScreen(sc.Lever.activeMinutes),
   TileId.strain => const StrainScreen(),
   TileId.age => const LongevityScreen(),
+  TileId.weight => const TrendsScreen(),
+  TileId.cycle => const RecoveryScreen(),
 };
 
 Color _tint(BuildContext context, TileId id) {
@@ -285,6 +356,8 @@ Color _tint(BuildContext context, TileId id) {
     TileId.brisk => s.recHigh,
     TileId.strain => s.strain[1],
     TileId.age => c.text1,
+    TileId.weight => c.text2,
+    TileId.cycle => s.recLow,
   };
 }
 
@@ -329,6 +402,23 @@ Future<List<double?>> loadTileSeries(
         }
       }
       return out;
+    case TileId.weight:
+      final byDay = {
+        for (final w in await loadWeights(db, from, today))
+          st.dateKey(w.day): w.kg,
+      };
+      return [for (final k in keys) byDay[k]];
+    case TileId.cycle:
+      final byDay = <String, double>{};
+      for (final r in await loadHealthRecords(
+        db,
+        from,
+        today.add(const Duration(days: 1)),
+        kinds: const [hs.HealthKind.menstruation],
+      )) {
+        byDay[st.dateKey(r.start)] = r.value;
+      }
+      return [for (final k in keys) byDay[k] ?? 0];
     case TileId.age:
       final byDay = {
         for (final l in await db.longevitySince(from)) l.date: l.tempoAge,
@@ -358,7 +448,16 @@ final _seriesProvider = FutureProvider.family<List<double?>, (TileId, int)>((
 ) async {
   ref.watch(dbTickProvider);
   final t = await ref.watch(todayProvider.future);
-  return loadTileSeries(ref.watch(dbProvider), key.$1, key.$2, today: t.day);
+  final xs = await loadTileSeries(
+    ref.watch(dbProvider),
+    key.$1,
+    key.$2,
+    today: t.day,
+  );
+  // Weight in the unit the tile shows.
+  return key.$1 == TileId.weight && !t.profile.metric
+      ? [for (final x in xs) x == null ? null : x * 2.2046]
+      : xs;
 });
 
 /// How each number is worked out, for the expanded tile.
@@ -388,6 +487,13 @@ String tileHow(TileId id) => switch (id) {
   TileId.age =>
     'Your age adjusted by fitness, resting heart rate, activity, sleep and '
         'more. Longevity shows every part.',
+  TileId.weight =>
+    'The mean of this week’s readings from Health. Weight moves a kilo or '
+        'more a day with water and food, so only weekly means are compared.',
+  TileId.cycle =>
+    'Day of your cycle from the period days in Health. In the week before a '
+        'period, resting HR and night temperature often run higher and HRV '
+        'lower: a lower recovery then isn’t a step back.',
 };
 
 /// Today: "At a glance". Every tile by default; Calm shows only the tiles
@@ -573,7 +679,7 @@ class _ExpandedState extends ConsumerState<_Expanded> {
           );
     String f(double x) => switch (d.id) {
       TileId.steps => grouped(x.round()),
-      TileId.strain || TileId.age => x.toStringAsFixed(1),
+      TileId.strain || TileId.age || TileId.weight => x.toStringAsFixed(1),
       _ => '${x.round()}',
     };
     final tint = _tint(context, d.id);

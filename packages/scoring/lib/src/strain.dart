@@ -133,3 +133,17 @@ int updatedHrMax(
   }
   return min(best, current + maxStep);
 }
+
+/// A plain word for a day's strain, for people who don't think in 0–21
+/// (U1). Bands follow [intensityForStrain]'s easy < 8 ≤ moderate < 14 ≤
+/// hard, with the ends split off: under 4 is barely moving, 18+ is near
+/// the scale's ceiling.
+String strainWord(double strain) => strain < 4
+    ? 'Very light day'
+    : strain < 8
+    ? 'Light day'
+    : strain < 14
+    ? 'Active day'
+    : strain < 18
+    ? 'Big day'
+    : 'All-out day';

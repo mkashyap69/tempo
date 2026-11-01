@@ -45,6 +45,18 @@ enum HealthKind {
   /// Connect's skin temperature, which is already a change from the
   /// watch's own baseline (°C). Only ever compared with its own nights.
   wristTemp,
+
+  /// Body weight, kg (U2). Read-only, shown as a weekly trend.
+  weight,
+
+  /// Body fat. TODO(verify): Apple Health gives a fraction (0.21), Health
+  /// Connect a percent (21); shown as a percent either way.
+  bodyFat,
+
+  /// Menstrual flow for a day (U2): 0 none, 0.5 spotting, 1 light or
+  /// unspecified, 2 medium, 3 heavy; `extra` is "start" when the app
+  /// marked the first day of a cycle. TODO(verify) on both phones.
+  menstruation,
 }
 
 extension HealthKindX on HealthKind {

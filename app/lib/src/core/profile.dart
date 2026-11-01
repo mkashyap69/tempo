@@ -144,6 +144,7 @@ final class Profile {
     this.wornOn = 'Left wrist',
     this.games = const {},
     this.zonesByReserve = false,
+    this.stepGoal,
   });
 
   final int age, heightCm;
@@ -165,6 +166,12 @@ final class Profile {
   /// Heart-rate zones as a share of heart-rate reserve (Karvonen) instead
   /// of max HR (algo 10).
   final bool zonesByReserve;
+
+  /// Daily step goal; null = the default for your age (U1).
+  final int? stepGoal;
+
+  /// Your own goal, else Tempo's default: 8,000 a day, 6,000 from 60.
+  int get effectiveStepGoal => stepGoal ?? (age >= 60 ? 6000 : 8000);
 
   int get effectiveMaxHr => maxHr ?? maxHrFromAge(age);
   bool get wornLeft => wornOn != 'Right wrist';
@@ -194,6 +201,7 @@ final class Profile {
     String? wornOn,
     Set<Game>? games,
     bool? zonesByReserve,
+    int? Function()? stepGoal,
   }) => Profile(
     age: age ?? this.age,
     heightCm: heightCm ?? this.heightCm,
@@ -208,6 +216,7 @@ final class Profile {
     wornOn: wornOn ?? this.wornOn,
     games: games ?? this.games,
     zonesByReserve: zonesByReserve ?? this.zonesByReserve,
+    stepGoal: stepGoal == null ? this.stepGoal : stepGoal(),
   );
 
   Map<String, Object?> toJson() => {
@@ -224,6 +233,7 @@ final class Profile {
     'wornOn': wornOn,
     'games': [for (final g in games) g.name],
     'zonesByReserve': zonesByReserve,
+    'stepGoal': stepGoal,
   };
 
   static Profile fromJson(Map<String, dynamic> j) => Profile(
@@ -247,6 +257,7 @@ final class Profile {
         if (Game.values.asNameMap()[g] != null) Game.values.byName(g as String),
     },
     zonesByReserve: j['zonesByReserve'] as bool? ?? false,
+    stepGoal: j['stepGoal'] as int?,
   );
 }
 

@@ -182,7 +182,7 @@ Future<sc.AutoFacts> autoFactsFor(
       : st.fromTs(night!.sleepStart!);
   return sc.AutoFacts(
     steps: hasSteps ? mins.fold<int>(0, (a, m) => a + m.steps) : null,
-    stepTarget: p.age >= 60 ? 6000 : 8000,
+    stepTarget: p.effectiveStepGoal,
     briskMinutes: hasSteps ? sc.briskMinutes(mins) : null,
     zone2Minutes: hasHr
         ? mins.where((m) => m.hr != null && m.hr! >= z2).length

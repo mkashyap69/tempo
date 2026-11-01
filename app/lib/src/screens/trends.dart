@@ -6,6 +6,7 @@ import 'package:store/store.dart' as st;
 
 import '../core/coach_service.dart';
 import '../core/data_source.dart';
+import '../core/body.dart' show loadWeights;
 import '../core/format.dart';
 import '../core/minutes.dart';
 import '../design/chart.dart';
@@ -112,8 +113,12 @@ Future<TrendSeries> loadSeries(
       'spo2',
       'steps',
       'brisk',
+      'weight',
     ])
       k: [],
+  };
+  final weights = {
+    for (final w in await loadWeights(db, from, to)) st.dateKey(w.day): w.kg,
   };
   for (final d in days) {
     final s = scores[st.dateKey(d)];
@@ -126,6 +131,7 @@ Future<TrendSeries> loadSeries(
     m['spo2']!.add(nightSpo2(s));
     m['steps']!.add(steps[st.dateKey(d)]);
     m['brisk']!.add(brisk[st.dateKey(d)]);
+    m['weight']!.add(weights[st.dateKey(d)]);
   }
   return TrendSeries(days, m);
 }
@@ -137,6 +143,21 @@ final trendsProvider = FutureProvider.family<(TrendSeries, TrendSeries), int>((
   ref.watch(dbTickProvider);
   final db = ref.watch(dbProvider);
   final today = dayOf(DateTime.now());
+  // 0 = all of it (U1): from the first stored minute, at most 3 years,
+  // with nothing before it to compare against.
+  if (n == 0) {
+    final first = await firstDataMinute(db);
+    final start = first == null ? today : dayOf(first);
+    final days = today.difference(start).inDays + 1;
+    final from = today.subtract(
+      Duration(days: days.clamp(7, trendsMaxDays) - 1),
+    );
+    final cur = await loadSeries(db, from, today);
+    return (
+      cur,
+      TrendSeries(const [], {for (final k in cur.metrics.keys) k: const []}),
+    );
+  }
   final from = today.subtract(Duration(days: n - 1));
   final prevTo = from.subtract(const Duration(days: 1));
   return (
@@ -144,6 +165,22 @@ final trendsProvider = FutureProvider.family<(TrendSeries, TrendSeries), int>((
     await loadSeries(db, prevTo.subtract(Duration(days: n - 1)), prevTo),
   );
 });
+
+/// The longest history Trends draws, in days.
+const trendsMaxDays = 3 * 365;
+
+/// Daily values folded into means of [size] days (missing days left out;
+/// a bucket with none stays null), so a year draws as 52 weekly points.
+List<double?> bucketed(List<double?> daily, int size) => [
+  for (var i = 0; i < daily.length; i += size)
+    () {
+      final v = daily
+          .sublist(i, (i + size).clamp(0, daily.length))
+          .whereType<double>()
+          .toList();
+      return v.isEmpty ? null : v.reduce((a, b) => a + b) / v.length;
+    }(),
+];
 
 enum _Kind { dot, bar, line }
 
@@ -161,7 +198,15 @@ class _Spec {
     this.pbLabel,
     this.lowIsBest = false,
     this.color,
+    this.fit = false,
+    this.onlyWithData = false,
   });
+
+  /// Scale to the data (± a margin) instead of [lo]–[hi]: weight.
+  final bool fit;
+
+  /// Hidden when the range has no value at all (U2: weight from Health).
+  final bool onlyWithData;
   final String key, name, unit;
   final _Kind kind;
   final double lo, hi;
@@ -173,6 +218,18 @@ class _Spec {
 }
 
 final _specs = <_Spec>[
+  _Spec(
+    'weight',
+    'Weight',
+    'kg · week mean',
+    _Kind.line,
+    40,
+    150,
+    (a) => a.toStringAsFixed(1),
+    () => const TrendsScreen(),
+    fit: true,
+    onlyWithData: true,
+  ),
   _Spec(
     'recovery',
     'Recovery',
@@ -344,8 +401,8 @@ class _TrendsState extends ConsumerState<TrendsScreen> {
         ],
         if (!widget.tab) const CardioLoadCard(),
         TempoSegmented<int>(
-          values: const [7, 30, 90],
-          labels: const ['7 days', '30 days', '90 days'],
+          values: const [7, 30, 90, 182, 365, 0],
+          labels: const ['7d', '30d', '90d', '6m', '1y', 'All'],
           selected: _range,
           onChanged: (v) => setState(() => _range = v),
         ),
@@ -354,7 +411,9 @@ class _TrendsState extends ConsumerState<TrendsScreen> {
         else
           for (final sp in _specs)
             // The band has a stress index; Health sources have real HRV.
-            if (sp.key != (health ? 'stress' : 'hrv'))
+            if (sp.key != (health ? 'stress' : 'hrv') &&
+                !(sp.onlyWithData &&
+                    data.$1.metrics[sp.key]!.every((x) => x == null)))
               _TrendCard(
                 spec: sp,
                 cur: data.$1.metrics[sp.key]!,
@@ -495,6 +554,8 @@ class _TrendCard extends StatelessWidget {
           ? d.abs().toStringAsFixed(1)
           : spec.key == 'steps'
           ? grouped(d.abs().round())
+          : spec.key == 'weight'
+          ? d.abs().toStringAsFixed(1)
           : '${d.abs().round()}';
       delta = d.abs() < (spec.key == 'strain' ? .05 : 0.5)
           ? 'steady'
@@ -510,11 +571,18 @@ class _TrendCard extends StatelessWidget {
       pb =
           '${spec.pbLabel} ${spec.fmt(best)}${spec.key == 'recovery' ? '%' : ''}';
     }
+    final (lo, hi) = spec.fit && known.isNotEmpty
+        ? (
+            known.reduce((a, b) => a < b ? a : b) - 1,
+            known.reduce((a, b) => a > b ? a : b) + 1,
+          )
+        : (spec.lo, spec.hi);
     final band = known.length < 3
         ? null
         : (sc.quantile(known, .2)!, sc.quantile(known, .8)!);
     return TempoCard(
-      onTap: () => push(context, spec.page()),
+      // Weight has no screen of its own yet; the card is the trend.
+      onTap: spec.key == 'weight' ? null : () => push(context, spec.page()),
       label: spec.name,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -556,10 +624,13 @@ class _TrendCard extends StatelessWidget {
               stretchHeight: 76,
               semantics: '${spec.name} trend',
               draw: (ink, box) {
-                final n = cur.length;
+                // Past 90 days a point is a week's mean, drawn as a line.
+                final long = cur.length > 90;
+                final pts = long ? bucketed(cur, 7) : cur;
+                final kind = long ? _Kind.line : spec.kind;
+                final n = pts.length;
                 double y(double v) =>
-                    104 -
-                    ((v - spec.lo) / (spec.hi - spec.lo)).clamp(0, 1) * 100;
+                    104 - ((v - lo) / (hi - lo)).clamp(0, 1) * 100;
                 final step = 520 / n;
                 if (band != null) {
                   ink.rect(
@@ -568,9 +639,9 @@ class _TrendCard extends StatelessWidget {
                     opacity: .75,
                   );
                 }
-                switch (spec.kind) {
+                switch (kind) {
                   case _Kind.bar:
-                    for (final (i, v) in cur.indexed) {
+                    for (final (i, v) in pts.indexed) {
                       if (v == null) continue;
                       ink.rect(
                         Rect.fromLTWH(
@@ -586,13 +657,13 @@ class _TrendCard extends StatelessWidget {
                   case _Kind.dot:
                     ink.gappedLine(
                       [
-                        for (final (i, v) in cur.indexed)
+                        for (final (i, v) in pts.indexed)
                           v == null ? null : Offset(i * step + step / 2, y(v)),
                       ],
                       ink.c.text1,
                       w: 2.5,
                     );
-                    for (final (i, v) in cur.indexed) {
+                    for (final (i, v) in pts.indexed) {
                       if (v != null) {
                         ink.rect(
                           Rect.fromLTWH(
@@ -609,7 +680,7 @@ class _TrendCard extends StatelessWidget {
                   case _Kind.line:
                     ink.gappedLine(
                       [
-                        for (final (i, v) in cur.indexed)
+                        for (final (i, v) in pts.indexed)
                           v == null ? null : Offset(i * step + step / 2, y(v)),
                       ],
                       ink.c.text1,

@@ -201,8 +201,8 @@ class _CardioLoadState extends ConsumerState<CardioLoadScreen> {
                   TempoSegmented<int>(
                     width: 102,
                     height: 32,
-                    values: const [8, 12],
-                    labels: const ['8w', '12w'],
+                    values: const [8, 12, 26, 52],
+                    labels: const ['8w', '12w', '6m', '1y'],
                     selected: _weeks,
                     onChanged: (v) => setState(() => _weeks = v),
                   ),

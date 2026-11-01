@@ -276,6 +276,10 @@ final class HealthCheckReport {
   HealthKind.caffeine => (0, 2),
   // iOS: absolute °C; Health Connect: change from baseline.
   HealthKind.wristTemp => (-10, 45),
+  HealthKind.weight => (20, 350),
+  // iOS a fraction, Health Connect a percent (TODO(verify)).
+  HealthKind.bodyFat => (0.01, 80),
+  HealthKind.menstruation => (0, 3),
   _ => null,
 };
 
