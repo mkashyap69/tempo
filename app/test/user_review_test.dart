@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:health_source/health_source.dart';
 import 'package:scoring/scoring.dart' as sc;
 import 'package:store/store.dart';
+import 'package:tempo/src/core/block_service.dart';
 import 'package:tempo/src/core/body.dart';
 import 'package:tempo/src/core/coach_service.dart';
 import 'package:tempo/src/core/data_source.dart';
@@ -14,6 +15,7 @@ import 'package:tempo/src/core/strength.dart';
 import 'package:tempo/src/core/profile.dart';
 import 'package:tempo/src/core/score_service.dart';
 import 'package:tempo/src/screens/add_activity.dart';
+import 'package:tempo/src/screens/goal.dart';
 import 'package:tempo/src/screens/today_tiles.dart';
 import 'package:tempo/src/screens/week_template.dart';
 import 'package:tempo/src/screens/trends.dart' show bucketed;
@@ -244,6 +246,47 @@ void main() {
       expect(back.vdot, closeTo(50, .3));
       expect(raceTimeSummary(back), '5K 19:57');
       expect(back.copyWith(paceRace: () => null).vdot, isNull);
+    });
+  });
+
+  group('U6', () {
+    testWidgets('Get stronger plans three lifting days and shows main lifts', (
+      t,
+    ) async {
+      final db = (await t.runAsync(() async {
+        final db = await bodyDb();
+        final now = DateTime.now();
+        await saveBlock(db, sc.BlockGoal.strength, now: now);
+        await logSet(
+          db,
+          exercise: 'back_squat',
+          setNo: 1,
+          kg: 100,
+          reps: 5,
+          at: now.subtract(const Duration(hours: 2)),
+        );
+        return db;
+      }))!;
+      final rows = (await t.runAsync(
+        () => CoachService(db).ensureWeek(DateTime.now()),
+      ))!;
+      final lifts = rows.where((r) => r.session.contains('"strength"'));
+      // While calibrating the plan is general (no block); after, three
+      // lifting days.
+      if (rows.first.general) {
+        expect(lifts.length, lessThanOrEqualTo(2));
+      } else {
+        expect(lifts.length, 3);
+      }
+      t.view.physicalSize = const Size(390, 3200);
+      t.view.devicePixelRatio = 1;
+      addTearDown(t.view.reset);
+      await t.pumpWidget(harness(db, const GoalScreen()));
+      await settle(t, frames: 40);
+      expect(find.text('Get stronger'), findsWidgets);
+      expect(find.text('MAIN LIFTS · ESTIMATED 1RM'), findsOneWidget);
+      expect(find.text('Back squat'), findsOneWidget);
+      await teardown(t, db);
     });
   });
 }

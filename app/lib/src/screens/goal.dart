@@ -7,6 +7,7 @@ import 'package:scoring/scoring.dart' as sc;
 import '../core/block_service.dart';
 import '../core/coach_service.dart' show dayOf;
 import '../core/format.dart';
+import '../core/strength.dart' show setLog;
 import '../design/components.dart';
 import '../design/icons.dart';
 import '../design/tokens.dart';
@@ -652,8 +653,8 @@ class GoalBody extends ConsumerWidget {
         Text('No training goal', style: TempoType.pageTitle.c(c.text1)),
         Text(
           'The plan is the same week every week. Set a goal and it builds '
-          'toward it: a race on a date (5K to marathon) or just getting '
-          'fitter, earning each step from how your weeks go.',
+          'toward it: a race on a date (5K to marathon), getting fitter or '
+          'getting stronger, earning each step from how your weeks go.',
           style: TempoType.body.c(c.text2),
         ),
         TempoButton(
@@ -685,6 +686,7 @@ class GoalBody extends ConsumerWidget {
           ],
         ),
         if (w != null) _VerdictCard(v: v),
+        if (b.goal == sc.BlockGoal.strength) _MainLiftsCard(since: b.start),
         if (v.weeks.isNotEmpty) _WeeksCard(v: v),
         if (w != null) _NextWeekCard(v: v),
         if (b.tuneUps.isNotEmpty || v.next != null || v.focus != null)
@@ -1359,6 +1361,92 @@ class _Actions extends ConsumerWidget {
           },
         ),
       ],
+    );
+  }
+}
+
+final _liftsProvider =
+    FutureProvider.family<
+      List<(String, ({double? start, double? now}))>,
+      DateTime
+    >((ref, since) async {
+      ref.watch(dbTickProvider);
+      final db = ref.watch(dbProvider);
+      final now = DateTime.now();
+      final sets = [
+        for (final r in await db.strengthSetsBetween(
+          since,
+          now.add(const Duration(days: 1)),
+        ))
+          setLog(r),
+      ];
+      return [
+        for (final id in sc.mainLifts)
+          (id, sc.liftProgress(id, sets, since: since, now: now)),
+      ];
+    });
+
+/// Get stronger (U6): each main lift's best estimated 1RM at the start of
+/// the block and in the last two weeks.
+class _MainLiftsCard extends ConsumerWidget {
+  const _MainLiftsCard({required this.since});
+  final DateTime since;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final c = context.c;
+    final rows = ref.watch(_liftsProvider(since)).value ?? const [];
+    final kg = ref.watch(profileProvider).value?.metric ?? true;
+    String w(double x) => kg
+        ? '${x.toStringAsFixed(x >= 100 ? 0 : 1)} kg'
+        : '${(x * 2.2046).round()} lb';
+    final any = rows.any((r) => r.$2.start != null || r.$2.now != null);
+    return TempoCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Overline('Main lifts · estimated 1RM'),
+          const SizedBox(height: 8),
+          if (!any)
+            Text(
+              'Log squat, bench press, deadlift or overhead press with sets '
+              'of 10 reps or fewer, and each lift’s progress shows here.',
+              style: TempoType.bodyS.c(c.text2),
+            )
+          else
+            for (final (id, p) in rows)
+              if (p.start != null || p.now != null)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          sc.exerciseById[id]!.name,
+                          style: TempoType.label.c(c.text1),
+                        ),
+                      ),
+                      Text(
+                        [
+                          if (p.start != null) w(p.start!),
+                          if (p.start != null && p.now != null) '→',
+                          if (p.now != null) w(p.now!),
+                          if (p.start != null && p.now != null)
+                            '(${p.now! >= p.start! ? '+' : '−'}${w((p.now! - p.start!).abs())})',
+                        ].join(' '),
+                        style: TempoType.bodyS.c(c.text2).tnum,
+                      ),
+                    ],
+                  ),
+                ),
+          const SizedBox(height: 6),
+          Text(
+            'Start: the block’s first two weeks. Now: the last two. Epley '
+            'estimate from your heaviest sets.',
+            style: TempoType.caption.c(c.text3),
+          ),
+        ],
+      ),
     );
   }
 }

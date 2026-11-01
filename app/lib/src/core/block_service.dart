@@ -66,7 +66,7 @@ Future<String?> saveBlock(
           ),
   );
   // A queued goal follows a race; without one it has nothing to follow.
-  if (goal == null || goal == sc.BlockGoal.open) {
+  if (goal == null || sc.isOpenGoal(goal)) {
     await db.putSetting(Keys.coachNext, '');
   }
   await CoachService(db).ensureWeek(today, rebuild: true);

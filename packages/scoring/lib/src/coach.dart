@@ -507,6 +507,9 @@ Session fitMinutes(Session s, int maxMinutes) {
   );
 }
 
+/// Lifting days a week in a Get stronger block (U6).
+const liftGoalDays = 3;
+
 /// [s] within [cap] minutes: trims the longest block, then whole interval
 /// reps (never under 2), since trimming alone can't shorten a rep.
 Session fitDay(Session s, int cap) {
@@ -579,10 +582,14 @@ List<Session> weekPlan(
   Lever? focus,
   BlockWeek? block,
 }) {
-  final runEvent = block != null && block.goal != BlockGoal.open;
+  final runEvent = block != null && !isOpenGoal(block.goal);
+  // Get stronger (U6): lifting is the key work, three days a week; the
+  // rest stays easy cardio with no hard sessions and no long one.
+  final liftGoal = block?.goal == BlockGoal.strength;
   final likes = {
     ...(p.likes.isEmpty ? {Sport.walking} : p.likes),
     if (runEvent) Sport.running,
+    if (liftGoal) Sport.strength,
   };
   final avail = [
     for (var d = 1; d <= 7; d++)
@@ -595,6 +602,14 @@ List<Session> weekPlan(
     for (final d in p.liftDays)
       if (avail.contains(d) && d != pinnedLong) d,
   };
+  if (liftGoal) {
+    // Up to three lifting days a day apart: yours first, then the
+    // earliest free days.
+    for (final d in avail) {
+      if (lifts.length >= liftGoalDays) break;
+      if (lifts.every((x) => (x - d).abs() >= 2)) lifts.add(d);
+    }
+  }
   if (avail.length == 7) {
     // One rest day: Wednesday, or the first day after it nothing is
     // pinned to.
@@ -618,7 +633,7 @@ List<Session> weekPlan(
           for (final s in likes)
             if (hardKeyFor(s) != null) s,
         ];
-  final hardCount = block?.hard(p.hardPerWeek) ?? p.hardPerWeek;
+  final hardCount = liftGoal ? 0 : block?.hard(p.hardPerWeek) ?? p.hardPerWeek;
   final sharp =
       block?.phase == Phase.peak &&
       (block!.goal == BlockGoal.run5k || block.goal == BlockGoal.run10k);
@@ -647,7 +662,11 @@ List<Session> weekPlan(
     }
   }
 
-  final long = runEvent ? 'long_run' : _longKey(likes);
+  final long = liftGoal
+      ? null
+      : runEvent
+      ? 'long_run'
+      : _longKey(likes);
   final rest = [
     for (final d in avail)
       if (!hard.contains(d) && !lifts.contains(d)) d,
@@ -674,7 +693,13 @@ List<Session> weekPlan(
     if (heavyNext) {
       plan[d - 1] = 'strength_upper';
     } else {
-      plan[d - 1] = legs.isEven ? 'strength_full' : 'strength_lower';
+      // A Get stronger week splits lower, upper, full body (U6).
+      plan[d - 1] = liftGoal
+          ? const ['strength_lower', 'strength_upper', 'strength_full'][legs %
+                3]
+          : legs.isEven
+          ? 'strength_full'
+          : 'strength_lower';
       legs++;
     }
   }
@@ -753,7 +778,7 @@ Session raceSession(BlockGoal g, {bool tuneUp = false}) => Session(
       BlockGoal.run5k => 30,
       BlockGoal.run10k => 55,
       BlockGoal.half => 115,
-      BlockGoal.marathon || BlockGoal.open => 240,
+      BlockGoal.marathon || BlockGoal.open || BlockGoal.strength => 240,
     }, g == BlockGoal.marathon ? 3 : 4),
   ],
   strainLo: 14,

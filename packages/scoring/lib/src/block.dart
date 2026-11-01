@@ -16,7 +16,12 @@ import 'dart:math';
 /// Version stamped on plan rows built from a block.
 const blockAlgo = 'block-2';
 
-enum BlockGoal { open, run5k, run10k, half, marathon }
+/// A goal's kind. Names are stored; never rename one. [strength] (U6) is
+/// open-ended like [open] and builds lifting instead of running.
+enum BlockGoal { open, run5k, run10k, half, marathon, strength }
+
+/// No race day: open-ended goals.
+bool isOpenGoal(BlockGoal g) => g == BlockGoal.open || g == BlockGoal.strength;
 
 enum Phase { base, build, peak, deload, taper, race }
 
@@ -52,7 +57,7 @@ final class TrainingBlock {
   /// Tune-up races, oldest first.
   final List<TuneUp> tuneUps;
 
-  bool get isEvent => goal != BlockGoal.open && event != null;
+  bool get isEvent => !isOpenGoal(goal) && event != null;
 
   /// Weeks from [start] to the race week, inclusive.
   int get weeks => isEvent ? _weeksBetween(start, event!) + 1 : 0;
@@ -111,7 +116,7 @@ int recommendedWeeks(BlockGoal g) => switch (g) {
   BlockGoal.run10k => 8,
   BlockGoal.half => 10,
   BlockGoal.marathon => 16,
-  BlockGoal.open => 0,
+  BlockGoal.open || BlockGoal.strength => 0,
 };
 
 /// Weeks an event block on [event] would have if it started the week of
@@ -172,6 +177,7 @@ int longCapMinutes(BlockGoal g) => switch (g) {
   BlockGoal.half => 110,
   BlockGoal.marathon => 160,
   BlockGoal.open => 90,
+  BlockGoal.strength => 60,
 };
 
 /// The phase of week [i] (0-based) of an event block of [n] weeks.
@@ -470,6 +476,7 @@ WeekForecast forecastWeek(WeekOutcome soFar, {required int left}) {
 
 String goalName(BlockGoal g) => switch (g) {
   BlockGoal.open => 'Get fitter',
+  BlockGoal.strength => 'Get stronger',
   BlockGoal.run5k => '5K',
   BlockGoal.run10k => '10K',
   BlockGoal.half => 'Half marathon',

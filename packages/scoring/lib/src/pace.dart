@@ -101,7 +101,7 @@ double? goalMetres(BlockGoal g) => switch (g) {
   BlockGoal.run10k => 10000,
   BlockGoal.half => 21097.5,
   BlockGoal.marathon => 42195,
-  BlockGoal.open => null,
+  BlockGoal.open || BlockGoal.strength => null,
 };
 
 /// "Z2 5:38–5:07 · Z4 4:25–4:15 /km" for a run's zones, slowest first;

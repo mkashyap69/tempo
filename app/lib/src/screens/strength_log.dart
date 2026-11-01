@@ -158,11 +158,12 @@ class _LogState extends ConsumerState<StrengthLogScreen> {
         ),
     ]);
     await saveRoutine(ref.read(dbProvider), r);
-    if (mounted)
+    if (mounted) {
       showTempoToast(
         context,
         '“$name” saved. Start it from (+) → Log strength.',
       );
+    }
   }
 
   Future<void> _fill(List<sc.Exercise> exercises) async {

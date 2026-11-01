@@ -1276,3 +1276,37 @@ double setTrimp(SetLog s) {
 /// Load of a logged lifting session in TRIMP units.
 double trimpFromSets(Iterable<SetLog> sets) =>
     sets.fold(0, (a, s) => a + setTrimp(s));
+
+/// The lifts a Get stronger goal tracks (U6).
+const mainLifts = ['back_squat', 'bench_press', 'deadlift', 'overhead_press'];
+
+/// Best estimated 1RM of [exercise] at the start of a block (its first two
+/// weeks from [since]) and now (the last two weeks to [now]); either null
+/// without sets of 10 reps or fewer then.
+({double? start, double? now}) liftProgress(
+  String exercise,
+  Iterable<SetLog> sets, {
+  required DateTime since,
+  required DateTime now,
+}) {
+  double? best(DateTime a, DateTime b) {
+    double? m;
+    for (final s in sets) {
+      if (s.exercise != exercise || s.at.isBefore(a) || !s.at.isBefore(b)) {
+        continue;
+      }
+      final e = e1rm(s.kg, s.reps);
+      if (e != null && (m == null || e > m)) m = e;
+    }
+    return m;
+  }
+
+  final early = since.add(const Duration(days: 14));
+  final late = now.subtract(const Duration(days: 14));
+  return (
+    start: best(since, early),
+    now: now.isBefore(early)
+        ? null
+        : best(late, now.add(const Duration(days: 1))),
+  );
+}

@@ -31,6 +31,9 @@ String goalBlurb(sc.BlockGoal g) => switch (g) {
   sc.BlockGoal.marathon => 'Long runs build to about 2 h 40 m.',
   sc.BlockGoal.open =>
     'No date. Keeps building, with a lighter week every 4th.',
+  sc.BlockGoal.strength =>
+    'No date. Three lifting days a week with your next weights; '
+        'cardio stays easy. A lighter week every 4th.',
 };
 
 String goalTypical(sc.BlockGoal g) => switch (g) {
@@ -38,7 +41,7 @@ String goalTypical(sc.BlockGoal g) => switch (g) {
   sc.BlockGoal.run10k => '8–12 weeks',
   sc.BlockGoal.half => '10–16 weeks',
   sc.BlockGoal.marathon => '16–24 weeks',
-  sc.BlockGoal.open => 'Open-ended',
+  sc.BlockGoal.open || sc.BlockGoal.strength => 'Open-ended',
 };
 
 const _events = [
@@ -98,12 +101,16 @@ class _GoalSetupState extends ConsumerState<GoalSetupScreen> {
     SetupMode.next => sc.nextBlockStart(_b!)!,
   };
 
+  /// An open-ended goal (Get fitter, Get stronger): no race date.
+  bool get _open => _goal != null && sc.isOpenGoal(_goal!);
+
   List<sc.BlockGoal> get _options => switch (widget.mode) {
-    SetupMode.newGoal => [..._events, sc.BlockGoal.open],
+    SetupMode.newGoal => [..._events, sc.BlockGoal.open, sc.BlockGoal.strength],
     SetupMode.next => _events,
     SetupMode.tuneUp => [
       for (final g in _events)
-        if (_b!.goal == sc.BlockGoal.open || g.index < _b!.goal.index) g,
+        if (_b!.goal == sc.BlockGoal.open || g.index < _b!.goal.index)
+          if (_b!.goal != sc.BlockGoal.strength) g,
     ],
     SetupMode.changeDate => [_b!.goal],
   };
@@ -339,7 +346,7 @@ class _GoalSetupState extends ConsumerState<GoalSetupScreen> {
   sc.TrainingBlock get _preview => sc.TrainingBlock(
     goal: _goal!,
     start: _start,
-    event: _goal == sc.BlockGoal.open ? null : _date,
+    event: _open ? null : _date,
     tuneUps: widget.mode == SetupMode.changeDate ? _b!.tuneUps : const [],
   );
 
@@ -358,7 +365,7 @@ class _GoalSetupState extends ConsumerState<GoalSetupScreen> {
         b.isEvent ? 'Your ${b.weeks}-week plan' : 'Your first 12 weeks',
         b.isEvent
             ? '${sc.goalName(b.goal)} · ${dayShort(b.event!)}'
-            : 'Get fitter · keeps going after week 12',
+            : '${sc.goalName(b.goal)} · keeps going after week 12',
       ),
       TempoCard(
         child: Column(
@@ -419,7 +426,7 @@ class _GoalSetupState extends ConsumerState<GoalSetupScreen> {
     };
     final label = switch (_step) {
       0 when _none => 'Use the same week every week',
-      0 when _goal == sc.BlockGoal.open => 'Preview plan',
+      0 when _open => 'Preview plan',
       0 =>
         widget.mode == SetupMode.tuneUp ? 'Choose race day' : 'Choose race day',
       1 when last => 'Add tune-up',
@@ -443,9 +450,7 @@ class _GoalSetupState extends ConsumerState<GoalSetupScreen> {
               onTap: _busy
                   ? null
                   : () => setState(() {
-                      _step = _step == 2 && _goal == sc.BlockGoal.open
-                          ? 0
-                          : _step - 1;
+                      _step = _step == 2 && _open ? 0 : _step - 1;
                     }),
             ),
           ),
@@ -467,7 +472,7 @@ class _GoalSetupState extends ConsumerState<GoalSetupScreen> {
     if (_step == 0) {
       if (_none) return _finish();
       setState(() {
-        _step = _goal == sc.BlockGoal.open ? 2 : 1;
+        _step = _open ? 2 : 1;
         _month = null;
       });
       return;
@@ -488,7 +493,7 @@ class _GoalSetupState extends ConsumerState<GoalSetupScreen> {
         final before = await saveBlock(
           db,
           _none ? null : _goal,
-          event: _none || _goal == sc.BlockGoal.open ? null : _date,
+          event: _none || _open ? null : _date,
         );
         result = GoalSetupResult(before: before, cleared: _none);
       case SetupMode.changeDate:
