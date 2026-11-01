@@ -403,6 +403,8 @@ abstract final class TodayBody {
             call,
             if (!evening) ?session,
             if (!evening) LastNightStrip(t: t),
+            // A rest day is when resting HR and HRV matter most.
+            const TodayTiles(),
           ];
         case sc.DayPhase.morning:
           body = [
@@ -454,6 +456,7 @@ abstract final class TodayBody {
             const SleepPlanRow(),
             if (!done) ?session,
             ...coachNotes,
+            const TodayTiles(),
           ];
       }
     }
