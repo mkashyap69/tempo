@@ -201,7 +201,12 @@ final class WeekOutcome {
     required this.done,
     this.recovery,
     this.feel,
+    this.limited = false,
   });
+
+  /// Trained around an injury for part of the week (U3): the plan was
+  /// swapped, so the week can hold or step back but never grows.
+  final bool limited;
 
   /// Sessions planned (rest days not counted) and how many were done; a
   /// session done easier counts half.
@@ -232,7 +237,7 @@ WeekCall weekCall(WeekOutcome w) {
   if (w.ratio >= absorbRatio &&
       (r == null || r >= absorbRecovery) &&
       (f == null || f >= absorbFeel)) {
-    return WeekCall.stepUp;
+    return w.limited ? WeekCall.hold : WeekCall.stepUp;
   }
   return WeekCall.hold;
 }

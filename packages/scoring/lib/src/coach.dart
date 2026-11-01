@@ -507,12 +507,29 @@ Session fitMinutes(Session s, int maxMinutes) {
   );
 }
 
+/// [s] within [cap] minutes: trims the longest block, then whole interval
+/// reps (never under 2), since trimming alone can't shorten a rep.
+Session fitDay(Session s, int cap) {
+  final r = fitMinutes(s, cap);
+  if (r.minutes <= cap) return r;
+  final reps = _repeats(s.segments);
+  if (reps == null) return r;
+  final (from, n) = reps;
+  final per = s.segments[from].minutes + s.segments[from + 1].minutes;
+  final m = max(2, n - ((r.minutes - cap) / per).ceil());
+  return fitMinutes(scaled(s, m / n), cap);
+}
+
 final class CoachPrefs {
   const CoachPrefs({
     required this.goal,
     required this.likes,
     required this.days,
     required this.maxMinutes,
+    this.dayMinutes = const {},
+    this.longDay,
+    this.liftDays = const {},
+    this.hardSessions,
   });
   final Goal goal;
   final Set<Sport> likes;
@@ -521,10 +538,27 @@ final class CoachPrefs {
   final Set<int> days;
   final int maxMinutes;
 
-  int get hardPerWeek => switch (goal) {
-    Goal.fitness || Goal.performance => 2,
-    Goal.fatLoss || Goal.wellbeing => 1,
-  };
+  /// Minutes on a given weekday (U3); a day not in it gets [maxMinutes].
+  final Map<int, int> dayMinutes;
+
+  /// The weekday the long session goes on (U3), or null for Tempo's
+  /// choice (the first free weekend day).
+  final int? longDay;
+
+  /// Weekdays that are always strength (U3), on top of what the plan adds.
+  final Set<int> liftDays;
+
+  /// Hard sessions a week (0–3) if you set it (U3), else by goal.
+  final int? hardSessions;
+
+  int minutesOn(int weekday) => dayMinutes[weekday] ?? maxMinutes;
+
+  int get hardPerWeek =>
+      hardSessions ??
+      switch (goal) {
+        Goal.fitness || Goal.performance => 2,
+        Goal.fatLoss || Goal.wellbeing => 1,
+      };
 }
 
 /// Seven sessions, Monday first. Unavailable days are rest; with every day
@@ -554,7 +588,28 @@ List<Session> weekPlan(
     for (var d = 1; d <= 7; d++)
       if (p.days.contains(d)) d,
   ];
-  if (avail.length == 7) avail.remove(3); // Wednesday off
+  final pinnedLong = p.longDay != null && avail.contains(p.longDay)
+      ? p.longDay
+      : null;
+  final lifts = {
+    for (final d in p.liftDays)
+      if (avail.contains(d) && d != pinnedLong) d,
+  };
+  if (avail.length == 7) {
+    // One rest day: Wednesday, or the first day after it nothing is
+    // pinned to.
+    final off = [
+      3,
+      4,
+      2,
+      5,
+      1,
+      6,
+      7,
+    ].firstWhere((d) => d != pinnedLong && !lifts.contains(d), orElse: () => 3);
+    avail.remove(off);
+    lifts.remove(off);
+  }
   final plan = List<String>.filled(7, 'rest');
 
   final hardSports = runEvent
@@ -570,9 +625,19 @@ List<Session> weekPlan(
   final hard = <int>[];
   if (!general && hardSports.isNotEmpty) {
     // Latest days first so the week ends on quality; ≥ 2 days apart.
-    for (final d in avail.reversed) {
-      if (hard.length >= hardCount) break;
-      if (hard.every((h) => (h - d).abs() >= 2)) hard.add(d);
+    // Pinned long and lifting days are never hard, and a pinned long day
+    // keeps its neighbours easy when the week has room (U3).
+    final open = [
+      for (final d in avail.reversed)
+        if (d != pinnedLong && !lifts.contains(d)) d,
+    ];
+    bool nextToLong(int d) => pinnedLong != null && (d - pinnedLong).abs() == 1;
+    for (final strict in [true, false]) {
+      for (final d in open) {
+        if (hard.length >= hardCount) break;
+        if (hard.contains(d) || (strict && nextToLong(d))) continue;
+        if (hard.every((h) => (h - d).abs() >= 2)) hard.add(d);
+      }
     }
     for (final (i, d) in hard.indexed) {
       final sport = hardSports[i % hardSports.length];
@@ -585,18 +650,36 @@ List<Session> weekPlan(
   final long = runEvent ? 'long_run' : _longKey(likes);
   final rest = [
     for (final d in avail)
-      if (!hard.contains(d)) d,
+      if (!hard.contains(d) && !lifts.contains(d)) d,
   ];
   if (long != null &&
       rest.isNotEmpty &&
-      (p.goal != Goal.wellbeing || block != null)) {
+      (p.goal != Goal.wellbeing || block != null || pinnedLong != null)) {
     final weekend = rest.where((d) => d >= 6).toList();
-    final d = weekend.isNotEmpty ? weekend.first : rest.last;
+    final d = pinnedLong != null && rest.contains(pinnedLong)
+        ? pinnedLong
+        : weekend.isNotEmpty
+        ? weekend.first
+        : rest.last;
     plan[d - 1] = long;
     rest.remove(d);
   }
+  // Pinned lifting days (U3): full body and lower body in turn, but upper
+  // body the day before a hard or long session, so legs come to it fresh.
+  var legs = 0;
+  for (final d in lifts.toList()..sort()) {
+    final next = d < 7 ? plan[d] : 'rest';
+    final heavyNext =
+        hard.contains(d + 1) || next.startsWith('long_') || next == 'race';
+    if (heavyNext) {
+      plan[d - 1] = 'strength_upper';
+    } else {
+      plan[d - 1] = legs.isEven ? 'strength_full' : 'strength_lower';
+      legs++;
+    }
+  }
   final easy = [for (final s in likes) _easyKey(s)].toSet().toList();
-  var strength = 0;
+  var strength = lifts.length;
   for (final (i, d) in rest.indexed) {
     var k = easy[i % easy.length];
     if (k == 'strength_full') {
@@ -612,17 +695,23 @@ List<Session> weekPlan(
   }
   _applyFocus(plan, focus, likes, hard: hard);
   if (block == null) {
-    return [for (final k in plan) fitMinutes(sessionTemplate(k), p.maxMinutes)];
+    return [
+      for (final (i, k) in plan.indexed)
+        fitDay(sessionTemplate(k), p.minutesOn(i + 1)),
+    ];
   }
   final week = [
-    for (final k in plan)
+    for (final (i, k) in plan.indexed)
       k.startsWith('long_')
           ? scaled(
               sessionTemplate(k),
               block.longVolume,
-              cap: max(p.maxMinutes, longCapMinutes(block.goal)),
+              cap: max(p.minutesOn(i + 1), longCapMinutes(block.goal)),
             )
-          : fitMinutes(scaled(sessionTemplate(k), block.volume), p.maxMinutes),
+          : fitDay(
+              scaled(sessionTemplate(k), block.volume),
+              p.minutesOn(i + 1),
+            ),
   ];
   final race = block.raceDay;
   if (race != null) {

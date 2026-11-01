@@ -220,6 +220,7 @@ class ActivityDetailScreen extends ConsumerWidget {
             'auto' =>
               w.confirmed ? 'Auto-detected · confirmed' : 'Auto-detected',
             'band' => 'Recorded on the band',
+            'manual' => 'Added by hand · strain estimated',
             _ => 'Recorded live',
           }),
           trailing: TempoIconButton(

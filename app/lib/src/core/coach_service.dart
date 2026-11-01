@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'limit.dart' show limitOn;
+
 import 'package:drift/drift.dart';
 import 'package:scoring/scoring.dart' as sc;
 import 'package:store/store.dart' as st;
@@ -97,7 +99,7 @@ class CoachService {
     final focus = await loadFocus(db);
     // No progression while the baseline is still being learned.
     final block = general ? null : await blockWeekFor(db, mon);
-    final week = sc.weekPlan(
+    final planned = sc.weekPlan(
       profile.prefs,
       general: general,
       focus: focus != null && focus.activeOn(mon.add(const Duration(days: 6)))
@@ -105,6 +107,15 @@ class CoachService {
           : null,
       block: block,
     );
+    // Around an injury, each day as its limit allows (U3).
+    final week = [
+      for (var i = 0; i < 7; i++)
+        sc.limited(
+          planned[i],
+          await limitOn(db, mon.add(Duration(days: i))),
+          likes: profile.likes,
+        ),
+    ];
     final today = dayOf(DateTime.now());
     final have = {for (final e in existing) e.date: e};
     for (var i = 0; i < 7; i++) {

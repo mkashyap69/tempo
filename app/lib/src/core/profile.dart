@@ -145,6 +145,12 @@ final class Profile {
     this.games = const {},
     this.zonesByReserve = false,
     this.stepGoal,
+    this.dayMinutes = const {},
+    this.longDay,
+    this.liftDays = const {},
+    this.hardSessions,
+    this.paceMetres,
+    this.paceSeconds,
   });
 
   final int age, heightCm;
@@ -171,14 +177,41 @@ final class Profile {
   final int? stepGoal;
 
   /// Your own goal, else Tempo's default: 8,000 a day, 6,000 from 60.
+  /// Minutes per weekday where they differ from [maxMinutes] (U3).
+  final Map<int, int> dayMinutes;
+
+  /// Week template (U3): the long session's day, the lifting days and the
+  /// hard sessions a week; null / empty = Tempo's choice.
+  final int? longDay;
+  final Set<int> liftDays;
+  final int? hardSessions;
+
+  /// A recent race or time trial for running paces (U5): distance, metres,
+  /// and time, seconds. Null = no paces shown.
+  final double? paceMetres;
+  final int? paceSeconds;
+
+  /// Daniels' VDOT from that race, or null.
+  double? get vdot => paceMetres == null || paceSeconds == null
+      ? null
+      : vdotFromRace(paceMetres!, paceSeconds!.toDouble());
+
   int get effectiveStepGoal => stepGoal ?? (age >= 60 ? 6000 : 8000);
 
   int get effectiveMaxHr => maxHr ?? maxHrFromAge(age);
   bool get wornLeft => wornOn != 'Right wrist';
   bool get maxHrEstimated => maxHr == null;
 
-  CoachPrefs get prefs =>
-      CoachPrefs(goal: goal, likes: likes, days: days, maxMinutes: maxMinutes);
+  CoachPrefs get prefs => CoachPrefs(
+    goal: goal,
+    likes: likes,
+    days: days,
+    maxMinutes: maxMinutes,
+    dayMinutes: dayMinutes,
+    longDay: longDay,
+    liftDays: liftDays,
+    hardSessions: hardSessions,
+  );
 
   UserProfile get band => UserProfile(
     birthDate: DateTime(DateTime.now().year - age, 1, 1),
@@ -202,6 +235,11 @@ final class Profile {
     Set<Game>? games,
     bool? zonesByReserve,
     int? Function()? stepGoal,
+    Map<int, int>? dayMinutes,
+    int? Function()? longDay,
+    Set<int>? liftDays,
+    int? Function()? hardSessions,
+    (double, int)? Function()? paceRace,
   }) => Profile(
     age: age ?? this.age,
     heightCm: heightCm ?? this.heightCm,
@@ -217,6 +255,12 @@ final class Profile {
     games: games ?? this.games,
     zonesByReserve: zonesByReserve ?? this.zonesByReserve,
     stepGoal: stepGoal == null ? this.stepGoal : stepGoal(),
+    dayMinutes: dayMinutes ?? this.dayMinutes,
+    longDay: longDay == null ? this.longDay : longDay(),
+    liftDays: liftDays ?? this.liftDays,
+    hardSessions: hardSessions == null ? this.hardSessions : hardSessions(),
+    paceMetres: paceRace == null ? paceMetres : paceRace()?.$1,
+    paceSeconds: paceRace == null ? paceSeconds : paceRace()?.$2,
   );
 
   Map<String, Object?> toJson() => {
@@ -234,6 +278,12 @@ final class Profile {
     'games': [for (final g in games) g.name],
     'zonesByReserve': zonesByReserve,
     'stepGoal': stepGoal,
+    'dayMinutes': {for (final e in dayMinutes.entries) '${e.key}': e.value},
+    'longDay': longDay,
+    'liftDays': liftDays.toList()..sort(),
+    'hardSessions': hardSessions,
+    'paceMetres': paceMetres,
+    'paceSeconds': paceSeconds,
   };
 
   static Profile fromJson(Map<String, dynamic> j) => Profile(
@@ -258,6 +308,15 @@ final class Profile {
     },
     zonesByReserve: j['zonesByReserve'] as bool? ?? false,
     stepGoal: j['stepGoal'] as int?,
+    dayMinutes: {
+      for (final e in ((j['dayMinutes'] as Map?) ?? const {}).entries)
+        int.parse(e.key as String): e.value as int,
+    },
+    longDay: j['longDay'] as int?,
+    liftDays: {for (final d in (j['liftDays'] as List? ?? const [])) d as int},
+    hardSessions: j['hardSessions'] as int?,
+    paceMetres: (j['paceMetres'] as num?)?.toDouble(),
+    paceSeconds: j['paceSeconds'] as int?,
   );
 }
 

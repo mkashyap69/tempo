@@ -2,13 +2,20 @@ import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:health_source/health_source.dart';
+import 'package:scoring/scoring.dart' as sc;
 import 'package:store/store.dart';
 import 'package:tempo/src/core/body.dart';
 import 'package:tempo/src/core/coach_service.dart';
 import 'package:tempo/src/core/data_source.dart';
 import 'package:tempo/src/core/health_sync.dart';
+import 'package:tempo/src/core/limit.dart';
+import 'package:tempo/src/core/manual_activity.dart';
+import 'package:tempo/src/core/strength.dart';
 import 'package:tempo/src/core/profile.dart';
+import 'package:tempo/src/core/score_service.dart';
+import 'package:tempo/src/screens/add_activity.dart';
 import 'package:tempo/src/screens/today_tiles.dart';
+import 'package:tempo/src/screens/week_template.dart';
 import 'package:tempo/src/screens/trends.dart' show bucketed;
 
 import 'support/harness.dart';
@@ -100,6 +107,143 @@ void main() {
       expect(find.text('Cycle'), findsOneWidget);
       expect(find.textContaining('Day 25', findRichText: true), findsWidgets);
       await teardown(t, db);
+    });
+  });
+
+  group('U3', () {
+    test('the week template survives a round trip into the planner', () {
+      const p = Profile(
+        dayMinutes: {1: 30, 7: 150},
+        longDay: 7,
+        liftDays: {1, 4},
+        hardSessions: 3,
+      );
+      final back = Profile.fromJson(p.toJson());
+      expect(back.prefs.minutesOn(1), 30);
+      expect(back.prefs.minutesOn(2), p.maxMinutes);
+      expect(back.longDay, 7);
+      expect(back.liftDays, {1, 4});
+      expect(back.prefs.hardPerWeek, 3);
+      expect(back.copyWith(hardSessions: () => null).prefs.hardPerWeek, 2);
+    });
+
+    test('an injury limits the plan from today, and ends', () async {
+      final db = await bodyDb();
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      await saveAppProfile(
+        db,
+        const Profile(likes: {sc.Sport.running, sc.Sport.strength}),
+      );
+      await setLimit(db, sc.TrainingLimit.noRunning, on: today);
+      expect(await limitOn(db, today), sc.TrainingLimit.noRunning);
+      expect(
+        await limitOn(db, today.subtract(const Duration(days: 1))),
+        sc.TrainingLimit.none,
+      );
+      final rows = await CoachService(db).ensureWeek(today, rebuild: true);
+      for (final r in rows) {
+        if (DateTime.parse(r.date).isBefore(today)) continue;
+        expect(r.session, isNot(contains('"running"')), reason: r.date);
+      }
+      final tomorrow = today.add(const Duration(days: 1));
+      await setLimit(db, sc.TrainingLimit.none, on: tomorrow);
+      expect(await limitOn(db, today), sc.TrainingLimit.noRunning);
+      expect(await limitOn(db, tomorrow), sc.TrainingLimit.none);
+      expect(await limitedWeek(db, mondayOf(today)), isTrue);
+      await db.close();
+    });
+
+    test('saved routines replace by name', () async {
+      final db = await bodyDb();
+      const a = sc.Routine('Push', [
+        sc.Exercise('Bench press', sets: 3, reps: '8'),
+      ]);
+      const b = sc.Routine('push', [
+        sc.Exercise('Bench press', sets: 5, reps: '5'),
+      ]);
+      await saveRoutine(db, a);
+      await saveRoutine(db, b);
+      final rs = await loadRoutines(db);
+      expect(rs.single.items.single.sets, 5);
+      await deleteRoutine(db, 'push');
+      expect(await loadRoutines(db), isEmpty);
+      await db.close();
+    });
+  });
+
+  group('U4', () {
+    test('a hand-added session adds its load once', () async {
+      final db = await bodyDb();
+      final now = DateTime.now();
+      final day = DateTime(now.year, now.month, now.day - 1);
+      final before = (await db.scoresBetween(day, day)).single.strain;
+      final id = await addManualActivity(
+        db,
+        sport: sc.Sport.cycling,
+        start: day.add(const Duration(hours: 7)),
+        minutes: 60,
+        rpe: 6,
+      );
+      final w = (await db.workoutsBetween(
+        day,
+        day.add(const Duration(days: 1)),
+      )).firstWhere((x) => x.id == id);
+      expect(w.source, 'manual');
+      expect(w.rpe, 6);
+      expect(w.zones, '[0,0,60,0,0]');
+      final after = (await db.scoresBetween(day, day)).single.strain;
+      expect(after, greaterThan(before));
+      // Rescoring again doesn't add it twice.
+      await ScoreService(db).recomputeFrom(day);
+      expect(
+        (await db.scoresBetween(day, day)).single.strain,
+        closeTo(after, 1e-6),
+      );
+      await db.close();
+    });
+
+    testWidgets('the add-activity screen saves a ride', (t) async {
+      final db = (await t.runAsync(bodyDb))!;
+      final now = DateTime.now();
+      t.view.physicalSize = const Size(390, 1600);
+      t.view.devicePixelRatio = 1;
+      addTearDown(t.view.reset);
+      await t.pumpWidget(
+        harness(
+          db,
+          AddActivityScreen(now: DateTime(now.year, now.month, now.day, 20)),
+        ),
+      );
+      await settle(t);
+      await t.tap(find.text('Cycling'));
+      await t.tap(find.text('Yesterday'));
+      await settle(t);
+      expect(find.textContaining('strain'), findsWidgets);
+      await t.tap(find.text('Add activity'));
+      await settle(t, frames: 60);
+      await t.runAsync(() async {
+        final ws = await db.workoutsBetween(
+          DateTime(now.year, now.month, now.day - 1),
+          DateTime(now.year, now.month, now.day),
+        );
+        expect(ws.where((w) => w.source == 'manual').single.sport, 'cycling');
+      });
+      await teardown(t, db);
+    });
+  });
+
+  group('U5', () {
+    test('race time parses and gives paces', () {
+      expect(parseRaceTime('24:30'), 24 * 60 + 30);
+      expect(parseRaceTime('1:45:00'), 105 * 60);
+      expect(parseRaceTime('24:75'), isNull);
+      expect(parseRaceTime('abc'), isNull);
+      final p = const Profile().copyWith(paceRace: () => (5000.0, 1197));
+      final back = Profile.fromJson(p.toJson());
+      expect(back.vdot, closeTo(50, .3));
+      expect(raceTimeSummary(back), '5K 19:57');
+      expect(back.copyWith(paceRace: () => null).vdot, isNull);
     });
   });
 }

@@ -11,6 +11,7 @@ import '../design/tokens.dart';
 import '../design/type.dart';
 import '../state/live_session.dart';
 import '../state/providers.dart';
+import 'add_activity.dart';
 import 'journal.dart';
 import 'live_workout.dart';
 import 'pairing.dart';
@@ -212,6 +213,12 @@ Future<void> showStartSheet(BuildContext context, WidgetRef ref) async {
             children: [
               row('strength', 'Log strength', 'Sets, reps and weight'),
               const Hair(),
+              row(
+                'add',
+                'Add an activity',
+                'Something your watch didn’t record',
+              ),
+              const Hair(),
               row('checkin', 'Check in', 'Yesterday’s journal'),
               const Hair(),
               row('pause', 'Not today', 'Ill or travelling: pause the plan'),
@@ -228,6 +235,8 @@ Future<void> showStartSheet(BuildContext context, WidgetRef ref) async {
       await openLive(context, ref, ask: true);
     case 'strength':
       await push(context, const StrengthLogScreen());
+    case 'add':
+      await push(context, const AddActivityScreen());
     case 'checkin':
       await push(context, const JournalScreen(standalone: true));
     case 'pause':

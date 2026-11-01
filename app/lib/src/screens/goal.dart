@@ -465,6 +465,11 @@ class GoalCard extends ConsumerWidget {
       if (v.next != null) '${sc.goalName(v.next!.goal)} next',
     ];
     final verdict = w == null ? null : verdictFor(v);
+    final vdot = ref.watch(profileProvider).value?.vdot;
+    final metres = sc.goalMetres(b.goal);
+    final predicted = vdot == null || metres == null
+        ? null
+        : sc.raceSeconds(vdot, metres);
     return TempoCard(
       label: 'Open training goal',
       onTap: onOpen ?? () => push(context, const GoalScreen()),
@@ -495,6 +500,14 @@ class GoalCard extends ConsumerWidget {
             const SizedBox(height: 4),
             Text(
               'Also: ${also.join(' · ')}',
+              style: TempoType.bodyS.c(c.text2).tnum,
+            ),
+          ],
+          // At today's fitness, from your race time (U5).
+          if (b.isEvent && predicted != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              'At today’s fitness: about ${sc.durationText(predicted)}',
               style: TempoType.bodyS.c(c.text2).tnum,
             ),
           ],

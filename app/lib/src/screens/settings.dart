@@ -18,10 +18,12 @@ import '../core/health_sync.dart' show rereadHealth;
 import '../core/home_widgets.dart';
 import '../core/background_guard.dart';
 import '../core/key_store.dart';
+import '../core/limit.dart';
 import '../core/minutes.dart' show firstDataMinute;
 import '../core/notifications.dart';
 import '../core/pause.dart';
 import '../core/profile.dart';
+import '../core/coach_service.dart' show CoachService;
 import '../core/score_service.dart';
 import '../core/sync_service.dart';
 import '../core/today.dart';
@@ -40,6 +42,7 @@ import 'health_check.dart';
 import 'journal_customise.dart';
 import 'learn.dart';
 import 'nav.dart';
+import 'week_template.dart';
 import 'onboarding.dart' show AvailabilityEditor, WorkoutsEditor;
 import 'pairing.dart';
 import 'score_check.dart';
@@ -163,6 +166,8 @@ Future<String> writeBandSetting(
   }
 }
 
+final _limitProvider = dbQuery((db, _) => limitOn(db, DateTime.now()));
+
 Future<int?> editNumber(
   BuildContext context, {
   required String title,
@@ -260,6 +265,7 @@ class SettingsScreen extends ConsumerWidget {
     final sleepAssist = info[Keys.sleepAssist] != '0';
     final stressOn = info[Keys.stressMonitor] != '0';
     final pause = extras?.pause;
+    final limit = ref.watch(_limitProvider).value ?? sc.TrainingLimit.none;
 
     Future<void> save(Profile next) async {
       await saveAppProfile(db, next);
@@ -682,6 +688,56 @@ class SettingsScreen extends ConsumerWidget {
                 builder: (ctx) => AvailabilityEditor(profile: p, sheet: true),
               );
               if (next != null) await save(next);
+            },
+          ),
+          ListRow(
+            'Week template',
+            sub: 'Long day, lifting days, hard sessions, minutes per day',
+            value: templateSummary(p),
+            onTap: () async {
+              final next = await showTempoSheet<Profile>(
+                context,
+                builder: (ctx) => WeekTemplateEditor(profile: p),
+              );
+              if (next == null) return;
+              await save(next);
+              await CoachService(db).ensureWeek(DateTime.now(), rebuild: true);
+              ref.invalidate(todayProvider);
+              if (context.mounted) {
+                showTempoToast(context, 'This week is replanned from today');
+              }
+            },
+          ),
+          ListRow(
+            'Race time for paces',
+            sub: 'Paces for each zone on your runs',
+            value: raceTimeSummary(p),
+            onTap: () async {
+              final r = await pickRaceTime(context, p);
+              if (r == null) return;
+              await save(p.copyWith(paceRace: () => r.$2 == 0 ? null : r));
+              ref.invalidate(todayProvider);
+            },
+          ),
+          ListRow(
+            'Injury',
+            sub: 'Train around it: no running, or upper body only',
+            value: sc.limitName(limit),
+            onTap: () async {
+              final l = await pickLimit(context, limit);
+              if (l == null || l == limit) return;
+              await setLimit(db, l);
+              await CoachService(db).ensureWeek(DateTime.now(), rebuild: true);
+              ref.invalidate(todayProvider);
+              ref.invalidate(_limitProvider);
+              if (context.mounted) {
+                showTempoToast(
+                  context,
+                  l == sc.TrainingLimit.none
+                      ? 'Back to the full plan from today'
+                      : 'Plan changed from today: ${sc.limitName(l).toLowerCase()}',
+                );
+              }
             },
           ),
           ListRow(

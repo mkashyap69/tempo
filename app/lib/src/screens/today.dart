@@ -323,6 +323,13 @@ abstract final class TodayBody {
       session = WorkoutCard(
         session: t.plan!,
         onWatch: source.isHealth,
+        paces: t.profile.vdot == null
+            ? null
+            : sc.sessionPaces(
+                t.plan!,
+                t.profile.vdot!,
+                miles: !t.profile.metric,
+              ),
         general: t.planRow?.general ?? t.calibrating,
         adds: adds,
         overline: 'Today’s plan',
@@ -626,7 +633,11 @@ class WorkoutCard extends StatelessWidget {
     this.footer,
     this.more,
     this.onWatch = false,
+    this.paces,
   });
+
+  /// Pace per zone for a run, from your race time (U5).
+  final String? paces;
   final sc.Session session;
 
   /// The source is Apple Health / Health Connect: Tempo can't show live
@@ -706,6 +717,10 @@ class WorkoutCard extends StatelessWidget {
             if (!strength) ...[
               const SizedBox(height: 6),
               Text(session.structure, style: TempoType.caption.c(c.text3).tnum),
+              if (paces != null) ...[
+                const SizedBox(height: 4),
+                Text(paces!, style: TempoType.caption.c(c.text2).tnum),
+              ],
               if (onWatch) ...[
                 const SizedBox(height: 10),
                 Text(

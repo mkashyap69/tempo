@@ -82,6 +82,9 @@ class _LogState extends ConsumerState<StrengthLogScreen> {
   sc.Routine? _last;
   DateTime? _lastDay;
 
+  /// Your saved routines (U3), offered when the log opens empty.
+  var _saved = const <sc.Routine>[];
+
   Future<void> _load() async {
     final db = ref.read(dbProvider);
     final d = widget.plan?.detail;
@@ -97,6 +100,7 @@ class _LogState extends ConsumerState<StrengthLogScreen> {
           setLog(r),
       ];
       _last = sc.lastSessionRoutine(sets);
+      _saved = await loadRoutines(db);
       if (_last != null) {
         final t = sets.last.at;
         _lastDay = DateTime(t.year, t.month, t.day);
@@ -111,7 +115,54 @@ class _LogState extends ConsumerState<StrengthLogScreen> {
     final state = ref.read(todayProvider).value?.state ?? sc.DayState.general;
     final xs = await withTargets(db, r.items, await liftDay(db, state));
     await _fill(xs);
-    if (mounted) setState(() => _last = null);
+    if (mounted) {
+      setState(() {
+        _last = null;
+        _saved = const [];
+      });
+    }
+  }
+
+  /// Saves today's exercises, sets, reps and rests under a name (U3).
+  Future<void> _saveRoutine() async {
+    final ctl = TextEditingController(text: widget.plan?.title ?? 'My routine');
+    final name = await showTempoSheet<String>(
+      context,
+      builder: (ctx) => Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text('Save as a routine', style: TempoType.titleM.c(ctx.c.text1)),
+          const SizedBox(height: 12),
+          TempoField(controller: ctl, autofocus: true),
+          const SizedBox(height: 16),
+          TempoButton(
+            'Save',
+            expand: true,
+            onTap: () => Navigator.pop(ctx, ctl.text.trim()),
+          ),
+        ],
+      ),
+    );
+    if (name == null || name.isEmpty) return;
+    final r = sc.Routine(name, [
+      for (final e in _ex)
+        sc.Exercise(
+          e.def.name,
+          sets: e.rows.length,
+          reps:
+              e.target ??
+              (e.def.kind == sc.SetKind.timed
+                  ? '${e.rows.firstOrNull?.seconds ?? 30} s'
+                  : '${e.rows.firstOrNull?.reps ?? 8}'),
+          restSeconds: e.rest,
+        ),
+    ]);
+    await saveRoutine(ref.read(dbProvider), r);
+    if (mounted)
+      showTempoToast(
+        context,
+        '“$name” saved. Start it from (+) → Log strength.',
+      );
   }
 
   Future<void> _fill(List<sc.Exercise> exercises) async {
@@ -268,6 +319,17 @@ class _LogState extends ConsumerState<StrengthLogScreen> {
                       day: _lastDay!,
                       onTap: () => _repeat(_last!),
                     ),
+                  if (_ex.isEmpty && _saved.isNotEmpty)
+                    CardList(
+                      children: [
+                        for (final r in _saved)
+                          ListRow(
+                            r.name,
+                            sub: [for (final x in r.items) x.name].join(' · '),
+                            onTap: () => _repeat(r),
+                          ),
+                      ],
+                    ),
                   for (final (k, e) in _ex.indexed) ...[
                     _ExerciseCard(
                       e,
@@ -346,6 +408,13 @@ class _LogState extends ConsumerState<StrengthLogScreen> {
                       });
                     },
                   ),
+                  if (_ex.isNotEmpty)
+                    TempoButton(
+                      'Save as a routine',
+                      kind: ButtonKind.ghost,
+                      expand: true,
+                      onTap: _saveRoutine,
+                    ),
                   const SizedBox(height: 90),
                 ],
               ],

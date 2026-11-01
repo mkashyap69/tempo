@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'limit.dart' show limitOn;
+
 import 'package:scoring/scoring.dart' as sc;
 import 'package:store/store.dart' as st;
 
@@ -40,7 +42,7 @@ Future<List<sc.Pick>> loadPicks(
       goal: t.profile.goal,
       likes: t.profile.likes,
       games: t.profile.games,
-      maxMinutes: t.profile.maxMinutes,
+      maxMinutes: t.profile.prefs.minutesOn(t.day.weekday),
       minutesToBed: toBed,
       planned: t.plan == null || t.plan!.isRest ? null : t.plan,
       tomorrow: tomorrowPlan,
@@ -50,8 +52,18 @@ Future<List<sc.Pick>> loadPicks(
   );
   // Your weights on the strength pick, from what you logged before.
   final day = await liftDay(db, t.state);
+  // Around an injury, only the picks it allows (U3).
+  final limit = await limitOn(db, t.day);
+  bool allowed(sc.Pick p) => switch (limit) {
+    sc.TrainingLimit.none => true,
+    sc.TrainingLimit.noRunning => p.kind == sc.PickKind.strength,
+    sc.TrainingLimit.upperOnly =>
+      p.session.detail is sc.StrengthDetail &&
+          (p.session.detail! as sc.StrengthDetail).focus ==
+              sc.StrengthFocus.upper,
+  };
   return [
-    for (final p in picks)
+    for (final p in picks.where(allowed))
       if (p.session.detail case final sc.StrengthDetail d)
         p.withDetail(
           sc.StrengthDetail(

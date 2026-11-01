@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'limit.dart' show limitedWeek;
+
 import 'package:drift/drift.dart' show Value;
 import 'package:scoring/scoring.dart' as sc;
 import 'package:store/store.dart' as st;
@@ -218,6 +220,7 @@ Future<sc.WeekOutcome> weekOutcome(st.TempoDb db, DateTime monday) async {
     done: days.fold(0.0, (a, d) => a + d.credit),
     recovery: _mean(recs),
     feel: _mean(feel),
+    limited: await limitedWeek(db, monday),
   );
 }
 

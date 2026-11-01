@@ -493,6 +493,8 @@ class ActivityRow extends StatelessWidget {
                             TempoBadge(
                               w.source == 'band'
                                   ? 'From band'
+                                  : w.source == 'manual'
+                                  ? 'Added · est.'
                                   : w.confirmed
                                   ? 'Detected'
                                   : 'Auto-detected',

@@ -284,6 +284,25 @@ class ScoreService {
         );
       }
     }
+    // Added by hand (U4): whatever heart rate the watch caught in its
+    // window is its HR load; the rest of its session-RPE load is added to
+    // the day as extra (core/strength.dart → strengthExtraTrimp).
+    for (final w in await db.workoutsBetween(day, end)) {
+      if (w.source != 'manual') continue;
+      final a = st.fromTs(w.start), z = st.fromTs(w.end);
+      final hr = trimpTo(z) - trimpTo(a);
+      final load = math.max(
+        hr,
+        sc.trimpFromRpe(w.rpe ?? 5, ((w.end - w.start) / 60).round()),
+      );
+      await db.updateWorkout(
+        w.id,
+        st.WorkoutsCompanion(
+          trimp: Value(hr),
+          strain: Value(sc.strainFromTrimp(load)),
+        ),
+      );
+    }
     for (final b
         in source.isHealth
             ? const <st.BandWorkoutRow>[]

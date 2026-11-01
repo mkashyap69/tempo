@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:drift/drift.dart' show Value;
 import 'package:scoring/scoring.dart' as sc;
 import 'package:store/store.dart' as st;
@@ -144,6 +146,15 @@ Future<double> strengthExtraTrimp(st.TempoDb db, DateTime day) async {
   var extra = 0.0;
   for (final w in ws) {
     if (w.source == 'auto' && !w.confirmed) continue;
+    // Added by hand (U4): its session-RPE load past the HR already seen.
+    if (w.source == 'manual') {
+      extra += sc.manualExtraTrimp(
+        rpe: w.rpe ?? 5,
+        minutes: ((w.end - w.start) / 60).round(),
+        hrTrimp: w.trimp,
+      );
+      continue;
+    }
     final inside = [
       for (final s in sets)
         // A minute's grace either side for ticks around start and finish.
@@ -163,4 +174,44 @@ Future<double> strengthExtraTrimp(st.TempoDb db, DateTime day) async {
       if (!used.contains(s.id)) setLog(s),
   ]);
   return extra;
+}
+
+/// Saved strength routines (U3), JSON [Routine…] in settings, by name.
+const routinesKey = 'strength_routines';
+
+Future<List<sc.Routine>> loadRoutines(st.TempoDb db) async {
+  final raw = await db.setting(routinesKey);
+  if (raw == null || raw.isEmpty) return const [];
+  try {
+    return [
+      for (final e in jsonDecode(raw) as List)
+        sc.Routine.fromJson((e as Map).cast<String, dynamic>()),
+    ];
+  } catch (_) {
+    return const [];
+  }
+}
+
+/// Saves [r], replacing a routine of the same name.
+Future<void> saveRoutine(st.TempoDb db, sc.Routine r) async {
+  final rs = [
+    for (final x in await loadRoutines(db))
+      if (x.name.toLowerCase() != r.name.toLowerCase()) x,
+    r,
+  ];
+  await db.putSetting(
+    routinesKey,
+    jsonEncode([for (final x in rs) x.toJson()]),
+  );
+}
+
+Future<void> deleteRoutine(st.TempoDb db, String name) async {
+  final rs = [
+    for (final x in await loadRoutines(db))
+      if (x.name != name) x,
+  ];
+  await db.putSetting(
+    routinesKey,
+    jsonEncode([for (final x in rs) x.toJson()]),
+  );
 }
