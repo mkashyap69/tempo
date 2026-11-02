@@ -130,6 +130,9 @@ class HealthGrid {
 
   final _hrSum = <int, double>{};
   final _hrN = <int, int>{};
+  // Heart-rate records sharing one span longer than a minute, by span, in
+  // the order they came: see [_flushHrBuckets].
+  final _hrBuckets = <(int, int), List<double>>{};
   final _steps = <int, Map<String, double>>{};
   final _spo2Sum = <int, double>{};
   final _spo2N = <int, int>{};
@@ -181,11 +184,15 @@ class HealthGrid {
       case HealthKind.heartRate:
         final v = r.value;
         if (v.isNaN || v < p.minBpm || v > p.maxBpm) return;
-        final k = key(r.start);
-        _hrSum[k] = (_hrSum[k] ?? 0) + v;
-        _hrN[k] = (_hrN[k] ?? 0) + 1;
-        _hrKeys = null;
-        _seen(k);
+        final (a, b) = _span(r);
+        if (b - a >= 2) {
+          _hrBuckets.putIfAbsent((a, b), () => []).add(v);
+          _hrKeys = null;
+          _seen(a);
+          _seen(b - 1);
+          return;
+        }
+        _putHr(a, v);
       case HealthKind.steps:
         _addSteps(r);
       case HealthKind.spo2:
@@ -223,6 +230,35 @@ class HealthGrid {
           HealthKind.workout:
         break; // read per night / per day, see vitals.dart, workouts.dart
     }
+  }
+
+  void _putHr(int k, double v) {
+    _hrSum[k] = (_hrSum[k] ?? 0) + v;
+    _hrN[k] = (_hrN[k] ?? 0) + 1;
+    _hrKeys = null;
+    _seen(k);
+  }
+
+  /// Heart rate written as many readings that all carry one long span
+  /// (Mi Fitness → Apple Health: 20,516 readings in 337 hour-long buckets,
+  /// owner's backup 2 Nov 2026) is spread evenly over the span, in the
+  /// order the records came, instead of averaged into its first minute,
+  /// where strain saw one reading an hour (algo 11). A lone long record is
+  /// a summary and still marks only its first minute. TODO(verify) on an
+  /// iPhone whether the plugin returns a bucket in measurement order.
+  void _flushHrBuckets() {
+    if (_hrBuckets.isEmpty) return;
+    for (final MapEntry(key: (a, b), value: vs) in _hrBuckets.entries) {
+      if (vs.length == 1) {
+        _putHr(a, vs.single);
+        continue;
+      }
+      final span = b - a;
+      for (var i = 0; i < vs.length; i++) {
+        _putHr(a + i * span ~/ vs.length, vs[i]);
+      }
+    }
+    _hrBuckets.clear();
   }
 
   void addAll(Iterable<HealthRecord> rs) {
@@ -306,6 +342,7 @@ class HealthGrid {
   List<HealthMinute> minutes(DateTime from, DateTime to) {
     final a = key(from), b = key(to);
     if (b <= a) return const [];
+    _flushHrBuckets();
     final keys = _hrKeys ??= (_hrN.keys.toList()..sort());
     // Readings in reach of the range, for interpolation at its edges.
     var i = _lowerBound(keys, a - p.maxHrGapMinutes);

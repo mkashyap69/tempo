@@ -178,4 +178,14 @@ void main() {
       expect(e.dayOn(start.add(const Duration(days: 4))), 5);
     });
   });
+
+  test('impactShortfall names the missing kind of day (algo 11)', () {
+    expect(impactShortfall(21, 3), 'Needs 2 more days without it');
+    expect(impactShortfall(4, 20), 'Needs 1 more day with it');
+    expect(
+      impactShortfall(0, 0),
+      'Needs 5 more days with it and 5 more days without',
+    );
+    expect(impactShortfall(5, 5), isNull);
+  });
 }

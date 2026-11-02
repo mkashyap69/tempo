@@ -27,6 +27,32 @@ HealthRecord hr(int minute, double bpm, {int s = 0, String src = 'w'}) =>
 
 void main() {
   group('heart rate', () {
+    test('readings sharing an hour-long span spread over it (Mi Fitness)', () {
+      // Mi Fitness writes each reading with the hour as its span.
+      HealthRecord b(double v) =>
+          rec(HealthKind.heartRate, m(0), m(60), v, src: 'mi');
+      final g = HealthGrid()
+        ..addAll([for (var i = 0; i < 60; i++) b(60.0 + i)]);
+      final xs = g.minutes(m(0), m(60));
+      expect([for (final x in xs) x.hr], [for (var i = 0; i < 60; i++) 60 + i]);
+      expect(xs.every((x) => x.hrMeasured), isTrue);
+    });
+    test('more readings than minutes in a bucket average per minute', () {
+      HealthRecord b(double v) =>
+          rec(HealthKind.heartRate, m(0), m(10), v, src: 'mi');
+      final g = HealthGrid()
+        ..addAll([for (var i = 0; i < 20; i++) b(i.isEven ? 50 : 70)]);
+      final xs = g.minutes(m(0), m(10));
+      expect(xs.map((x) => x.hr), everyElement(60));
+    });
+    test('a lone long reading is a summary: its first minute only', () {
+      final g = HealthGrid()
+        ..add(rec(HealthKind.heartRate, m(0), m(30), 80, src: 'w'));
+      final xs = g.minutes(m(0), m(30));
+      expect(xs[0].hr, 80);
+      expect(xs[0].hrMeasured, isTrue);
+      expect(xs[10].hr, isNull);
+    });
     test('averages a minute and interpolates gaps up to 15 min', () {
       final g = HealthGrid()
         ..addAll([hr(0, 60), hr(0, 70, s: 30), hr(5, 75), hr(30, 90)]);

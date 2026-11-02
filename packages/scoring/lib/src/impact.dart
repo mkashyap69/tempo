@@ -89,6 +89,23 @@ final class Impact {
 /// Days of each kind a behaviour needs before it is judged.
 const impactMinEach = 5;
 
+/// What a not-yet-judged behaviour is short of, in words, or null once it
+/// has [impactMinEach] days of each kind. A habit logged nearly every day
+/// is short of days without it (owner, Oct 2026: late caffeine on 21 of 24
+/// days), which is worth saying rather than a bare "not enough days".
+String? impactShortfall(int nYes, int nNo) {
+  final needYes = max(0, impactMinEach - nYes);
+  final needNo = max(0, impactMinEach - nNo);
+  String days(int n) => n == 1 ? '1 more day' : '$n more days';
+  if (needYes == 0 && needNo == 0) return null;
+  if (needNo > 0 && needYes > 0) {
+    return 'Needs ${days(needYes)} with it and ${days(needNo)} without';
+  }
+  return needNo > 0
+      ? 'Needs ${days(needNo)} without it'
+      : 'Needs ${days(needYes)} with it';
+}
+
 /// Ridge penalty on standardised behaviour columns: like this many days
 /// of "no effect" added to every behaviour, so a handful of days can't
 /// produce a big number.

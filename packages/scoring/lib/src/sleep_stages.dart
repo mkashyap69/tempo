@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'baseline.dart';
+import 'sleep.dart';
 import 'types.dart';
 
 /// The Mi Band 6 (V1.0.6.20) marks minutes as asleep but sends no stages,
@@ -201,4 +202,34 @@ StagedSleep stageSleep(
   return StagedSleep([
     for (var k = 0; k < n; k++) sleep[k].withStage(stages[k]),
   ], staged: true);
+}
+
+/// Typical adult shares of sleep (AASM / Ohayon 2004 norms, 20–60 y): REM
+/// about 20–25 %, deep (N3) about 13–23 %. Bounds a little wider than that.
+const typicalRem = (lo: .12, hi: .35), typicalDeep = (lo: .05, hi: .30);
+
+/// A note when a night's estimated stages sit outside typical adult
+/// shares, or null. Wrist staging from heart rate misses REM most often;
+/// the owner's October 2026 band nights averaged 9 % REM and 14 % deep,
+/// which says more about the estimate than the sleep (algo 11). The
+/// stager's thresholds stay as they are until a night with reference
+/// stages can check them (docs/research/Algorithm review.md A4.6).
+String? stageShareNote(SleepSession night) {
+  final asleep = night.asleep.inMinutes;
+  if (asleep < 180) return null;
+  final rem = night.stage(Stage.rem).inMinutes / asleep;
+  final deep = night.stage(Stage.deep).inMinutes / asleep;
+  String pct(double x) => '${(x * 100).round()} %';
+  final odd = [
+    if (rem < typicalRem.lo) 'REM reads low (${pct(rem)})',
+    if (rem > typicalRem.hi) 'REM reads high (${pct(rem)})',
+    if (deep < typicalDeep.lo) 'deep reads low (${pct(deep)})',
+    if (deep > typicalDeep.hi) 'deep reads high (${pct(deep)})',
+  ];
+  if (odd.isEmpty) return null;
+  final what = odd.join(' and ');
+  return '${what[0].toUpperCase()}${what.substring(1)} next to what most '
+      'adults get (REM about 20–25 %, deep about 13–23 %). Stages from the '
+      'band are estimated from heart rate and movement and often miss REM, '
+      'so read them as a rough guide, not a measurement.';
 }

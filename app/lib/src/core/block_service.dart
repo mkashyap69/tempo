@@ -189,7 +189,7 @@ Future<List<DayCredit>> weekCredits(st.TempoDb db, DateTime monday) async {
       credit = switch (sc.matchSession(s, [
         for (final w in ws) doneWorkout(w),
       ]).kind) {
-        sc.MatchKind.done => 1,
+        sc.MatchKind.done || sc.MatchKind.doneHarder => 1,
         sc.MatchKind.doneEasier => .5,
         _ => 0,
       };

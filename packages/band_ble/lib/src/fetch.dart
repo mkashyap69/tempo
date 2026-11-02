@@ -363,6 +363,11 @@ BandWorkout? parseWorkoutSummary(Uint8List data, DateTime announcedStart) {
 /// Band sport codes → Tempo sport names (scoring's `Sport`). Every code is
 /// TODO(verify) against a workout captured on the real band; unknown codes
 /// stay "other" and keep their number in the title.
+///
+/// TODO(verify): code 0x03 came in 6 times from 11 Oct to 1 Nov 2026
+/// (65–107 min, some with 15–47 min in Z4) and 0x59 twice; neither is
+/// mapped until a capture taken while starting a known workout on the band
+/// says what they are. The user named the 0x03 ones "Walking".
 const bandSportNames = <int, String>{
   0x01: 'running', // outdoor run
   0x06: 'walking', // walking

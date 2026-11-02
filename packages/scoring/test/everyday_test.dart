@@ -264,4 +264,21 @@ void main() {
       );
     });
   });
+
+  test('SpO₂ is judged after 7 nights (algo 11)', () {
+    // 24 Oct: 93.1 % against eight nights of ~96.7 %.
+    final hist = [96.7, 96.6, 97.1, 96.9, 96.7, 93.5, 97.0, 94.6];
+    SignalReading read(int minNights) => bodySignals([
+      SignalInput(
+        key: 'spo2',
+        value: 93.1,
+        history: hist,
+        higherIsWorse: false,
+        minDelta: 1.5,
+        minNights: minNights,
+      ),
+    ]).readings.single;
+    expect(read(signalMinNights).state, SignalState.learning);
+    expect(read(spo2MinNights).state, SignalState.off);
+  });
 }

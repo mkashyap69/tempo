@@ -40,7 +40,7 @@ final class DoneWorkout {
       zoneMinutes.length == 5 ? zoneMinutes[3] + zoneMinutes[4] : 0;
 }
 
-enum MatchKind { done, partial, doneEasier, none }
+enum MatchKind { done, partial, doneEasier, doneHarder, none }
 
 final class SessionMatch {
   const SessionMatch(this.kind, this.minutes);
@@ -82,6 +82,11 @@ bool compatible(Session planned, Sport? w) {
 /// How today's workouts cover [planned]. Done at ≥ 80 % of the planned
 /// minutes (or its strain floor reached); partial at ≥ 50 %. A hard
 /// session also needs ≥ 5 min in Z4–Z5, else it was done easier.
+/// Strain points past an easy or moderate session's top that make it
+/// "done, harder" (algo 11). 31 Oct: an 82-min strain-17 session ticked
+/// off an easy walk planned at 2–5.
+const doneHarderMargin = 5.0;
+
 SessionMatch matchSession(Session planned, List<DoneWorkout> workouts) {
   if (planned.isRest) return const SessionMatch(MatchKind.none, 0);
   final ws = [
@@ -100,6 +105,11 @@ SessionMatch matchSession(Session planned, List<DoneWorkout> workouts) {
         ws.fold<int>(0, (a, w) => a + w.hardMinutes) < hardMinutesNeeded) {
       return SessionMatch(MatchKind.doneEasier, minutes);
     }
+    if (!planned.isHard &&
+        planned.strainHi > 0 &&
+        strain >= planned.strainHi + doneHarderMargin) {
+      return SessionMatch(MatchKind.doneHarder, minutes);
+    }
     return SessionMatch(MatchKind.done, minutes);
   }
   if (ratio >= matchPartial) return SessionMatch(MatchKind.partial, minutes);
@@ -113,6 +123,7 @@ enum DayStatus {
   rest,
   done,
   doneEasier,
+  doneHarder,
   partial,
   pending,
   moved,
@@ -144,6 +155,8 @@ DayStatus deriveStatus({
       return DayStatus.done;
     case MatchKind.doneEasier:
       return DayStatus.doneEasier;
+    case MatchKind.doneHarder:
+      return DayStatus.doneHarder;
     case _:
   }
   if (intent == Intent.done) return DayStatus.done;
@@ -502,7 +515,9 @@ Swap substitute({
   ]..sort((a, b) => b.minutes.compareTo(a.minutes));
   final hard = madeHard(ws, dayStrain, plan);
   if (ws.isEmpty || plan.isRest) return Swap(SwapKind.none, hardDay: hard);
-  if (match.kind == MatchKind.done || match.kind == MatchKind.doneEasier) {
+  if (match.kind == MatchKind.done ||
+      match.kind == MatchKind.doneEasier ||
+      match.kind == MatchKind.doneHarder) {
     final by = ws.where((w) => compatible(plan, w.sport)).firstOrNull;
     return Swap(SwapKind.counted, by: by ?? ws.first, hardDay: hard);
   }

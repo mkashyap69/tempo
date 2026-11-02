@@ -46,7 +46,8 @@ final class WeekReview {
       .where(
         (d) =>
             d.status == sc.DayStatus.done ||
-            d.status == sc.DayStatus.doneEasier,
+            d.status == sc.DayStatus.doneEasier ||
+            d.status == sc.DayStatus.doneHarder,
       )
       .length;
   int get partial =>

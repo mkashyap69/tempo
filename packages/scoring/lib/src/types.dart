@@ -17,7 +17,12 @@
 ///    sufficiency against base in Recovery, sleep score v3, in-bed time
 ///    for efficiency and latency, resting HR as the 10th percentile of
 ///    asleep HR, robust HR max, smaller strain term in need.
-const algoVersion = 10;
+/// 11: owner backup review (2 Nov 2026): the night must be a night, short
+///    dozes split off the night, Health heart rate in shared spans spread
+///    out, a smallest spread and a ±2.5 cap per recovery z, early bedtimes
+///    cost half, base need cross-checked with free-day sleep, "done,
+///    harder", SpO₂ judged after 7 nights.
+const algoVersion = 11;
 
 enum Stage { wake, light, deep, rem, unknown }
 

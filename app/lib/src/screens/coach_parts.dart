@@ -28,6 +28,7 @@ final coachExtrasProvider = FutureProvider<CoachExtras>((ref) async {
 String statusLabel(TodayData t) => switch (t.status) {
   sc.DayStatus.done => 'Done ✓',
   sc.DayStatus.doneEasier => 'Done, easier',
+  sc.DayStatus.doneHarder => 'Done, harder',
   sc.DayStatus.partial => 'Partly done',
   sc.DayStatus.pending =>
     t.plannedMinute == null ? 'Any time' : 'Planned ${fmtHm(t.plannedMinute!)}',
@@ -40,7 +41,9 @@ String statusLabel(TodayData t) => switch (t.status) {
 };
 
 Color statusColor(BuildContext context, sc.DayStatus s) => switch (s) {
-  sc.DayStatus.done || sc.DayStatus.doneEasier => context.s.recHigh,
+  sc.DayStatus.done ||
+  sc.DayStatus.doneEasier ||
+  sc.DayStatus.doneHarder => context.s.recHigh,
   sc.DayStatus.missedDay => context.s.recLow,
   sc.DayStatus.missedSlot || sc.DayStatus.partial => context.s.recMid,
   _ => context.c.text2,
@@ -49,7 +52,9 @@ Color statusColor(BuildContext context, sc.DayStatus s) => switch (s) {
 /// One-glyph status for the week row.
 String statusGlyph(sc.DayStatus? s) => switch (s) {
   null => '·',
-  sc.DayStatus.done || sc.DayStatus.doneEasier => '✓',
+  sc.DayStatus.done ||
+  sc.DayStatus.doneEasier ||
+  sc.DayStatus.doneHarder => '✓',
   sc.DayStatus.partial => '◐',
   sc.DayStatus.missedDay || sc.DayStatus.missedSlot => '✕',
   sc.DayStatus.skipped => '–',
@@ -292,7 +297,7 @@ class WeekStatusRow extends StatelessWidget {
     final c = context.c;
     return Semantics(
       label:
-          'This week: ${week.where((s) => s == sc.DayStatus.done || s == sc.DayStatus.doneEasier).length} done, '
+          'This week: ${week.where((s) => s == sc.DayStatus.done || s == sc.DayStatus.doneEasier || s == sc.DayStatus.doneHarder).length} done, '
           '${week.where((s) => s == sc.DayStatus.missedDay).length} missed',
       excludeSemantics: true,
       child: Row(

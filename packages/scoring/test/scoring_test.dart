@@ -267,6 +267,19 @@ void main() {
         final n = nights(15, (i) => i >= 10 ? 8 + (i - 10) / 10 : 6.5);
         expect(learnedBaseNeed(n), closeTo(8.2, 1e-9));
       });
+      test('free-day sleep cross-checks it once 6 nights are in', () {
+        List<NeedSample> withFree(int free) => [
+          for (var i = 0; i < 15; i++)
+            NeedSample(
+              sleptHours: i < free ? 8.6 : 7,
+              autonomic: i < free ? -1 : i.toDouble(),
+              freeDay: i < free,
+            ),
+        ];
+        // Top third (5 best-HR nights) slept 7 h; free days slept 8.6 h.
+        expect(learnedBaseNeed(withFree(5)), 7);
+        expect(learnedBaseNeed(withFree(6)), closeTo(7.8, 1e-9));
+      });
       test('clamped to 7–9 (adult consensus)', () {
         expect(learnedBaseNeed(nights(15, (_) => 5)), 7);
         expect(learnedBaseNeed(nights(15, (_) => 11)), 9);
@@ -478,7 +491,9 @@ void main() {
           ),
       ];
       final s = scoreDay(date: day, minutes: fullDay(), history: hist);
-      expect(s.baseNeedHours, 8.5);
+      // Best-HR nights say 8.5 h; the 6 free-day nights (median 7 h)
+      // cross-check it to the mean (algo 11).
+      expect(s.baseNeedHours, closeTo(7.75, 1e-9));
     });
 
     group('data sources', () {

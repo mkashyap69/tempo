@@ -66,6 +66,7 @@ class WeeklyReviewScreen extends ConsumerWidget {
       sc.DayStatus.rest => 'Rest',
       sc.DayStatus.done => 'Done',
       sc.DayStatus.doneEasier => 'Done, easier',
+      sc.DayStatus.doneHarder => 'Done, harder',
       sc.DayStatus.partial => 'Partly',
       sc.DayStatus.skipped => 'Skipped',
       sc.DayStatus.missedDay || sc.DayStatus.missedSlot => 'Missed',

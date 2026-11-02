@@ -79,7 +79,8 @@ class InsightDetailScreen extends ConsumerWidget {
                         ),
                         Text(
                           i.confidence == sc.ImpactConfidence.notEnough
-                              ? 'Not enough days'
+                              ? sc.impactShortfall(i.nYes, i.nNo) ??
+                                    'Not enough days'
                               : '${effectText(o, i.effect)} · ${confidenceWord(i.confidence)}',
                           style: TempoType.caption
                               .c(

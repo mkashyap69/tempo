@@ -31,6 +31,7 @@ final class SleepParams {
     this.maxWakeGapMinutes = 30,
     this.maxQuietGapMinutes = 90,
     this.quietGapMaxSteps = 30,
+    this.maxDozeMinutes = 45,
     this.minSessionMinutes = 60,
     this.minNapMinutes = 20,
     this.learnNights = 14,
@@ -66,6 +67,14 @@ final class SleepParams {
   /// gap: on 6 Oct a 34-min gap with 17 min off the wrist joined a 5-min
   /// "sleep" after putting the band back on and moved wake 38 min later.
   final int maxQuietGapMinutes, quietGapMaxSteps;
+
+  /// A first or last stretch of sleep shorter than this, joined to the
+  /// rest only across a quiet wake longer than [maxWakeGapMinutes], is a
+  /// doze, not the night: it stays its own sleep (algo 11). Seen 2 Nov: a
+  /// 37-min doze at 22:08, 66 min awake, then the night from 23:50; joined,
+  /// it moved bedtime 1 h 42 m earlier and counted the hour as waking in
+  /// the night (also 22, 29 and 30 Oct).
+  final int maxDozeMinutes;
   final int minSessionMinutes;
 
   /// Daytime sleep at least this long counts as a nap.
@@ -99,11 +108,13 @@ List<SleepSession> detectSessions(
     }
     runs.add((i, i));
   }
-  // Merge across short wakes, or longer quiet ones.
-  final merged = <(int, int)>[];
+  // Merge across short wakes, or longer quiet ones. Each block keeps its
+  // runs and whether each join was a long (quiet) one, for the doze trim.
+  final blocks = <List<(int, int)>>[];
+  final longJoin = <List<bool>>[];
   for (final r in runs) {
-    if (merged.isNotEmpty) {
-      final (a, b) = merged.last;
+    if (blocks.isNotEmpty) {
+      final b = blocks.last.last.$2;
       final gap = minutes[r.$1].ts.difference(minutes[b].ts).inMinutes;
       var steps = 0;
       var offWrist = false;
@@ -111,15 +122,46 @@ List<SleepSession> detectSessions(
         steps += minutes[k].steps;
         offWrist |= minutes[k].offWrist;
       }
-      if (gap <= p.maxWakeGapMinutes ||
+      final short = gap <= p.maxWakeGapMinutes;
+      if (short ||
           (gap <= p.maxQuietGapMinutes &&
               steps <= p.quietGapMaxSteps &&
               !offWrist)) {
-        merged[merged.length - 1] = (a, r.$2);
+        blocks.last.add(r);
+        longJoin.last.add(!short);
         continue;
       }
     }
-    merged.add(r);
+    blocks.add([r]);
+    longJoin.add([]);
+  }
+  // A short doze at either end (one or more runs under maxDozeMinutes in
+  // all), joined to the rest only across a long wake, splits off.
+  int asleepIn(Iterable<(int, int)> rs) =>
+      rs.fold(0, (a, r) => a + r.$2 - r.$1 + 1);
+  final merged = <(int, int)>[];
+  for (var k = 0; k < blocks.length; k++) {
+    final rs = blocks[k], joins = longJoin[k]; // joins[i]: rs[i] → rs[i+1]
+    final total = asleepIn(rs);
+    // Head: the longest prefix under the doze limit that ends at a long join.
+    var from = 0;
+    for (var j = 1, sum = 0; j < rs.length; j++) {
+      sum += asleepIn([rs[j - 1]]);
+      if (sum >= p.maxDozeMinutes) break;
+      if (joins[j - 1] && total - sum >= p.maxDozeMinutes) from = j;
+    }
+    // Tail: the same from the other end, within what the head left.
+    var to = rs.length;
+    for (var j = rs.length - 1, sum = 0; j > from; j--) {
+      sum += asleepIn([rs[j]]);
+      if (sum >= p.maxDozeMinutes) break;
+      if (joins[j - 1] && asleepIn(rs.sublist(from, j)) >= p.maxDozeMinutes) {
+        to = j;
+      }
+    }
+    if (from > 0) merged.add((rs.first.$1, rs[from - 1].$2));
+    merged.add((rs[from].$1, rs[to - 1].$2));
+    if (to < rs.length) merged.add((rs[to].$1, rs.last.$2));
   }
   return [
     for (final (a, b) in merged)
@@ -164,10 +206,21 @@ double sleepDebtHours(
 /// morning's autonomic recovery (HRV and resting HR only, never sleep
 /// length; see [autonomicScores]).
 final class NeedSample {
-  const NeedSample({required this.sleptHours, required this.autonomic});
+  const NeedSample({
+    required this.sleptHours,
+    required this.autonomic,
+    this.freeDay = false,
+  });
   final double sleptHours;
   final double autonomic;
+
+  /// A night before a free day (waking on Saturday or Sunday), when sleep
+  /// is least cut short by an alarm.
+  final bool freeDay;
 }
+
+/// Free-day nights needed before they cross-check the base need.
+const minFreeNights = 6;
 
 /// Your base need: the median sleep on the third of nights after which
 /// HRV and resting HR were best, clamped to
@@ -177,6 +230,14 @@ final class NeedSample {
 ///
 /// Algo 10: ranked by autonomic recovery instead of Recovery, which holds
 /// sleep performance and so picked the longest nights (loop L2).
+///
+/// Algo 11: cross-checked against sleep on free days (the median of
+/// [minFreeNights]+ nights of 3 h+ before a Saturday or Sunday wake-up,
+/// the MCTQ's estimate of need: Roenneberg 2003): the base is the mean of
+/// the two. The best-HR nights alone can sit on a few short nights that
+/// happened to follow quiet days (owner, Oct 2026: 6.8–7.0 h, learned at
+/// the 7 h floor while free-day sleep was 7.7 h). TODO(verify): use the
+/// user's own days off when the week template says which they are.
 double learnedBaseNeed(
   List<NeedSample> nights, [
   SleepParams p = const SleepParams(),
@@ -189,9 +250,19 @@ double learnedBaseNeed(
   final top = [
     for (final n in ranked.take((nights.length / 3).ceil())) n.sleptHours,
   ]..sort();
-  final mid = top.length ~/ 2;
-  final median = top.length.isOdd ? top[mid] : (top[mid - 1] + top[mid]) / 2;
-  return median.clamp(p.minNeedHours, p.maxNeedHours).toDouble();
+  double medianOf(List<double> xs) {
+    final s = [...xs]..sort();
+    final mid = s.length ~/ 2;
+    return s.length.isOdd ? s[mid] : (s[mid - 1] + s[mid]) / 2;
+  }
+
+  var need = medianOf(top);
+  final free = [
+    for (final n in nights)
+      if (n.freeDay && n.sleptHours >= 3) n.sleptHours,
+  ];
+  if (free.length >= minFreeNights) need = (need + medianOf(free)) / 2;
+  return need.clamp(p.minNeedHours, p.maxNeedHours).toDouble();
 }
 
 double sleepNeedHours({
@@ -267,13 +338,19 @@ int wakeBouts(SleepSession s, {int minMinutes = 5}) {
 int wasoMinutes(SleepSession s) =>
     s.minutes.where((m) => m.stage == Stage.wake).length;
 
+/// Minutes of going to bed early count this much of minutes late (algo
+/// 11): an early night is the change most people are told to make, and
+/// it shouldn't score like a 3 a.m. one. Late still loses every point at
+/// 3 h; early at 6 h.
+const earlyBedtimeFactor = .5;
+
 /// Sleep score v3 (algo 10): sleep against your base need 50 %, bedtime
 /// against your usual 20 %, continuity 15 %, efficiency 10 % and time to
 /// fall asleep 5 %. Thresholds are the National Sleep Foundation's
 /// sleep-quality consensus (Ohayon 2017): efficiency ≥ 85 % good, ≤ 74 %
 /// poor; WASO ≤ 20 min good, ≥ 51 min poor; awakenings over 5 min 0–1
 /// good, ≥ 4 poor; latency ≤ 30 min good, ≥ 46 min poor. Bedtime loses
-/// its points over 3 h (Apple's curve is about this gentle; v2's 90 min
+/// its points over 3 h late or 6 h early ([earlyBedtimeFactor], algo 11) (Apple's curve is about this gentle; v2's 90 min
 /// cost 15 points for an ordinary late Friday).
 ///
 /// [efficiency] and [latencyMinutes] need the source's time in bed (see
@@ -289,7 +366,13 @@ SleepScore sleepScoreV3({
 }) {
   final reg = bedDeviationMinutes == null
       ? null
-      : band(bedDeviationMinutes.abs().toDouble(), 0, 180);
+      : band(
+          bedDeviationMinutes < 0
+              ? -bedDeviationMinutes * earlyBedtimeFactor
+              : bedDeviationMinutes.toDouble(),
+          0,
+          180,
+        );
   final eff = efficiency == null ? null : band(efficiency, .85, .74);
   double? cont;
   if (wasoMin != null || wakeBoutCount != null) {

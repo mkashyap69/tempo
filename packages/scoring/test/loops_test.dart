@@ -97,7 +97,9 @@ void main() {
       for (var i = 0; i < 30; i++)
         i.isEven ? (hours: 8.5, hr: 48) : (hours: 7.0, hr: 54),
     ]);
-    expect(days.last.baseNeedHours, 8.5);
+    // Best-HR nights say 8.5 h; free days (half each) cross-check it to
+    // 8.125 h, still well above the 7.75 h average (algo 11).
+    expect(days.last.baseNeedHours, closeTo(8.125, 1e-9));
   });
 
   test('L3: a short week lowers recovery that week, not the next one', () {

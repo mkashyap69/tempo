@@ -109,7 +109,9 @@ class PlanTodayCard extends ConsumerWidget {
     final weekday = _dayNames[t.day.weekday - 1];
     final paused = t.pause != null;
     final done =
-        t.status == sc.DayStatus.done || t.status == sc.DayStatus.doneEasier;
+        t.status == sc.DayStatus.done ||
+        t.status == sc.DayStatus.doneEasier ||
+        t.status == sc.DayStatus.doneHarder;
     final skipped =
         t.status == sc.DayStatus.skipped || t.status == sc.DayStatus.missedDay;
 

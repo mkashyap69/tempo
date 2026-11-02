@@ -87,7 +87,9 @@ Map<String, Object?> sessionWidgetData(TodayData t) {
     };
   }
   final level = switch (t.status) {
-    sc.DayStatus.done || sc.DayStatus.doneEasier => 'done',
+    sc.DayStatus.done ||
+    sc.DayStatus.doneEasier ||
+    sc.DayStatus.doneHarder => 'done',
     sc.DayStatus.missedDay || sc.DayStatus.skipped => 'missed',
     sc.DayStatus.missedSlot || sc.DayStatus.partial => 'late',
     _ => 'pending',
@@ -95,6 +97,7 @@ Map<String, Object?> sessionWidgetData(TodayData t) {
   final status = switch (t.status) {
     sc.DayStatus.done => 'Done ✓',
     sc.DayStatus.doneEasier => 'Done, easier',
+    sc.DayStatus.doneHarder => 'Done, harder',
     sc.DayStatus.partial => 'Partly done',
     sc.DayStatus.missedSlot =>
       t.rescue.offered

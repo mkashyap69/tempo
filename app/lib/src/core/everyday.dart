@@ -162,6 +162,7 @@ Future<sc.BodySignals> loadBodySignals(
       history: [for (final n in spans.skip(1)) ?nightSpo2(n)],
       higherIsWorse: false,
       minDelta: 1.5,
+      minNights: sc.spo2MinNights,
     ),
     if (health)
       sc.SignalInput(

@@ -30,6 +30,28 @@ void main() {
         MatchKind.none,
       );
     });
+    test('far past an easy session\'s strain is done, harder (algo 11)', () {
+      // 31 Oct: easy walk planned at 2–5, an 82-min strain-17 session.
+      final walk = sessionTemplate('easy_walk');
+      expect(
+        matchSession(walk, [w(Sport.walking, 82, hard: 9, strain: 16.6)]).kind,
+        MatchKind.doneHarder,
+      );
+      expect(
+        matchSession(walk, [w(Sport.walking, 60, strain: 9)]).kind,
+        MatchKind.done,
+      );
+      expect(
+        deriveStatus(
+          plan: walk,
+          intent: Intent.planned,
+          match: const SessionMatch(MatchKind.doneHarder, 82),
+          now: 20 * 60,
+          bedtime: 23 * 60,
+        ),
+        DayStatus.doneHarder,
+      );
+    });
     test('strain floor counts as done', () {
       expect(
         matchSession(easyRun, [w(Sport.cycling, 10, strain: 6)]).kind,

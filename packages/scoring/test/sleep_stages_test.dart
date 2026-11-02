@@ -124,4 +124,32 @@ void main() {
       greaterThan(late(stageSleep(m))),
     );
   });
+
+  group('stageShareNote (algo 11)', () {
+    SleepSession of(int rem, int deep, int light) => SleepSession([
+      for (final (n, st) in [
+        (rem, Stage.rem),
+        (deep, Stage.deep),
+        (light, Stage.light),
+      ])
+        for (var i = 0; i < n; i++) Minute(t0, stage: st),
+    ]);
+    test('typical shares: no note', () {
+      expect(stageShareNote(of(100, 80, 300)), isNull);
+    });
+    test('2 Nov: 5 % REM is called out as the estimate, not the sleep', () {
+      final note = stageShareNote(of(31, 126, 524))!;
+      expect(note, startsWith('REM reads low (5 %)'));
+      expect(note, contains('rough guide'));
+    });
+    test('both off are named together', () {
+      expect(
+        stageShareNote(of(20, 10, 400)),
+        startsWith('REM reads low (5 %) and deep reads low (2 %)'),
+      );
+    });
+    test('short sleeps are left alone', () {
+      expect(stageShareNote(of(0, 0, 120)), isNull);
+    });
+  });
 }

@@ -10,17 +10,27 @@ final class RecoveryInput {
     required this.baseline,
     required this.higherIsBetter,
     required this.weight,
+    this.minSd = 0,
   });
   final double? value;
   final Baseline? baseline;
   final bool higherIsBetter;
   final double weight;
 
+  /// The smallest spread the baseline is given (algo 11): a very steady
+  /// signal otherwise turns noise into big z. The band reports whole bpm,
+  /// and the owner's resting HR had a MAD spread of 1.48 bpm against a
+  /// ~2 bpm night-to-night wobble, so 1 bpm cost as much as the best
+  /// possible night of sleep gave.
+  final double minSd;
+
   /// Signed z (higher = better), or null when not computable.
   double? get z {
     final v = value, b = baseline;
-    if (v == null || b == null || b.sd == 0) return null;
-    final raw = (v - b.mean) / b.sd;
+    if (v == null || b == null) return null;
+    final sd = max(b.sd, minSd);
+    if (sd == 0) return null;
+    final raw = (v - b.mean) / sd;
     return higherIsBetter ? raw : -raw;
   }
 }
@@ -32,8 +42,14 @@ final class RecoveryParams {
     this.wHrv = 0.4,
     this.wRhr = 0.3,
     this.wSleep = 0.3,
+    this.zCap = 2.5,
   });
   final double slope;
+
+  /// Each input's z is held within ±[zCap] (algo 11), so one signal far
+  /// off (resting HR +14 bpm after alcohol, z −18 on 10 Oct) reads as
+  /// "well below normal" without pinning the score to 0 by itself.
+  final double zCap;
   final int calibrationNights;
   final double wHrv, wRhr, wSleep;
 }
@@ -49,7 +65,7 @@ double? recoveryScore(
     final z = i.z;
     if (z == null) continue;
     wsum += i.weight;
-    acc += i.weight * z;
+    acc += i.weight * z.clamp(-p.zCap, p.zCap);
   }
   if (wsum == 0) return null;
   return 100 / (1 + exp(-p.slope * acc / wsum));

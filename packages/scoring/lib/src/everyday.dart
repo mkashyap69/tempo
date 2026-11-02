@@ -127,6 +127,7 @@ final class SignalInput {
     required this.history,
     required this.higherIsWorse,
     required this.minDelta,
+    this.minNights = signalMinNights,
   });
 
   /// `rhr`, `hrv` (ln ms), `stress`, `resp`, `spo2`.
@@ -140,7 +141,16 @@ final class SignalInput {
   /// The smallest change that counts as off, whatever the spread: a very
   /// steady baseline must not turn 1 bpm into an alarm.
   final double minDelta;
+
+  /// Nights of history needed before it is judged.
+  final int minNights;
 }
+
+/// Nights SpO₂ needs before it is judged (algo 11). It barely moves night
+/// to night (owner: 95.6–97.1 % on 14 of 18 band nights), so a week shows
+/// its normal; at 14 the 93.1–93.5 % nights of 21 and 24 Oct, both after
+/// SpO₂ began on 15 Oct, were still "learning".
+const spo2MinNights = 7;
 
 enum SignalState { learning, missing, normal, off }
 
@@ -187,7 +197,7 @@ const signalOffZ = 2.0;
 BodySignals bodySignals(List<SignalInput> inputs) {
   final out = <SignalReading>[];
   for (final i in inputs) {
-    if (i.history.length < signalMinNights) {
+    if (i.history.length < i.minNights) {
       out.add(SignalReading(i.key, SignalState.learning, value: i.value));
       continue;
     }

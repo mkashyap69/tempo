@@ -132,7 +132,8 @@ final class DaySleep {
     required this.nextSleep,
   });
 
-  /// Longest session ending in (day-1 14:00, day 14:00], if any.
+  /// Longest night-like session ending in (day-1 14:00, day 14:00], if
+  /// any: 3 h+ asleep, or touching 00:00–06:00 of the day.
   final SleepSession? night;
 
   /// Shorter sleeps (≥ [SleepParams.minNapMinutes], < 3 h asleep) that start
@@ -145,6 +146,9 @@ final class DaySleep {
   /// Start of the next main sleep (≥ 3 h asleep) after [wake], if seen.
   final DateTime? nextSleep;
 }
+
+/// Asleep minutes that make a sleep a main sleep rather than a nap.
+const mainSleepMinutes = 180;
 
 /// Splits [minutes] around [date] into its night and naps (see [DaySleep]).
 DaySleep daySleep({
@@ -160,6 +164,7 @@ DaySleep daySleep({
       maxWakeGapMinutes: p.maxWakeGapMinutes,
       maxQuietGapMinutes: p.maxQuietGapMinutes,
       quietGapMaxSteps: p.quietGapMaxSteps,
+      maxDozeMinutes: p.maxDozeMinutes,
       minSessionMinutes: p.minNapMinutes,
     ),
   );
@@ -168,12 +173,21 @@ DaySleep daySleep({
       if (s.asleep.inMinutes >= p.minSessionMinutes) s,
   ];
 
-  // Main sleep: longest session ending in (day-1 14:00, day 14:00].
+  // Main sleep: longest session ending in (day-1 14:00, day 14:00] that
+  // is a night: 3 h+ asleep, or touching the small hours (00:00–06:00).
+  // An afternoon nap the day before is never the night (algo 11; 20 Oct:
+  // band off overnight, so a 15:41 nap was scored as the night).
   final windowEnd = day.add(const Duration(hours: 14));
   final windowStart = windowEnd.subtract(const Duration(days: 1));
+  final smallFrom = day, smallTo = day.add(const Duration(hours: 6));
+  bool nightLike(SleepSession s) =>
+      s.asleep.inMinutes >= mainSleepMinutes ||
+      (s.end.isAfter(smallFrom) && s.start.isBefore(smallTo));
   SleepSession? night;
   for (final s in sessions) {
-    if (s.end.isAfter(windowStart) && !s.end.isAfter(windowEnd)) {
+    if (s.end.isAfter(windowStart) &&
+        !s.end.isAfter(windowEnd) &&
+        nightLike(s)) {
       if (night == null || s.asleep > night.asleep) night = s;
     }
   }
@@ -183,7 +197,7 @@ DaySleep daySleep({
   DateTime? nextSleep;
   for (final s in sessions) {
     if (s.start.isAfter(wake) &&
-        s.asleep.inMinutes >= 180 &&
+        s.asleep.inMinutes >= mainSleepMinutes &&
         (nextSleep == null || s.start.isBefore(nextSleep))) {
       nextSleep = s.start;
     }
@@ -195,7 +209,7 @@ DaySleep daySleep({
       if (s != night &&
           s.start.isAfter(wake) &&
           s.start.isBefore(napEnd) &&
-          s.asleep.inMinutes < 180)
+          s.asleep.inMinutes < mainSleepMinutes)
         s,
   ];
   return DaySleep(night: night, naps: naps, wake: wake, nextSleep: nextSleep);
@@ -239,6 +253,9 @@ List<NeedSample> needSamples(List<DailyScore> days) {
             ].whereType<double>().toList()
             case final zs when zs.isNotEmpty)
           NeedSample(
+            freeDay:
+                d.date.weekday == DateTime.saturday ||
+                d.date.weekday == DateTime.sunday,
             sleptHours: d.sleptHours!,
             autonomic: zs.reduce((a, b) => a + b) / zs.length,
           ),
@@ -283,6 +300,13 @@ List<NeedSample> needSamples(List<DailyScore> days) {
   );
   return (base: base, debt: debt, need: need);
 }
+
+/// The smallest spread each recovery input's baseline is given (algo 11),
+/// about its smallest worthwhile change: resting HR 2.5 bpm (whole-bpm
+/// readings wobble ~2 bpm a night; body signals call +3 bpm "off"), band
+/// sleep stress 2 points, ln HRV 0.07 (~7 %, a night's typical swing:
+/// Plews 2012), and sleep 10 points of the base need (~40 min).
+const recoveryMinSd = (rhr: 2.5, stress: 2.0, lnHrv: 0.07, sleep: 10.0);
 
 /// Scores [date]. [minutes] should cover at least noon the day before to
 /// noon the day after. [history] holds earlier days, newest first.
@@ -420,6 +444,7 @@ DailyScore scoreDay({
       baseline: Baseline.robust(normal.map((d) => d.hrvProxy)),
       higherIsBetter: false,
       weight: p.recovery.wHrv,
+      minSd: recoveryMinSd.stress,
     ),
     // HRV is log-normal: compare ln(ms) against ln(ms) of the same kind.
     RecoveryInput(
@@ -427,12 +452,14 @@ DailyScore scoreDay({
       baseline: Baseline.robust(pastLn),
       higherIsBetter: true,
       weight: hrvWeight,
+      minSd: recoveryMinSd.lnHrv,
     ),
     RecoveryInput(
       value: rhr,
       baseline: rhrBase,
       higherIsBetter: false,
       weight: p.recovery.wRhr,
+      minSd: recoveryMinSd.rhr,
     ),
     // Sleep against the base need, free of debt (algo 10, loop L3).
     RecoveryInput(
@@ -440,6 +467,7 @@ DailyScore scoreDay({
       baseline: Baseline.robust(normal.map(suffOf)),
       higherIsBetter: true,
       weight: p.recovery.wSleep,
+      minSd: recoveryMinSd.sleep,
     ),
   ], p.recovery);
   final penalty = rec == null ? 0.0 : recoveryPenalty(vitalsZ);

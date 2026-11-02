@@ -93,7 +93,9 @@ abstract final class TodayBody {
     final done =
         t.plan != null &&
         !t.plan!.isRest &&
-        (t.status == sc.DayStatus.done || t.status == sc.DayStatus.doneEasier);
+        (t.status == sc.DayStatus.done ||
+            t.status == sc.DayStatus.doneEasier ||
+            t.status == sc.DayStatus.doneHarder);
     // Asked before the call and the rings, so the score can't sway it.
     final now = appNow();
     final felt = ref.watch(feelProvider(st.dateKey(t.day)));
@@ -1001,9 +1003,11 @@ String doneTitle(TodayData t) {
   if (w != null) {
     return '${w.title} · ${hmShort((w.end - w.start) / 3600)} · done';
   }
-  return t.status == sc.DayStatus.doneEasier
-      ? '${t.plan!.title} · done, easier'
-      : '${t.plan!.title} · done';
+  return switch (t.status) {
+    sc.DayStatus.doneEasier => '${t.plan!.title} · done, easier',
+    sc.DayStatus.doneHarder => '${t.plan!.title} · done, harder',
+    _ => '${t.plan!.title} · done',
+  };
 }
 
 String doneSub(TodayData t) => _coveredBy(t) != null

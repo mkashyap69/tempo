@@ -54,13 +54,22 @@ void main() {
       );
     });
 
-    test('bedtime loses its points over three hours', () {
+    test('bedtime loses its points over three hours late, six early', () {
       expect(
         sleepScoreV3(sufficiency: 100, bedDeviationMinutes: 90).regularity,
         closeTo(50, 1e-9),
       );
       expect(
-        sleepScoreV3(sufficiency: 100, bedDeviationMinutes: -200).regularity,
+        sleepScoreV3(sufficiency: 100, bedDeviationMinutes: 200).regularity,
+        0,
+      );
+      // Algo 11: early costs half (2 Nov: 182 min early scored 0 before).
+      expect(
+        sleepScoreV3(sufficiency: 100, bedDeviationMinutes: -182).regularity,
+        closeTo(100 - 91 / 180 * 100, 1e-9),
+      );
+      expect(
+        sleepScoreV3(sufficiency: 100, bedDeviationMinutes: -400).regularity,
         0,
       );
     });
@@ -145,5 +154,5 @@ void main() {
     });
   });
 
-  test('algo 10', () => expect(algoVersion, 10));
+  test('algo 11', () => expect(algoVersion, 11));
 }

@@ -502,6 +502,10 @@ class _SleepScreenState extends ConsumerState<SleepScreen> {
                   const SizedBox(height: 8),
                 ],
                 Hypnogram(minutes: night.minutes, height: 160),
+                if (stageNote(night) case final note?) ...[
+                  const SizedBox(height: 8),
+                  Text(note, style: TempoType.caption.c(c.text2)),
+                ],
                 const SizedBox(height: 12),
                 Row(
                   children: [
@@ -603,7 +607,7 @@ class _SleepScreenState extends ConsumerState<SleepScreen> {
         if (latest) const SleepTypeCard(),
         const RhythmCard(),
         Text(
-          '${ref.watch(dataSourceProvider).isHealth ? 'Your watch marks when you sleep and its stages, as it wrote them to Health; treat them as a guide.' : 'The band marks when you sleep; Tempo estimates the stages from your heart rate and movement, so treat them as a guide.'} Need starts at 7 h 30 m; after 14 scored nights it learns from the nights after which your heart rate and HRV recover best (kept within 7–9 h). The score judges last night against that base; tonight’s need adds strain and debt.${strainYesterday > 0 ? '' : ''}',
+          '${ref.watch(dataSourceProvider).isHealth ? 'Your watch marks when you sleep and its stages, as it wrote them to Health; treat them as a guide.' : 'The band marks when you sleep; Tempo estimates the stages from your heart rate and movement, so treat them as a guide.'} Need starts at 7 h 30 m; after 14 scored nights it learns from the nights after which your heart rate and HRV recover best, checked against how long you sleep before a Saturday or Sunday (kept within 7–9 h). The score judges last night against that base; tonight’s need adds strain and debt.${strainYesterday > 0 ? '' : ''}',
           style: TempoType.caption.c(c.text3),
         ),
       ],
@@ -1091,6 +1095,12 @@ class Hypnogram extends StatelessWidget {
 }
 
 /// Why [night] has no stages, in the words of its source.
+/// A note when the band's estimated stages sit outside typical adult
+/// shares (algo 11); null for watch stages from Health and unstaged nights.
+String? stageNote(Night night) => !night.staged || night.source.isHealth
+    ? null
+    : sc.stageShareNote(sc.SleepSession(night.minutes));
+
 String unstagedNote(Night night) {
   if (!night.source.isHealth) {
     return 'No stages for this night: the band measured heart rate only every 10–30 minutes. Tempo sets it back to every minute on each sync; if this repeats, another app such as Mi Fitness is changing it.';
