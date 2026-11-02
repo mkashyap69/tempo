@@ -193,13 +193,14 @@ class _CardioLoadState extends ConsumerState<CardioLoadScreen> {
               Row(
                 children: [
                   Expanded(
-                    child: Text(
-                      'Last $_weeks weeks',
-                      style: TempoType.label.c(c.text1),
-                    ),
+                    child: Text(switch (_weeks) {
+                      26 => 'Last 6 months',
+                      52 => 'Last year',
+                      _ => 'Last $_weeks weeks',
+                    }, style: TempoType.label.c(c.text1)),
                   ),
                   TempoSegmented<int>(
-                    width: 102,
+                    width: 184,
                     height: 32,
                     values: const [8, 12, 26, 52],
                     labels: const ['8w', '12w', '6m', '1y'],

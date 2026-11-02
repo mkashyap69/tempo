@@ -10,6 +10,7 @@ import 'package:store/store.dart' as st;
 import '../core/coach_service.dart';
 import '../core/score_service.dart' show dismissBandWorkout, saveRpe;
 import '../core/format.dart';
+import '../core/share_card.dart';
 import '../core/minutes.dart';
 import '../core/profile.dart';
 import '../design/chart.dart';
@@ -235,11 +236,57 @@ class ActivityDetailScreen extends ConsumerWidget {
             'manual' => 'Added by hand · strain estimated',
             _ => 'Recorded live',
           }),
-          trailing: TempoIconButton(
-            TempoIcons.edit,
-            label: 'Edit activity',
-            stroke: 1.75,
-            onTap: () => _edit(context, ref, w),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TempoIconButton(
+                TempoIcons.share,
+                label: 'Share as a card',
+                stroke: 1.75,
+                onTap: () {
+                  final g = data.gait;
+                  final km = w.distanceM ?? g?.distanceM;
+                  final pace = g?.movingPacePerKm ?? g?.pacePerKm;
+                  shareCard(
+                    context,
+                    TempoShareCard(
+                      kicker: sportLabelFor(w.sport),
+                      title: w.title,
+                      date: a,
+                      hero: '+${w.strain.toStringAsFixed(1)}',
+                      heroUnit: 'strain',
+                      heroLabel: '$mins min · ${clockOf(a)}–${clockOf(b)}',
+                      accent: const Color(0xFFFFB066),
+                      zoneMinutes: zones.length == 5 ? zones : null,
+                      stats: [
+                        if (km != null && km >= 100)
+                          ShareStat(
+                            'Distance',
+                            (km / 1000).toStringAsFixed(2),
+                            unit: ' km',
+                          ),
+                        if (pace != null)
+                          ShareStat('Pace', mmss(pace), unit: ' /km'),
+                        if (w.avgHr != null)
+                          ShareStat('Avg HR', '${w.avgHr}', unit: ' bpm'),
+                        if (w.maxHr != null)
+                          ShareStat('Max HR', '${w.maxHr}', unit: ' bpm'),
+                        if (g != null) ShareStat('Steps', '${g.steps}'),
+                        if (w.rpe != null) ShareStat('Felt', '${w.rpe}/10'),
+                      ],
+                    ),
+                    name: 'activity-${w.id}',
+                    text: '${w.title} on Tempo',
+                  );
+                },
+              ),
+              TempoIconButton(
+                TempoIcons.edit,
+                label: 'Edit activity',
+                stroke: 1.75,
+                onTap: () => _edit(context, ref, w),
+              ),
+            ],
           ),
         ),
         Row(

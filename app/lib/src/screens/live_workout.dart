@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:scoring/scoring.dart' as sc;
 
 import '../core/format.dart';
+import '../core/share_card.dart';
 import '../core/route_tracker.dart' show DistanceSource, RoutePoint;
 import '../design/beating_heart.dart';
 import '../design/components.dart';
@@ -656,6 +657,46 @@ class _ZoneSplit extends StatelessWidget {
       ),
     );
   }
+}
+
+/// The share card for a live session that just ended.
+TempoShareCard workoutCard(LiveState s) {
+  final miles = !s.metric;
+  final unit = miles ? 'mi' : 'km';
+  final d = s.distanceM;
+  final onFoot = s.onFoot && d != null && d >= 50;
+  return TempoShareCard(
+    kicker: sportName(s.sport),
+    title: s.title,
+    hero: onFoot ? distanceText(d, metric: !miles) : '+${n1(s.sessionStrain)}',
+    heroUnit: onFoot ? unit : 'strain',
+    heroLabel: onFoot
+        ? '${mmss(s.elapsed)} · strain +${n1(s.sessionStrain)}'
+        : mmss(s.elapsed),
+    accent: const Color(0xFFFFB066),
+    route: s.route,
+    zoneMinutes: [for (final z in s.zoneSeconds) (z / 60).round()],
+    stats: [
+      if (onFoot && s.paceAvg != null)
+        ShareStat(
+          'Avg pace',
+          sc.paceText(s.paceAvg!, miles: miles),
+          unit: ' /$unit',
+        ),
+      if (onFoot && s.elevationGainM != null && s.elevationGainM! >= 1)
+        ShareStat(
+          'Climb',
+          (miles ? s.elevationGainM! * 3.28084 : s.elevationGainM!)
+              .round()
+              .toString(),
+          unit: miles ? ' ft' : ' m',
+        ),
+      if (s.avgHr != null) ShareStat('Avg HR', '${s.avgHr}', unit: ' bpm'),
+      if (s.maxHr != null) ShareStat('Max HR', '${s.maxHr}', unit: ' bpm'),
+      if (s.steps != null) ShareStat('Steps', grouped(s.steps!)),
+      ShareStat('Day strain', n1(s.dayStrain)),
+    ],
+  );
 }
 
 /// "3.42": metres as km (or miles), two decimals.
@@ -1502,13 +1543,34 @@ class _SummaryState extends ConsumerState<_Summary> {
               ],
             ),
           ),
-        TempoButton(
-          'Save',
-          expand: true,
-          onTap: () {
-            n.close();
-            Navigator.of(context).maybePop();
-          },
+        Row(
+          children: [
+            Expanded(
+              child: TempoButton(
+                'Share',
+                icon: TempoIcons.share,
+                kind: ButtonKind.secondary,
+                expand: true,
+                onTap: () => shareCard(
+                  context,
+                  workoutCard(s),
+                  name: 'workout',
+                  text: '${s.title} on Tempo',
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: TempoButton(
+                'Save',
+                expand: true,
+                onTap: () {
+                  n.close();
+                  Navigator.of(context).maybePop();
+                },
+              ),
+            ),
+          ],
         ),
       ],
     );

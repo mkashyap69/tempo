@@ -479,15 +479,23 @@ class TempoSegmented<T> extends StatelessWidget {
                         : Colors.transparent,
                     borderRadius: BorderRadius.circular(TempoRadii.pill),
                   ),
-                  child: Text(
-                    labels[i],
-                    style: TempoType.label.copyWith(
-                      color: v == selected
-                          ? (inverse ? c.textInverse : c.text1)
-                          : c.text2,
-                      fontWeight: v == selected
-                          ? FontWeight.w500
-                          : FontWeight.w400,
+                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                  // One line always: shrink a long label rather than wrap
+                  // it ("12w" broke onto two lines in a narrow control).
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      labels[i],
+                      maxLines: 1,
+                      softWrap: false,
+                      style: TempoType.label.copyWith(
+                        color: v == selected
+                            ? (inverse ? c.textInverse : c.text1)
+                            : c.text2,
+                        fontWeight: v == selected
+                            ? FontWeight.w500
+                            : FontWeight.w400,
+                      ),
                     ),
                   ),
                 ),

@@ -9,6 +9,7 @@ import '../core/format.dart';
 import '../core/today.dart';
 import '../design/chart.dart';
 import '../design/components.dart';
+import 'share_cards.dart';
 import '../design/icons.dart';
 import '../design/meter.dart';
 import '../design/tokens.dart';
@@ -66,9 +67,15 @@ class RecoveryScreen extends ConsumerWidget {
         DetailHeader(
           title: 'Recovery',
           subtitle: dayShort(t.day),
-          trailing: InfoButton(
-            label: 'How recovery works',
-            onTap: () => push(context, const LearnCardsScreen(initial: 0)),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ShareButton(card: () => DayCards.recovery(t), name: 'recovery'),
+              InfoButton(
+                label: 'How recovery works',
+                onTap: () => push(context, const LearnCardsScreen(initial: 0)),
+              ),
+            ],
           ),
         ),
         Column(

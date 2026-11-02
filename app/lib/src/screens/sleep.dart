@@ -23,6 +23,7 @@ import '../core/minutes.dart';
 import '../core/today.dart';
 import '../design/chart.dart';
 import '../design/components.dart';
+import 'share_cards.dart';
 import '../design/icons.dart';
 import '../design/meter.dart';
 import '../design/tokens.dart';
@@ -383,9 +384,16 @@ class _SleepScreenState extends ConsumerState<SleepScreen> {
               ),
             ],
           ),
-          trailing: InfoButton(
-            label: 'How sleep need works',
-            onTap: () => push(context, const LearnCardsScreen(initial: 4)),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (latest)
+                ShareButton(card: () => DayCards.sleep(t), name: 'sleep'),
+              InfoButton(
+                label: 'How sleep need works',
+                onTap: () => push(context, const LearnCardsScreen(initial: 4)),
+              ),
+            ],
           ),
         ),
         if (night.empty)

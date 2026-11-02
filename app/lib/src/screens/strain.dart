@@ -12,6 +12,7 @@ import '../core/minutes.dart';
 import '../core/profile.dart';
 import '../design/chart.dart';
 import '../design/components.dart';
+import 'share_cards.dart';
 import '../design/icons.dart';
 import '../design/meter.dart';
 import '../design/tokens.dart';
@@ -128,9 +129,15 @@ class StrainScreen extends ConsumerWidget {
         DetailHeader(
           title: 'Strain',
           subtitle: 'Live · updated ${clockOf(t.lastSync ?? now)}',
-          trailing: InfoButton(
-            label: 'How strain works',
-            onTap: () => push(context, const LearnCardsScreen(initial: 1)),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ShareButton(card: () => DayCards.strain(t), name: 'strain'),
+              InfoButton(
+                label: 'How strain works',
+                onTap: () => push(context, const LearnCardsScreen(initial: 1)),
+              ),
+            ],
           ),
         ),
         Column(
