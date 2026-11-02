@@ -556,8 +556,13 @@ class _StartPlanState extends ConsumerState<_StartPlan> {
     final need = widget.t.needTonight;
     final bed = sc.bedtimeMinute(need, wake);
     final done = widget.done;
+    // Week 1 asks for one 15-min step from your usual times (V1).
+    final fromWake = widget.t.usualWakeMinute,
+        fromBed = widget.t.usualBedMinute;
+    final wake1 = sc.stepToward(fromWake, wake, 1);
+    final bed1 = sc.stepToward(fromBed, bed, 1);
     String about(sc.SleepFocus f) => sc
-        .sleepWeeks(f, wakeMinute: wake, bedMinute: bed)
+        .sleepWeeks(f, wakeMinute: wake1, bedMinute: bed1)
         .map((w) => w.habit.title)
         .join(' → ');
     return Column(
@@ -631,6 +636,12 @@ class _StartPlanState extends ConsumerState<_StartPlan> {
                       'Lights out ${fmtHm(bed)} for ${hmShort(need)}',
                       style: TempoType.caption.c(c.text2).tnum,
                     ),
+                    if (wake1 != wake || bed1 != bed)
+                      Text(
+                        'Starts from your usual ${fmtHm(fromBed ?? bed)}–'
+                        '${fmtHm(fromWake ?? wake)}, 15 min closer each week',
+                        style: TempoType.caption.c(c.text3).tnum,
+                      ),
                   ],
                 ),
               ),
@@ -653,6 +664,8 @@ class _StartPlanState extends ConsumerState<_StartPlan> {
               focus,
               wake: wake,
               bed: bed,
+              fromWake: fromWake,
+              fromBed: fromBed,
             );
             if (context.mounted) {
               showTempoToast(context, 'Sleep plan started · day 1 of 21');

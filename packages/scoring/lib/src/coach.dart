@@ -862,7 +862,8 @@ void _applyFocus(
       !hard.contains(i + 1) &&
       !plan[i].startsWith('long_') &&
       !plan[i].startsWith('strength');
-  if (focus == Lever.activeMinutes) {
+  // A blood focus works through the same aerobic minutes (V6).
+  if (focus == Lever.activeMinutes || focus == Lever.blood) {
     final z2 = likes.contains(Sport.running)
         ? 'aerobic_run'
         : likes.contains(Sport.cycling)
@@ -939,6 +940,45 @@ StrainTarget strainTarget({
     t = const StrainTarget(15, 18);
   }
   return adjustForLoad(t, recovery, load, loadRatio);
+}
+
+/// Load multiples of your fitness (42-day TRIMP) per recovery band: the
+/// "productive" 0.8–1.3 × chronic, moved up as recovery rises (V3).
+({double lo, double hi}) personalFactors(double recovery) => recovery < 50
+    ? (lo: .8, hi: 1.1)
+    : recovery < 67
+    ? (lo: .9, hi: 1.2)
+    : recovery < 80
+    ? (lo: 1.0, hi: 1.3)
+    : recovery < 90
+    ? (lo: 1.1, hi: 1.4)
+    : (lo: 1.2, hi: 1.5);
+
+/// [base] (from [strainTarget]) sized to your own load (V3): today's range
+/// is your fitness × [personalFactors] in TRIMP, turned into strain, and
+/// never above [base]. Fixed bands asked the owner for 8–12 on a yellow day
+/// when 24 of 29 days were under 9; around their own load it reads ~5–7.
+/// Rest caps, general days and a load still learning keep [base].
+StrainTarget personalTarget(
+  StrainTarget base, {
+  double? recovery,
+  CardioLoad? load,
+  StrainParams p = const StrainParams(),
+}) {
+  if (base.general ||
+      base.cap ||
+      recovery == null ||
+      load == null ||
+      load.status == LoadStatus.learning ||
+      load.chronic <= 0) {
+    return base;
+  }
+  final f = personalFactors(recovery);
+  final lo = min(base.lo, strainFromTrimp(load.chronic * f.lo, p));
+  final hi = min(base.hi, strainFromTrimp(load.chronic * f.hi, p));
+  final l = max(1.0, (lo * 2).round() / 2);
+  final h = max(l + 1, (hi * 2).round() / 2);
+  return StrainTarget(l, h);
 }
 
 /// The 7-day vs 28-day load ratio nudges a target (A9): a well-recovered

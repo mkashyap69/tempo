@@ -9,6 +9,7 @@ import 'format.dart';
 import 'pause.dart';
 import 'profile.dart';
 import 'score_service.dart' show toScoring;
+import 'sleep_coach.dart' show SleepPlan;
 
 /// Everything the Today and Coach screens, the widgets and the bedtime
 /// nudge derive from the DB for one day.
@@ -17,6 +18,7 @@ class TodayData {
     required this.day,
     required this.score,
     required this.history,
+    this.recoveryShares = const [],
     required this.nights,
     required this.everSlept,
     required this.load,
@@ -31,6 +33,9 @@ class TodayData {
     required this.wakeMinute,
     required this.wakeFromUsual,
     required this.bedtimeMinute,
+    this.goalBedtimeMinute,
+    this.usualBedMinute,
+    this.usualWakeMinute,
     required this.lastSync,
     required this.profile,
     required this.workouts,
@@ -78,6 +83,9 @@ class TodayData {
   /// Earlier days, newest first (up to 60).
   final List<st.DailyScore> history;
 
+  /// What moved today's recovery, as the score computed it (V5).
+  final List<sc.RecoveryShare> recoveryShares;
+
   /// Nights captured toward the 14-night baseline (0–14).
   final int nights;
   final bool everSlept;
@@ -89,6 +97,13 @@ class TodayData {
   final List<st.PlanDay> week;
   final double needTonight, debt, baseNeed;
   final int wakeMinute, bedtimeMinute;
+
+  /// The bedtime your need and wake time ask for; [bedtimeMinute] steps
+  /// toward it 15 min at a time from [usualBedMinute] (V1). Null = same.
+  final int? goalBedtimeMinute;
+
+  /// Median bedtime and wake over the last 14 nights (5+ nights), or null.
+  final int? usualBedMinute, usualWakeMinute;
   final bool wakeFromUsual;
   final DateTime? lastSync;
   final Profile profile;
@@ -226,12 +241,17 @@ Future<TodayData> loadToday(st.TempoDb db, {DateTime? at}) async {
   final load = await loadFor(db, day);
   final profile = await loadAppProfile(db) ?? const Profile();
   final calibrating = score?.calibrating ?? nights < 14;
+  // V3: sized to your own load once it has learned it.
   final baseTarget = everSlept
-      ? sc.strainTarget(
+      ? sc.personalTarget(
+          sc.strainTarget(
+            recovery: calibrating ? null : score?.recovery,
+            calibrating: calibrating,
+            load: load.status,
+            loadRatio: load.ratio,
+          ),
           recovery: calibrating ? null : score?.recovery,
-          calibrating: calibrating,
-          load: load.status,
-          loadRatio: load.ratio,
+          load: load,
         )
       : const sc.StrainTarget(8, 12, general: true);
   final coach = CoachService(db);
@@ -258,6 +278,14 @@ Future<TodayData> loadToday(st.TempoDb db, {DateTime? at}) async {
     for (final d in [?score, ...history])
       if (!isPaused(pauses, DateTime.parse(d.date))) toScoring(d),
   ];
+  // V5: the score's own inputs, for Today's "why".
+  final shares =
+      score?.recovery != null &&
+          kept.isNotEmpty &&
+          kept.first.date == day &&
+          !kept.first.calibrating
+      ? sc.recoveryBreakdown(kept.first, kept.skip(1).toList())
+      : const <sc.RecoveryShare>[];
   const sleepParams = sc.SleepParams();
   final needNow = sc.sleepNeedFrom(
     history: kept,
@@ -299,7 +327,21 @@ Future<TodayData> loadToday(st.TempoDb db, {DateTime? at}) async {
   final nowMin = dayOf(nowT) == day
       ? _clock(nowT)
       : (nowT.isAfter(day) ? 24 * 60 + 600 : 0);
-  final bedtime = sc.bedtimeMinute(needTonight, wake);
+  // V1: tonight's bedtime steps from your usual one toward the goal (or
+  // follows the sleep plan's week), so the ask is one you can keep.
+  final goalBed = sc.bedtimeMinute(needTonight, wake);
+  final usualBed = sc.usualClock([
+    for (final d in recent30.take(14))
+      if (d.sleepStart != null) _clock(st.fromTs(d.sleepStart!)),
+  ]);
+  final usualWake = sc.usualClock(ends);
+  final sleepPlan = SleepPlan.fromJson(await db.setting(Keys.sleepPlan));
+  final planDay = sleepPlan == null
+      ? null
+      : sc.sleepPlanDay(sleepPlan.start, day);
+  final bedtime = sleepPlan != null && planDay != null
+      ? sleepPlan.bedOn(planDay)
+      : sc.steppedBedtime(goal: goalBed, usual: usualBed);
   final match = plan == null
       ? const sc.SessionMatch(sc.MatchKind.none, 0)
       : sc.matchSession(plan, [for (final w in workouts) doneWorkout(w)]);
@@ -371,6 +413,7 @@ Future<TodayData> loadToday(st.TempoDb db, {DateTime? at}) async {
     day: day,
     score: score,
     history: history,
+    recoveryShares: shares,
     nights: nights,
     everSlept: everSlept,
     load: load,
@@ -386,6 +429,9 @@ Future<TodayData> loadToday(st.TempoDb db, {DateTime? at}) async {
     wakeMinute: wake,
     wakeFromUsual: set == null,
     bedtimeMinute: bedtime,
+    goalBedtimeMinute: goalBed == bedtime ? null : goalBed,
+    usualBedMinute: usualBed,
+    usualWakeMinute: usualWake,
     lastSync: lastSyncRaw == null ? null : DateTime.tryParse(lastSyncRaw),
     profile: profile,
     workouts: workouts,

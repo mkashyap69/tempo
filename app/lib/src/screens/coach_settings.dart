@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -15,8 +16,19 @@ import '../design/type.dart';
 import '../state/providers.dart';
 
 class _State {
-  _State(this.kinds, this.cap, this.slot, this.am, this.pm, this.precise);
+  _State(
+    this.kinds,
+    this.cap,
+    this.slot,
+    this.am,
+    this.pm,
+    this.precise, {
+    this.paused = const {},
+  });
   final Set<sc.NudgeKind> kinds;
+
+  /// Kinds paused because they changed nothing (V7): (posted, followed).
+  final Map<sc.NudgeKind, (int, int)> paused;
   final int cap;
   final String slot;
   final int am, pm;
@@ -34,8 +46,32 @@ final _stateProvider = FutureProvider<_State>((ref) async {
     slots.am,
     slots.pm,
     await db.setting(Keys.notifPrecise) == '1',
+    paused: _paused(await db.setting(Keys.notifEffectPaused)),
   );
 });
+
+Map<sc.NudgeKind, (int, int)> _paused(String? raw) {
+  try {
+    final m = jsonDecode(raw ?? '{}') as Map<String, dynamic>;
+    return {
+      for (final e in m.entries)
+        if (sc.NudgeKind.values.asNameMap()[e.key] case final k?)
+          if ('${e.value}'.split('|') case [_, final n, final f])
+            k: (int.parse(n), int.parse(f)),
+    };
+  } catch (_) {
+    return {};
+  }
+}
+
+String pausedWhy(sc.NudgeKind k, (int, int) c) => switch (k) {
+  sc.NudgeKind.winddown =>
+    'Paused: you were asleep by its bedtime after ${c.$2} of ${c.$1} in the '
+        'last 4 weeks. Turn it back on and it stays on for 4 weeks.',
+  _ =>
+    'Paused: a workout followed ${c.$2} of ${c.$1} in the last 4 weeks. '
+        'Turn it back on and it stays on for 4 weeks.',
+};
 
 String kindName(sc.NudgeKind k) => switch (k) {
   sc.NudgeKind.brief => 'Morning brief',
@@ -183,7 +219,9 @@ class CoachSettingsScreen extends ConsumerWidget {
               for (final k in sc.NudgeKind.values)
                 ListRow(
                   kindName(k),
-                  sub: kindWhen(k),
+                  sub: st.paused[k] == null
+                      ? kindWhen(k)
+                      : pausedWhy(k, st.paused[k]!),
                   chevron: false,
                   trailing: TempoSwitch(
                     label: kindName(k),

@@ -628,6 +628,7 @@ class TonightLine extends StatelessWidget {
             child: Text(
               late == null
                   ? 'Tonight · need ${hmShort(t.needTonight)} · bed by ${clock12(t.bedtimeMinute)}'
+                        '${t.goalBedtimeMinute == null ? '' : ' · stepping to ${clock12(t.goalBedtimeMinute!)}'}'
                   : 'Past bedtime · bed now gives ${hmShort(sc.sleepIfBedNow(nowMin, t.wakeMinute))}',
               style: TempoType.bodyS.c(c.text1).tnum,
             ),

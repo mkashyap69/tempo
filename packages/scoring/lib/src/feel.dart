@@ -8,6 +8,7 @@ library;
 
 import 'dart:math';
 
+import 'daily.dart' show RecoveryShare;
 import 'recovery.dart';
 
 /// Version stamped on comparisons made by these rules.
@@ -122,4 +123,54 @@ List<double> _ranks(List<double> v) {
     i = j + 1;
   }
   return r;
+}
+
+// ---- Which signal tracks you (V8) --------------------------------------------
+
+/// Rated mornings before signals are compared with the score: fewer and
+/// one signal "beating" the score is mostly chance (24 mornings, owner:
+/// resting HR −0.38, sleep 0.37, stress −0.14, the score 0.49).
+const signalFeelMinPairs = 60;
+
+/// How far a single signal must beat the score's own ρ before Tempo says
+/// the weights may not suit you.
+const signalFeelMargin = .15;
+
+/// Each recovery input's z (as the score used it, + = better) against
+/// feel, over the rated mornings: [mornings] are (that day's shares, feel).
+Map<String, ({int n, double? rho})> feelBySignal(
+  List<(List<RecoveryShare>, int)> mornings,
+) {
+  final xs = <String, List<double>>{}, ys = <String, List<double>>{};
+  for (final (shares, feel) in mornings) {
+    for (final s in shares) {
+      xs.putIfAbsent(s.key, () => []).add(s.z);
+      ys.putIfAbsent(s.key, () => []).add(feel.toDouble());
+    }
+  }
+  return {
+    for (final k in xs.keys)
+      k: (n: xs[k]!.length, rho: spearman(xs[k]!, ys[k]!)),
+  };
+}
+
+/// The signal that tracks feel clearly better than the score, once there
+/// are [signalFeelMinPairs] mornings, or null. Advice only: weights are
+/// never changed from one person's ratings.
+String? betterSignal(
+  Map<String, ({int n, double? rho})> bySignal,
+  double? scoreRho,
+) {
+  if (scoreRho == null) return null;
+  String? best;
+  var bestRho = scoreRho + signalFeelMargin;
+  for (final e in bySignal.entries) {
+    final r = e.value.rho;
+    if (e.value.n < signalFeelMinPairs || r == null) continue;
+    if (r >= bestRho) {
+      best = e.key;
+      bestRho = r;
+    }
+  }
+  return best;
 }

@@ -3,6 +3,7 @@ import 'package:store/store.dart' as st;
 
 import 'data_source.dart';
 import 'feel.dart';
+import 'score_service.dart' show toScoring;
 
 /// Days of scores the check looks back over.
 const scoreCheckDays = 90;
@@ -20,7 +21,14 @@ final class ScoreCheck {
     required this.feel,
     required this.offDaysBelow,
     required this.offDays,
+    this.bySignal = const {},
+    this.better,
   });
+
+  /// Each recovery input against morning feel (V8), and the one that
+  /// tracks it clearly better than the score, if any.
+  final Map<String, ({int n, double? rho})> bySignal;
+  final String? better;
 
   /// Days of the active source in the window.
   final int days;
@@ -68,13 +76,34 @@ Future<ScoreCheck> loadScoreCheck(st.TempoDb db, {DateTime? now}) async {
       if (!r.calibrating && r.recovery != null)
         (recovery: r.recovery!, penalty: r.vitalsPenalty),
   ];
+  // V8: each rated morning's recovery inputs, rebuilt as the score used
+  // them, against how you felt.
+  final older = [
+    for (final s in await db.scoresBetween(
+      from.subtract(const Duration(days: 31)),
+      at,
+    ))
+      if (s.source == source) toScoring(s),
+  ]..sort((a, b) => b.date.compareTo(a.date));
+  final rated = {for (final f in await db.feelSince(from)) f.date: f.feel};
+  final mornings = <(List<sc.RecoveryShare>, int)>[];
+  for (var i = 0; i < older.length; i++) {
+    final d = older[i];
+    final key = st.dateKey(d.date);
+    if (d.calibrating || d.recovery == null || rated[key] == null) continue;
+    mornings.add((sc.recoveryBreakdown(d, older.sublist(i + 1)), rated[key]!));
+  }
+  final bySignal = sc.feelBySignal(mornings);
+  final feel = await feelComparison(db, at);
   return ScoreCheck(
+    bySignal: bySignal,
+    better: sc.betterSignal(bySignal, feel.rho),
     days: rows.length,
     algoVersions: versions,
     spread: {for (final e in series.entries) e.key: sc.spread(e.value.values)},
     noise: {for (final e in series.entries) e.key: sc.noise(dates, e.value)},
     colours: sc.colours(series['Recovery']!.values),
-    feel: await feelComparison(db, at),
+    feel: feel,
     offDaysBelow: sc.offDaysBelowMedian(judged),
     offDays: judged.where((d) => d.penalty > 0).length,
   );

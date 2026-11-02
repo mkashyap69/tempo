@@ -711,3 +711,40 @@ double _gamma(double shape, Random r) {
     if (log(u) < .5 * x * x + d * (1 - v + log(v))) return d * v;
   }
 }
+
+// ---- Does a reminder change anything? (V7) ----------------------------------
+
+/// One posted reminder and whether what it asked for happened: in bed by
+/// the bedtime it was for (wind-down), a workout that day after it
+/// (session).
+typedef NudgeTrial = ({NudgeKind kind, bool followed});
+
+/// Reminders of a kind in the window before it is judged, and the share
+/// followed below which it is paused. Ignoring a reminder already slows
+/// and then pauses it ([ignoreSlow], [ignorePause]); this is the other half:
+/// a reminder that is seen but changes nothing is noise too. Owner, Oct
+/// 2026: 28 wind-downs posted for a 23:04 bedtime, in bed by then twice.
+const effectMinTrials = 10, effectMinRate = .2;
+
+/// Kinds whose effect can be seen in the data.
+const measuredKinds = {NudgeKind.winddown, NudgeKind.session};
+
+/// Posted and followed counts per kind.
+Map<NudgeKind, ({int n, int followed})> followCounts(List<NudgeTrial> ts) {
+  final out = <NudgeKind, ({int n, int followed})>{};
+  for (final t in ts) {
+    final c = out[t.kind] ?? (n: 0, followed: 0);
+    out[t.kind] = (n: c.n + 1, followed: c.followed + (t.followed ? 1 : 0));
+  }
+  return out;
+}
+
+/// Measured kinds posted [effectMinTrials]+ times and followed less than
+/// [effectMinRate] of the time.
+Set<NudgeKind> notWorking(Map<NudgeKind, ({int n, int followed})> counts) => {
+  for (final e in counts.entries)
+    if (measuredKinds.contains(e.key) &&
+        e.value.n >= effectMinTrials &&
+        e.value.followed < effectMinRate * e.value.n)
+      e.key,
+};

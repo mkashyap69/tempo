@@ -501,3 +501,88 @@ ExperimentResult experimentResult(
     confidence: enough ? i.confidence : ImpactConfidence.notEnough,
   );
 }
+
+// ---- What happened last time (V4) ---------------------------------------------
+
+/// Other days needed to know your normal for [lastTime].
+const lastTimeMinOther = 5;
+
+/// What the night and morning after a behaviour looked like each time it
+/// was logged, against the median of your other days. Unlike [impacts] it
+/// needs no minimum of yes-days and adjusts for nothing: it is a plain
+/// before-and-after, shown as one, from the first time. Owner, Oct 2026:
+/// three nights after alcohol, resting HR +10 to +15 bpm, while the impact
+/// engine waited for five.
+final class LastTime {
+  const LastTime({
+    required this.key,
+    required this.n,
+    this.rhr,
+    this.recovery,
+    this.slept,
+  });
+  final String key;
+
+  /// Times logged with an outcome after it.
+  final int n;
+
+  /// Mean change against your other days: resting HR (bpm), recovery
+  /// (points), sleep (hours). Null when not measured.
+  final double? rhr, recovery, slept;
+
+  /// Worth a card: a change a person would notice.
+  bool get notable =>
+      (rhr?.abs() ?? 0) >= 3 ||
+      (recovery?.abs() ?? 0) >= 10 ||
+      (slept?.abs() ?? 0) >= .5;
+}
+
+LastTime? lastTime(List<ImpactDay> days, String key) {
+  bool yes(ImpactDay d) => (d.x[key] ?? 0) > 0;
+  final tagged = days.where(yes).toList();
+  final other = days.where((d) => !yes(d)).toList();
+  if (tagged.isEmpty || other.length < lastTimeMinOther) return null;
+  double? delta(Outcome o) {
+    final a = [for (final d in tagged) ?d.y[o]];
+    final b = [for (final d in other) ?d.y[o]];
+    if (a.isEmpty || b.length < lastTimeMinOther) return null;
+    b.sort();
+    final med = b.length.isOdd
+        ? b[b.length ~/ 2]
+        : (b[b.length ~/ 2 - 1] + b[b.length ~/ 2]) / 2;
+    return a.reduce((x, y) => x + y) / a.length - med;
+  }
+
+  return LastTime(
+    key: key,
+    n: tagged.length,
+    rhr: delta(Outcome.rhr),
+    recovery: delta(Outcome.recovery),
+    slept: delta(Outcome.sleptHours),
+  );
+}
+
+/// The card's sentence: "The 3 nights after alcohol: resting HR 12 bpm
+/// higher and recovery 41 points lower than your other days."
+String lastTimeLine(LastTime l, String name) {
+  String bpm(double v) =>
+      '${v.abs().round()} bpm ${v > 0 ? 'higher' : 'lower'}';
+  String pts(double v) =>
+      '${v.abs().round()} points ${v > 0 ? 'higher' : 'lower'}';
+  String hrs(double v) {
+    final m = (v.abs() * 60).round();
+    return '${m >= 60 ? '${m ~/ 60} h ${m % 60} m' : '$m min'} '
+        '${v > 0 ? 'more' : 'less'}';
+  }
+
+  final parts = [
+    if (l.rhr case final v? when v.abs() >= 1) 'resting HR ${bpm(v)}',
+    if (l.recovery case final v? when v.abs() >= 3) 'recovery ${pts(v)}',
+    if (l.slept case final v? when v.abs() >= .25) 'sleep ${hrs(v)}',
+  ];
+  final when = l.n == 1 ? 'The night after' : 'The ${l.n} nights after';
+  final what = parts.isEmpty
+      ? 'about as usual'
+      : '${parts.length == 1 ? parts.single : '${parts.sublist(0, parts.length - 1).join(', ')} and ${parts.last}'} than your other days';
+  return '$when ${name.toLowerCase()}: $what.';
+}

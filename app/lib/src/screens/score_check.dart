@@ -73,6 +73,22 @@ class ScoreCheckScreen extends ConsumerWidget {
                     ? '${r.feel.n} of ${sc.feelMinPairs} rated mornings so far'
                     : '${r.feel.agree} of ${r.feel.n} mornings in the same band',
               ),
+              for (final e in r.bySignal.entries)
+                ListRow(
+                  '· ${_signal(e.key)}',
+                  chevron: false,
+                  value: e.value.rho == null
+                      ? '—'
+                      : 'ρ ${e.value.rho!.toStringAsFixed(2)}',
+                  sub: e.value.n < sc.signalFeelMinPairs
+                      ? '${e.value.n} mornings; compared with the score from '
+                            '${sc.signalFeelMinPairs}'
+                      : r.better == e.key
+                      ? 'Tracks how you feel clearly better than the score: '
+                            'its weight may be too low for you. Tempo doesn’t '
+                            'change weights from one person’s ratings.'
+                      : '${e.value.n} mornings',
+                ),
               ListRow(
                 'Body-signal days',
                 chevron: false,
@@ -103,3 +119,10 @@ class ScoreCheckScreen extends ConsumerWidget {
 }
 
 String _pct(double x) => '${(x * 100).round()} %';
+
+String _signal(String k) => switch (k) {
+  'stress' => 'Overnight stress',
+  'hrv' => 'HRV',
+  'rhr' => 'Resting heart rate',
+  _ => 'Sleep',
+};

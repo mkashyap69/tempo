@@ -65,4 +65,31 @@ void main() {
       expect(c.fit, FeelFit.learning);
     });
   });
+
+  group('V8: which signal tracks you', () {
+    RecoveryShare x(String k, double z) =>
+        RecoveryShare(key: k, value: 0, normal: 0, z: z, push: z / 3);
+    List<(List<RecoveryShare>, int)> mornings(int n) => [
+      for (var i = 0; i < n; i++)
+        (
+          [x('rhr', (i % 5) - 2.0), x('sleep', ((i * 7) % 5) - 2.0)],
+          (i % 5) + 1,
+        ),
+    ];
+    test('rho per signal from the z the score used', () {
+      final m = feelBySignal(mornings(20));
+      expect(m['rhr']!.n, 20);
+      expect(m['rhr']!.rho, closeTo(1, 1e-9));
+      expect(m['sleep']!.rho!.abs(), lessThan(1));
+    });
+    test(
+      'a better signal is named only with 60 mornings and a clear margin',
+      () {
+        expect(betterSignal(feelBySignal(mornings(30)), .5), isNull);
+        expect(betterSignal(feelBySignal(mornings(60)), .5), 'rhr');
+        expect(betterSignal(feelBySignal(mornings(60)), .9), isNull);
+        expect(betterSignal(feelBySignal(mornings(60)), null), isNull);
+      },
+    );
+  });
 }

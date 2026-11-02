@@ -61,7 +61,10 @@ List<Contributor> contributors(BuildContext context, TodayData t) {
         effect: 0,
       );
     }
-    if (calib || b == null || b.sd == 0) {
+    // V5: the z the score itself used (minimum spread, ±2.5 cap), so this
+    // list can't disagree with the number; the local z only as a fallback.
+    final share = t.recoveryShares.where((x) => x.key == key).firstOrNull;
+    if (share == null && (calib || b == null || b.sd == 0)) {
       return Contributor(
         key: key,
         name: name,
@@ -76,8 +79,9 @@ List<Contributor> contributors(BuildContext context, TodayData t) {
         effect: 0,
       );
     }
-    var z = (v - b.mean) / b.sd;
-    if (lowerBetter) z = -z;
+    var z = share?.z ?? (v - b!.mean) / b.sd;
+    if (share == null && lowerBetter) z = -z;
+    final normal = key == 'hrv' || share == null ? b?.mean ?? v : share.normal;
     final w = math.min(.42, z.abs() * .14);
     final color = z > .4
         ? s.recHigh
@@ -94,8 +98,8 @@ List<Contributor> contributors(BuildContext context, TodayData t) {
       name: name,
       proxy: proxy,
       value: fmt(v),
-      base: fmt(b.mean),
-      verdict: say(z, v - b.mean),
+      base: fmt(normal),
+      verdict: say(z, v - normal),
       glyph: glyph,
       color: color,
       left: z >= 0 ? .5 : .5 - w,

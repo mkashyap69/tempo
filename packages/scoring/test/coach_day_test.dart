@@ -414,4 +414,131 @@ void main() {
       expect(r.changed, [1, 5]);
     });
   });
+
+  group('V2: walks and slots', () {
+    test('a brisk walk covers a moderate run by its Z2+ minutes', () {
+      final steady = sessionTemplate('steady_run');
+      expect(compatible(steady, Sport.walking), isTrue);
+      // 60 min, 45 of them Z2+: done for a 40-min steady run.
+      expect(
+        matchSession(steady, [
+          DoneWorkout(
+            start: DateTime(2026, 10, 25, 17, 49),
+            minutes: 60,
+            sport: Sport.walking,
+            zoneMinutes: const [15, 30, 15, 0, 0],
+            strain: 5,
+          ),
+        ]).kind,
+        MatchKind.done,
+      );
+      // A 60-min stroll all in Z1 doesn't.
+      expect(
+        matchSession(steady, [
+          DoneWorkout(
+            start: DateTime(2026, 10, 26, 18, 10),
+            minutes: 60,
+            sport: Sport.walking,
+            zoneMinutes: const [60, 0, 0, 0, 0],
+            strain: 3,
+          ),
+        ]).kind,
+        MatchKind.none,
+      );
+    });
+
+    test('a stroll adds nothing to a moderate session, strain included', () {
+      final aerobic = sessionTemplate('aerobic_run'); // 5–8
+      final game = DoneWorkout(
+        start: DateTime(2026, 11, 2, 16),
+        minutes: 79,
+        sport: Sport.sport,
+        zoneMinutes: const [20, 35, 20, 4, 0],
+        strain: 12.3,
+      );
+      final stroll = DoneWorkout(
+        start: DateTime(2026, 11, 2, 18),
+        minutes: 30,
+        sport: Sport.walking,
+        zoneMinutes: const [30, 0, 0, 0, 0],
+        strain: 1.5,
+      );
+      expect(matchSession(aerobic, [game, stroll]).kind, MatchKind.done);
+    });
+
+    int hm(int h, int m) => h * 60 + m;
+    test('slotHint: morning slot, evening workouts', () {
+      final starts = [
+        for (final m in [18, 17, 19, 18, 18, 17, 18, 18, 17, 19, 17, 18])
+          hm(m, 10),
+        hm(7, 56),
+        hm(8, 31),
+        hm(6, 44),
+      ];
+      expect(slotHint(starts, 'am', hm(6, 30)), (
+        slot: 'pm',
+        minute: hm(18, 15),
+      ));
+    });
+    test('slotHint: right half, time an hour off', () {
+      final starts = [for (var i = 0; i < 6; i++) hm(19, 30)];
+      expect(slotHint(starts, 'pm', hm(18, 0)), (
+        slot: 'pm',
+        minute: hm(19, 30),
+      ));
+      expect(slotHint(starts, 'pm', hm(19, 0)), isNull);
+    });
+    test('slotHint: too few workouts, flexible, or mixed: no hint', () {
+      expect(slotHint([hm(18, 0), hm(18, 0)], 'am', hm(6, 30)), isNull);
+      expect(
+        slotHint([for (var i = 0; i < 9; i++) hm(18, 0)], 'flex', 0),
+        isNull,
+      );
+      final mixed = [
+        for (var i = 0; i < 4; i++) hm(7, 0),
+        for (var i = 0; i < 4; i++) hm(18, 0),
+      ];
+      expect(slotHint(mixed, 'am', hm(7, 0)), isNull);
+    });
+  });
+
+  group('V6: blood focus actions', () {
+    List<LeverAction> blood({
+      int? retest,
+      double active = 40,
+      int steps = 3000,
+    }) => leverActions(
+      focus: Lever.blood,
+      nowMinute: 12 * 60,
+      wakeMinute: 9 * 60,
+      bedtime: 60,
+      stepsToday: steps,
+      stepTarget: 8000,
+      activeWeek: active,
+      activeTarget: 150,
+      daysLeft: 5,
+      retestInDays: retest,
+    );
+    test('brisk minutes and a walk after a meal, then bedtime', () {
+      final a = blood();
+      expect(a.map((x) => x.title), [
+        '22′ brisk today',
+        '10′ walk after your biggest meal',
+        'In bed by 01:00',
+      ]);
+      expect(a.first.detail, contains('CRP and glucose'));
+    });
+    test('the retest shows in the last two weeks and after', () {
+      expect(
+        blood(retest: 30).map((x) => x.title),
+        isNot(contains('Book your blood test')),
+      );
+      final soon = blood(retest: 10)
+          .firstWhere((x) => x.title == 'Book your blood test');
+      expect(soon.detail, startsWith('In 10 days'));
+      final due = blood(retest: -3)
+          .firstWhere((x) => x.title == 'Book your blood test');
+      expect(due.detail, startsWith('Your weeks are up'));
+    });
+  });
 }

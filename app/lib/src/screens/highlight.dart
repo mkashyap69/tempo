@@ -195,6 +195,74 @@ final todayHighlightProvider = FutureProvider<sc.Highlight?>((ref) async {
   return pick;
 });
 
+/// "Last time": the night after a behaviour logged yesterday (mornings)
+/// or today (from 17:00), against your other days (V4). The most notable
+/// one, or null.
+final lastTimeProvider = FutureProvider<(sc.LastTime, String)?>((ref) async {
+  ref.watch(dbTickProvider);
+  final db = ref.watch(dbProvider);
+  final now = DateTime.now();
+  final today = dayOf(now);
+  final config = await loadJournalConfig(db);
+  final day = now.hour >= 17 ? today : today.subtract(const Duration(days: 1));
+  final keys = {
+    for (final r in await db.journalFor(day))
+      if (r.value &&
+          r.tag != sc.checkinTag &&
+          config.def(r.tag)?.kind == sc.EntryKind.yesNo)
+        r.tag,
+  };
+  if (keys.isEmpty) return null;
+  final days = await ref.watch(impactDaysProvider.future);
+  (sc.LastTime, String)? best;
+  double size(sc.LastTime l) => [
+    (l.rhr?.abs() ?? 0) / 3,
+    (l.recovery?.abs() ?? 0) / 10,
+    (l.slept?.abs() ?? 0) / .5,
+  ].reduce((a, b) => a > b ? a : b);
+  for (final k in keys) {
+    final l = sc.lastTime(days, k);
+    if (l == null || !l.notable) continue;
+    if (best == null || size(l) > size(best.$1)) {
+      best = (l, config.def(k)?.name ?? k);
+    }
+  }
+  return best;
+});
+
+class LastTimeCard extends ConsumerWidget {
+  const LastTimeCard({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final v = ref.watch(lastTimeProvider).value;
+    if (v == null) return const SizedBox.shrink();
+    final (l, name) = v;
+    final c = context.c;
+    final evening = DateTime.now().hour >= 17;
+    return TempoCard(
+      label: 'Last time: $name',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Overline(evening ? 'Tonight, last time' : 'After yesterday'),
+          const SizedBox(height: 8),
+          Text(
+            sc.lastTimeLine(l, name),
+            style: TempoType.bodyS.c(c.text1).tnum,
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'A plain before-and-after from your own nights, not adjusted for '
+            'anything else that day.',
+            style: TempoType.caption.c(c.text3),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 Color _tagColor(BuildContext context, sc.HighlightKind k) => switch (k) {
   sc.HighlightKind.sleepDebt ||
   sc.HighlightKind.regularity ||

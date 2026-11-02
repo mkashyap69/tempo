@@ -20,7 +20,13 @@ import '../state/providers.dart';
 import 'coach_parts.dart' show statusLabel, statusColor;
 import 'everyday_cards.dart';
 import 'coach_parts.dart'
-    show RealignCard, RescueCard, SessionActions, SwapNote, coachExtrasProvider;
+    show
+        RealignCard,
+        RescueCard,
+        SessionActions,
+        SlotHintCard,
+        SwapNote,
+        coachExtrasProvider;
 import 'goal.dart' show TodayGoalLine;
 import 'highlight.dart';
 import 'journal.dart' show journalProvider;
@@ -378,6 +384,7 @@ abstract final class TodayBody {
         if (!restLike && t.plan != null && t.status == sc.DayStatus.missedSlot)
           RescueCard(t),
         if (x != null && x.realign) const RealignCard(),
+        if (x?.slotHint case final h?) SlotHintCard(h),
       ],
     ];
     final insight = now.weekday == DateTime.monday
@@ -427,6 +434,7 @@ abstract final class TodayBody {
             ?session,
             ...coachNotes,
             insight,
+            const LastTimeCard(),
             const TodayTiles(),
             const SleepPlanRow(),
             const TodayGoalLine(),
@@ -442,6 +450,7 @@ abstract final class TodayBody {
             ?session,
             ...coachNotes,
             insight,
+            const LastTimeCard(),
             const TodayTiles(),
             TonightLine(t: t),
             const SleepPlanRow(),
@@ -457,6 +466,7 @@ abstract final class TodayBody {
             ...coachNotes,
             TonightLine(t: t),
             insight,
+            const LastTimeCard(),
             const TodayTiles(),
           ];
         case sc.DayPhase.evening:
@@ -466,6 +476,7 @@ abstract final class TodayBody {
             const SleepPlanRow(),
             if (!done) ?session,
             ...coachNotes,
+            const LastTimeCard(),
             const TodayTiles(),
           ];
       }

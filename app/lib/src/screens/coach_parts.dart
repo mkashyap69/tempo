@@ -287,6 +287,65 @@ class RealignCard extends ConsumerWidget {
   }
 }
 
+/// "You train in the evenings": move sessions to when workouts happen (V2).
+class SlotHintCard extends ConsumerWidget {
+  const SlotHintCard(this.hint, {super.key});
+  final sc.SlotHint hint;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final c = context.c;
+    final db = ref.read(dbProvider);
+    final when = hint.slot == 'pm' ? 'evenings' : 'mornings';
+    Future<void> dismiss() =>
+        db.putSetting(Keys.slotHintDismissed, st.dateKey(DateTime.now()));
+    return TempoCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Overline('Plan around your $when?'),
+          const SizedBox(height: 8),
+          Text(
+            'Most of your workouts in the last four weeks started around '
+            '${fmtHm(hint.minute)}. Planning sessions then makes them easier '
+            'to keep.',
+            style: TempoType.bodyS.c(c.text2),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              TempoButton(
+                'Plan for ${fmtHm(hint.minute)}',
+                small: true,
+                onTap: () async {
+                  await db.putSetting(Keys.coachSlot, hint.slot);
+                  await db.putSetting(
+                    hint.slot == 'pm' ? Keys.coachSlotPm : Keys.coachSlotAm,
+                    fmtHm(hint.minute),
+                  );
+                  await dismiss();
+                  await _afterChange(ref);
+                },
+              ),
+              TempoButton(
+                'Keep as is',
+                small: true,
+                kind: ButtonKind.ghost,
+                onTap: () async {
+                  await dismiss();
+                  await _afterChange(ref);
+                },
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 /// Mon–Sun glyphs under the week bars.
 class WeekStatusRow extends StatelessWidget {
   const WeekStatusRow(this.week, {super.key});

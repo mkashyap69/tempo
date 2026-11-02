@@ -301,6 +301,198 @@ List<NeedSample> needSamples(List<DailyScore> days) {
   return (base: base, debt: debt, need: need);
 }
 
+/// One recovery input by name: `stress` (band sleep stress), `hrv` (ln ms,
+/// blended with the week), `rhr`, `sleep` (sufficiency, % of base need).
+typedef RecoveryPart = ({String key, RecoveryInput input});
+
+/// The recovery inputs for a day, from its signals and the [normal] days
+/// before it (same source, newest first, body-signal days left out).
+/// Shared by [scoreDay] and [recoveryBreakdown] so Today's "why" can't
+/// disagree with the score (V5).
+List<RecoveryPart> recoveryInputsFor({
+  required double? stress,
+  required double? hrvMs,
+  String? hrvKind,
+  int? hrvCount,
+  required double? rhr,
+  String? rhrKind,
+  required double? sufficiency,
+  required List<DailyScore> normal,
+  double? baseHours,
+  ScoringParams p = const ScoringParams(),
+}) {
+  String rk(DailyScore d) => d.rhrKind ?? rhrFromSleep;
+  final rhrBase = rhrKind == null
+      ? null
+      : Baseline.robust([
+          for (final d in normal)
+            if (rk(d) == rhrKind) d.rhr,
+        ]);
+  // HRV: tonight blended with the week's ln HRV, since one night's reading
+  // swings 7–10 % on its own (Plews 2012); a night with few readings counts
+  // for less (algo 10).
+  final pastLn = [
+    for (final d in normal)
+      if (d.hrv != null && d.hrv! > 0 && d.hrvKind == hrvKind) log(d.hrv!),
+  ];
+  double? hrvValue;
+  if (hrvMs != null && hrvMs > 0) {
+    final week = [log(hrvMs), ...pastLn.take(6)];
+    hrvValue =
+        .5 * log(hrvMs) + .5 * week.reduce((a, b) => a + b) / week.length;
+  }
+  final hrvWeight =
+      p.recovery.wHrv * (hrvCount == null ? 1 : min(1, hrvCount / 3));
+  double? suffOf(DailyScore d) => d.sleptHours == null
+      ? null
+      : sleepSufficiency(
+          d.sleptHours!,
+          d.baseNeedHours ?? baseHours ?? p.sleep.baseNeedHours,
+        );
+  return [
+    (
+      key: 'stress',
+      input: RecoveryInput(
+        value: stress,
+        baseline: Baseline.robust(normal.map((d) => d.hrvProxy)),
+        higherIsBetter: false,
+        weight: p.recovery.wHrv,
+        minSd: recoveryMinSd.stress,
+      ),
+    ),
+    // HRV is log-normal: compare ln(ms) against ln(ms) of the same kind.
+    (
+      key: 'hrv',
+      input: RecoveryInput(
+        value: hrvValue,
+        baseline: Baseline.robust(pastLn),
+        higherIsBetter: true,
+        weight: hrvWeight,
+        minSd: recoveryMinSd.lnHrv,
+      ),
+    ),
+    (
+      key: 'rhr',
+      input: RecoveryInput(
+        value: rhr,
+        baseline: rhrBase,
+        higherIsBetter: false,
+        weight: p.recovery.wRhr,
+        minSd: recoveryMinSd.rhr,
+      ),
+    ),
+    // Sleep against the base need, free of debt (algo 10, loop L3).
+    (
+      key: 'sleep',
+      input: RecoveryInput(
+        value: sufficiency,
+        baseline: Baseline.robust(normal.map(suffOf)),
+        higherIsBetter: true,
+        weight: p.recovery.wSleep,
+        minSd: recoveryMinSd.sleep,
+      ),
+    ),
+  ];
+}
+
+/// One part of today's recovery as Today shows it: your value, your normal,
+/// and its push on the score ([push], the weighted, capped z over the total
+/// weight: the parts' pushes add up to what the curve turns into the score).
+final class RecoveryShare {
+  const RecoveryShare({
+    required this.key,
+    required this.value,
+    required this.normal,
+    required this.z,
+    required this.push,
+  });
+  final String key;
+  final double value, normal;
+
+  /// Signed z as the score used it (minimum spread, capped): + helped.
+  final double z;
+  final double push;
+}
+
+/// Today's one-line "why" from [recoveryBreakdown]: what helped and what
+/// held it back, biggest first, or null when nothing moved it much
+/// ("Sleep helped · resting HR held it back").
+String? recoveryWhyLine(List<RecoveryShare> parts, {double minPush = .1}) {
+  String name(String k) => switch (k) {
+    'stress' => 'overnight stress',
+    'hrv' => 'HRV',
+    'rhr' => 'resting HR',
+    _ => 'sleep',
+  };
+  final moved = [
+    for (final x in parts)
+      if (x.push.abs() >= minPush) x,
+  ]..sort((a, b) => b.push.abs().compareTo(a.push.abs()));
+  if (moved.isEmpty) return null;
+  final helped = moved.where((x) => x.push > 0).map((x) => name(x.key));
+  final hurt = moved.where((x) => x.push < 0).map((x) => name(x.key));
+  String cap(String s) => '${s[0].toUpperCase()}${s.substring(1)}';
+  String join(Iterable<String> xs) => xs.length == 1
+      ? xs.single
+      : '${xs.take(xs.length - 1).join(', ')} and ${xs.last}';
+  final a = helped.isEmpty ? null : '${join(helped)} helped';
+  final b = hurt.isEmpty ? null : '${join(hurt)} held it back';
+  final first = moved.first.push > 0 ? a : b;
+  final second = moved.first.push > 0 ? b : a;
+  return [cap(first!), ?second].join(' · ');
+}
+
+/// Why [today] scored what it did: the inputs [scoreDay] used, rebuilt from
+/// stored days ([history] newest first, as scoreDay was given it). A
+/// Health night's HRV reading count isn't stored, so a night with fewer
+/// than 3 readings can weigh HRV a little more here than in the score.
+List<RecoveryShare> recoveryBreakdown(
+  DailyScore today,
+  List<DailyScore> history, {
+  ScoringParams p = const ScoringParams(),
+}) {
+  final normal = [
+    for (final d
+        in history.where((d) => d.source == today.source).take(p.baselineDays))
+      if (d.vitalsPenalty <= 0) d,
+  ];
+  final parts = recoveryInputsFor(
+    stress: today.hrvProxy,
+    hrvMs: today.hrv,
+    hrvKind: today.hrvKind,
+    rhr: today.rhr,
+    rhrKind: today.rhr == null ? null : today.rhrKind ?? rhrFromSleep,
+    sufficiency: today.sleptHours == null
+        ? null
+        : sleepSufficiency(
+            today.sleptHours!,
+            today.baseNeedHours ?? p.sleep.baseNeedHours,
+          ),
+    normal: normal,
+    baseHours: today.baseNeedHours,
+    p: p,
+  );
+  final used = [
+    for (final x in parts)
+      if (x.input.z != null) x,
+  ];
+  final w = used.fold<double>(0, (a, x) => a + x.input.weight);
+  if (w == 0) return const [];
+  return [
+    for (final x in used)
+      RecoveryShare(
+        key: x.key,
+        value: x.input.value!,
+        normal: x.input.baseline!.mean,
+        z: x.input.z!.clamp(-p.recovery.zCap, p.recovery.zCap),
+        push:
+            x.input.weight *
+            x.input.z!.clamp(-p.recovery.zCap, p.recovery.zCap) /
+            w,
+      ),
+  ];
+}
+
 /// The smallest spread each recovery input's baseline is given (algo 11),
 /// about its smallest worthwhile change: resting HR 2.5 bpm (whole-bpm
 /// readings wobble ~2 bpm a night; body signals call +3 bpm "off"), band
@@ -367,13 +559,6 @@ DailyScore scoreDay({
     for (final d in recent)
       if (d.vitalsPenalty <= 0) d,
   ];
-  String rk(DailyScore d) => d.rhrKind ?? rhrFromSleep;
-  final rhrBase = rhrKind == null
-      ? null
-      : Baseline.robust([
-          for (final d in normal)
-            if (rk(d) == rhrKind) d.rhr,
-        ]);
   final hrRest =
       rhr ??
       Baseline.robust([for (final d in recent) d.rhr])?.mean ??
@@ -416,60 +601,19 @@ DailyScore scoreDay({
   final nights = recent.where((d) => d.sleptHours != null).length;
   final calibrating = nights < p.recovery.calibrationNights;
 
-  // HRV: tonight blended with the week's ln HRV, since one night's reading
-  // swings 7–10 % on its own (Plews 2012); a night with few readings counts
-  // for less (algo 10).
-  final pastLn = [
-    for (final d in normal)
-      if (d.hrv != null && d.hrv! > 0 && d.hrvKind == hrvKind) log(d.hrv!),
-  ];
-  double? hrvValue;
-  if (realHrv != null) {
-    final week = [log(realHrv), ...pastLn.take(6)];
-    hrvValue =
-        .5 * log(realHrv) + .5 * week.reduce((a, b) => a + b) / week.length;
-  }
-  final hrvWeight =
-      p.recovery.wHrv * (hrvCount == null ? 1 : min(1, hrvCount / 3));
-
-  double? suffOf(DailyScore d) => d.sleptHours == null
-      ? null
-      : sleepSufficiency(
-          d.sleptHours!,
-          d.baseNeedHours ?? base ?? p.sleep.baseNeedHours,
-        );
-  final rec = recoveryScore([
-    RecoveryInput(
-      value: stressHrv,
-      baseline: Baseline.robust(normal.map((d) => d.hrvProxy)),
-      higherIsBetter: false,
-      weight: p.recovery.wHrv,
-      minSd: recoveryMinSd.stress,
-    ),
-    // HRV is log-normal: compare ln(ms) against ln(ms) of the same kind.
-    RecoveryInput(
-      value: hrvValue,
-      baseline: Baseline.robust(pastLn),
-      higherIsBetter: true,
-      weight: hrvWeight,
-      minSd: recoveryMinSd.lnHrv,
-    ),
-    RecoveryInput(
-      value: rhr,
-      baseline: rhrBase,
-      higherIsBetter: false,
-      weight: p.recovery.wRhr,
-      minSd: recoveryMinSd.rhr,
-    ),
-    // Sleep against the base need, free of debt (algo 10, loop L3).
-    RecoveryInput(
-      value: suff,
-      baseline: Baseline.robust(normal.map(suffOf)),
-      higherIsBetter: true,
-      weight: p.recovery.wSleep,
-      minSd: recoveryMinSd.sleep,
-    ),
-  ], p.recovery);
+  final parts = recoveryInputsFor(
+    stress: stressHrv,
+    hrvMs: realHrv,
+    hrvKind: hrvKind,
+    hrvCount: hrvCount,
+    rhr: rhr,
+    rhrKind: rhrKind,
+    sufficiency: suff,
+    normal: normal,
+    baseHours: base,
+    p: p,
+  );
+  final rec = recoveryScore([for (final x in parts) x.input], p.recovery);
   final penalty = rec == null ? 0.0 : recoveryPenalty(vitalsZ);
 
   // Sleep score v3: base-need sufficiency, bedtime against the 14-night

@@ -46,6 +46,28 @@ class CoachNotifier {
         }
       }
     } catch (_) {}
+    // V7: a kind that has changed nothing in four weeks is paused, unless
+    // you turned it back on within them.
+    try {
+      final now = DateTime.now();
+      final keep = _dateMap(await db.setting(Keys.notifEffectKeep));
+      final counts = sc.followCounts(await followTrials(db, now));
+      final paused = <String, String>{};
+      for (final k in sc.notWorking(counts)) {
+        final kept = keep[k.name];
+        if (kept != null && now.difference(kept).inDays < effectWindowDays) {
+          continue;
+        }
+        if (!out.contains(k)) continue;
+        out.remove(k);
+        final c = counts[k]!;
+        paused[k.name] = '${st.dateKey(now)}|${c.n}|${c.followed}';
+      }
+      final raw = jsonEncode(paused);
+      if (raw != (await db.setting(Keys.notifEffectPaused) ?? '{}')) {
+        await db.putSetting(Keys.notifEffectPaused, raw);
+      }
+    } catch (_) {}
     // The two older settings still switch their kinds off.
     if (await db.setting(Keys.morningCall) == 'off') {
       out.remove(sc.NudgeKind.brief);
@@ -56,7 +78,100 @@ class CoachNotifier {
     return out;
   }
 
+  /// Days of reminders judged for [sc.notWorking].
+  static const effectWindowDays = 28;
+
+  static Map<String, DateTime> _dateMap(String? raw) {
+    try {
+      final m = jsonDecode(raw ?? '{}') as Map<String, dynamic>;
+      return {
+        for (final e in m.entries)
+          e.key: ?DateTime.tryParse('${e.value}'.split('|').first),
+      };
+    } catch (_) {
+      return {};
+    }
+  }
+
+  /// Each wind-down and session reminder posted in the last four weeks and
+  /// whether it was followed: asleep by the bedtime it was for (its fire
+  /// time + the wind-down lead, within the plan's 30 minutes), or a
+  /// workout of 10+ minutes that day after it.
+  static Future<List<sc.NudgeTrial>> followTrials(
+    st.TempoDb db,
+    DateTime now,
+  ) async {
+    var from = now.subtract(const Duration(days: effectWindowDays));
+    final since = DateTime.tryParse(
+      await db.setting(Keys.notifEffectSince) ?? '',
+    );
+    if (since == null) {
+      await db.putSetting(Keys.notifEffectSince, st.dateKey(now));
+      return const [];
+    }
+    if (since.isAfter(from)) from = since;
+    final log = await db.nudgesSince(from);
+    final lead = int.tryParse(await db.setting(Keys.bedtimeNudge) ?? '') ?? 30;
+    final scores = await db.scoresBetween(
+      from.subtract(const Duration(days: 1)),
+      now.add(const Duration(days: 1)),
+    );
+    final ws = await db.workoutsBetween(from, now);
+    final out = <sc.NudgeTrial>[];
+    for (final r in log) {
+      final fa = r.fireAt;
+      if (r.event != 'posted' || fa == null) continue;
+      final fire = st.fromTs(fa);
+      if (fire.isAfter(now)) continue;
+      if (r.kind == sc.NudgeKind.winddown.name) {
+        final bed = fire.add(Duration(minutes: lead));
+        // The night that started nearest after the reminder.
+        final night = scores
+            .where(
+              (s) =>
+                  s.sleepStart != null &&
+                  s.sleepStart! >= fa - 2 * 3600 &&
+                  s.sleepStart! <= fa + 10 * 3600,
+            )
+            .firstOrNull;
+        if (night == null) continue; // not worn: no verdict
+        final asleep = st.fromTs(night.sleepStart!);
+        out.add((
+          kind: sc.NudgeKind.winddown,
+          followed: sc.keptTime(
+            asleep.hour * 60 + asleep.minute,
+            bed.hour * 60 + bed.minute,
+          ),
+        ));
+      } else if (r.kind == sc.NudgeKind.session.name) {
+        final end = DateTime(fire.year, fire.month, fire.day + 1);
+        out.add((
+          kind: sc.NudgeKind.session,
+          followed: ws.any(
+            (w) =>
+                (w.source != 'auto' || w.confirmed) &&
+                w.end - w.start >= 600 &&
+                w.start >= fa - 1800 &&
+                st.fromTs(w.start).isBefore(end),
+          ),
+        ));
+      }
+    }
+    return out;
+  }
+
   static Future<void> setKind(st.TempoDb db, sc.NudgeKind k, bool on) async {
+    if (on && sc.measuredKinds.contains(k)) {
+      // Turned back on: not paused again for four weeks (V7).
+      final keep = {
+        for (final e in _dateMap(
+          await db.setting(Keys.notifEffectKeep),
+        ).entries)
+          e.key: st.dateKey(e.value),
+      };
+      keep[k.name] = st.dateKey(DateTime.now());
+      await db.putSetting(Keys.notifEffectKeep, jsonEncode(keep));
+    }
     Map<String, dynamic> m = {};
     try {
       m = jsonDecode(
@@ -176,7 +291,9 @@ class CoachNotifier {
       bedtime: t.bedtimeMinute,
       today: todayDay,
       tomorrow: tomorrowDay,
-      morning: morning == 'off' ? null : parseHm(morning),
+      morning: morning == 'off' || parseHm(morning) == null
+          ? null
+          : sc.briefMinute(parseHm(morning)!, t.usualWakeMinute),
       winddownBefore: int.tryParse(nudge),
       pmSlot: t.pmSlot,
       rescue: t.rescue,

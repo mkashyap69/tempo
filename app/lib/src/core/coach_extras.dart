@@ -21,6 +21,7 @@ class CoachExtras {
     required this.monotony,
     required this.focus,
     required this.progress,
+    this.slotHint,
   });
 
   final List<sc.LeverAction> actions;
@@ -32,6 +33,39 @@ class CoachExtras {
   final bool monotony;
   final LongevityFocus? focus;
   final (double, double)? progress;
+
+  /// When you really train, if it differs from the coach slot (V2).
+  final sc.SlotHint? slotHint;
+}
+
+/// Days a dismissed slot hint stays away.
+const slotHintQuietDays = 14;
+
+/// The slot hint from the last 4 weeks of workouts (confirmed or not
+/// auto-detected, as [loadSlots] counts them), unless dismissed lately.
+Future<sc.SlotHint?> loadSlotHint(st.TempoDb db, DateTime today) async {
+  final dismissed = DateTime.tryParse(
+    await db.setting(Keys.slotHintDismissed) ?? '',
+  );
+  if (dismissed != null &&
+      today.difference(dismissed).inDays < slotHintQuietDays) {
+    return null;
+  }
+  final slots = await loadSlots(db);
+  final ws = await db.workoutsBetween(
+    today.subtract(const Duration(days: 28)),
+    today.add(const Duration(days: 1)),
+  );
+  final starts = [
+    for (final w in ws)
+      if (w.source != 'auto' || w.confirmed)
+        st.fromTs(w.start).hour * 60 + st.fromTs(w.start).minute,
+  ];
+  return sc.slotHint(
+    starts,
+    slots.slot,
+    slots.slot == 'am' ? slots.am : slots.pm,
+  );
 }
 
 /// End of a past day, in "minutes since that midnight", so anything not
@@ -135,7 +169,15 @@ Future<CoachExtras> loadCoachExtras(st.TempoDb db, TodayData t) async {
       : double.infinity;
 
   var focus = await loadFocus(db);
-  if (focus != null && !focus.activeOn(today)) focus = null;
+  // A blood focus stays two weeks past its end, for the retest (V6).
+  final retestDue =
+      focus != null &&
+      focus.lever == sc.Lever.blood &&
+      !today.isBefore(focus.end) &&
+      today.isBefore(focus.end.add(const Duration(days: 14)));
+  if (focus != null && !focus.activeOn(today) && !retestDue) focus = null;
+  final active =
+      focus?.lever == sc.Lever.activeMinutes || focus?.lever == sc.Lever.blood;
   final progress = focus == null
       ? null
       : await focusProgress(db, focus, t.profile);
@@ -151,12 +193,11 @@ Future<CoachExtras> loadCoachExtras(st.TempoDb db, TodayData t) async {
     stepTarget: focus?.lever == sc.Lever.steps && progress != null
         ? progress.$2
         : t.profile.effectiveStepGoal.toDouble(),
-    activeWeek: focus?.lever == sc.Lever.activeMinutes && progress != null
-        ? progress.$1
-        : 0,
-    activeTarget: focus?.lever == sc.Lever.activeMinutes && progress != null
-        ? progress.$2
-        : 150,
+    activeWeek: active && progress != null ? progress.$1 : 0,
+    activeTarget: active && progress != null ? progress.$2 : 150,
+    retestInDays: focus?.lever == sc.Lever.blood
+        ? focus!.end.difference(today).inDays
+        : null,
     daysLeft: daysLeft,
     strengthWeek: focus?.lever == sc.Lever.strength && progress != null
         ? progress.$1.round()
@@ -178,6 +219,7 @@ Future<CoachExtras> loadCoachExtras(st.TempoDb db, TodayData t) async {
     monotony: sc.monotonyHigh(last7, mean28),
     focus: focus,
     progress: progress,
+    slotHint: await loadSlotHint(db, today),
   );
 }
 

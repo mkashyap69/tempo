@@ -283,9 +283,17 @@ class LiveSession extends Notifier<LiveState?> {
     final hrMax = recent.isEmpty ? profile.effectiveMaxHr : recent.first.hrMax;
     final rest = recent.isEmpty ? 60.0 : (recent.first.rhr ?? 60);
     _buzz = (await db.setting(Keys.buzzCues) ?? '1') == '1';
-    final t = sc.strainTarget(
-      recovery: today?.calibrating ?? true ? null : today?.recovery,
-      calibrating: today?.calibrating ?? true,
+    final recovery = today?.calibrating ?? true ? null : today?.recovery;
+    final load = await loadFor(db, dayOf(DateTime.now()));
+    final t = sc.personalTarget(
+      sc.strainTarget(
+        recovery: recovery,
+        calibrating: today?.calibrating ?? true,
+        load: load.status,
+        loadRatio: load.ratio,
+      ),
+      recovery: recovery,
+      load: load,
     );
     _beats.clear();
     _beatSum = 0;

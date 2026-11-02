@@ -168,6 +168,7 @@ class TodayRings extends StatelessWidget {
   }
 
   static String _rhrLine(TodayData t) {
+    if (sc.recoveryWhyLine(t.recoveryShares) case final why?) return why;
     final d = t.rhrDelta;
     if (d == null) return '';
     final n = d.round();

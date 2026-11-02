@@ -92,3 +92,52 @@ int sleepLatency(List<Minute> before) {
   }
   return n;
 }
+
+// ---- Stepping toward a goal time (V1) ---------------------------------------
+
+/// Minutes a bedtime or wake target moves a week toward its goal. Shifting
+/// sleep by 15–30 minutes every few days is what behavioural sleep advice
+/// uses; larger jumps aren't kept (owner, Oct 2026: a 23:04 target against
+/// a usual 00:31 got 2 taps from 28 wind-down reminders).
+const sleepStepMinutes = 15;
+
+/// Nights of history before a usual time is trusted.
+const usualMinNights = 5;
+
+/// A clock time on a scale that runs from noon to noon, so 23:30 and 00:30
+/// are an hour apart and ordered.
+int _noonScale(int m) => ((m - 720) % 1440 + 1440) % 1440;
+
+/// Minutes [a] is later than [b] (negative when earlier), within ±12 h.
+int clockDiff(int a, int b) => _noonScale(a) - _noonScale(b);
+
+/// [usual] moved [steps] × [step] minutes toward [goal], never past it;
+/// [goal] itself when [usual] is null or already within reach.
+int stepToward(int? usual, int goal, int steps, {int step = sleepStepMinutes}) {
+  if (usual == null) return goal;
+  final d = clockDiff(goal, usual);
+  final move = steps * step;
+  if (d.abs() <= move) return goal;
+  return ((usual + (d > 0 ? move : -move)) % 1440 + 1440) % 1440;
+}
+
+/// Tonight's bedtime: [goal] when you already go to bed by then (or near
+/// it), else one step earlier than your [usual] bedtime. Only ever asks for
+/// earlier: going to bed before the goal is never held against you.
+int steppedBedtime({required int goal, int? usual}) =>
+    usual == null || clockDiff(usual, goal) <= sleepStepMinutes
+    ? goal
+    : stepToward(usual, goal, 1);
+
+/// Usual clock time from [times] (minutes of day), or null with fewer than
+/// [usualMinNights].
+int? usualClock(List<int> times) =>
+    times.length < usualMinNights ? null : medianClock(times);
+
+/// When the morning brief goes out: at [set], or 15 min after your
+/// [usualWake] when you usually wake later than that (V1; owner: brief set
+/// for 6:30, usual wake 9:09, so it landed on a sleeping phone).
+int briefMinute(int set, int? usualWake, {int after = 15}) =>
+    usualWake == null || clockDiff(usualWake + after, set) <= 0
+    ? set
+    : (usualWake + after) % 1440;

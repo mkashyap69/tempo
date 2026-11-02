@@ -235,12 +235,16 @@ Future<(double, double)?> focusProgress(
   final end = today.add(const Duration(days: 1));
   final target = sc.leverTarget(f.lever, age: p.age, male: p.male);
   switch (f.lever) {
-    case sc.Lever.activeMinutes:
-      // Moderate-equivalent: vigorous minutes (≥ 80 %) count twice.
+    case sc.Lever.activeMinutes || sc.Lever.blood:
+      // Moderate-equivalent: vigorous minutes (≥ 80 %) count twice. A blood
+      // focus works through activity (V6), against the WHO's 150.
       final hrMax = p.effectiveMaxHr;
       final any = await _countMinutes(db, mon, end, (hrMax * .6).round());
       final vig = await _countMinutes(db, mon, end, (hrMax * .8).round());
-      return ((any + vig).toDouble(), target);
+      return (
+        (any + vig).toDouble(),
+        f.lever == sc.Lever.blood ? 150.0 : target,
+      );
     case sc.Lever.strength:
       final ws = await db.workoutsBetween(mon, end);
       return (_strength(ws).toDouble(), target);

@@ -38,6 +38,11 @@ final class DoneWorkout {
 
   int get hardMinutes =>
       zoneMinutes.length == 5 ? zoneMinutes[3] + zoneMinutes[4] : 0;
+
+  /// Minutes in Z2 or above.
+  int get zone2Plus => zoneMinutes.length == 5
+      ? zoneMinutes.skip(1).fold(0, (a, b) => a + b)
+      : 0;
 }
 
 enum MatchKind { done, partial, doneEasier, doneHarder, none }
@@ -74,7 +79,10 @@ bool compatible(Session planned, Sport? w) {
       return w != Sport.strength;
     case Sport.running || Sport.cycling || Sport.hiit || Sport.sport:
       if (w == null) return planned.intensity != Intensity.hard;
-      if (w == Sport.walking) return planned.intensity == Intensity.easy;
+      // A walk covers an easy session, and a moderate one by its Z2+
+      // minutes only (V2: the owner's long brisk evening walks, 15–47 min
+      // in Z4, were the aerobic work while planned runs went undone).
+      if (w == Sport.walking) return planned.intensity != Intensity.hard;
       return _cardio.contains(w);
   }
 }
@@ -89,11 +97,20 @@ const doneHarderMargin = 5.0;
 
 SessionMatch matchSession(Session planned, List<DoneWorkout> workouts) {
   if (planned.isRest) return const SessionMatch(MatchKind.none, 0);
+  // A walk on a moderate session counts by its Z2+ minutes only, and a
+  // stroll with none doesn't count at all, strain included (V2).
+  bool walkOnModerate(DoneWorkout w) =>
+      w.sport == Sport.walking &&
+      planned.sport != Sport.walking &&
+      planned.intensity == Intensity.moderate;
   final ws = [
     for (final w in workouts)
-      if (compatible(planned, w.sport)) w,
+      if (compatible(planned, w.sport) &&
+          !(walkOnModerate(w) && w.zone2Plus == 0))
+        w,
   ];
-  final minutes = ws.fold<int>(0, (a, w) => a + w.minutes);
+  int counted(DoneWorkout w) => walkOnModerate(w) ? w.zone2Plus : w.minutes;
+  final minutes = ws.fold<int>(0, (a, w) => a + counted(w));
   final strain = ws.fold<double>(0, (a, w) => a + w.strain);
   final need = max(1, planned.minutes);
   final ratio = minutes / need;
@@ -382,6 +399,7 @@ List<LeverAction> leverActions({
   double strengthTarget = 2,
   bool hardToday = false,
   bool strengthToday = false,
+  int? retestInDays,
 }) {
   String hm(int m) {
     final x = m % 1440;
@@ -440,6 +458,45 @@ List<LeverAction> leverActions({
           done: strengthWeek >= strengthTarget,
         ),
       );
+    case Lever.blood:
+      // V6: the blood markers in Tempo Age that daily habits move most are
+      // CRP and fasting glucose; regular moderate activity and walking
+      // after meals lower both (Kasapis 2005; Buffey 2022). The test itself
+      // closes the loop at the end of the 12 weeks.
+      final left = max(0.0, activeTarget - activeWeek);
+      final perDay = min(maxActivePerDay, (left / max(1, daysLeft)).ceil());
+      out.add(
+        LeverAction(
+          Lever.blood,
+          left <= 0 ? 'Zone 2+ week done' : '$perDay′ brisk today',
+          '${activeWeek.round()} of ${activeTarget.round()} min this week · '
+          'regular activity lowers CRP and glucose',
+          done: left <= 0,
+        ),
+      );
+      out.add(
+        LeverAction(
+          Lever.steps,
+          stepsToday >= stepTarget
+              ? '${_k(stepsToday.toDouble())} steps — done'
+              : '10′ walk after your biggest meal',
+          stepsToday >= stepTarget
+              ? 'Walking after meals blunts the glucose rise'
+              : '${_k(stepsToday.toDouble())} of ${_k(stepTarget)} steps so far',
+          done: stepsToday >= stepTarget,
+        ),
+      );
+      if (retestInDays != null && retestInDays <= 14) {
+        out.add(
+          LeverAction(
+            Lever.blood,
+            'Book your blood test',
+            retestInDays <= 0
+                ? 'Your weeks are up: retest to see what changed in Tempo Age'
+                : 'In $retestInDays days, to see what these weeks changed',
+          ),
+        );
+      }
     case Lever.sleepRegularity:
       out.add(
         LeverAction(
@@ -666,4 +723,40 @@ Session sessionFromDone(DoneWorkout w) {
     intensity: intensity,
     note: 'what you did',
   );
+}
+
+// ---- When you actually train (V2) -------------------------------------------
+
+/// Workouts in the last 4 weeks needed before Tempo suggests a slot.
+const slotMinWorkouts = 6;
+
+/// Share of them that must sit in the other half of the day.
+const slotShare = .75;
+
+/// A better slot for sessions, from when workouts really started.
+typedef SlotHint = ({String slot, int minute});
+
+/// Suggests moving sessions to when you train ([starts]: start minutes of
+/// recent workouts): the other half of the day when [slotShare] of them
+/// are there, or a time an hour or more off [setMinute] in the same half.
+/// The minute is the median start, rounded to 15. Null when the slot fits
+/// or there's too little to go on. [slot] is 'am', 'pm' or 'flex'; a flexible
+/// slot is never second-guessed. Owner, Oct 2026: slot 6:30 am, 12 of 15
+/// sessions between 17:00 and 19:30.
+SlotHint? slotHint(List<int> starts, String slot, int setMinute) {
+  if (slot != 'am' && slot != 'pm') return null;
+  if (starts.length < slotMinWorkouts) return null;
+  bool isPm(int m) => m >= 12 * 60;
+  final pm = starts.where(isPm).toList();
+  final am = starts.where((m) => !isPm(m)).toList();
+  int round15(int m) => ((m + 7) ~/ 15 * 15) % 1440;
+  int median(List<int> xs) => (([...xs]..sort())[xs.length ~/ 2]);
+  final other = slot == 'am' ? pm : am;
+  if (other.length >= starts.length * slotShare) {
+    return (slot: slot == 'am' ? 'pm' : 'am', minute: round15(median(other)));
+  }
+  final same = slot == 'am' ? am : pm;
+  if (same.length < slotMinWorkouts) return null;
+  final m = round15(median(same));
+  return (m - setMinute).abs() >= 60 ? (slot: slot, minute: m) : null;
 }

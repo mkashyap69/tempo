@@ -67,21 +67,46 @@ final class SleepPlan {
     required this.start,
     required this.wake,
     required this.bed,
+    this.fromWake,
+    this.fromBed,
   });
   final sc.SleepFocus focus;
   final DateTime start;
 
-  /// Wake and lights-out targets, minutes of day.
+  /// Wake and lights-out goals, minutes of day.
   final int wake, bed;
 
-  List<sc.SleepWeek> get weeks =>
-      sc.sleepWeeks(focus, wakeMinute: wake, bedMinute: bed);
+  /// Usual wake and bedtime when the plan started; each week's targets
+  /// step 15 min from them toward the goals (V1). Null = the goals at once.
+  final int? fromWake, fromBed;
+
+  /// Targets on plan day [d] (0-based): week 1 one step from the usual
+  /// time, week 2 two, week 3 three, never past the goal.
+  int wakeOn(int d) => sc.stepToward(fromWake, wake, d ~/ 7 + 1);
+  int bedOn(int d) => sc.stepToward(fromBed, bed, d ~/ 7 + 1);
+
+  /// The weeks with day [d]'s targets in their titles.
+  List<sc.SleepWeek> weeksOn(int d) =>
+      sc.sleepWeeks(focus, wakeMinute: wakeOn(d), bedMinute: bedOn(d));
+
+  List<sc.SleepWeek> get weeks => weeksOn(0);
+
+  SleepPlan withFrom(int? wake, int? bed) => SleepPlan(
+    focus: focus,
+    start: start,
+    wake: this.wake,
+    bed: this.bed,
+    fromWake: fromWake ?? wake,
+    fromBed: fromBed ?? bed,
+  );
 
   Map<String, Object> toJson() => {
     'focus': focus.name,
     'start': st.dateKey(start),
     'wake': wake,
     'bed': bed,
+    'fromWake': ?fromWake,
+    'fromBed': ?fromBed,
   };
 
   static SleepPlan? fromJson(String? raw) {
@@ -93,6 +118,8 @@ final class SleepPlan {
         start: parseDateKey(j['start'] as String),
         wake: j['wake'] as int,
         bed: j['bed'] as int,
+        fromWake: j['fromWake'] as int?,
+        fromBed: j['fromBed'] as int?,
       );
     } on Object {
       return null;
@@ -119,6 +146,8 @@ Future<void> startSleepPlan(
   sc.SleepFocus focus, {
   required int wake,
   required int bed,
+  int? fromWake,
+  int? fromBed,
   DateTime? now,
 }) async {
   final plan = SleepPlan(
@@ -126,6 +155,8 @@ Future<void> startSleepPlan(
     start: dayOf(now ?? DateTime.now()),
     wake: wake,
     bed: bed,
+    fromWake: fromWake,
+    fromBed: fromBed,
   );
   await db.putSetting(Keys.sleepPlan, jsonEncode(plan.toJson()));
   await db.putSetting(Keys.sleepPlanTicks, '{}');
@@ -221,12 +252,22 @@ double? focusMetric(sc.SleepFocus f, List<st.DailyScore> nights) {
 }
 
 Future<SleepPlanView?> loadSleepPlan(st.TempoDb db, {DateTime? now}) async {
-  final plan = SleepPlan.fromJson(await db.setting(Keys.sleepPlan));
-  if (plan == null) return null;
+  final stored = SleepPlan.fromJson(await db.setting(Keys.sleepPlan));
+  if (stored == null) return null;
+  final before = await _nights(
+    db,
+    stored.start.subtract(const Duration(days: 14)),
+    stored.start,
+  );
+  // Plans started before V1 kept no usual times: take them from the 14
+  // nights before the start.
+  final plan = stored.withFrom(
+    sc.usualClock([for (final n in before) _clock(st.fromTs(n.sleepEnd!))]),
+    sc.usualClock([for (final n in before) _clock(st.fromTs(n.sleepStart!))]),
+  );
   final today = dayOf(now ?? DateTime.now());
   final day = today.difference(plan.start).inDays;
   final ticks = await _ticks(db);
-  final weeks = plan.weeks;
   final scores = {
     for (final s in await _nights(
       db,
@@ -242,11 +283,11 @@ Future<SleepPlanView?> loadSleepPlan(st.TempoDb db, {DateTime? now}) async {
     final next = scores[st.dateKey(date.add(const Duration(days: 1)))];
     final hand = ticks[st.dateKey(date)] ?? const <String>{};
     return [
-      for (final h in sc.habitsOn(weeks, d))
+      for (final h in sc.habitsOn(plan.weeksOn(d), d))
         switch (h.id) {
           'wake' when morning != null => HabitToday(
             h,
-            sc.keptTime(_clock(st.fromTs(morning.sleepEnd!)), plan.wake)
+            sc.keptTime(_clock(st.fromTs(morning.sleepEnd!)), plan.wakeOn(d))
                 ? HabitState.done
                 : HabitState.missed,
             'Woke ${_hm(_clock(st.fromTs(morning.sleepEnd!)))}',
@@ -254,7 +295,7 @@ Future<SleepPlanView?> loadSleepPlan(st.TempoDb db, {DateTime? now}) async {
           'wake' => HabitToday(h, HabitState.open, 'No sleep recorded yet'),
           'bed' when next != null => HabitToday(
             h,
-            sc.keptTime(_clock(st.fromTs(next.sleepStart!)), plan.bed)
+            sc.keptTime(_clock(st.fromTs(next.sleepStart!)), plan.bedOn(d))
                 ? HabitState.done
                 : HabitState.missed,
             'Asleep ${_hm(_clock(st.fromTs(next.sleepStart!)))}',
@@ -283,11 +324,6 @@ Future<SleepPlanView?> loadSleepPlan(st.TempoDb db, {DateTime? now}) async {
             ? PlanDayState.kept
             : PlanDayState.missed,
   ];
-  final before = await _nights(
-    db,
-    plan.start.subtract(const Duration(days: 14)),
-    plan.start,
-  );
   final since = [
     for (final s in scores.values)
       if (s.date.compareTo(st.dateKey(plan.start)) > 0) s,

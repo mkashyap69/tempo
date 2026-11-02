@@ -43,6 +43,13 @@ abstract final class Keys {
   static const coachSlotAm = 'coach_slot_am'; // HH:mm, default 07:00
   static const coachSlotPm = 'coach_slot_pm'; // HH:mm, default 18:00
   static const notifCats = 'notif_cats'; // JSON {kind: 0|1}
+  // V7: kinds paused because they changed nothing, {kind: "date|n|followed"},
+  // and kinds you turned back on, {kind: date} (not re-paused for 28 days).
+  static const notifEffectPaused = 'notif_effect_paused';
+  static const notifEffectKeep = 'notif_effect_keep';
+  // Date reminders started being judged: reminders before it asked for the
+  // pre-V1 bedtime, so they say nothing about the stepped one.
+  static const notifEffectSince = 'notif_effect_since';
   static const notifCap = 'notif_cap'; // proactive nudges a day, 0–2
   static const notifPrecise = 'notif_precise'; // 1 = exact alarms (Android)
   static const notifScheduled = 'notif_scheduled'; // JSON, what's pending
@@ -53,6 +60,7 @@ abstract final class Keys {
   static const bandStride = 'band_stride';
   static const lastBackup = 'last_backup'; // ISO|folder label
   static const realignDismissed = 'coach_realign_dismissed'; // date
+  static const slotHintDismissed = 'coach_slot_hint_dismissed'; // date
   static const coachBlock = 'coach_block'; // JSON TrainingBlock, or empty
   static const coachNext = 'coach_next'; // JSON {goal, event}, or empty
   static const coachPhaseSeen = 'coach_phase_seen'; // block start|week
