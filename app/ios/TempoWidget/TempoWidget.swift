@@ -1,12 +1,46 @@
 import SwiftUI
 import WidgetKit
 
-// Home-screen widgets (design 12). Small = Recovery; medium = Recovery,
-// Strain and Sleep. Flutter writes the values through home_widget into the
-// shared app group (lib/src/core/home_widgets.dart). Older than 2 h: dim and
-// say when instead of showing old numbers as current.
+// Home-screen and lock-screen widgets. Flutter writes the values through
+// home_widget into the shared app group (lib/src/core/home_widgets.dart).
+// Older than 2 h: dim and say when instead of showing old numbers as
+// current. Every widget carries the Tempo lockup (mark + wordmark), the
+// same geometry as TempoMark in lib/src/design/components.dart.
+// Links must carry `?homeWidget` or home_widget ignores them.
 
 private let appGroup = "group.dev.tempo.tempo"
+
+// MARK: - Brand
+
+/// The Tempo mark: one tall stroke, three measured ones (48 × 48 grid).
+struct TempoMarkShape: Shape {
+  func path(in rect: CGRect) -> Path {
+    let k = min(rect.width, rect.height) / 48
+    let ox = rect.minX + (rect.width - 48 * k) / 2
+    let oy = rect.minY + (rect.height - 48 * k) / 2
+    var p = Path()
+    for (x, y, h) in [(5.5, 8.0, 32.0), (16, 27, 13), (26.5, 27, 13), (37, 27, 13)] {
+      p.addRoundedRect(
+        in: CGRect(x: ox + x * k, y: oy + y * k, width: 5.5 * k, height: h * k),
+        cornerSize: CGSize(width: 2.75 * k, height: 2.75 * k))
+    }
+    return p
+  }
+}
+
+/// Mark + "tempo", as in the app's TempoLockup.
+struct TempoLockup: View {
+  var size: CGFloat = 13
+  var color: Color
+  var body: some View {
+    HStack(alignment: .lastTextBaseline, spacing: size * 0.3) {
+      TempoMarkShape().fill(color).frame(width: size, height: size)
+        .alignmentGuide(.lastTextBaseline) { d in d[.bottom] - size * 0.06 }
+      Text("tempo").font(.system(size: size * 1.15, weight: .semibold)).kerning(-0.4)
+        .foregroundColor(color)
+    }
+  }
+}
 
 struct Metric {
   let label: String
@@ -23,20 +57,33 @@ struct TempoEntry: TimelineEntry {
   let strain: Metric
   let sleep: Metric
   let stale: Bool
+  let updated: Date?
 }
 
-private enum Palette {
+enum Palette {
   static func dark(_ scheme: ColorScheme) -> Bool { scheme == .dark }
   static func surface(_ s: ColorScheme) -> Color { dark(s) ? Color(hex: 0x121417) : .white }
+  static func surfaceHi(_ s: ColorScheme) -> Color { dark(s) ? Color(hex: 0x1C1F24) : Color(hex: 0xF6F4F0) }
   static func text1(_ s: ColorScheme) -> Color { dark(s) ? Color(hex: 0xF3F2EF) : Color(hex: 0x121316) }
   static func text2(_ s: ColorScheme) -> Color { dark(s) ? Color(hex: 0xA9ADB4) : Color(hex: 0x575B62) }
   static func text3(_ s: ColorScheme) -> Color { dark(s) ? Color(hex: 0x858A92) : Color(hex: 0x6B6F76) }
-  static func track(_ s: ColorScheme) -> Color { dark(s) ? Color(hex: 0x2A2E35) : Color(hex: 0xDEDBD5) }
+  static func track(_ s: ColorScheme) -> Color { dark(s) ? Color(hex: 0x2A2E35) : Color(hex: 0xE6E3DD) }
   static let recHigh = Color(hex: 0x3CCBC0)
   static let recMid = Color(hex: 0xF0C24B)
   static let recLow = Color(hex: 0xEE4F6C)
   static let strain = Color(hex: 0xFFB066)
   static let sleep = Color(hex: 0x9AA4FF)
+
+  /// The widget surface: a soft top-left glow over the card colour.
+  static func background(_ s: ColorScheme, tint: Color) -> some View {
+    ZStack {
+      LinearGradient(
+        colors: [surfaceHi(s), surface(s)], startPoint: .topLeading, endPoint: .bottomTrailing)
+      RadialGradient(
+        colors: [tint.opacity(dark(s) ? 0.16 : 0.10), .clear], center: .topTrailing,
+        startRadius: 0, endRadius: 180)
+    }
+  }
 }
 
 extension Color {
@@ -47,6 +94,15 @@ extension Color {
   }
 }
 
+/// "updated 12 min ago" for the header.
+private func agoText(_ d: Date?) -> String {
+  guard let d = d else { return "" }
+  let m = Int(Date().timeIntervalSince(d) / 60)
+  if m < 1 { return "now" }
+  if m < 60 { return "\(m) min ago" }
+  return "\(m / 60) h ago"
+}
+
 struct Provider: TimelineProvider {
   func placeholder(in context: Context) -> TempoEntry { read(placeholder: true) }
 
@@ -55,9 +111,10 @@ struct Provider: TimelineProvider {
   }
 
   func getTimeline(in context: Context, completion: @escaping (Timeline<TempoEntry>) -> Void) {
-    // Re-read hourly; the app also reloads on every sync.
+    // Re-read every 30 min (the "ago" line moves); the app also reloads on
+    // every sync.
     let entry = read(placeholder: false)
-    let next = Calendar.current.date(byAdding: .hour, value: 1, to: Date())!
+    let next = Calendar.current.date(byAdding: .minute, value: 30, to: Date())!
     completion(Timeline(entries: [entry], policy: .after(next)))
   }
 
@@ -69,8 +126,8 @@ struct Provider: TimelineProvider {
     func pct(_ k: String, _ fallback: Double) -> Double {
       placeholder ? fallback : Double(d?.integer(forKey: k) ?? 0) / 100
     }
-    let updated = Double(d?.string(forKey: "updated_at") ?? "") ?? 0
-    let age = Date().timeIntervalSince1970 - updated / 1000
+    let updatedMs = Double(d?.string(forKey: "updated_at") ?? "") ?? 0
+    let age = Date().timeIntervalSince1970 - updatedMs / 1000
     let stale = !placeholder && age > 2 * 3600
     let level = s("rec_level", "high")
     let recColor: Color =
@@ -89,54 +146,79 @@ struct Provider: TimelineProvider {
         label: "Sleep", value: s("sleep_value", "92"), unit: s("sleep_value", "92") == "—" ? "" : "%",
         state: stale ? "\(hours) h ago" : s("sleep_state", "7h 12m"), fill: pct("sleep_fill", 0.92),
         color: Palette.sleep),
-      stale: stale)
+      stale: stale,
+      updated: placeholder || updatedMs == 0 ? nil : Date(timeIntervalSince1970: updatedMs / 1000))
   }
 }
 
-struct Ticks: View {
-  let count: Int
-  let fill: Double
-  let color: Color
-  @Environment(\.colorScheme) var scheme
-  var body: some View {
-    let lit = Int((fill * Double(count)).rounded())
-    HStack(alignment: .bottom, spacing: 2) {
-      ForEach(0..<count, id: \.self) { i in
-        RoundedRectangle(cornerRadius: 1)
-          .fill(i < lit ? color : Palette.track(scheme))
-          .frame(height: (i + 1) % 5 == 0 ? 16 : 10)
-      }
-    }
-    .frame(height: 16)
-  }
-}
+// MARK: - Pieces
 
-struct MetricColumn: View {
+/// A ring filled to [fill] with the value in the middle.
+struct Ring: View {
   let m: Metric
-  let big: Bool
-  let ticks: Int
+  let size: CGFloat
+  let line: CGFloat
   let stale: Bool
   @Environment(\.colorScheme) var scheme
   var body: some View {
-    VStack(alignment: .leading, spacing: 2) {
-      Text(m.label.uppercased())
-        .font(.system(size: 10, weight: .semibold)).kerning(0.9)
-        .foregroundColor(Palette.text3(scheme))
+    let color = stale ? Palette.text3(scheme) : m.color
+    ZStack {
+      Circle().stroke(Palette.track(scheme), lineWidth: line)
+      Circle().trim(from: 0, to: max(0.001, min(1, m.fill)))
+        .stroke(
+          AngularGradient(
+            colors: [color.opacity(0.55), color], center: .center, startAngle: .degrees(0),
+            endAngle: .degrees(360 * max(0.05, min(1, m.fill)))),
+          style: StrokeStyle(lineWidth: line, lineCap: .round)
+        )
+        .rotationEffect(.degrees(-90))
       HStack(alignment: .firstTextBaseline, spacing: 0) {
-        Text(m.value).font(.system(size: big ? 52 : 34, weight: .light)).monospacedDigit()
-        Text(m.unit).font(.system(size: 13)).foregroundColor(Palette.text3(scheme))
+        Text(m.value).font(.system(size: size * 0.3, weight: .semibold, design: .rounded))
+          .monospacedDigit()
+        Text(m.unit).font(.system(size: size * 0.13, weight: .medium))
+          .foregroundColor(Palette.text3(scheme))
       }
       .foregroundColor(stale ? Palette.text2(scheme) : Palette.text1(scheme))
-      .minimumScaleFactor(0.6)
-      .lineLimit(1)
-      Text(m.state).font(.system(size: 12, weight: .medium)).lineLimit(1)
-        .foregroundColor(stale ? Palette.text2(scheme) : m.color)
-      Spacer(minLength: 0)
-      Ticks(count: ticks, fill: m.fill, color: stale ? Palette.text3(scheme) : m.color)
+      .minimumScaleFactor(0.5).lineLimit(1)
+      .padding(line * 1.4)
     }
-    .frame(maxWidth: .infinity, alignment: .leading)
+    .frame(width: size, height: size)
   }
 }
+
+/// Label, ring and state for one score.
+struct RingColumn: View {
+  let m: Metric
+  let size: CGFloat
+  let stale: Bool
+  @Environment(\.colorScheme) var scheme
+  var body: some View {
+    VStack(spacing: 6) {
+      Text(m.label.uppercased()).font(.system(size: 9.5, weight: .semibold)).kerning(0.8)
+        .foregroundColor(Palette.text3(scheme))
+      Ring(m: m, size: size, line: size * 0.11, stale: stale)
+      Text(m.state).font(.system(size: 11, weight: .medium)).lineLimit(1).minimumScaleFactor(0.8)
+        .foregroundColor(stale ? Palette.text2(scheme) : m.color)
+    }
+    .frame(maxWidth: .infinity)
+  }
+}
+
+/// Lockup on the left, a quiet note on the right.
+struct Header: View {
+  let note: String
+  @Environment(\.colorScheme) var scheme
+  var body: some View {
+    HStack {
+      TempoLockup(size: 12, color: Palette.text1(scheme))
+      Spacer(minLength: 4)
+      Text(note).font(.system(size: 10.5, weight: .medium)).lineLimit(1)
+        .foregroundColor(Palette.text3(scheme))
+    }
+  }
+}
+
+// MARK: - Recovery (small) and the three scores (medium)
 
 struct TempoWidgetView: View {
   let entry: TempoEntry
@@ -145,24 +227,31 @@ struct TempoWidgetView: View {
   var body: some View {
     Group {
       if family == .systemSmall {
-        MetricColumn(m: entry.rec, big: true, ticks: 14, stale: entry.stale)
+        VStack(spacing: 8) {
+          Header(note: entry.stale ? agoText(entry.updated) : "")
+          Ring(m: entry.rec, size: 86, line: 9, stale: entry.stale)
+          Text(entry.rec.state).font(.system(size: 12, weight: .semibold)).lineLimit(1)
+            .foregroundColor(entry.stale ? Palette.text2(scheme) : entry.rec.color)
+        }
       } else {
-        // Each column opens its own detail screen.
-        HStack(spacing: 14) {
-          Link(destination: URL(string: "tempo://recovery?homeWidget")!) {
-            MetricColumn(m: entry.rec, big: false, ticks: 10, stale: entry.stale)
-          }
-          Link(destination: URL(string: "tempo://strain?homeWidget")!) {
-            MetricColumn(m: entry.strain, big: false, ticks: 10, stale: entry.stale)
-          }
-          Link(destination: URL(string: "tempo://sleep?homeWidget")!) {
-            MetricColumn(m: entry.sleep, big: false, ticks: 10, stale: entry.stale)
+        VStack(spacing: 10) {
+          Header(note: agoText(entry.updated))
+          HStack(spacing: 6) {
+            Link(destination: URL(string: "tempo://recovery?homeWidget")!) {
+              RingColumn(m: entry.rec, size: 64, stale: entry.stale)
+            }
+            Link(destination: URL(string: "tempo://strain?homeWidget")!) {
+              RingColumn(m: entry.strain, size: 64, stale: entry.stale)
+            }
+            Link(destination: URL(string: "tempo://sleep?homeWidget")!) {
+              RingColumn(m: entry.sleep, size: 64, stale: entry.stale)
+            }
           }
         }
       }
     }
     .widgetURL(URL(string: family == .systemSmall ? "tempo://recovery?homeWidget" : "tempo://today?homeWidget"))
-    .containerBackground(for: .widget) { Palette.surface(scheme) }
+    .containerBackground(for: .widget) { Palette.background(scheme, tint: entry.rec.color) }
   }
 }
 
@@ -226,30 +315,38 @@ struct SessionWidgetView: View {
   }
   var body: some View {
     VStack(alignment: .leading, spacing: 4) {
-      Text("TODAY").font(.system(size: 10, weight: .semibold)).kerning(0.9)
-        .foregroundColor(Palette.text3(scheme))
-      Text(entry.title).font(.system(size: 18, weight: .medium)).lineLimit(1)
+      Header(note: "TODAY")
+      Spacer(minLength: 2)
+      Text(entry.title).font(.system(size: 20, weight: .semibold)).lineLimit(1)
         .foregroundColor(Palette.text1(scheme))
       Text(entry.detail).font(.system(size: 12)).lineLimit(1)
         .foregroundColor(Palette.text2(scheme))
       Spacer(minLength: 0)
       HStack {
-        Text(entry.status).font(.system(size: 13, weight: .semibold)).lineLimit(1)
-          .foregroundColor(statusColor)
+        if !entry.status.isEmpty {
+          HStack(spacing: 5) {
+            Circle().fill(statusColor).frame(width: 6, height: 6)
+            Text(entry.status).font(.system(size: 13, weight: .semibold)).lineLimit(1)
+              .foregroundColor(statusColor)
+          }
+        }
         Spacer()
         if entry.level != "rest" && !entry.stale {
           Link(destination: URL(string: "tempo://start?homeWidget")!) {
-            Text("Start").font(.system(size: 13, weight: .semibold))
-              .padding(.horizontal, 16).padding(.vertical, 7)
-              .background(Capsule().fill(Palette.text1(scheme)))
-              .foregroundColor(Palette.surface(scheme))
+            HStack(spacing: 5) {
+              Image(systemName: "play.fill").font(.system(size: 10, weight: .bold))
+              Text("Start").font(.system(size: 13, weight: .semibold))
+            }
+            .padding(.horizontal, 16).padding(.vertical, 8)
+            .background(Capsule().fill(Palette.text1(scheme)))
+            .foregroundColor(Palette.surface(scheme))
           }
         }
       }
     }
     .frame(maxWidth: .infinity, alignment: .leading)
     .widgetURL(URL(string: "tempo://coach?homeWidget"))
-    .containerBackground(for: .widget) { Palette.surface(scheme) }
+    .containerBackground(for: .widget) { Palette.background(scheme, tint: statusColor) }
   }
 }
 
@@ -324,7 +421,7 @@ private func toneColor(_ tone: String, _ scheme: ColorScheme) -> Color {
   }
 }
 
-/// A bar with today's strain and its target band shaded.
+/// A bar with today's value and, when given, its target band shaded.
 struct TargetBar: View {
   let fill: Double
   let lo: Double
@@ -340,7 +437,9 @@ struct TargetBar: View {
             .frame(width: g.size.width * (hi - lo))
             .offset(x: g.size.width * lo)
         }
-        Capsule().fill(color).frame(width: max(6, g.size.width * min(1, fill)))
+        Capsule()
+          .fill(LinearGradient(colors: [color.opacity(0.6), color], startPoint: .leading, endPoint: .trailing))
+          .frame(width: max(8, g.size.width * min(1, fill)))
       }
     }
     .frame(height: 8)
@@ -354,23 +453,23 @@ struct DayWidgetView: View {
   var body: some View {
     let b = entry.base
     VStack(alignment: .leading, spacing: 12) {
+      Header(note: Date().formatted(.dateTime.weekday(.wide).day().month(.abbreviated)))
       (Text(entry.callLead).foregroundColor(toneColor(entry.callTone, scheme))
         + Text(entry.callRest).foregroundColor(Palette.text1(scheme)))
-        .font(.system(size: 17, weight: .medium)).lineLimit(3)
-      HStack(spacing: 14) {
+        .font(.system(size: 17, weight: .semibold)).lineLimit(3)
+      HStack(spacing: 6) {
         Link(destination: URL(string: "tempo://recovery?homeWidget")!) {
-          MetricColumn(m: b.rec, big: false, ticks: 10, stale: b.stale)
+          RingColumn(m: b.rec, size: 70, stale: b.stale)
         }
         Link(destination: URL(string: "tempo://strain?homeWidget")!) {
-          MetricColumn(m: b.strain, big: false, ticks: 10, stale: b.stale)
+          RingColumn(m: b.strain, size: 70, stale: b.stale)
         }
         Link(destination: URL(string: "tempo://sleep?homeWidget")!) {
-          MetricColumn(m: b.sleep, big: false, ticks: 10, stale: b.stale)
+          RingColumn(m: b.sleep, size: 70, stale: b.stale)
         }
       }
-      .frame(height: 104)
       VStack(alignment: .leading, spacing: 6) {
-        row("Strain", "\(b.strain.value) · target band shaded")
+        row("Strain", "\(b.strain.value) · \(b.strain.state)")
         TargetBar(fill: b.strain.fill, lo: entry.strainLo, hi: entry.strainHi, color: Palette.strain)
       }
       VStack(alignment: .leading, spacing: 6) {
@@ -378,33 +477,42 @@ struct DayWidgetView: View {
         TargetBar(fill: entry.stepsFill, lo: 0, hi: 0, color: Palette.recHigh)
       }
       Spacer(minLength: 0)
-      HStack {
-        label("Today", entry.session)
-        Spacer()
-        label("In bed by", "\(entry.bedTime) · need \(entry.sleepNeed)")
+      HStack(spacing: 10) {
+        chip("figure.run", "Today", entry.session)
+        chip("moon.fill", "In bed by", "\(entry.bedTime) · \(entry.sleepNeed)")
       }
     }
     .widgetURL(URL(string: "tempo://today?homeWidget"))
-    .containerBackground(for: .widget) { Palette.surface(scheme) }
+    .containerBackground(for: .widget) {
+      Palette.background(scheme, tint: toneColor(entry.callTone, scheme))
+    }
   }
 
   private func row(_ title: String, _ value: String) -> some View {
     HStack {
-      Text(title.uppercased()).font(.system(size: 10, weight: .semibold)).kerning(0.9)
+      Text(title.uppercased()).font(.system(size: 9.5, weight: .semibold)).kerning(0.8)
         .foregroundColor(Palette.text3(scheme))
       Spacer()
-      Text(value).font(.system(size: 12, weight: .medium)).monospacedDigit()
+      Text(value).font(.system(size: 12, weight: .medium)).monospacedDigit().lineLimit(1)
         .foregroundColor(Palette.text2(scheme))
     }
   }
 
-  private func label(_ title: String, _ value: String) -> some View {
-    VStack(alignment: .leading, spacing: 2) {
-      Text(title.uppercased()).font(.system(size: 10, weight: .semibold)).kerning(0.9)
-        .foregroundColor(Palette.text3(scheme))
-      Text(value).font(.system(size: 13, weight: .medium)).lineLimit(1)
-        .foregroundColor(Palette.text1(scheme))
+  private func chip(_ icon: String, _ title: String, _ value: String) -> some View {
+    HStack(spacing: 8) {
+      Image(systemName: icon).font(.system(size: 12, weight: .semibold))
+        .foregroundColor(Palette.text2(scheme))
+      VStack(alignment: .leading, spacing: 1) {
+        Text(title.uppercased()).font(.system(size: 9, weight: .semibold)).kerning(0.6)
+          .foregroundColor(Palette.text3(scheme))
+        Text(value).font(.system(size: 12.5, weight: .semibold)).lineLimit(1).minimumScaleFactor(0.8)
+          .foregroundColor(Palette.text1(scheme))
+      }
+      Spacer(minLength: 0)
     }
+    .padding(.horizontal, 10).padding(.vertical, 8)
+    .frame(maxWidth: .infinity)
+    .background(RoundedRectangle(cornerRadius: 12).fill(Palette.track(scheme).opacity(0.55)))
   }
 }
 
@@ -429,21 +537,24 @@ struct LockWidgetView: View {
       switch family {
       case .accessoryCircular:
         Gauge(value: b.rec.fill) {
-          Text("REC")
+          TempoMarkShape().frame(width: 10, height: 10)
         } currentValueLabel: {
           Text(b.rec.value).monospacedDigit()
         }
         .gaugeStyle(.accessoryCircular)
       case .accessoryInline:
-        Text("Rec \(b.rec.value)\(b.rec.unit) · Strain \(b.strain.value) · Sleep \(b.sleep.value)")
+        Text("Recovery \(b.rec.value)\(b.rec.unit) · Strain \(b.strain.value)")
       default:
         VStack(alignment: .leading, spacing: 2) {
+          HStack(spacing: 4) {
+            TempoMarkShape().frame(width: 10, height: 10)
+            Text("tempo").font(.system(size: 11, weight: .semibold))
+          }
           HStack(spacing: 10) {
             mini("REC", b.rec.value + b.rec.unit)
             mini("STRAIN", b.strain.value)
             mini("SLEEP", b.sleep.value)
           }
-          Text(entry.callLead + entry.callRest).font(.system(size: 12)).lineLimit(1)
         }
       }
     }

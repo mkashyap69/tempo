@@ -10,13 +10,27 @@ import 'dart:math' as math;
 
 /// One GPS fix.
 class GeoFix {
-  const GeoFix(this.lat, this.lon, {required this.accuracyM, required this.at});
+  const GeoFix(
+    this.lat,
+    this.lon, {
+    required this.accuracyM,
+    required this.at,
+    this.altitudeM,
+    this.altitudeAccuracyM,
+  });
   final double lat, lon;
 
   /// Horizontal accuracy radius, metres.
   final double accuracyM;
   final DateTime at;
+
+  /// Height above sea level and its accuracy, metres; null when unknown.
+  final double? altitudeM, altitudeAccuracyM;
 }
+
+/// A point of the drawn route in metres east and north of the start; null
+/// marks a break (a pause or a GPS jump) so the line isn't joined across it.
+typedef RoutePoint = ({double x, double y});
 
 /// Great-circle distance in metres (haversine, mean Earth radius).
 double haversineM(double lat1, double lon1, double lat2, double lon2) {
@@ -54,6 +68,31 @@ class RouteTracker {
   double _m = 0;
   GeoFix? _last;
 
+  /// Climbs of at least this much count toward [elevationGainM], so GPS
+  /// altitude noise doesn't add up.
+  static const climbStepM = 3.0;
+
+  /// Fixes whose altitude is worse than this don't count toward the gain.
+  static const maxAltitudeAccuracyM = 15.0;
+
+  /// The most points kept for drawing; past it every other one is dropped.
+  static const maxPathPoints = 1500;
+
+  double _gain = 0;
+  double? _altAnchor;
+  double? _accuracy;
+  GeoFix? _origin;
+  final _path = <RoutePoint?>[];
+
+  /// Metres climbed, from GPS altitude. TODO(verify) against a known hill.
+  double get elevationGainM => _gain;
+
+  /// The latest fix's horizontal accuracy, metres.
+  double? get accuracyM => _accuracy;
+
+  /// The route so far, for drawing only; kept in memory, never stored.
+  List<RoutePoint?> get path => List.unmodifiable(_path);
+
   /// (moving seconds, metres) samples, the last few minutes only.
   final _trail = <(double, double)>[];
 
@@ -70,15 +109,22 @@ class RouteTracker {
 
   /// After a pause: the next fix starts a new leg, so ground covered while
   /// paused isn't counted.
-  void breakLeg() => _last = null;
+  void breakLeg() {
+    _last = null;
+    if (_path.isNotEmpty && _path.last != null) _path.add(null);
+  }
 
   /// A GPS fix at [movingS] seconds of moving time. Returns true when it
   /// was used.
   bool addFix(GeoFix f, double movingS) {
-    if (f.accuracyM > maxAccuracyM || f.accuracyM <= 0) return false;
+    if (f.accuracyM <= 0) return false;
+    _accuracy = f.accuracyM;
+    if (f.accuracyM > maxAccuracyM) return false;
     final last = _last;
     if (last == null) {
       _last = f;
+      _point(f);
+      _climb(f);
       _mark(movingS);
       return true;
     }
@@ -96,11 +142,55 @@ class RouteTracker {
     if (dt > 0 && d / dt > maxSpeedMs) {
       // A jump: start again from here rather than add it.
       _last = f;
+      if (_path.isNotEmpty && _path.last != null) _path.add(null);
+      _point(f);
       return false;
     }
     _last = f;
+    _point(f);
+    _climb(f);
     _add(d, movingS);
     return true;
+  }
+
+  /// Metres east and north of the first fix (equirectangular: plenty for
+  /// a few km).
+  void _point(GeoFix f) {
+    final o = _origin ??= f;
+    const mPerDeg = 111195.0;
+    _path.add((
+      x: (f.lon - o.lon) * mPerDeg * math.cos(o.lat * math.pi / 180),
+      y: (f.lat - o.lat) * mPerDeg,
+    ));
+    if (_path.length > maxPathPoints) {
+      // Halve, keeping breaks and the latest point.
+      final kept = <RoutePoint?>[];
+      for (var i = 0; i < _path.length; i++) {
+        final p = _path[i];
+        if (p == null || i.isEven || i == _path.length - 1) kept.add(p);
+      }
+      _path
+        ..clear()
+        ..addAll(kept);
+    }
+  }
+
+  void _climb(GeoFix f) {
+    final alt = f.altitudeM;
+    final acc = f.altitudeAccuracyM;
+    if (alt == null ||
+        (acc != null && (acc <= 0 || acc > maxAltitudeAccuracyM))) {
+      return;
+    }
+    // Hysteresis both ways: a rise of a step counts, a fall of a step
+    // moves the base down; wobble inside the band does neither.
+    final a = _altAnchor;
+    if (a == null || alt <= a - climbStepM) {
+      _altAnchor = alt;
+    } else if (alt >= a + climbStepM) {
+      _gain += alt - a;
+      _altAnchor = alt;
+    }
   }
 
   /// The band's running distance total, metres since the start.

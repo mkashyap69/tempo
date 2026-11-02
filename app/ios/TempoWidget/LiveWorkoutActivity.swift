@@ -61,15 +61,20 @@ private struct LockScreen: View {
   let s: TempoWorkoutAttributes.ContentState
   var body: some View {
     VStack(alignment: .leading, spacing: 10) {
-      HStack {
+      HStack(alignment: .center) {
+        TempoLockup(size: 13, color: .white)
+        Spacer()
+        Text(s.paused ? "PAUSED" : "LIVE").font(.system(size: 10, weight: .bold)).kerning(0.8)
+          .padding(.horizontal, 7).padding(.vertical, 3)
+          .background(Capsule().fill(s.paused ? LA.strain.opacity(0.25) : LA.heart.opacity(0.25)))
+          .foregroundColor(s.paused ? LA.strain : LA.heart)
+      }
+      HStack(alignment: .firstTextBaseline) {
         Image(systemName: "heart.fill").foregroundColor(LA.heart)
         Text(title).font(.system(size: 14, weight: .semibold)).lineLimit(1)
         Spacer()
-        if s.paused {
-          Text("PAUSED").font(.system(size: 11, weight: .bold)).foregroundColor(LA.strain)
-        }
-        Clock(s: s).font(.system(size: 22, weight: .semibold)).monospacedDigit()
-          .multilineTextAlignment(.trailing).frame(maxWidth: 110, alignment: .trailing)
+        Clock(s: s).font(.system(size: 26, weight: .semibold)).monospacedDigit()
+          .multilineTextAlignment(.trailing).frame(maxWidth: 120, alignment: .trailing)
       }
       HStack(alignment: .top, spacing: 16) {
         Stat(
@@ -91,7 +96,12 @@ private struct LockScreen: View {
     }
     .padding(16)
     .foregroundColor(.white)
-    .activityBackgroundTint(Color(hex: 0x121417))
+    .background(
+      LinearGradient(
+        colors: [Color(hex: 0x1C1F24), Color(hex: 0x0A0B0D)], startPoint: .topLeading,
+        endPoint: .bottomTrailing)
+    )
+    .activityBackgroundTint(Color(hex: 0x0A0B0D))
     .activitySystemActionForegroundColor(.white)
     .widgetURL(LA.url)
   }
@@ -123,6 +133,13 @@ struct LiveWorkoutActivity: Widget {
             .multilineTextAlignment(.trailing).frame(maxWidth: 110, alignment: .trailing)
             .foregroundColor(s.paused ? LA.strain : .white)
         }
+        DynamicIslandExpandedRegion(.center) {
+          HStack(spacing: 4) {
+            TempoMarkShape().fill(LA.strain).frame(width: 11, height: 11)
+            Text(ctx.attributes.title).font(.system(size: 12, weight: .semibold)).lineLimit(1)
+              .foregroundColor(LA.text2)
+          }
+        }
         DynamicIslandExpandedRegion(.bottom) {
           HStack(spacing: 16) {
             if let d = s.distance { Stat(label: "Distance", value: d, unit: s.distanceUnit) }
@@ -146,7 +163,7 @@ struct LiveWorkoutActivity: Widget {
           Clock(s: s).monospacedDigit().frame(maxWidth: 56).foregroundColor(LA.strain)
         }
       } minimal: {
-        Image(systemName: "heart.fill").foregroundColor(LA.heart)
+        TempoMarkShape().fill(LA.strain).frame(width: 14, height: 14)
       }
       .widgetURL(LA.url)
       .keylineTint(LA.heart)

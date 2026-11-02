@@ -37,8 +37,21 @@ abstract class TempoWidget(
                 val col = context.resources.getIdentifier("${prefix}_col", "id", context.packageName)
                 if (col != 0) views.setOnClickPendingIntent(col, launch(context, uriFor(prefix)))
             }
+            val note = context.resources.getIdentifier("header_note", "id", context.packageName)
+            if (note != 0) views.setTextViewText(note, headerNote(updated))
             extra(context, views, widgetData, stale)
             appWidgetManager.updateAppWidget(id, views)
+        }
+    }
+
+    /** "12 min ago" under the lockup; the Day widget shows the date instead. */
+    protected open fun headerNote(updated: Long?): String {
+        if (updated == null) return ""
+        val m = (System.currentTimeMillis() - updated) / 60_000
+        return when {
+            m < 1 -> "now"
+            m < 60 -> "$m min ago"
+            else -> "${m / 60} h ago"
         }
     }
 
@@ -78,7 +91,22 @@ abstract class TempoWidget(
         views.setTextViewText(id("state"), state)
         views.setTextColor(id("value"), c(if (stale) R.color.widget_text2 else R.color.widget_text1))
         views.setTextColor(id("state"), if (stale) c(R.color.widget_text2) else accent)
-        val pct = readInt(d, "${prefix}_fill")
+        val pct = if (stale && prefix == "strain") 0 else readInt(d, "${prefix}_fill").coerceIn(0, 100)
+        // Recovery has a ring per level; only the current one shows.
+        if (prefix == "rec") {
+            val level = d.getString("rec_level", "none")
+            for (l in listOf("high", "mid", "low")) {
+                val ring = context.resources.getIdentifier("rec_ring_$l", "id", context.packageName)
+                if (ring == 0) continue
+                val on = l == level || (l == "high" && level !in listOf("high", "mid", "low"))
+                views.setViewVisibility(ring, if (on) android.view.View.VISIBLE else android.view.View.GONE)
+                views.setProgressBar(ring, 100, pct, false)
+            }
+        } else {
+            val ring = id("ring")
+            if (ring != 0) views.setProgressBar(ring, 100, pct, false)
+        }
+        // Older layouts' tick bars, if a launcher still holds one.
         val lit = Math.round(pct / 100.0 * ticks).toInt()
         for (i in 0 until ticks) {
             val tick = id("t$i")
@@ -93,9 +121,9 @@ abstract class TempoWidget(
     }
 }
 
-class TempoSmallWidget : TempoWidget(R.layout.tempo_widget_small, listOf("rec" to 14), "tempo://recovery")
+class TempoSmallWidget : TempoWidget(R.layout.tempo_widget_small, listOf("rec" to 0), "tempo://recovery")
 
-class TempoMediumWidget : TempoWidget(R.layout.tempo_widget_medium, listOf("rec" to 10, "strain" to 10, "sleep" to 10), "tempo://today")
+class TempoMediumWidget : TempoWidget(R.layout.tempo_widget_medium, listOf("rec" to 0, "strain" to 0, "sleep" to 0), "tempo://today")
 
 /**
  * Day (4×3): today's call with its lead coloured, the three numbers, strain
@@ -103,6 +131,9 @@ class TempoMediumWidget : TempoWidget(R.layout.tempo_widget_medium, listOf("rec"
  * tonight's bedtime. Values from dayWidgetData in home_widgets.dart.
  */
 class TempoDayWidget : TempoWidget(R.layout.tempo_widget_day, listOf("rec" to 0, "strain" to 0, "sleep" to 0), "tempo://today") {
+    override fun headerNote(updated: Long?): String =
+        java.text.SimpleDateFormat("EEE d MMM", java.util.Locale.getDefault()).format(java.util.Date())
+
     override fun extra(context: Context, views: RemoteViews, d: SharedPreferences, stale: Boolean) {
         fun c(res: Int) = ContextCompat.getColor(context, res)
         val lead = if (stale) "Open Tempo" else d.getString("call_lead", null) ?: "Open Tempo"
@@ -133,7 +164,7 @@ class TempoDayWidget : TempoWidget(R.layout.tempo_widget_day, listOf("rec" to 0,
         views.setTextViewText(R.id.day_session, d.getString("session_title", null) ?: "—")
         val bed = d.getString("bed_time", null)
         val need = d.getString("sleep_need", null)
-        views.setTextViewText(R.id.day_bed, if (bed == null) "—" else if (need == null) bed else "$bed · need $need")
+        views.setTextViewText(R.id.day_bed, if (bed == null) "—" else if (need == null) bed else "$bed · $need")
         views.setOnClickPendingIntent(R.id.day_session, launch(context, "tempo://coach"))
     }
 }

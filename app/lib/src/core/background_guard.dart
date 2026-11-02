@@ -1,6 +1,12 @@
 import 'dart:io';
 
+import 'dart:ui' show Color;
+
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
+
+/// Tempo's accent on notifications (the strain orange of the app and the
+/// widgets).
+const tempoAccent = Color(0xFFFFB066);
 
 /// Android: a foreground service holds the process (and so the band
 /// connection and GPS) while a live workout runs, so the screen can lock or
@@ -54,8 +60,10 @@ abstract final class BackgroundGuard {
         ],
         notificationTitle: title,
         notificationText: text,
+        // The Tempo mark, tinted with the brand's strain orange.
         notificationIcon: const NotificationIcon(
           metaDataName: 'dev.tempo.tempo.NOTIFICATION_ICON',
+          backgroundColor: tempoAccent,
         ),
       );
       return r is ServiceRequestSuccess;

@@ -304,6 +304,10 @@ class TempoNotifications implements NotificationSink {
           usesChronometer: !paused,
           category: AndroidNotificationCategory.workout,
           visibility: NotificationVisibility.public,
+          // Branding: the Tempo mark in the brand orange, "Live workout"
+          // next to the app name.
+          color: const Color(0xFFFFB066),
+          subText: 'Live workout',
         ),
       ),
       payload: jsonEncode({'kind': 'workout'}),

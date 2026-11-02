@@ -141,6 +141,59 @@ void main() {
     });
   });
 
+  group('Route shape and climb', () {
+    final t0 = DateTime(2026, 11, 2, 7);
+    GeoFix at(double north, double east, int sec, {double? alt}) => GeoFix(
+      48 + north / _mPerDegLat,
+      11 + east / (_mPerDegLat * 0.66913), // cos(48°)
+      accuracyM: 5,
+      at: t0.add(Duration(seconds: sec)),
+      altitudeM: alt,
+      altitudeAccuracyM: alt == null ? null : 4,
+    );
+
+    test('points are metres from the start; a pause breaks the line', () {
+      final r = RouteTracker();
+      r.addFix(at(0, 0, 0), 0);
+      r.addFix(at(20, 0, 10), 10);
+      r.breakLeg();
+      r.addFix(at(20, 30, 40), 10);
+      final p = r.path;
+      expect(p.length, 4);
+      expect(p[1]!.y, closeTo(20, 0.1));
+      expect(p[2], isNull);
+      expect(p[3]!.x, closeTo(30, 0.2));
+    });
+
+    test('climb counts rises of 3 m or more, not noise or descents', () {
+      final r = RouteTracker();
+      final alts = <double>[100, 101, 99, 100.5, 104, 103, 108, 95, 99];
+      for (final (i, a) in alts.indexed) {
+        r.addFix(at(i * 10.0, 0, i * 4, alt: a), i * 4.0);
+      }
+      // 100 → 104 (+4; the 1 m dips are noise), 104 → 108 (+4), then a
+      // real descent to 95 and 95 → 99 (+4).
+      expect(r.elevationGainM, closeTo(12, 0.01));
+    });
+
+    test('accuracy is kept even for a fix too poor to use', () {
+      final r = RouteTracker();
+      r.addFix(GeoFix(48, 11, accuracyM: 45, at: t0), 0);
+      expect(r.accuracyM, 45);
+      expect(r.path, isEmpty);
+    });
+
+    test('a long route is thinned but keeps its ends', () {
+      final r = RouteTracker();
+      for (var i = 0; i <= 2000; i++) {
+        r.addFix(at(i * 6.0, 0, i * 2), i * 2.0);
+      }
+      expect(r.path.length, lessThanOrEqualTo(RouteTracker.maxPathPoints));
+      expect(r.path.first!.y, 0);
+      expect(r.path.last!.y, closeTo(12000, 1));
+    });
+  });
+
   group('RouteTracker with the band', () {
     test('day totals become distance; miles split at 1609 m', () {
       final r = RouteTracker(splitM: 1609.344);

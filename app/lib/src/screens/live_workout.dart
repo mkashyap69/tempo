@@ -7,7 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:scoring/scoring.dart' as sc;
 
 import '../core/format.dart';
-import '../core/route_tracker.dart' show DistanceSource;
+import '../core/route_tracker.dart' show DistanceSource, RoutePoint;
 import '../design/beating_heart.dart';
 import '../design/components.dart';
 import '../design/icons.dart';
@@ -108,7 +108,9 @@ class _Live extends ConsumerWidget {
                       style: TempoType.label.c(c.text1),
                     ),
                     Text(
-                      '${mmss(s.elapsed)} elapsed',
+                      s.gps == GpsState.on && s.distanceM != null
+                          ? '${mmss(s.elapsed)} · ${distanceText(s.distanceM!, metric: s.metric)} ${s.metric ? 'km' : 'mi'}'
+                          : '${mmss(s.elapsed)} elapsed',
                       style: TempoType.caption.c(c.text3).tnum,
                     ),
                   ],
@@ -668,7 +670,7 @@ class _RouteCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = context.c;
+    final c = context.c, sc0 = context.s;
     final miles = !s.metric;
     final unit = miles ? 'mi' : 'km';
     String pace(double? v) => v == null ? '—' : sc.paceText(v, miles: miles);
@@ -684,10 +686,22 @@ class _RouteCard extends StatelessWidget {
       _ => null,
     };
     final big = TempoType.scoreS.copyWith(fontSize: 40, height: 1.05);
+    final speed = s.paceNow == null
+        ? null
+        : 3600 / (s.paceNow! * (miles ? 1.609344 : 1));
+    final gain = s.elevationGainM;
+    final drawn = s.route.whereType<RoutePoint>().length >= 2;
     return TempoCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          Row(
+            children: [
+              const Expanded(child: Overline('Route')),
+              GpsChip(s: s),
+            ],
+          ),
+          const SizedBox(height: 12),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -709,6 +723,20 @@ class _RouteCard extends StatelessWidget {
               ),
             ],
           ),
+          if (drawn) ...[
+            const SizedBox(height: 14),
+            SizedBox(
+              height: 132,
+              child: CustomPaint(
+                painter: RoutePainter(
+                  route: s.route,
+                  line: sc0.strain[1],
+                  start: c.text3,
+                  grid: c.line,
+                ),
+              ),
+            ),
+          ],
           const SizedBox(height: 14),
           Row(
             children: [
@@ -721,14 +749,25 @@ class _RouteCard extends StatelessWidget {
                   splits.isEmpty ? '—' : sc.durationText(splits.last),
                 ),
               ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
               Expanded(
                 child: Stat(
                   'Speed',
-                  s.paceAvg == null
-                      ? '—'
-                      : (3600 / (s.paceAvg! * (miles ? 1.609344 : 1)))
-                            .toStringAsFixed(1),
+                  speed == null ? '—' : speed.toStringAsFixed(1),
                   unit: miles ? ' mph' : ' km/h',
+                ),
+              ),
+              Expanded(
+                child: Stat(
+                  'Climb',
+                  gain == null
+                      ? '—'
+                      : (miles ? gain * 3.28084 : gain).round().toString(),
+                  unit: gain == null ? null : (miles ? ' ft' : ' m'),
                 ),
               ),
             ],
@@ -737,7 +776,7 @@ class _RouteCard extends StatelessWidget {
           Text(
             note ??
                 (s.distanceSource == DistanceSource.gps
-                    ? 'GPS · ${splits.length} ${splits.length == 1 ? 'split' : 'splits'}'
+                    ? 'Phone GPS · ${splits.length} ${splits.length == 1 ? 'split' : 'splits'} · the route stays on this phone'
                     : 'From the band’s step counter · an estimate'),
             style: TempoType.caption.c(c.text3),
           ),
@@ -745,6 +784,128 @@ class _RouteCard extends StatelessWidget {
       ),
     );
   }
+}
+
+/// GPS state in a pill: a dot (green under 10 m accuracy, amber under 20,
+/// red past it, grey while searching) and "GPS ±5 m".
+class GpsChip extends StatelessWidget {
+  const GpsChip({super.key, required this.s});
+  final LiveState s;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c, sc0 = context.s;
+    final acc = s.gpsAccuracyM;
+    final (Color dot, String text) = switch (s.gps) {
+      GpsState.off => (c.text3, 'No GPS'),
+      GpsState.denied => (c.text3, 'GPS off'),
+      GpsState.searching => (c.text3, 'Finding GPS'),
+      GpsState.on => (
+        acc == null || acc > 20
+            ? sc0.recLow
+            : acc > 10
+            ? sc0.recMid
+            : sc0.recHigh,
+        acc == null ? 'GPS' : 'GPS ±${acc.round()} m',
+      ),
+    };
+    return Semantics(
+      label: text,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: c.surface2,
+          borderRadius: BorderRadius.circular(TempoRadii.pill),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 7,
+              height: 7,
+              decoration: BoxDecoration(color: dot, shape: BoxShape.circle),
+            ),
+            const SizedBox(width: 6),
+            Text(text, style: TempoType.caption.c(c.text2).tnum),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The route's shape, north up, scaled to fit: a faint start dot, the line
+/// (broken at pauses and jumps) and a solid dot where you are.
+class RoutePainter extends CustomPainter {
+  RoutePainter({
+    required this.route,
+    required this.line,
+    required this.start,
+    required this.grid,
+  });
+  final List<RoutePoint?> route;
+  final Color line, start, grid;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final pts = route.whereType<RoutePoint>().toList();
+    if (pts.length < 2) return;
+    var x0 = pts.first.x, x1 = x0, y0 = pts.first.y, y1 = y0;
+    for (final p in pts) {
+      x0 = math.min(x0, p.x);
+      x1 = math.max(x1, p.x);
+      y0 = math.min(y0, p.y);
+      y1 = math.max(y1, p.y);
+    }
+    // At least 100 m across, so a few steps don't fill the box.
+    final span = math.max(100.0, math.max(x1 - x0, y1 - y0));
+    const pad = 10.0;
+    final k = math.min(
+      (size.width - 2 * pad) / span,
+      (size.height - 2 * pad) / span,
+    );
+    final cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+    Offset at(RoutePoint p) => Offset(
+      size.width / 2 + (p.x - cx) * k,
+      size.height / 2 - (p.y - cy) * k,
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(12)),
+      Paint()
+        ..color = grid
+        ..style = PaintingStyle.stroke,
+    );
+    final path = Path();
+    var pen = false;
+    for (final p in route) {
+      if (p == null) {
+        pen = false;
+        continue;
+      }
+      final o = at(p);
+      pen ? path.lineTo(o.dx, o.dy) : path.moveTo(o.dx, o.dy);
+      pen = true;
+    }
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = line
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 3
+        ..strokeJoin = StrokeJoin.round
+        ..strokeCap = StrokeCap.round,
+    );
+    canvas.drawCircle(at(pts.first), 4, Paint()..color = start);
+    final end = at(pts.last);
+    canvas.drawCircle(end, 7, Paint()..color = line.withValues(alpha: .3));
+    canvas.drawCircle(end, 4.5, Paint()..color = line);
+  }
+
+  @override
+  bool shouldRepaint(RoutePainter o) =>
+      o.route.length != route.length ||
+      !identical(o.route, route) ||
+      o.line != line;
 }
 
 /// Heart rate over the last 15 minutes on the zone bands, then steps and

@@ -935,6 +935,11 @@ void main() {
           paceAvg: () => 390,
           splits: const [395, 380, 388],
           gps: GpsState.on,
+          gpsAccuracyM: 6,
+          elevationGainM: 42,
+          route: [
+            for (var i = 0; i < 60; i++) (x: i * 20.0, y: (i % 10) * 15.0),
+          ],
         ),
         'Pace now',
       ),
@@ -959,7 +964,9 @@ void main() {
     ]) {
       testWidgets(name, (t) async {
         final db = (await t.runAsync(() => seededDb(days: 3)))!;
-        t.view.physicalSize = const Size(390, 1000);
+        // Tall enough that a run's route card doesn't push the heart-rate
+        // card out of the list's built range.
+        t.view.physicalSize = const Size(390, 1600);
         t.view.devicePixelRatio = 1;
         addTearDown(t.view.reset);
         await t.pumpWidget(

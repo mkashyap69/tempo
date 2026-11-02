@@ -71,6 +71,10 @@ abstract final class LocationFeed {
         p.longitude,
         accuracyM: p.accuracy,
         at: p.timestamp,
+        altitudeM: p.altitude == 0 && p.altitudeAccuracy == 0
+            ? null
+            : p.altitude,
+        altitudeAccuracyM: p.altitudeAccuracy > 0 ? p.altitudeAccuracy : null,
       ),
     );
   }

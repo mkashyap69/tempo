@@ -60,6 +60,9 @@ class LiveState {
     this.kcal,
     this.metric = true,
     this.gps = GpsState.off,
+    this.route = const [],
+    this.gpsAccuracyM,
+    this.elevationGainM,
   });
 
   final LivePhase phase;
@@ -122,6 +125,16 @@ class LiveState {
   /// Kilometres, else miles (Profile).
   final bool metric;
   final GpsState gps;
+
+  /// The GPS route so far in metres from the start, for drawing only
+  /// (null = a break). Never stored.
+  final List<RoutePoint?> route;
+
+  /// The latest GPS fix's accuracy radius, metres.
+  final double? gpsAccuracyM;
+
+  /// Metres climbed, from GPS altitude; null without GPS.
+  final double? elevationGainM;
 
   bool get onFoot => sport == sc.Sport.walking || sport == sc.Sport.running;
 
@@ -255,6 +268,9 @@ class LiveState {
     List<double>? splits,
     int? kcal,
     GpsState? gps,
+    List<RoutePoint?>? route,
+    double? gpsAccuracyM,
+    double? elevationGainM,
   }) => LiveState(
     phase: phase ?? this.phase,
     sport: sport,
@@ -289,6 +305,9 @@ class LiveState {
     kcal: kcal ?? this.kcal,
     metric: metric,
     gps: gps ?? this.gps,
+    route: route ?? this.route,
+    gpsAccuracyM: gpsAccuracyM ?? this.gpsAccuracyM,
+    elevationGainM: elevationGainM ?? this.elevationGainM,
   );
 }
 
@@ -497,10 +516,9 @@ class LiveSession extends Notifier<LiveState?> {
     final s = state, r = _gpsRoute;
     if (s == null || r == null || s.phase != LivePhase.live) return;
     r.addFix(f, _moving(s));
-    if (s.gps == GpsState.searching &&
-        f.accuracyM <= RouteTracker.maxAccuracyM) {
-      state = _withRoute(s.copyWith(gps: GpsState.on));
-    }
+    final on =
+        s.gps == GpsState.searching && f.accuracyM <= RouteTracker.maxAccuracyM;
+    state = _withRoute(s.copyWith(gps: on ? GpsState.on : null));
   }
 
   /// Distance and pace onto [s]: GPS once it has a fix (and from then on,
@@ -509,6 +527,14 @@ class LiveSession extends Notifier<LiveState?> {
     if (!s.onFoot) return s;
     final g = _gpsRoute, b = _bandRoute;
     final useGps = g != null && (s.gps == GpsState.on || g.meters > 0);
+    // GPS details show whenever GPS runs, even before it measures distance.
+    if (g != null && s.gps != GpsState.off && s.gps != GpsState.denied) {
+      s = s.copyWith(
+        route: g.path,
+        gpsAccuracyM: g.accuracyM,
+        elevationGainM: g.elevationGainM,
+      );
+    }
     final r = useGps ? g : (b != null && b.meters > 0 ? b : null);
     if (r == null) return s;
     final t = _moving(s);

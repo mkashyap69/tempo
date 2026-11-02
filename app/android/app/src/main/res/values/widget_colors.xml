@@ -12,4 +12,6 @@
     <color name="widget_sleep">#FF5B57E6</color>
     <color name="widget_button_text">#FFFFFF</color>
     <color name="widget_band">#40E8913F</color>
+    <color name="widget_surface_hi">#FFF7F5F1</color>
+    <color name="widget_chip">#14000000</color>
 </resources>
