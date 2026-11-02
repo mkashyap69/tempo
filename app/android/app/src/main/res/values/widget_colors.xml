@@ -11,4 +11,5 @@
     <color name="widget_strain">#FFE8913F</color>
     <color name="widget_sleep">#FF5B57E6</color>
     <color name="widget_button_text">#FFFFFF</color>
+    <color name="widget_band">#40E8913F</color>
 </resources>

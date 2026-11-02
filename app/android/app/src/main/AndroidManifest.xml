@@ -7,7 +7,10 @@
     <!-- Android 11 and below -->
     <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" android:maxSdkVersion="30" />
+    <!-- BLE scans up to Android 11, and phone GPS for walk and run distance
+         and pace (fixes stay on the phone; no route is stored). -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-feature android:name="android.hardware.bluetooth_le" android:required="true" />
     <!-- Morning call and bedtime nudge (flutter_local_notifications). -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
@@ -19,6 +22,7 @@
     <!-- Live workouts keep the band connection in a foreground service. -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <!-- Profile → Background sync asks to be left out of battery optimisation. -->
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
@@ -96,7 +100,7 @@
             android:resource="@drawable/ic_stat_tempo" />
         <service
             android:name="com.pravera.flutter_foreground_task.service.ForegroundService"
-            android:foregroundServiceType="connectedDevice"
+            android:foregroundServiceType="connectedDevice|location"
             android:stopWithTask="true"
             android:exported="false" />
         <!-- Scheduled notifications survive reboots. -->
@@ -129,6 +133,12 @@
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/tempo_widget_session_info" />
+        </receiver>
+        <receiver android:name=".TempoDayWidget" android:exported="false" android:label="Tempo · Day">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/tempo_widget_day_info" />
         </receiver>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->

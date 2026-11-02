@@ -10,13 +10,19 @@ import 'package:store/store.dart' as st;
 
 import '../core/band_link.dart';
 import '../core/coach_service.dart';
-import '../core/background_guard.dart';
 import '../core/data_source.dart';
+import '../core/location_feed.dart';
+import '../core/route_tracker.dart';
+import '../core/workout_presence.dart';
 import '../core/score_service.dart' show saveRpe;
 import '../core/profile.dart';
 import 'providers.dart';
 
 enum LivePhase { connecting, live, paused, ended, failed }
+
+/// Phone GPS for a walk or run: not used (another sport, or off), waiting
+/// for a first good fix, giving fixes, or location not allowed.
+enum GpsState { off, searching, on, denied }
 
 @immutable
 class LiveState {
@@ -46,6 +52,14 @@ class LiveState {
     this.timerOnly = false,
     this.steps,
     this.cadence,
+    this.distanceM,
+    this.distanceSource,
+    this.paceNow,
+    this.paceAvg,
+    this.splits = const [],
+    this.kcal,
+    this.metric = true,
+    this.gps = GpsState.off,
   });
 
   final LivePhase phase;
@@ -89,6 +103,27 @@ class LiveState {
   /// Steps since the start and steps per minute lately, from the band's
   /// day totals; null until the band answers or with no band.
   final int? steps, cadence;
+
+  /// Metres since the start (moving time only), from phone GPS or the
+  /// band's counter; null until either has some.
+  final double? distanceM;
+  final DistanceSource? distanceSource;
+
+  /// Seconds per km: over the last minute or two, and over the session.
+  final double? paceNow, paceAvg;
+
+  /// Seconds per completed km (or mile when not [metric]).
+  final List<double> splits;
+
+  /// Calories the band counted since the start. TODO(verify) against Mi
+  /// Fitness for one walk.
+  final int? kcal;
+
+  /// Kilometres, else miles (Profile).
+  final bool metric;
+  final GpsState gps;
+
+  bool get onFoot => sport == sc.Sport.walking || sport == sc.Sport.running;
 
   static const traceWindow = 15 * 60;
 
@@ -213,6 +248,13 @@ class LiveState {
     DateTime? startedAt,
     int? steps,
     int? cadence,
+    double? distanceM,
+    DistanceSource? distanceSource,
+    double? Function()? paceNow,
+    double? Function()? paceAvg,
+    List<double>? splits,
+    int? kcal,
+    GpsState? gps,
   }) => LiveState(
     phase: phase ?? this.phase,
     sport: sport,
@@ -239,6 +281,14 @@ class LiveState {
     startedAt: startedAt ?? this.startedAt,
     steps: steps ?? this.steps,
     cadence: cadence ?? this.cadence,
+    distanceM: distanceM ?? this.distanceM,
+    distanceSource: distanceSource ?? this.distanceSource,
+    paceNow: paceNow == null ? this.paceNow : paceNow(),
+    paceAvg: paceAvg == null ? this.paceAvg : paceAvg(),
+    splits: splits ?? this.splits,
+    kcal: kcal ?? this.kcal,
+    metric: metric,
+    gps: gps ?? this.gps,
   );
 }
 
@@ -260,10 +310,14 @@ class LiveSession extends Notifier<LiveState?> {
   DateTime? _lastStepsAt;
   bool _buzz = true;
   int _lastBuzzSegment = -1;
+  RouteTracker? _gpsRoute, _bandRoute;
+  StreamSubscription<GeoFix>? _geo;
+  int? _metersAtStart, _kcalAtStart;
 
   @override
   LiveState? build() {
     ref.onDispose(_teardown);
+    ref.onDispose(() => _lateSync?.cancel());
     return null;
   }
 
@@ -298,7 +352,20 @@ class LiveSession extends Notifier<LiveState?> {
     _beats.clear();
     _beatSum = 0;
     _stepsAtStart = _lastSteps = _lastStepsAt = null;
+    _metersAtStart = _kcalAtStart = null;
     _lastBuzzSegment = -1;
+    // Walks and runs: phone GPS for distance and pace, asked for once.
+    final kind = plan?.sport ?? sport;
+    final onFoot = kind == sc.Sport.walking || kind == sc.Sport.running;
+    final gpsOk = onFoot && await LocationFeed.ensureAccess();
+    final gps = !onFoot
+        ? GpsState.off
+        : gpsOk
+        ? GpsState.searching
+        : GpsState.denied;
+    final splitM = profile.metric ? 1000.0 : 1609.344;
+    _gpsRoute = RouteTracker(splitM: splitM);
+    _bandRoute = RouteTracker(splitM: splitM);
     if ((await loadDataSource(db)).isHealth) {
       final now = DateTime.now();
       HapticFeedback.mediumImpact();
@@ -316,9 +383,13 @@ class LiveSession extends Notifier<LiveState?> {
         target: t,
         startedAt: now,
         timerOnly: true,
+        metric: profile.metric,
+        gps: gps,
       );
       _lastTick = now;
       _clock = Timer.periodic(const Duration(seconds: 1), (_) => _tick());
+      await WorkoutPresence.start(state!, band: false, location: gpsOk);
+      if (gpsOk) _listenGps();
       return;
     }
     state = LiveState(
@@ -332,6 +403,8 @@ class LiveSession extends Notifier<LiveState?> {
       zoneRest: profile.zonesByReserve ? rest : null,
       dayTrimpBefore: today?.trimp ?? 0,
       target: t,
+      metric: profile.metric,
+      gps: gps,
     );
     try {
       final link = _link = await BandLink.open(
@@ -339,9 +412,10 @@ class LiveSession extends Notifier<LiveState?> {
         wait: const Duration(seconds: 15),
       );
       final stream = await link.band.startLiveHr();
-      await BackgroundGuard.start(state!.title);
+      await WorkoutPresence.start(state!, band: true, location: gpsOk);
       HapticFeedback.mediumImpact();
       _hr = stream.listen(_onBeat);
+      if (gpsOk) _listenGps();
       _lastTick = DateTime.now();
       // Timer starts on the first beat (design: States × screens).
       _clock = Timer.periodic(const Duration(seconds: 1), (_) => _tick());
@@ -380,7 +454,73 @@ class LiveSession extends Notifier<LiveState?> {
     if (r.steps < start) {
       _stepsAtStart = r.steps - (s.steps ?? 0);
     }
-    state = s.copyWith(steps: r.steps - _stepsAtStart!, cadence: cadence);
+    // Distance and calories: the band's day totals, rebased at midnight
+    // and while paused so neither counts.
+    final route = _bandRoute;
+    var m0 = _metersAtStart ??= r.meters;
+    var k0 = _kcalAtStart ??= r.kcal;
+    if (route != null) {
+      if (r.meters < m0 || s.phase != LivePhase.live) {
+        m0 = _metersAtStart = r.meters - route.meters.round();
+      }
+      if (s.phase == LivePhase.live) {
+        route.setTotal((r.meters - m0).toDouble(), _moving(s));
+      }
+    }
+    if (r.kcal < k0 || s.phase != LivePhase.live) {
+      k0 = _kcalAtStart = r.kcal - (s.kcal ?? 0);
+    }
+    state = _withRoute(
+      s.copyWith(
+        steps: r.steps - _stepsAtStart!,
+        cadence: cadence,
+        kcal: r.kcal - k0,
+      ),
+    );
+  }
+
+  static double _moving(LiveState s) => s.elapsed.inMilliseconds / 1000;
+
+  void _listenGps() {
+    _geo = LocationFeed.fixes().listen(
+      _onFix,
+      onError: (Object _) {
+        final s = state;
+        if (s != null && s.gps == GpsState.searching) {
+          state = s.copyWith(gps: GpsState.denied);
+        }
+      },
+    );
+  }
+
+  void _onFix(GeoFix f) {
+    final s = state, r = _gpsRoute;
+    if (s == null || r == null || s.phase != LivePhase.live) return;
+    r.addFix(f, _moving(s));
+    if (s.gps == GpsState.searching &&
+        f.accuracyM <= RouteTracker.maxAccuracyM) {
+      state = _withRoute(s.copyWith(gps: GpsState.on));
+    }
+  }
+
+  /// Distance and pace onto [s]: GPS once it has a fix (and from then on,
+  /// so the number never jumps between sources), else the band's counter.
+  LiveState _withRoute(LiveState s) {
+    if (!s.onFoot) return s;
+    final g = _gpsRoute, b = _bandRoute;
+    final useGps = g != null && (s.gps == GpsState.on || g.meters > 0);
+    final r = useGps ? g : (b != null && b.meters > 0 ? b : null);
+    if (r == null) return s;
+    final t = _moving(s);
+    return s.copyWith(
+      distanceM: r.meters,
+      distanceSource: useGps ? DistanceSource.gps : DistanceSource.band,
+      // The band answers every 20 s: a wider window for a steady number.
+      paceNow: () =>
+          useGps ? r.paceNow(t) : r.paceNow(t, window: 120, minWindowS: 40),
+      paceAvg: () => r.paceAvg(t),
+      splits: r.splits,
+    );
   }
 
   void _onBeat(int bpm) {
@@ -424,17 +564,9 @@ class LiveSession extends Notifier<LiveState?> {
         !s.timerOnly &&
         (_lastBeat == null ||
             now.difference(_lastBeat!) > const Duration(seconds: 10));
-    final next = s.advance(dt, lost: lost);
+    final next = _withRoute(s.advance(dt, lost: lost));
     state = next;
-    if (next.elapsed.inSeconds % 15 == 0 && next.bpm != null) {
-      final m = next.elapsed.inMinutes;
-      final sec = (next.elapsed.inSeconds % 60).toString().padLeft(2, '0');
-      final z = next.zone;
-      BackgroundGuard.update(
-        '${next.bpm} bpm${z > 0 ? ' · Z$z' : ''} · $m:$sec'
-        ' · strain +${next.sessionStrain.toStringAsFixed(1)}',
-      );
-    }
+    unawaited(WorkoutPresence.update(next));
     // Interval cues: buzz the band 5 s before a change; haptic on change.
     if (next.guided) {
       final (i, left) = next.segment;
@@ -459,14 +591,18 @@ class LiveSession extends Notifier<LiveState?> {
   void pause() {
     if (state?.phase != LivePhase.live) return;
     HapticFeedback.mediumImpact();
+    _gpsRoute?.breakLeg();
     state = state!.copyWith(phase: LivePhase.paused);
+    unawaited(WorkoutPresence.update(state!, now: true));
   }
 
   void resume() {
     if (state?.phase != LivePhase.paused) return;
     HapticFeedback.mediumImpact();
     _lastTick = DateTime.now();
+    _gpsRoute?.breakLeg();
     state = state!.copyWith(phase: LivePhase.live);
+    unawaited(WorkoutPresence.update(state!, now: true));
   }
 
   /// Saves the workout and moves to the summary.
@@ -500,10 +636,16 @@ class LiveSession extends Notifier<LiveState?> {
               for (final z in s.zoneSeconds) (z / 60).round(),
             ]),
             plan: Value(s.plan == null ? null : jsonEncode(s.plan!.toJson())),
+            distanceM: Value(
+              (s.distanceM ?? 0) >= 50 ? s.distanceM!.roundToDouble() : null,
+            ),
           ),
         );
-    // Timed only: the watch's heart rate for it arrives with the next read.
-    if (s.timerOnly) unawaited(ref.read(syncProvider.notifier).syncNow());
+    // Day strain comes from the source's minutes (the band's history, or
+    // the watch's heart rate in Health), not from this screen: read them
+    // now so Today and the scores move without a manual sync, and once
+    // more a few minutes later for minutes that arrive late.
+    unawaited(_refreshScores());
     state = s.copyWith(
       phase: LivePhase.ended,
       workoutId: id,
@@ -512,6 +654,23 @@ class LiveSession extends Notifier<LiveState?> {
       bpm: () => null,
     );
     return id;
+  }
+
+  Timer? _lateSync;
+
+  Future<void> _refreshScores() async {
+    _lateSync?.cancel();
+    final sync = ref.read(syncProvider.notifier);
+    try {
+      await sync.syncNow();
+    } catch (_) {}
+    _lateSync = Timer(const Duration(minutes: 3), () {
+      final p = state?.phase;
+      // Not while another session holds the band.
+      if (p == LivePhase.live || p == LivePhase.paused) return;
+      if (p == LivePhase.connecting) return;
+      sync.syncNow().catchError((Object _) => const SyncStatus());
+    });
   }
 
   Future<void> rate(int rpe) async {
@@ -525,7 +684,9 @@ class LiveSession extends Notifier<LiveState?> {
   void close() => state = null;
 
   Future<void> _teardown() async {
-    await BackgroundGuard.stop();
+    await WorkoutPresence.stop();
+    await _geo?.cancel();
+    _geo = null;
     _clock?.cancel();
     _clock = null;
     _stepClock?.cancel();

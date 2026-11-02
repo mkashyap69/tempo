@@ -1,25 +1,32 @@
-# TempoWidget (WidgetKit)
+# TempoWidget (WidgetKit + Live Activity)
 
-Sources for the iOS home-screen widgets (design board 12). Flutter writes the
-values into the `group.dev.tempo.tempo` app group via `home_widget`; this
-extension only reads them.
+The widget extension: home-screen widgets (Tempo small/medium, Session,
+Day), lock-screen widgets, and the live workout's Live Activity (lock screen
+and Dynamic Island). Flutter writes widget values into the
+`group.dev.tempo.tempo` app group via `home_widget`; the Live Activity is
+started and updated by the app over `tempo/live_activity`
+(`Runner/LiveActivityChannel.swift`).
 
-The extension target is not in `Runner.xcodeproj` yet, because a target can't
-be added reliably without Xcode. One-time setup on a Mac:
+The `TempoWidget` target is in `Runner.xcodeproj` (added 2026-11-02 with the
+`xcodeproj` gem). Files:
 
-1. Open `ios/Runner.xcworkspace` in Xcode.
-2. File › New › Target › **Widget Extension**. Product name `TempoWidget`,
-   untick "Include Live Activity" and "Include Configuration App Intent".
-   When asked, don't activate the new scheme.
-3. Delete the Swift files Xcode generated in the new group, then add the files
-   in this folder to the `TempoWidget` target (`TempoWidget.swift`,
-   `Info.plist`, `TempoWidget.entitlements`). Set the target's
-   *Code Signing Entitlements* to `TempoWidget/TempoWidget.entitlements` and
-   *Info.plist File* to `TempoWidget/Info.plist`.
-4. Signing & Capabilities: add **App Groups** with `group.dev.tempo.tempo` on
-   both `Runner` (already in `Runner/Runner.entitlements`) and `TempoWidget`.
-5. Set the extension's deployment target to iOS 17 (it uses
-   `containerBackground`).
+- `TempoWidget.swift` — widgets and the `@main` bundle
+- `LiveWorkoutActivity.swift` — the Live Activity's views
+- `../Shared/TempoWorkoutAttributes.swift` — the activity's attributes and
+  state; compiled into both Runner and TempoWidget
+- `Info.plist`, `TempoWidget.entitlements` — the extension's plist (merged
+  with generated keys) and its App Group
 
-Android needs no extra step: `TempoSmallWidget` / `TempoMediumWidget` are
-registered in `AndroidManifest.xml`.
+On a Mac, once:
+
+1. Open `ios/Runner.xcworkspace`, select the `TempoWidget` target, Signing &
+   Capabilities: pick your team (same as Runner). App Groups should show
+   `group.dev.tempo.tempo` on both targets.
+2. Build and run Runner. If Xcode reports a build cycle, check that
+   "Embed Foundation Extensions" sits above "Thin Binary" in Runner's
+   Build Phases.
+
+Widget links must carry `?homeWidget` (e.g. `tempo://strain?homeWidget`):
+home_widget ignores any other URL.
+
+Android needs no extra step: the providers are in `AndroidManifest.xml`.

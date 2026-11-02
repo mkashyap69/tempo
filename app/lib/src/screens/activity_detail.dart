@@ -79,6 +79,7 @@ class _ActivityData {
     this.similar, {
     this.gait,
     this.strideFromBand = false,
+    this.measured = false,
     this.zoneRest,
   });
   final st.Workout w;
@@ -92,6 +93,9 @@ class _ActivityData {
 
   /// Whether the stride came from the band's own counter (else height).
   final bool strideFromBand;
+
+  /// Distance measured live (GPS or the band's counter), not steps × stride.
+  final bool measured;
   final List<(DateTime, int)> hr;
   final int hrMax;
   final List<st.Workout> similar;
@@ -145,7 +149,7 @@ final _activityProvider = FutureProvider.family<_ActivityData?, int>((
   // minutes of badminton is noise. An unlabelled session counts when most
   // of it was steady walking or running.
   sc.Gait? gait;
-  var fromBand = false;
+  var fromBand = false, measured = false;
   const onFoot = {'running', 'walking'};
   if (onFoot.contains(w.sport) || w.sport == null) {
     final mins = [
@@ -164,6 +168,13 @@ final _activityProvider = FutureProvider.family<_ActivityData?, int>((
       final g = sc.gaitOf(mins, strideM: stride);
       if (g != null && (w.sport != null || g.movingMinutes * 2 >= g.minutes)) {
         gait = g;
+        // Measured live: the stride that covers that distance, so pace and
+        // splits agree with what the workout screen showed.
+        final d = w.distanceM;
+        if (d != null && d > 0 && g.steps > 0) {
+          gait = sc.gaitOf(mins, strideM: d / g.steps) ?? g;
+          measured = true;
+        }
       }
     }
   }
@@ -174,6 +185,7 @@ final _activityProvider = FutureProvider.family<_ActivityData?, int>((
     similar,
     gait: gait,
     strideFromBand: fromBand,
+    measured: measured,
     zoneRest: profile.zonesByReserve ? (s?.rhr ?? 60) : null,
   );
 });
@@ -272,7 +284,11 @@ class ActivityDetailScreen extends ConsumerWidget {
           ],
         ),
         if (data.gait != null)
-          GaitCard(gait: data.gait!, strideFromBand: data.strideFromBand),
+          GaitCard(
+            gait: data.gait!,
+            strideFromBand: data.strideFromBand,
+            measured: data.measured,
+          ),
         TempoCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -565,9 +581,15 @@ class ActivityDetailScreen extends ConsumerWidget {
 /// Steps, cadence, estimated distance and pace, a cadence chart and
 /// kilometre splits for a session on foot.
 class GaitCard extends StatelessWidget {
-  const GaitCard({super.key, required this.gait, this.strideFromBand = false});
+  const GaitCard({
+    super.key,
+    required this.gait,
+    this.strideFromBand = false,
+    this.measured = false,
+  });
   final sc.Gait gait;
   final bool strideFromBand;
+  final bool measured;
 
   @override
   Widget build(BuildContext context) {
@@ -590,7 +612,7 @@ class GaitCard extends StatelessWidget {
                   'Distance',
                   km.toStringAsFixed(2),
                   unit: ' km',
-                  estimate: true,
+                  estimate: !measured,
                 ),
               ),
               Expanded(
@@ -598,7 +620,7 @@ class GaitCard extends StatelessWidget {
                   'Pace',
                   pace == null ? '—' : mmss(pace),
                   unit: ' /km',
-                  estimate: true,
+                  estimate: !measured,
                 ),
               ),
             ],
@@ -666,14 +688,16 @@ class GaitCard extends StatelessWidget {
           ],
           const SizedBox(height: 12),
           Text(
-            'Distance and pace are estimated from steps × '
-            '${g.strideM.toStringAsFixed(2)} m '
-            '(${strideFromBand
-                ? "the band's own stride today"
-                : g.running
-                ? 'a running stride from your height'
-                : 'a walking stride from your height'}). '
-            'The band has no GPS.',
+            measured
+                ? 'Distance was measured during the workout; pace and splits spread it over each minute’s steps.'
+                : 'Distance and pace are estimated from steps × '
+                      '${g.strideM.toStringAsFixed(2)} m '
+                      '(${strideFromBand
+                          ? "the band's own stride today"
+                          : g.running
+                          ? 'a running stride from your height'
+                          : 'a walking stride from your height'}). '
+                      'The band has no GPS.',
             style: TempoType.caption.c(c.text3),
           ),
         ],

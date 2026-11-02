@@ -4,6 +4,9 @@ import android.appwidget.AppWidgetManager
 import android.content.Context
 import android.content.SharedPreferences
 import android.net.Uri
+import android.text.SpannableString
+import android.text.Spanned
+import android.text.style.ForegroundColorSpan
 import android.widget.RemoteViews
 import androidx.core.content.ContextCompat
 import es.antonborri.home_widget.HomeWidgetLaunchIntent
@@ -34,11 +37,15 @@ abstract class TempoWidget(
                 val col = context.resources.getIdentifier("${prefix}_col", "id", context.packageName)
                 if (col != 0) views.setOnClickPendingIntent(col, launch(context, uriFor(prefix)))
             }
+            extra(context, views, widgetData, stale)
             appWidgetManager.updateAppWidget(id, views)
         }
     }
 
-    private fun launch(context: Context, uri: String) =
+    /** Anything else a layout shows, bound before the update is sent. */
+    protected open fun extra(context: Context, views: RemoteViews, d: SharedPreferences, stale: Boolean) {}
+
+    protected fun launch(context: Context, uri: String) =
         HomeWidgetLaunchIntent.getActivity(context, MainActivity::class.java, Uri.parse(uri))
 
     private fun uriFor(prefix: String) = when (prefix) {
@@ -79,7 +86,7 @@ abstract class TempoWidget(
         }
     }
 
-    private fun readInt(d: SharedPreferences, key: String): Int = try {
+    protected fun readInt(d: SharedPreferences, key: String): Int = try {
         d.getInt(key, 0)
     } catch (e: ClassCastException) {
         d.getLong(key, 0L).toInt()
@@ -89,6 +96,47 @@ abstract class TempoWidget(
 class TempoSmallWidget : TempoWidget(R.layout.tempo_widget_small, listOf("rec" to 14), "tempo://recovery")
 
 class TempoMediumWidget : TempoWidget(R.layout.tempo_widget_medium, listOf("rec" to 10, "strain" to 10, "sleep" to 10), "tempo://today")
+
+/**
+ * Day (4×3): today's call with its lead coloured, the three numbers, strain
+ * against its target band, steps against the goal, today's session and
+ * tonight's bedtime. Values from dayWidgetData in home_widgets.dart.
+ */
+class TempoDayWidget : TempoWidget(R.layout.tempo_widget_day, listOf("rec" to 0, "strain" to 0, "sleep" to 0), "tempo://today") {
+    override fun extra(context: Context, views: RemoteViews, d: SharedPreferences, stale: Boolean) {
+        fun c(res: Int) = ContextCompat.getColor(context, res)
+        val lead = if (stale) "Open Tempo" else d.getString("call_lead", null) ?: "Open Tempo"
+        val rest = if (stale) " to update today." else d.getString("call_rest", null) ?: " to update today."
+        val tone = when (if (stale) "muted" else d.getString("call_tone", "muted")) {
+            "good" -> c(R.color.widget_high)
+            "mid" -> c(R.color.widget_mid)
+            "low" -> c(R.color.widget_low)
+            "plain" -> c(R.color.widget_text1)
+            else -> c(R.color.widget_text2)
+        }
+        val call = SpannableString(lead + rest)
+        call.setSpan(ForegroundColorSpan(tone), 0, lead.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        views.setTextViewText(R.id.day_call, call)
+
+        val strain = d.getString("strain_value", null) ?: "—"
+        val target = d.getString("strain_state", null) ?: ""
+        views.setTextViewText(R.id.day_strain_text, if (stale) "Open to sync" else "$strain · $target")
+        // Secondary progress shades up to the top of the target band.
+        views.setProgressBar(R.id.day_strain_bar, 100, if (stale) 0 else readInt(d, "strain_fill"), false)
+        views.setInt(R.id.day_strain_bar, "setSecondaryProgress", readInt(d, "strain_hi"))
+
+        val steps = d.getString("steps_value", null) ?: "—"
+        val goal = d.getString("steps_goal", null) ?: ""
+        views.setTextViewText(R.id.day_steps_text, if (stale) "—" else "$steps of $goal")
+        views.setProgressBar(R.id.day_steps_bar, 100, if (stale) 0 else readInt(d, "steps_fill"), false)
+
+        views.setTextViewText(R.id.day_session, d.getString("session_title", null) ?: "—")
+        val bed = d.getString("bed_time", null)
+        val need = d.getString("sleep_need", null)
+        views.setTextViewText(R.id.day_bed, if (bed == null) "—" else if (need == null) bed else "$bed · need $need")
+        views.setOnClickPendingIntent(R.id.day_session, launch(context, "tempo://coach"))
+    }
+}
 
 /**
  * Tempo Coach: today's session, its status (Planned 18:00, Done, Not seen

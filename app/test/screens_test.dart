@@ -53,6 +53,7 @@ import 'package:tempo/src/screens/weekly_review.dart';
 import 'package:tempo/src/screens/workouts.dart';
 import 'package:tempo/src/screens/band_explorer.dart';
 import 'package:tempo/src/screens/workout_detail.dart';
+import 'package:tempo/src/core/route_tracker.dart' show DistanceSource;
 import 'package:tempo/src/state/live_session.dart';
 import 'package:tempo/src/state/providers.dart';
 
@@ -925,6 +926,36 @@ void main() {
       ),
       ('paused', state(LivePhase.paused), 'Resume'),
       ('summary', state(LivePhase.ended), 'How hard did that feel?'),
+      (
+        'distance and pace on a run',
+        state(LivePhase.live, guided: false).copyWith(
+          distanceM: 3420,
+          distanceSource: DistanceSource.gps,
+          paceNow: () => 372,
+          paceAvg: () => 390,
+          splits: const [395, 380, 388],
+          gps: GpsState.on,
+        ),
+        'Pace now',
+      ),
+      (
+        'walk with location off in Health mode',
+        LiveState(
+          phase: LivePhase.live,
+          sport: sc.Sport.walking,
+          title: 'Walking · open session',
+          timerOnly: true,
+          gps: GpsState.denied,
+          startedAt: DateTime.now(),
+        ),
+        'Allow location for Tempo in Settings to see distance and pace.',
+      ),
+      (
+        'summary with distance',
+        state(LivePhase.ended)
+            .copyWith(distanceM: 5000, paceAvg: () => 360, steps: 5400),
+        'Avg pace',
+      ),
     ]) {
       testWidgets(name, (t) async {
         final db = (await t.runAsync(() => seededDb(days: 3)))!;

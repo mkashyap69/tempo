@@ -42,6 +42,7 @@ String? tapTarget(String? payload, String? actionId) {
     'rpe' => 'workouts',
     'weekly' => 'review',
     'journal' => 'journal',
+    'workout' => 'workout',
     _ => 'coach',
   };
 }
@@ -268,6 +269,55 @@ class TempoNotifications implements NotificationSink {
     }
     return false;
   }
+
+  /// Android ongoing workout notification when no foreground service runs
+  /// (a Health source with location off): a ticking clock from [since],
+  /// stopped while [paused]. Silent, can't be swiped away, tap opens the
+  /// workout. No-op elsewhere (iOS uses the Live Activity).
+  Future<void> showWorkout({
+    required String title,
+    required String body,
+    required DateTime since,
+    bool paused = false,
+  }) async {
+    if (!Platform.isAndroid) return;
+    await init();
+    await _plugin.show(
+      id: workoutNotificationId,
+      title: title,
+      body: body,
+      notificationDetails: NotificationDetails(
+        android: AndroidNotificationDetails(
+          'tempo_live',
+          'Live workout',
+          channelDescription: 'Shown while a workout is recording.',
+          importance: Importance.low,
+          priority: Priority.low,
+          icon: 'ic_stat_tempo',
+          ongoing: true,
+          autoCancel: false,
+          onlyAlertOnce: true,
+          playSound: false,
+          enableVibration: false,
+          showWhen: !paused,
+          when: since.millisecondsSinceEpoch,
+          usesChronometer: !paused,
+          category: AndroidNotificationCategory.workout,
+          visibility: NotificationVisibility.public,
+        ),
+      ),
+      payload: jsonEncode({'kind': 'workout'}),
+    );
+  }
+
+  Future<void> cancelWorkout() async {
+    if (!Platform.isAndroid) return;
+    try {
+      await _plugin.cancel(id: workoutNotificationId);
+    } catch (_) {}
+  }
+
+  static const workoutNotificationId = 4102;
 
   /// Android: whether exact alarms are allowed (the user grants it in
   /// Settings). Always false elsewhere — iOS is exact already.

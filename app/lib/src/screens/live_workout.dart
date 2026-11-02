@@ -7,6 +7,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:scoring/scoring.dart' as sc;
 
 import '../core/format.dart';
+import '../core/route_tracker.dart' show DistanceSource;
+import '../design/beating_heart.dart';
 import '../design/components.dart';
 import '../design/icons.dart';
 import '../design/meter.dart';
@@ -189,6 +191,16 @@ class _Live extends ConsumerWidget {
                                       ),
                                     ],
                                   ),
+                                  if (!s.timerOnly) ...[
+                                    const SizedBox(height: 10),
+                                    BeatingHeart(
+                                      bpm: s.bpm,
+                                      color: sc0.recLow,
+                                      active:
+                                          s.phase == LivePhase.live &&
+                                          !s.signalLost,
+                                    ),
+                                  ],
                                   Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     crossAxisAlignment:
@@ -258,6 +270,10 @@ class _Live extends ConsumerWidget {
                           ],
                         ),
                       ),
+                    if (s.onFoot && !failed && !connecting) ...[
+                      const SizedBox(height: 16),
+                      _RouteCard(s: s),
+                    ],
                     const SizedBox(height: 16),
                     if (s.guided && seg < plan!.segments.length)
                       TempoCard(
@@ -640,6 +656,97 @@ class _ZoneSplit extends StatelessWidget {
   }
 }
 
+/// "3.42": metres as km (or miles), two decimals.
+String distanceText(double m, {bool metric = true}) =>
+    (m / (metric ? 1000 : 1609.344)).toStringAsFixed(2);
+
+/// Walks and runs: distance, pace now and on average, and the last split.
+/// Phone GPS once it has a fix, else the band's own distance counter.
+class _RouteCard extends StatelessWidget {
+  const _RouteCard({required this.s});
+  final LiveState s;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c;
+    final miles = !s.metric;
+    final unit = miles ? 'mi' : 'km';
+    String pace(double? v) => v == null ? '—' : sc.paceText(v, miles: miles);
+    final d = s.distanceM;
+    final splits = s.splits;
+    final String? note = switch ((d, s.gps)) {
+      (null, GpsState.searching) => 'Finding GPS… stay outside for a moment.',
+      (null, GpsState.denied) =>
+        s.timerOnly
+            ? 'Allow location for Tempo in Settings to see distance and pace.'
+            : 'Location is off: distance comes from the band’s steps.',
+      (null, _) => 'Distance shows once you’ve covered a few metres.',
+      _ => null,
+    };
+    final big = TempoType.scoreS.copyWith(fontSize: 40, height: 1.05);
+    return TempoCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Stat(
+                  'Distance',
+                  d == null ? '—' : distanceText(d, metric: !miles),
+                  unit: ' $unit',
+                  valueStyle: big,
+                ),
+              ),
+              Expanded(
+                child: Stat(
+                  'Pace now',
+                  pace(s.paceNow),
+                  unit: ' /$unit',
+                  valueStyle: big,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: Stat('Avg pace', pace(s.paceAvg), unit: ' /$unit'),
+              ),
+              Expanded(
+                child: Stat(
+                  splits.isEmpty ? 'This $unit' : 'Last $unit',
+                  splits.isEmpty ? '—' : sc.durationText(splits.last),
+                ),
+              ),
+              Expanded(
+                child: Stat(
+                  'Speed',
+                  s.paceAvg == null
+                      ? '—'
+                      : (3600 / (s.paceAvg! * (miles ? 1.609344 : 1)))
+                            .toStringAsFixed(1),
+                  unit: miles ? ' mph' : ' km/h',
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            note ??
+                (s.distanceSource == DistanceSource.gps
+                    ? 'GPS · ${splits.length} ${splits.length == 1 ? 'split' : 'splits'}'
+                    : 'From the band’s step counter · an estimate'),
+            style: TempoType.caption.c(c.text3),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 /// Heart rate over the last 15 minutes on the zone bands, then steps and
 /// cadence on foot, or time above Z1 otherwise.
 class _HeartCard extends StatelessWidget {
@@ -715,6 +822,28 @@ class _HeartCard extends StatelessWidget {
                 ),
             ],
           ),
+          if (onFoot) ...[
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Expanded(
+                  child: Stat(
+                    'Max HR',
+                    s.maxHr?.toString() ?? '—',
+                    unit: bpm(s.maxHr),
+                  ),
+                ),
+                Expanded(child: Stat('Z2 and up', '${(up / 60).floor()}′')),
+                Expanded(
+                  child: Stat(
+                    'Calories',
+                    s.kcal == null ? '—' : grouped(s.kcal!),
+                    unit: s.kcal == null ? null : ' kcal',
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );
@@ -1052,6 +1181,30 @@ class _SummaryState extends ConsumerState<_Summary> {
             ),
           ],
         ),
+        if (s.distanceM != null && s.distanceM! >= 50)
+          Row(
+            children: [
+              Expanded(
+                child: Stat(
+                  'Distance',
+                  distanceText(s.distanceM!, metric: s.metric),
+                  unit: s.metric ? ' km' : ' mi',
+                ),
+              ),
+              Expanded(
+                child: Stat(
+                  'Avg pace',
+                  s.paceAvg == null
+                      ? '—'
+                      : sc.paceText(s.paceAvg!, miles: !s.metric),
+                  unit: s.paceAvg == null ? null : (s.metric ? ' /km' : ' /mi'),
+                ),
+              ),
+              Expanded(
+                child: Stat('Steps', s.steps == null ? '—' : grouped(s.steps!)),
+              ),
+            ],
+          ),
         Column(
           children: [
             SegmentBar(

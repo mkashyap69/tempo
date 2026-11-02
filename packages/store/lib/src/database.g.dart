@@ -4642,6 +4642,17 @@ class $WorkoutsTable extends Workouts with TableInfo<$WorkoutsTable, Workout> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _distanceMMeta = const VerificationMeta(
+    'distanceM',
+  );
+  @override
+  late final GeneratedColumn<double> distanceM = GeneratedColumn<double>(
+    'distance_m',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -4658,6 +4669,7 @@ class $WorkoutsTable extends Workouts with TableInfo<$WorkoutsTable, Workout> {
     zones,
     rpe,
     plan,
+    distanceM,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -4766,6 +4778,12 @@ class $WorkoutsTable extends Workouts with TableInfo<$WorkoutsTable, Workout> {
         plan.isAcceptableOrUnknown(data['plan']!, _planMeta),
       );
     }
+    if (data.containsKey('distance_m')) {
+      context.handle(
+        _distanceMMeta,
+        distanceM.isAcceptableOrUnknown(data['distance_m']!, _distanceMMeta),
+      );
+    }
     return context;
   }
 
@@ -4831,6 +4849,10 @@ class $WorkoutsTable extends Workouts with TableInfo<$WorkoutsTable, Workout> {
         DriftSqlType.string,
         data['${effectivePrefix}plan'],
       ),
+      distanceM: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}distance_m'],
+      ),
     );
   }
 
@@ -4855,6 +4877,7 @@ class Workout extends DataClass implements Insertable<Workout> {
   final String zones;
   final int? rpe;
   final String? plan;
+  final double? distanceM;
   const Workout({
     required this.id,
     required this.start,
@@ -4870,6 +4893,7 @@ class Workout extends DataClass implements Insertable<Workout> {
     required this.zones,
     this.rpe,
     this.plan,
+    this.distanceM,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -4898,6 +4922,9 @@ class Workout extends DataClass implements Insertable<Workout> {
     if (!nullToAbsent || plan != null) {
       map['plan'] = Variable<String>(plan);
     }
+    if (!nullToAbsent || distanceM != null) {
+      map['distance_m'] = Variable<double>(distanceM);
+    }
     return map;
   }
 
@@ -4923,6 +4950,9 @@ class Workout extends DataClass implements Insertable<Workout> {
       zones: Value(zones),
       rpe: rpe == null && nullToAbsent ? const Value.absent() : Value(rpe),
       plan: plan == null && nullToAbsent ? const Value.absent() : Value(plan),
+      distanceM: distanceM == null && nullToAbsent
+          ? const Value.absent()
+          : Value(distanceM),
     );
   }
 
@@ -4946,6 +4976,7 @@ class Workout extends DataClass implements Insertable<Workout> {
       zones: serializer.fromJson<String>(json['zones']),
       rpe: serializer.fromJson<int?>(json['rpe']),
       plan: serializer.fromJson<String?>(json['plan']),
+      distanceM: serializer.fromJson<double?>(json['distanceM']),
     );
   }
   @override
@@ -4966,6 +4997,7 @@ class Workout extends DataClass implements Insertable<Workout> {
       'zones': serializer.toJson<String>(zones),
       'rpe': serializer.toJson<int?>(rpe),
       'plan': serializer.toJson<String?>(plan),
+      'distanceM': serializer.toJson<double?>(distanceM),
     };
   }
 
@@ -4984,6 +5016,7 @@ class Workout extends DataClass implements Insertable<Workout> {
     String? zones,
     Value<int?> rpe = const Value.absent(),
     Value<String?> plan = const Value.absent(),
+    Value<double?> distanceM = const Value.absent(),
   }) => Workout(
     id: id ?? this.id,
     start: start ?? this.start,
@@ -4999,6 +5032,7 @@ class Workout extends DataClass implements Insertable<Workout> {
     zones: zones ?? this.zones,
     rpe: rpe.present ? rpe.value : this.rpe,
     plan: plan.present ? plan.value : this.plan,
+    distanceM: distanceM.present ? distanceM.value : this.distanceM,
   );
   Workout copyWithCompanion(WorkoutsCompanion data) {
     return Workout(
@@ -5016,6 +5050,7 @@ class Workout extends DataClass implements Insertable<Workout> {
       zones: data.zones.present ? data.zones.value : this.zones,
       rpe: data.rpe.present ? data.rpe.value : this.rpe,
       plan: data.plan.present ? data.plan.value : this.plan,
+      distanceM: data.distanceM.present ? data.distanceM.value : this.distanceM,
     );
   }
 
@@ -5035,7 +5070,8 @@ class Workout extends DataClass implements Insertable<Workout> {
           ..write('maxHr: $maxHr, ')
           ..write('zones: $zones, ')
           ..write('rpe: $rpe, ')
-          ..write('plan: $plan')
+          ..write('plan: $plan, ')
+          ..write('distanceM: $distanceM')
           ..write(')'))
         .toString();
   }
@@ -5056,6 +5092,7 @@ class Workout extends DataClass implements Insertable<Workout> {
     zones,
     rpe,
     plan,
+    distanceM,
   );
   @override
   bool operator ==(Object other) =>
@@ -5074,7 +5111,8 @@ class Workout extends DataClass implements Insertable<Workout> {
           other.maxHr == this.maxHr &&
           other.zones == this.zones &&
           other.rpe == this.rpe &&
-          other.plan == this.plan);
+          other.plan == this.plan &&
+          other.distanceM == this.distanceM);
 }
 
 class WorkoutsCompanion extends UpdateCompanion<Workout> {
@@ -5092,6 +5130,7 @@ class WorkoutsCompanion extends UpdateCompanion<Workout> {
   final Value<String> zones;
   final Value<int?> rpe;
   final Value<String?> plan;
+  final Value<double?> distanceM;
   const WorkoutsCompanion({
     this.id = const Value.absent(),
     this.start = const Value.absent(),
@@ -5107,6 +5146,7 @@ class WorkoutsCompanion extends UpdateCompanion<Workout> {
     this.zones = const Value.absent(),
     this.rpe = const Value.absent(),
     this.plan = const Value.absent(),
+    this.distanceM = const Value.absent(),
   });
   WorkoutsCompanion.insert({
     this.id = const Value.absent(),
@@ -5123,6 +5163,7 @@ class WorkoutsCompanion extends UpdateCompanion<Workout> {
     required String zones,
     this.rpe = const Value.absent(),
     this.plan = const Value.absent(),
+    this.distanceM = const Value.absent(),
   }) : start = Value(start),
        end = Value(end),
        title = Value(title),
@@ -5145,6 +5186,7 @@ class WorkoutsCompanion extends UpdateCompanion<Workout> {
     Expression<String>? zones,
     Expression<int>? rpe,
     Expression<String>? plan,
+    Expression<double>? distanceM,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -5161,6 +5203,7 @@ class WorkoutsCompanion extends UpdateCompanion<Workout> {
       if (zones != null) 'zones': zones,
       if (rpe != null) 'rpe': rpe,
       if (plan != null) 'plan': plan,
+      if (distanceM != null) 'distance_m': distanceM,
     });
   }
 
@@ -5179,6 +5222,7 @@ class WorkoutsCompanion extends UpdateCompanion<Workout> {
     Value<String>? zones,
     Value<int?>? rpe,
     Value<String?>? plan,
+    Value<double?>? distanceM,
   }) {
     return WorkoutsCompanion(
       id: id ?? this.id,
@@ -5195,6 +5239,7 @@ class WorkoutsCompanion extends UpdateCompanion<Workout> {
       zones: zones ?? this.zones,
       rpe: rpe ?? this.rpe,
       plan: plan ?? this.plan,
+      distanceM: distanceM ?? this.distanceM,
     );
   }
 
@@ -5243,6 +5288,9 @@ class WorkoutsCompanion extends UpdateCompanion<Workout> {
     if (plan.present) {
       map['plan'] = Variable<String>(plan.value);
     }
+    if (distanceM.present) {
+      map['distance_m'] = Variable<double>(distanceM.value);
+    }
     return map;
   }
 
@@ -5262,7 +5310,8 @@ class WorkoutsCompanion extends UpdateCompanion<Workout> {
           ..write('maxHr: $maxHr, ')
           ..write('zones: $zones, ')
           ..write('rpe: $rpe, ')
-          ..write('plan: $plan')
+          ..write('plan: $plan, ')
+          ..write('distanceM: $distanceM')
           ..write(')'))
         .toString();
   }
@@ -9661,16 +9710,18 @@ typedef $$MinuteSamplesTableProcessedTableManager =
       MinuteSample,
       PrefetchHooks Function()
     >;
-typedef $$HrLiveTableCreateCompanionBuilder = HrLiveCompanion Function({
-  Value<int> ts,
-  required int bpm,
-  Value<String> source,
-});
-typedef $$HrLiveTableUpdateCompanionBuilder = HrLiveCompanion Function({
-  Value<int> ts,
-  Value<int> bpm,
-  Value<String> source,
-});
+typedef $$HrLiveTableCreateCompanionBuilder =
+    HrLiveCompanion Function({
+      Value<int> ts,
+      required int bpm,
+      Value<String> source,
+    });
+typedef $$HrLiveTableUpdateCompanionBuilder =
+    HrLiveCompanion Function({
+      Value<int> ts,
+      Value<int> bpm,
+      Value<String> source,
+    });
 
 class $$HrLiveTableFilterComposer extends Composer<_$TempoDb, $HrLiveTable> {
   $$HrLiveTableFilterComposer({
@@ -9765,16 +9816,18 @@ class $$HrLiveTableTableManager
               $$HrLiveTableOrderingComposer($db: db, $table: table),
           createComputedFieldComposer: () =>
               $$HrLiveTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback: ({
-            Value<int> ts = const Value.absent(),
-            Value<int> bpm = const Value.absent(),
-            Value<String> source = const Value.absent(),
-          }) => HrLiveCompanion(ts: ts, bpm: bpm, source: source),
-          createCompanionCallback: ({
-            Value<int> ts = const Value.absent(),
-            required int bpm,
-            Value<String> source = const Value.absent(),
-          }) => HrLiveCompanion.insert(ts: ts, bpm: bpm, source: source),
+          updateCompanionCallback:
+              ({
+                Value<int> ts = const Value.absent(),
+                Value<int> bpm = const Value.absent(),
+                Value<String> source = const Value.absent(),
+              }) => HrLiveCompanion(ts: ts, bpm: bpm, source: source),
+          createCompanionCallback:
+              ({
+                Value<int> ts = const Value.absent(),
+                required int bpm,
+                Value<String> source = const Value.absent(),
+              }) => HrLiveCompanion.insert(ts: ts, bpm: bpm, source: source),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
               .toList(),
@@ -9887,14 +9940,14 @@ class $$StressSamplesTableTableManager
               $$StressSamplesTableOrderingComposer($db: db, $table: table),
           createComputedFieldComposer: () =>
               $$StressSamplesTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback: ({
-            Value<int> ts = const Value.absent(),
-            Value<int> value = const Value.absent(),
-          }) => StressSamplesCompanion(ts: ts, value: value),
-          createCompanionCallback: ({
-            Value<int> ts = const Value.absent(),
-            required int value,
-          }) => StressSamplesCompanion.insert(ts: ts, value: value),
+          updateCompanionCallback:
+              ({
+                Value<int> ts = const Value.absent(),
+                Value<int> value = const Value.absent(),
+              }) => StressSamplesCompanion(ts: ts, value: value),
+          createCompanionCallback:
+              ({Value<int> ts = const Value.absent(), required int value}) =>
+                  StressSamplesCompanion.insert(ts: ts, value: value),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
               .toList(),
@@ -10031,11 +10084,13 @@ class $$Spo2SamplesTableTableManager
               $$Spo2SamplesTableOrderingComposer($db: db, $table: table),
           createComputedFieldComposer: () =>
               $$Spo2SamplesTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback: ({
-            Value<int> ts = const Value.absent(),
-            Value<int> value = const Value.absent(),
-            Value<int?> quality = const Value.absent(),
-          }) => Spo2SamplesCompanion(ts: ts, value: value, quality: quality),
+          updateCompanionCallback:
+              ({
+                Value<int> ts = const Value.absent(),
+                Value<int> value = const Value.absent(),
+                Value<int?> quality = const Value.absent(),
+              }) =>
+                  Spo2SamplesCompanion(ts: ts, value: value, quality: quality),
           createCompanionCallback:
               ({
                 Value<int> ts = const Value.absent(),
@@ -10262,18 +10317,20 @@ typedef $$BandWorkoutsTableProcessedTableManager =
       BandWorkoutRow,
       PrefetchHooks Function()
     >;
-typedef $$OdEventsTableCreateCompanionBuilder = OdEventsCompanion Function({
-  Value<int> ts,
-  required int drop,
-  required String spo2,
-  required String hr,
-});
-typedef $$OdEventsTableUpdateCompanionBuilder = OdEventsCompanion Function({
-  Value<int> ts,
-  Value<int> drop,
-  Value<String> spo2,
-  Value<String> hr,
-});
+typedef $$OdEventsTableCreateCompanionBuilder =
+    OdEventsCompanion Function({
+      Value<int> ts,
+      required int drop,
+      required String spo2,
+      required String hr,
+    });
+typedef $$OdEventsTableUpdateCompanionBuilder =
+    OdEventsCompanion Function({
+      Value<int> ts,
+      Value<int> drop,
+      Value<String> spo2,
+      Value<String> hr,
+    });
 
 class $$OdEventsTableFilterComposer
     extends Composer<_$TempoDb, $OdEventsTable> {
@@ -10383,12 +10440,13 @@ class $$OdEventsTableTableManager
               $$OdEventsTableOrderingComposer($db: db, $table: table),
           createComputedFieldComposer: () =>
               $$OdEventsTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback: ({
-            Value<int> ts = const Value.absent(),
-            Value<int> drop = const Value.absent(),
-            Value<String> spo2 = const Value.absent(),
-            Value<String> hr = const Value.absent(),
-          }) => OdEventsCompanion(ts: ts, drop: drop, spo2: spo2, hr: hr),
+          updateCompanionCallback:
+              ({
+                Value<int> ts = const Value.absent(),
+                Value<int> drop = const Value.absent(),
+                Value<String> spo2 = const Value.absent(),
+                Value<String> hr = const Value.absent(),
+              }) => OdEventsCompanion(ts: ts, drop: drop, spo2: spo2, hr: hr),
           createCompanionCallback:
               ({
                 Value<int> ts = const Value.absent(),
@@ -11212,22 +11270,24 @@ typedef $$DailyScoresTableProcessedTableManager =
       DailyScore,
       PrefetchHooks Function()
     >;
-typedef $$BaselinesTableCreateCompanionBuilder = BaselinesCompanion Function({
-  required String metric,
-  required int window,
-  required double mean,
-  required double sd,
-  required int updatedAt,
-  Value<int> rowid,
-});
-typedef $$BaselinesTableUpdateCompanionBuilder = BaselinesCompanion Function({
-  Value<String> metric,
-  Value<int> window,
-  Value<double> mean,
-  Value<double> sd,
-  Value<int> updatedAt,
-  Value<int> rowid,
-});
+typedef $$BaselinesTableCreateCompanionBuilder =
+    BaselinesCompanion Function({
+      required String metric,
+      required int window,
+      required double mean,
+      required double sd,
+      required int updatedAt,
+      Value<int> rowid,
+    });
+typedef $$BaselinesTableUpdateCompanionBuilder =
+    BaselinesCompanion Function({
+      Value<String> metric,
+      Value<int> window,
+      Value<double> mean,
+      Value<double> sd,
+      Value<int> updatedAt,
+      Value<int> rowid,
+    });
 
 class $$BaselinesTableFilterComposer
     extends Composer<_$TempoDb, $BaselinesTable> {
@@ -11404,20 +11464,22 @@ typedef $$BaselinesTableProcessedTableManager =
       Baseline,
       PrefetchHooks Function()
     >;
-typedef $$JournalTableCreateCompanionBuilder = JournalCompanion Function({
-  required String date,
-  required String tag,
-  required bool value,
-  Value<double?> amount,
-  Value<int> rowid,
-});
-typedef $$JournalTableUpdateCompanionBuilder = JournalCompanion Function({
-  Value<String> date,
-  Value<String> tag,
-  Value<bool> value,
-  Value<double?> amount,
-  Value<int> rowid,
-});
+typedef $$JournalTableCreateCompanionBuilder =
+    JournalCompanion Function({
+      required String date,
+      required String tag,
+      required bool value,
+      Value<double?> amount,
+      Value<int> rowid,
+    });
+typedef $$JournalTableUpdateCompanionBuilder =
+    JournalCompanion Function({
+      Value<String> date,
+      Value<String> tag,
+      Value<bool> value,
+      Value<double?> amount,
+      Value<int> rowid,
+    });
 
 class $$JournalTableFilterComposer extends Composer<_$TempoDb, $JournalTable> {
   $$JournalTableFilterComposer({
@@ -11576,18 +11638,20 @@ typedef $$JournalTableProcessedTableManager =
       JournalData,
       PrefetchHooks Function()
     >;
-typedef $$SyncStateTableCreateCompanionBuilder = SyncStateCompanion Function({
-  required String device,
-  required String dataType,
-  required int lastTs,
-  Value<int> rowid,
-});
-typedef $$SyncStateTableUpdateCompanionBuilder = SyncStateCompanion Function({
-  Value<String> device,
-  Value<String> dataType,
-  Value<int> lastTs,
-  Value<int> rowid,
-});
+typedef $$SyncStateTableCreateCompanionBuilder =
+    SyncStateCompanion Function({
+      required String device,
+      required String dataType,
+      required int lastTs,
+      Value<int> rowid,
+    });
+typedef $$SyncStateTableUpdateCompanionBuilder =
+    SyncStateCompanion Function({
+      Value<String> device,
+      Value<String> dataType,
+      Value<int> lastTs,
+      Value<int> rowid,
+    });
 
 class $$SyncStateTableFilterComposer
     extends Composer<_$TempoDb, $SyncStateTable> {
@@ -11736,16 +11800,18 @@ typedef $$SyncStateTableProcessedTableManager =
       SyncStateData,
       PrefetchHooks Function()
     >;
-typedef $$SettingsTableCreateCompanionBuilder = SettingsCompanion Function({
-  required String key,
-  required String value,
-  Value<int> rowid,
-});
-typedef $$SettingsTableUpdateCompanionBuilder = SettingsCompanion Function({
-  Value<String> key,
-  Value<String> value,
-  Value<int> rowid,
-});
+typedef $$SettingsTableCreateCompanionBuilder =
+    SettingsCompanion Function({
+      required String key,
+      required String value,
+      Value<int> rowid,
+    });
+typedef $$SettingsTableUpdateCompanionBuilder =
+    SettingsCompanion Function({
+      Value<String> key,
+      Value<String> value,
+      Value<int> rowid,
+    });
 
 class $$SettingsTableFilterComposer
     extends Composer<_$TempoDb, $SettingsTable> {
@@ -11829,16 +11895,22 @@ class $$SettingsTableTableManager
               $$SettingsTableOrderingComposer($db: db, $table: table),
           createComputedFieldComposer: () =>
               $$SettingsTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback: ({
-            Value<String> key = const Value.absent(),
-            Value<String> value = const Value.absent(),
-            Value<int> rowid = const Value.absent(),
-          }) => SettingsCompanion(key: key, value: value, rowid: rowid),
-          createCompanionCallback: ({
-            required String key,
-            required String value,
-            Value<int> rowid = const Value.absent(),
-          }) => SettingsCompanion.insert(key: key, value: value, rowid: rowid),
+          updateCompanionCallback:
+              ({
+                Value<String> key = const Value.absent(),
+                Value<String> value = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => SettingsCompanion(key: key, value: value, rowid: rowid),
+          createCompanionCallback:
+              ({
+                required String key,
+                required String value,
+                Value<int> rowid = const Value.absent(),
+              }) => SettingsCompanion.insert(
+                key: key,
+                value: value,
+                rowid: rowid,
+              ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
               .toList(),
@@ -11861,38 +11933,42 @@ typedef $$SettingsTableProcessedTableManager =
       Setting,
       PrefetchHooks Function()
     >;
-typedef $$WorkoutsTableCreateCompanionBuilder = WorkoutsCompanion Function({
-  Value<int> id,
-  required int start,
-  required int end,
-  Value<String?> sport,
-  required String title,
-  required String source,
-  Value<bool> confirmed,
-  required double strain,
-  required double trimp,
-  Value<int?> avgHr,
-  Value<int?> maxHr,
-  required String zones,
-  Value<int?> rpe,
-  Value<String?> plan,
-});
-typedef $$WorkoutsTableUpdateCompanionBuilder = WorkoutsCompanion Function({
-  Value<int> id,
-  Value<int> start,
-  Value<int> end,
-  Value<String?> sport,
-  Value<String> title,
-  Value<String> source,
-  Value<bool> confirmed,
-  Value<double> strain,
-  Value<double> trimp,
-  Value<int?> avgHr,
-  Value<int?> maxHr,
-  Value<String> zones,
-  Value<int?> rpe,
-  Value<String?> plan,
-});
+typedef $$WorkoutsTableCreateCompanionBuilder =
+    WorkoutsCompanion Function({
+      Value<int> id,
+      required int start,
+      required int end,
+      Value<String?> sport,
+      required String title,
+      required String source,
+      Value<bool> confirmed,
+      required double strain,
+      required double trimp,
+      Value<int?> avgHr,
+      Value<int?> maxHr,
+      required String zones,
+      Value<int?> rpe,
+      Value<String?> plan,
+      Value<double?> distanceM,
+    });
+typedef $$WorkoutsTableUpdateCompanionBuilder =
+    WorkoutsCompanion Function({
+      Value<int> id,
+      Value<int> start,
+      Value<int> end,
+      Value<String?> sport,
+      Value<String> title,
+      Value<String> source,
+      Value<bool> confirmed,
+      Value<double> strain,
+      Value<double> trimp,
+      Value<int?> avgHr,
+      Value<int?> maxHr,
+      Value<String> zones,
+      Value<int?> rpe,
+      Value<String?> plan,
+      Value<double?> distanceM,
+    });
 
 class $$WorkoutsTableFilterComposer
     extends Composer<_$TempoDb, $WorkoutsTable> {
@@ -11970,6 +12046,11 @@ class $$WorkoutsTableFilterComposer
 
   ColumnFilters<String> get plan => $composableBuilder(
     column: $table.plan,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get distanceM => $composableBuilder(
+    column: $table.distanceM,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -12052,6 +12133,11 @@ class $$WorkoutsTableOrderingComposer
     column: $table.plan,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<double> get distanceM => $composableBuilder(
+    column: $table.distanceM,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$WorkoutsTableAnnotationComposer
@@ -12104,6 +12190,9 @@ class $$WorkoutsTableAnnotationComposer
 
   GeneratedColumn<String> get plan =>
       $composableBuilder(column: $table.plan, builder: (column) => column);
+
+  GeneratedColumn<double> get distanceM =>
+      $composableBuilder(column: $table.distanceM, builder: (column) => column);
 }
 
 class $$WorkoutsTableTableManager
@@ -12148,6 +12237,7 @@ class $$WorkoutsTableTableManager
                 Value<String> zones = const Value.absent(),
                 Value<int?> rpe = const Value.absent(),
                 Value<String?> plan = const Value.absent(),
+                Value<double?> distanceM = const Value.absent(),
               }) => WorkoutsCompanion(
                 id: id,
                 start: start,
@@ -12163,6 +12253,7 @@ class $$WorkoutsTableTableManager
                 zones: zones,
                 rpe: rpe,
                 plan: plan,
+                distanceM: distanceM,
               ),
           createCompanionCallback:
               ({
@@ -12180,6 +12271,7 @@ class $$WorkoutsTableTableManager
                 required String zones,
                 Value<int?> rpe = const Value.absent(),
                 Value<String?> plan = const Value.absent(),
+                Value<double?> distanceM = const Value.absent(),
               }) => WorkoutsCompanion.insert(
                 id: id,
                 start: start,
@@ -12195,6 +12287,7 @@ class $$WorkoutsTableTableManager
                 zones: zones,
                 rpe: rpe,
                 plan: plan,
+                distanceM: distanceM,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
@@ -12218,36 +12311,38 @@ typedef $$WorkoutsTableProcessedTableManager =
       Workout,
       PrefetchHooks Function()
     >;
-typedef $$PlanDaysTableCreateCompanionBuilder = PlanDaysCompanion Function({
-  required String date,
-  required String session,
-  Value<String?> original,
-  Value<String?> reason,
-  Value<int?> adaptedAt,
-  required bool general,
-  Value<String?> slot,
-  Value<int?> plannedMinute,
-  Value<String> status,
-  Value<String?> statusSource,
-  Value<int?> statusAt,
-  Value<String?> algoVersion,
-  Value<int> rowid,
-});
-typedef $$PlanDaysTableUpdateCompanionBuilder = PlanDaysCompanion Function({
-  Value<String> date,
-  Value<String> session,
-  Value<String?> original,
-  Value<String?> reason,
-  Value<int?> adaptedAt,
-  Value<bool> general,
-  Value<String?> slot,
-  Value<int?> plannedMinute,
-  Value<String> status,
-  Value<String?> statusSource,
-  Value<int?> statusAt,
-  Value<String?> algoVersion,
-  Value<int> rowid,
-});
+typedef $$PlanDaysTableCreateCompanionBuilder =
+    PlanDaysCompanion Function({
+      required String date,
+      required String session,
+      Value<String?> original,
+      Value<String?> reason,
+      Value<int?> adaptedAt,
+      required bool general,
+      Value<String?> slot,
+      Value<int?> plannedMinute,
+      Value<String> status,
+      Value<String?> statusSource,
+      Value<int?> statusAt,
+      Value<String?> algoVersion,
+      Value<int> rowid,
+    });
+typedef $$PlanDaysTableUpdateCompanionBuilder =
+    PlanDaysCompanion Function({
+      Value<String> date,
+      Value<String> session,
+      Value<String?> original,
+      Value<String?> reason,
+      Value<int?> adaptedAt,
+      Value<bool> general,
+      Value<String?> slot,
+      Value<int?> plannedMinute,
+      Value<String> status,
+      Value<String?> statusSource,
+      Value<int?> statusAt,
+      Value<String?> algoVersion,
+      Value<int> rowid,
+    });
 
 class $$PlanDaysTableFilterComposer
     extends Composer<_$TempoDb, $PlanDaysTable> {
@@ -12549,20 +12644,22 @@ typedef $$PlanDaysTableProcessedTableManager =
       PlanDay,
       PrefetchHooks Function()
     >;
-typedef $$SyncLogTableCreateCompanionBuilder = SyncLogCompanion Function({
-  Value<int> id,
-  required int ts,
-  required String summary,
-  required String result,
-  Value<int?> durationMs,
-});
-typedef $$SyncLogTableUpdateCompanionBuilder = SyncLogCompanion Function({
-  Value<int> id,
-  Value<int> ts,
-  Value<String> summary,
-  Value<String> result,
-  Value<int?> durationMs,
-});
+typedef $$SyncLogTableCreateCompanionBuilder =
+    SyncLogCompanion Function({
+      Value<int> id,
+      required int ts,
+      required String summary,
+      required String result,
+      Value<int?> durationMs,
+    });
+typedef $$SyncLogTableUpdateCompanionBuilder =
+    SyncLogCompanion Function({
+      Value<int> id,
+      Value<int> ts,
+      Value<String> summary,
+      Value<String> result,
+      Value<int?> durationMs,
+    });
 
 class $$SyncLogTableFilterComposer extends Composer<_$TempoDb, $SyncLogTable> {
   $$SyncLogTableFilterComposer({
@@ -12736,28 +12833,30 @@ typedef $$SyncLogTableProcessedTableManager =
       SyncLogData,
       PrefetchHooks Function()
     >;
-typedef $$LongevityTableCreateCompanionBuilder = LongevityCompanion Function({
-  required String date,
-  required double tempoAge,
-  required double realAge,
-  required bool calibrating,
-  required String contributors,
-  required int algoVersion,
-  Value<double?> confidence,
-  Value<double?> halfRange,
-  Value<int> rowid,
-});
-typedef $$LongevityTableUpdateCompanionBuilder = LongevityCompanion Function({
-  Value<String> date,
-  Value<double> tempoAge,
-  Value<double> realAge,
-  Value<bool> calibrating,
-  Value<String> contributors,
-  Value<int> algoVersion,
-  Value<double?> confidence,
-  Value<double?> halfRange,
-  Value<int> rowid,
-});
+typedef $$LongevityTableCreateCompanionBuilder =
+    LongevityCompanion Function({
+      required String date,
+      required double tempoAge,
+      required double realAge,
+      required bool calibrating,
+      required String contributors,
+      required int algoVersion,
+      Value<double?> confidence,
+      Value<double?> halfRange,
+      Value<int> rowid,
+    });
+typedef $$LongevityTableUpdateCompanionBuilder =
+    LongevityCompanion Function({
+      Value<String> date,
+      Value<double> tempoAge,
+      Value<double> realAge,
+      Value<bool> calibrating,
+      Value<String> contributors,
+      Value<int> algoVersion,
+      Value<double?> confidence,
+      Value<double?> halfRange,
+      Value<int> rowid,
+    });
 
 class $$LongevityTableFilterComposer
     extends Composer<_$TempoDb, $LongevityTable> {
@@ -12999,30 +13098,32 @@ typedef $$LongevityTableProcessedTableManager =
       LongevitySnapshot,
       PrefetchHooks Function()
     >;
-typedef $$NudgeLogTableCreateCompanionBuilder = NudgeLogCompanion Function({
-  Value<int> id,
-  required int ts,
-  required String day,
-  required String kind,
-  required int notifId,
-  Value<int?> fireAt,
-  required String event,
-  Value<String?> action,
-  Value<String> payload,
-  required String algoVersion,
-});
-typedef $$NudgeLogTableUpdateCompanionBuilder = NudgeLogCompanion Function({
-  Value<int> id,
-  Value<int> ts,
-  Value<String> day,
-  Value<String> kind,
-  Value<int> notifId,
-  Value<int?> fireAt,
-  Value<String> event,
-  Value<String?> action,
-  Value<String> payload,
-  Value<String> algoVersion,
-});
+typedef $$NudgeLogTableCreateCompanionBuilder =
+    NudgeLogCompanion Function({
+      Value<int> id,
+      required int ts,
+      required String day,
+      required String kind,
+      required int notifId,
+      Value<int?> fireAt,
+      required String event,
+      Value<String?> action,
+      Value<String> payload,
+      required String algoVersion,
+    });
+typedef $$NudgeLogTableUpdateCompanionBuilder =
+    NudgeLogCompanion Function({
+      Value<int> id,
+      Value<int> ts,
+      Value<String> day,
+      Value<String> kind,
+      Value<int> notifId,
+      Value<int?> fireAt,
+      Value<String> event,
+      Value<String?> action,
+      Value<String> payload,
+      Value<String> algoVersion,
+    });
 
 class $$NudgeLogTableFilterComposer
     extends Composer<_$TempoDb, $NudgeLogTable> {

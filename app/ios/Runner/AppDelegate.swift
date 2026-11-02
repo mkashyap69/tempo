@@ -29,6 +29,7 @@ import flutter_local_notifications
     }
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
     BackupFolderChannel.register(with: engineBridge.pluginRegistry)
+    LiveActivityChannel.register(with: engineBridge.pluginRegistry)
   }
 }
 

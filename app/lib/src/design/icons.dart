@@ -19,6 +19,8 @@ abstract final class TempoIcons {
   static const sync =
       'M20 12a8 8 0 0 1-14 5.3M4 12a8 8 0 0 1 14-5.3M18 3v4h-4M6 21v-4h4';
   static const heartRate = 'M3 12h4l2-5 4 10 2-5h6';
+  static const heart =
+      'M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.1a4.3 4.3 0 0 1 7.5 2.7C19.5 15.4 12 20 12 20z';
   static const sleep = 'M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z';
   static const stress = 'M4 12c2-4 4-4 6 0s4 4 6 0 3-3 4-1';
   static const spo2 = 'M12 3c3 4 6 7.5 6 11a6 6 0 0 1-12 0c0-3.5 3-7 6-11z';

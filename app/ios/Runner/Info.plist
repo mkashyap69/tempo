@@ -47,6 +47,12 @@
 			</array>
 		</dict>
 	</array>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>During a walk or run, Tempo uses GPS for distance and pace. Locations stay on this phone and no route is saved.</string>
+	<key>NSSupportsLiveActivities</key>
+	<true/>
+	<key>NSSupportsLiveActivitiesFrequentUpdates</key>
+	<true/>
 	<key>NSHealthShareUsageDescription</key>
 	<string>When you choose Apple Health as your data source, Tempo reads heart rate, HRV, resting heart rate, breathing rate, sleep, steps, SpO₂ and workouts to score recovery, strain and sleep. Everything stays on this phone.</string>
 	<key>NSHealthUpdateUsageDescription</key>
@@ -80,6 +86,7 @@
 	<array>
 		<string>bluetooth-central</string>
 		<string>fetch</string>
+		<string>location</string>
 	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>

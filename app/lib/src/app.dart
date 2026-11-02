@@ -7,11 +7,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/background_guard.dart';
 import 'core/band_link.dart' show deviceIdKey;
+import 'core/coach_extras.dart' show stepsToday;
 import 'core/coach_notifier.dart';
 import 'core/data_source.dart';
 import 'core/home_widgets.dart';
 import 'core/notifications.dart';
 import 'core/profile.dart';
+import 'core/workout_presence.dart';
 import 'design/components.dart';
 import 'design/icons.dart';
 import 'design/theme.dart';
@@ -206,6 +208,10 @@ class _ShellState extends ConsumerState<Shell> with WidgetsBindingObserver {
         handleNudgeResponse(db, payload, action);
     _notifTaps = notificationTaps.stream.listen(_openFromNotification);
     if (!Platform.environment.containsKey('FLUTTER_TEST')) {
+      // A Live Activity left by a crash or force-quit: no session now.
+      if (ref.read(liveSessionProvider) == null) {
+        unawaited(WorkoutPresence.endStale());
+      }
       unawaited(
         repairLiveZones(db)
             .catchError((Object e) => debugPrint('live zones repair: $e')),
@@ -232,6 +238,11 @@ class _ShellState extends ConsumerState<Shell> with WidgetsBindingObserver {
         await push(context, const WeeklyReviewScreen());
       case 'journal':
         await push(context, const JournalScreen(standalone: true));
+      case 'workout':
+        // The ongoing workout's notification or Live Activity.
+        if (ref.read(liveSessionProvider) != null) {
+          await present(context, const LiveWorkoutScreen());
+        }
       case 'start':
         // Today's session as planned now — the evening version if it was
         // moved or rescued — started guided.
@@ -264,7 +275,7 @@ class _ShellState extends ConsumerState<Shell> with WidgetsBindingObserver {
   void _openFromWidget(String target) {
     if (!mounted) return;
     Navigator.of(context).popUntil((r) => r.isFirst);
-    if (target == 'coach' || target == 'start') {
+    if (target == 'coach' || target == 'start' || target == 'workout') {
       _openFromNotification(target);
       return;
     }
@@ -317,7 +328,10 @@ class _ShellState extends ConsumerState<Shell> with WidgetsBindingObserver {
       ref
           .read(todayProvider.future)
           .then((t) async {
-            await updateHomeWidgets(t);
+            await updateHomeWidgets(
+              t,
+              steps: await stepsToday(db, DateTime.now()).catchError((_) => 0),
+            );
             await rescheduleNotifications(db, t);
           })
           .catchError((Object _) {}),

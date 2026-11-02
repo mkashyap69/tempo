@@ -1,11 +1,13 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:home_widget/home_widget.dart';
 import 'package:scoring/scoring.dart' as sc;
 import 'package:store/store.dart' as st;
 
+import 'coach_extras.dart' show stepsToday;
 import 'coach_notifier.dart';
 import 'format.dart';
 import 'today.dart';
@@ -18,13 +20,19 @@ const _android = [
   'TempoSmallWidget',
   'TempoMediumWidget',
   'TempoSessionWidget',
+  'TempoDayWidget',
 ];
-const _ios = ['TempoWidget', 'TempoSessionWidget'];
+const _ios = [
+  'TempoWidget',
+  'TempoSessionWidget',
+  'TempoDayWidget',
+  'TempoLockWidget',
+];
 
 /// Fills are percentages; each widget lights that share of its ticks.
 /// Pushes today's numbers to the home-screen widgets (WidgetKit / Android
 /// AppWidget). Widgets show their own timestamp and dim when stale.
-Future<void> updateHomeWidgets(TodayData t) async {
+Future<void> updateHomeWidgets(TodayData t, {int? steps}) async {
   try {
     await HomeWidget.setAppGroupId(widgetAppGroup);
     final rec = t.recovery;
@@ -58,6 +66,7 @@ Future<void> updateHomeWidgets(TodayData t) async {
       'sleep_fill': (t.sleepScore ?? 0).round(),
       'updated_at': '${(t.lastSync ?? DateTime.now()).millisecondsSinceEpoch}',
       ...sessionWidgetData(t),
+      ...dayWidgetData(t, steps: steps),
     };
     for (final e in data.entries) {
       await HomeWidget.saveWidgetData(e.key, e.value);
@@ -71,6 +80,29 @@ Future<void> updateHomeWidgets(TodayData t) async {
   } catch (e) {
     debugPrint('home widgets: $e');
   }
+}
+
+/// The Day widget (large) and lock-screen widgets: today's call, steps
+/// against the goal, strain against its target band, and tonight's bed
+/// time and sleep need. Fills are percentages.
+Map<String, Object?> dayWidgetData(TodayData t, {int? steps}) {
+  final call = callFor(t);
+  final goal = t.profile.effectiveStepGoal;
+  final target = t.target;
+  return {
+    'call_lead': call.lead,
+    'call_rest': call.rest,
+    'call_tone': call.tone.name,
+    'steps_value': steps == null ? '—' : grouped(steps),
+    'steps_goal': grouped(goal),
+    'steps_fill': steps == null
+        ? 0
+        : (steps * 100 / math.max(1, goal)).round().clamp(0, 100),
+    'strain_lo': target.cap ? 0 : (target.lo / 21 * 100).round(),
+    'strain_hi': (target.hi / 21 * 100).round(),
+    'bed_time': fmtHm(t.bedtimeMinute),
+    'sleep_need': hmShort(t.needTonight),
+  };
 }
 
 /// Tempo Coach session widget: today's session, its status and whether
@@ -133,7 +165,11 @@ Future<void> afterSync(st.TempoDb db) async {
     debugPrint('coach reconcile: $e');
   }
   final t = await loadToday(db);
-  await updateHomeWidgets(t);
+  int? steps;
+  try {
+    steps = await stepsToday(db, DateTime.now());
+  } catch (_) {}
+  await updateHomeWidgets(t, steps: steps);
   await rescheduleNotifications(db, t);
   try {
     await HealthExport(db).exportNew();
@@ -164,6 +200,7 @@ String? widgetTarget(Uri? uri) {
         'today',
         'coach',
         'start',
+        'workout',
       }.contains(t)
       ? t
       : null;

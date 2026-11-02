@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Day widget: today's call, the three numbers, strain and steps against
+     target, today's session and tonight's bedtime. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_bg"
+    android:orientation="vertical"
+    android:padding="16dp">
+    <TextView android:id="@+id/day_call" android:layout_width="match_parent" android:layout_height="wrap_content" android:maxLines="3" android:ellipsize="end" android:textSize="15sp" android:textColor="@color/widget_text1" android:text="Open Tempo to update today." />
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:orientation="horizontal">
+    <LinearLayout
+        android:id="@+id/rec_col"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical">
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Recovery" android:textAllCaps="true" android:letterSpacing="0.09" android:textSize="10sp" android:textStyle="bold" android:textColor="@color/widget_text3" />
+        <TextView android:id="@+id/rec_value" android:layout_width="wrap_content" android:layout_height="wrap_content" android:fontFamily="sans-serif-light" android:includeFontPadding="false" android:textSize="32sp" android:textColor="@color/widget_text1" android:text="—" />
+        <TextView android:id="@+id/rec_state" android:layout_width="wrap_content" android:layout_height="wrap_content" android:maxLines="1" android:ellipsize="end" android:textSize="12sp" android:textColor="@color/widget_text2" />
+    </LinearLayout>
+        <TextView android:layout_width="12dp" android:layout_height="1dp" />
+    <LinearLayout
+        android:id="@+id/strain_col"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical">
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Strain" android:textAllCaps="true" android:letterSpacing="0.09" android:textSize="10sp" android:textStyle="bold" android:textColor="@color/widget_text3" />
+        <TextView android:id="@+id/strain_value" android:layout_width="wrap_content" android:layout_height="wrap_content" android:fontFamily="sans-serif-light" android:includeFontPadding="false" android:textSize="32sp" android:textColor="@color/widget_text1" android:text="—" />
+        <TextView android:id="@+id/strain_state" android:layout_width="wrap_content" android:layout_height="wrap_content" android:maxLines="1" android:ellipsize="end" android:textSize="12sp" android:textColor="@color/widget_text2" />
+    </LinearLayout>
+        <TextView android:layout_width="12dp" android:layout_height="1dp" />
+    <LinearLayout
+        android:id="@+id/sleep_col"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical">
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Sleep" android:textAllCaps="true" android:letterSpacing="0.09" android:textSize="10sp" android:textStyle="bold" android:textColor="@color/widget_text3" />
+        <TextView android:id="@+id/sleep_value" android:layout_width="wrap_content" android:layout_height="wrap_content" android:fontFamily="sans-serif-light" android:includeFontPadding="false" android:textSize="32sp" android:textColor="@color/widget_text1" android:text="—" />
+        <TextView android:id="@+id/sleep_state" android:layout_width="wrap_content" android:layout_height="wrap_content" android:maxLines="1" android:ellipsize="end" android:textSize="12sp" android:textColor="@color/widget_text2" />
+    </LinearLayout>
+    </LinearLayout>
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="14dp" android:orientation="horizontal">
+        <TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="Strain" android:textAllCaps="true" android:letterSpacing="0.09" android:textSize="10sp" android:textStyle="bold" android:textColor="@color/widget_text3" />
+        <TextView android:id="@+id/day_strain_text" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="12sp" android:textColor="@color/widget_text2" />
+    </LinearLayout>
+    <ProgressBar android:id="@+id/day_strain_bar" style="@android:style/Widget.ProgressBar.Horizontal" android:layout_width="match_parent" android:layout_height="8dp" android:layout_marginTop="6dp" android:max="100" android:progressDrawable="@drawable/widget_progress" />
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:orientation="horizontal">
+        <TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="Steps" android:textAllCaps="true" android:letterSpacing="0.09" android:textSize="10sp" android:textStyle="bold" android:textColor="@color/widget_text3" />
+        <TextView android:id="@+id/day_steps_text" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="12sp" android:textColor="@color/widget_text2" />
+    </LinearLayout>
+    <ProgressBar android:id="@+id/day_steps_bar" style="@android:style/Widget.ProgressBar.Horizontal" android:layout_width="match_parent" android:layout_height="8dp" android:layout_marginTop="6dp" android:max="100" android:progressDrawable="@drawable/widget_progress_steps" />
+    <TextView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" />
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
+        <LinearLayout android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:orientation="vertical">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Today" android:textAllCaps="true" android:letterSpacing="0.09" android:textSize="10sp" android:textStyle="bold" android:textColor="@color/widget_text3" />
+            <TextView android:id="@+id/day_session" android:layout_width="wrap_content" android:layout_height="wrap_content" android:maxLines="1" android:ellipsize="end" android:textSize="13sp" android:textColor="@color/widget_text1" />
+        </LinearLayout>
+        <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:gravity="end" android:orientation="vertical">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="In bed by" android:textAllCaps="true" android:letterSpacing="0.09" android:textSize="10sp" android:textStyle="bold" android:textColor="@color/widget_text3" />
+            <TextView android:id="@+id/day_bed" android:layout_width="wrap_content" android:layout_height="wrap_content" android:maxLines="1" android:textSize="13sp" android:textColor="@color/widget_text1" />
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>

@@ -176,6 +176,9 @@ class Workouts extends Table {
   TextColumn get zones => text()(); // JSON minutes per zone [z1..z5]
   IntColumn get rpe => integer().nullable()();
   TextColumn get plan => text().nullable()(); // JSON scoring Session if guided
+  // Metres covered, measured live (phone GPS or the band's counter); null
+  // when not measured. v15.
+  RealColumn get distanceM => real().nullable()();
 }
 
 /// The coach's plan, one row per day. Rewritten by the morning adaptation.
