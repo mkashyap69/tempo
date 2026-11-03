@@ -1,5 +1,8 @@
 import 'dart:io' show Platform;
 
+import '../core/source_check.dart';
+import 'source_check_view.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:health_source/health_source.dart';
@@ -18,6 +21,9 @@ import '../state/providers.dart';
 import 'data_source.dart';
 import 'nav.dart';
 import 'pairing.dart';
+
+/// The source check for this screen (B1b), refreshed after each read.
+final sourceCheckProvider = dbQuery((db, _) => sourceCheck(db));
 
 /// What the Data sources screen shows besides plain settings.
 final class _SourcesData {
@@ -99,6 +105,8 @@ class DataSourcesScreen extends ConsumerWidget {
     final data = ref.watch(_sourcesProvider).value;
     final health = DataSource.platformHealth;
     final sync = ref.watch(syncProvider);
+    final dev = setting(Keys.devMode) == '1';
+    final check = ref.watch(sourceCheckProvider).value;
 
     String fresh(DateTime? t, String verb) => t == null
         ? 'not $verb yet'
@@ -106,34 +114,10 @@ class DataSourcesScreen extends ConsumerWidget {
 
     return TempoPage(
       children: [
-        const DetailHeader(title: 'Data sources'),
+        const DetailHeader(title: 'Data source'),
         Text(
-          'Tempo reads one source at a time. Everything stays on this phone.',
+          'Tempo reads your health app, read-only. Everything stays on this phone.',
           style: TempoType.body.c(c.text2),
-        ),
-        _SourceCard(
-          title: 'Mi Band 6',
-          subtitle:
-              'Direct Bluetooth · heart rate every minute, sleep, stress, SpO₂',
-          active: source == DataSource.band,
-          status: source != DataSource.band
-              ? (paired ? '$bandName · paired, not in use' : 'Not paired')
-              : !paired
-              ? 'Not paired yet'
-              : '$bandName · ${fresh(lastSync, 'synced')}'
-                    '${battery == null ? '' : ' · battery $battery%'}',
-          action: source == DataSource.band
-              ? (paired
-                    ? (sync.running ? 'Syncing…' : 'Sync now')
-                    : 'Pair band')
-              : 'Use the band',
-          onAction: source == DataSource.band
-              ? (paired
-                    ? (sync.running
-                          ? null
-                          : () => ref.read(syncProvider.notifier).syncNow())
-                    : () => push(context, const PairingScreen()))
-              : () => useDataSource(context, ref, DataSource.band),
         ),
         _SourceCard(
           title: health.label,
@@ -151,6 +135,36 @@ class DataSourcesScreen extends ConsumerWidget {
                     : () => ref.read(syncProvider.notifier).syncNow())
               : () => useDataSource(context, ref, health),
         ),
+        // The Mi Band is a developer option (B1c): shown when Developer is
+        // on, or when it's already this install's source.
+        if (dev || source == DataSource.band)
+          _SourceCard(
+            title: 'Mi Band 6 (beta)',
+            subtitle: 'Direct Bluetooth · heart rate every minute, sleep, stress, SpO₂',
+            active: source == DataSource.band,
+            status: source != DataSource.band
+                ? (paired ? '$bandName · paired, not in use' : 'Not paired')
+                : !paired
+                ? 'Not paired yet'
+                : '$bandName · ${fresh(lastSync, 'synced')}'
+                      '${battery == null ? '' : ' · battery $battery%'}',
+            action: source == DataSource.band
+                ? (paired
+                      ? (sync.running ? 'Syncing…' : 'Sync now')
+                      : 'Pair band')
+                : 'Use the band',
+            onAction: source == DataSource.band
+                ? (paired
+                      ? (sync.running
+                            ? null
+                            : () => ref.read(syncProvider.notifier).syncNow())
+                      : () => push(context, const PairingScreen()))
+                : () => useDataSource(context, ref, DataSource.band),
+          ),
+        if (source.isHealth && check != null) ...[
+          const Overline('What Tempo found'),
+          SourceCheckView(check: check),
+        ],
         if (source.isHealth) ...[
           const Overline('Health access'),
           CardList(

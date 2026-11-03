@@ -126,7 +126,9 @@ void main() {
     await settle(t);
     expect(t.takeException(), isNull);
     expect(find.text('In use'), findsOneWidget);
-    expect(find.text('Use the band'), findsOneWidget);
+    // The band is a developer option now (B1c).
+    expect(find.text('Use the band'), findsNothing);
+    expect(find.text('WHAT TEMPO FOUND'), findsOneWidget);
     expect(find.text('HEALTH ACCESS'), findsOneWidget);
     expect(find.text('SLEEP FROM'), findsOneWidget);
     expect(find.text('Every app, merged'), findsOneWidget);
@@ -148,7 +150,8 @@ void main() {
     await t.pumpWidget(harness(db, const DataSourcesScreen()));
     await settle(t);
     expect(t.takeException(), isNull);
-    expect(find.text('Mi Band 6'), findsOneWidget);
+    // Already on the band: its card stays even with Developer off.
+    expect(find.text('Mi Band 6 (beta)'), findsOneWidget);
     expect(find.text('Use Health Connect'), findsOneWidget);
     expect(find.text('HEALTH ACCESS'), findsNothing);
     expect(find.text('SLEEP FROM'), findsNothing);

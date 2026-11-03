@@ -133,20 +133,27 @@ void main() {
     addTearDown(t.view.reset);
     await t.pumpWidget(harness(db, const OnboardingScreen()));
     await settle(t, frames: 5);
-    await t.tap(find.text('Skip'));
+    // B1a: welcome → three numbers → connect (no source choice, no band).
+    expect(find.text('Get started'), findsOneWidget);
+    await t.tap(find.text('Get started'));
     await settle(t, frames: 5);
-    for (var i = 0; i < 4; i++) {
-      await t.tap(find.text('Continue'));
-      await settle(t, frames: 5);
-    }
-    expect(find.text('Where does your data come from?'), findsOneWidget);
-    await t.tap(find.text('Health Connect'));
-    await settle(t, frames: 5);
+    expect(find.text('Three numbers, one clear call'), findsOneWidget);
     await t.tap(find.text('Continue'));
     await settle(t, frames: 5);
     expect(find.text('Connect Health Connect'), findsWidgets);
     expect(find.text('Allow Bluetooth'), findsNothing);
-    await t.tap(find.text('Not now — I’ll connect later'));
+    expect(find.textContaining('Mi Band'), findsNothing);
+    // Not now skips the read and the source check.
+    await t.tap(find.text('Not now'));
+    await settle(t, frames: 5);
+    expect(find.text('A little about you'), findsOneWidget);
+    await t.tap(find.text('Continue'));
+    await settle(t, frames: 5);
+    expect(find.text('What matters most?'), findsOneWidget);
+    await t.tap(find.text('Continue'));
+    await settle(t, frames: 5);
+    expect(find.text('One message a morning'), findsOneWidget);
+    await t.tap(find.text('Not now'));
     await settle(t, frames: 10);
     expect(t.takeException(), isNull);
     expect(

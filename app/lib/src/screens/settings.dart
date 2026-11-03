@@ -514,28 +514,11 @@ class SettingsScreen extends ConsumerWidget {
           ),
         ),
         PrivacyNote(
-          'All data stays on this phone',
+          'Your health data stays on this phone',
           sub: health
-              ? 'No account, no cloud, no analytics. Tempo reads ${source.label} on this phone and never writes back what it read.'
+              ? 'No account and no cloud. Tempo reads ${source.label} here and never writes back what it read.'
               : 'No account, no cloud, no analytics. Your auth key is stored in the device keychain.',
         ),
-        group('Learn', [
-          ListRow(
-            'How Tempo works',
-            sub: 'Recovery, strain, load and the plan, in six short cards',
-            onTap: () => push(context, const LearnScreen()),
-          ),
-          ListRow(
-            'Training goal',
-            sub: 'Race or event, phases and the block',
-            onTap: () => openCoachAt(context, CoachTab.goal),
-          ),
-          ListRow(
-            'Journal questions',
-            sub: 'What the morning check-in asks',
-            onTap: () => push(context, const JournalCustomiseScreen()),
-          ),
-        ]),
         group('About you', [
           ListRow(
             'Age',
@@ -1042,36 +1025,38 @@ class SettingsScreen extends ConsumerWidget {
             },
           ),
         ]),
-        group('Advanced', [
-          if (!health) ...[
+        // Recompute and band rewrites are support tools, not settings.
+        if (dev)
+          group('Advanced', [
+            if (!health) ...[
+              ListRow(
+                'Rewrite band settings',
+                sub: 'Time, profile, wrist, HR interval, sleep, stress',
+                onTap: !paired
+                    ? null
+                    : () => bandAction(context, () => writeBandSettings(ref)),
+              ),
+              ListRow(
+                'Re-download band history',
+                sub: 'Fixes sleep and activity stored at the wrong time',
+                onTap: !paired ? null : () => redownloadHistory(context, ref),
+              ),
+            ],
             ListRow(
-              'Rewrite band settings',
-              sub: 'Time, profile, wrist, HR interval, sleep, stress',
-              onTap: !paired
-                  ? null
-                  : () => bandAction(context, () => writeBandSettings(ref)),
+              'Recompute all scores',
+              onTap: () async {
+                final first = await firstDataMinute(db);
+                if (first == null) {
+                  if (context.mounted) showTempoToast(context, 'No data yet.');
+                  return;
+                }
+                final n = await ScoreService(db).recomputeFrom(first);
+                if (context.mounted) {
+                  showTempoToast(context, 'Recomputed $n days');
+                }
+              },
             ),
-            ListRow(
-              'Re-download band history',
-              sub: 'Fixes sleep and activity stored at the wrong time',
-              onTap: !paired ? null : () => redownloadHistory(context, ref),
-            ),
-          ],
-          ListRow(
-            'Recompute all scores',
-            onTap: () async {
-              final first = await firstDataMinute(db);
-              if (first == null) {
-                if (context.mounted) showTempoToast(context, 'No data yet.');
-                return;
-              }
-              final n = await ScoreService(db).recomputeFrom(first);
-              if (context.mounted) {
-                showTempoToast(context, 'Recomputed $n days');
-              }
-            },
-          ),
-        ]),
+          ]),
         if (dev)
           group('Developer', [
             ListRow(
@@ -1179,6 +1164,23 @@ class SettingsScreen extends ConsumerWidget {
             ),
           ],
         ),
+        group('Help', [
+          ListRow(
+            'How Tempo works',
+            sub: 'Recovery, strain, load and the plan, in six short cards',
+            onTap: () => push(context, const LearnScreen()),
+          ),
+          ListRow(
+            'Training goal',
+            sub: 'Race or event, phases and the block',
+            onTap: () => openCoachAt(context, CoachTab.goal),
+          ),
+          ListRow(
+            'Journal questions',
+            sub: 'What the morning check-in asks',
+            onTap: () => push(context, const JournalCustomiseScreen()),
+          ),
+        ]),
         _VersionLine(dev: dev),
       ],
     );

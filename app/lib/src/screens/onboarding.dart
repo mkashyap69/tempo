@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:scoring/scoring.dart' as sc;
@@ -5,29 +7,25 @@ import 'package:scoring/scoring.dart' as sc;
 import '../core/coach_service.dart';
 import '../core/data_source.dart';
 import '../core/health_reader.dart';
+import '../core/health_sync.dart';
+import '../core/home_widgets.dart' show afterSync;
 import '../core/notifications.dart';
 import '../core/profile.dart';
+import '../core/source_check.dart';
 import '../design/components.dart';
 import '../design/icons.dart';
-import '../design/meter.dart';
 import '../design/tokens.dart';
 import '../design/type.dart';
 import '../state/providers.dart';
 import 'backups.dart' show RestorePanel;
-import 'nav.dart';
-import 'pairing.dart';
+import 'source_check_view.dart';
 
-enum _Step {
-  value1,
-  value2,
-  value3,
-  profile,
-  goals,
-  workouts,
-  availability,
-  source,
-  permissions,
-}
+/// Launch onboarding (B1a, decisions.md 2026-11-03): health-first, no
+/// account. Welcome → three numbers → connect Apple Health / Health
+/// Connect → first read and source check → about you (prefilled from
+/// Health) → goal, activities and days → morning call. The Mi Band is not
+/// offered here; it lives behind You → Developer.
+enum _Step { welcome, numbers, connect, check, profile, goal, notify }
 
 class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
@@ -36,12 +34,15 @@ class OnboardingScreen extends ConsumerStatefulWidget {
 }
 
 class _OnboardingState extends ConsumerState<OnboardingScreen> {
-  var _step = _Step.value1;
+  var _step = _Step.welcome;
   var _p = const Profile();
-
-  /// The Mi Band 6, or this phone's Health store (decisions.md 2026-10-06).
-  var _source = DataSource.band;
+  final _source = DataSource.platformHealth;
   bool _connecting = false;
+
+  /// First read: null before it starts, 0..1 while it runs.
+  double? _progress;
+  SourceCheck? _check;
+  bool _weightFromHealth = false;
   final _age = TextEditingController(text: '31');
   final _ht = TextEditingController(text: '176');
   final _wt = TextEditingController(text: '74');
@@ -63,6 +64,11 @@ class _OnboardingState extends ConsumerState<OnboardingScreen> {
     setState(
       () => _step = _Step.values[(_i + d).clamp(0, _Step.values.length - 1)],
     );
+  }
+
+  void _goTo(_Step s) {
+    TempoHaptics.selection();
+    setState(() => _step = s);
   }
 
   bool get _profileValid {
@@ -105,51 +111,80 @@ class _OnboardingState extends ConsumerState<OnboardingScreen> {
     }
   }
 
-  /// Health path: save the choice, ask for read access, finish. The first
-  /// read (90 days) runs once Today opens, with progress on its sync pill.
-  /// When Health can't be used at all the user stays here to pick the band.
-  Future<void> _finishHealth({required bool connect}) async {
+  /// Asks for read access; on success reads 90 days and shows the check.
+  Future<void> _connect() async {
     final db = ref.read(dbProvider);
-    if (connect) {
-      setState(() => _connecting = true);
-      HealthConnectResult res;
-      try {
-        res = await PluginHealthReader().connect();
-      } catch (_) {
-        res = HealthConnectResult.unavailable;
-      }
-      if (mounted) setState(() => _connecting = false);
-      if (!mounted) return;
-      final why = switch (res) {
-        HealthConnectResult.ok => null,
-        HealthConnectResult.denied => 'Tempo needs heart rate, sleep and steps. Allow them, or choose “Not now” and allow them later from Today.',
-        HealthConnectResult.needsInstall => 'Install or update Health Connect from the Play Store, then tap Connect again.',
-        HealthConnectResult.unavailable => 'Health Connect isn’t available on this phone. Go back and choose the Mi Band 6.',
-      };
-      if (why != null) {
-        showTempoToast(context, why);
-        return;
-      }
-    }
-    await saveAppProfile(db, _p);
-    await CoachService(db).ensureWeek(DateTime.now(), rebuild: true);
-    await saveDataSource(db, _source);
+    setState(() => _connecting = true);
+    HealthConnectResult res;
     try {
-      await TempoNotifications.instance.requestPermission();
-    } catch (_) {} // optional; never blocks finishing
-    await db.putSetting(Keys.onboarded, '1');
+      res = await PluginHealthReader().connect();
+    } catch (_) {
+      res = HealthConnectResult.unavailable;
+    }
+    if (!mounted) return;
+    setState(() => _connecting = false);
+    final why = switch (res) {
+      HealthConnectResult.ok => null,
+      HealthConnectResult.denied => 'Tempo needs heart rate, sleep and steps. Allow them, or choose “Not now” and allow them later from Today.',
+      HealthConnectResult.needsInstall => 'Install or update Health Connect from the Play Store, then tap Connect again.',
+      HealthConnectResult.unavailable =>
+        '${_source.label} isn’t available on this phone. Choose “Not now” to carry on.',
+    };
+    if (why != null) {
+      showTempoToast(context, why);
+      return;
+    }
+    await saveDataSource(db, _source);
+    _goTo(_Step.check);
+    unawaited(_firstRead());
   }
 
-  Future<void> _finish({required bool pair}) async {
+  /// The first read with progress, then the source check and the profile
+  /// prefill. A failed read still moves on: Today retries on open.
+  Future<void> _firstRead() async {
+    final db = ref.read(dbProvider);
+    setState(() => _progress = 0);
+    try {
+      await HealthSyncService(db).run(
+        onProgress: (f) {
+          if (mounted) setState(() => _progress = f);
+        },
+      );
+      await afterSync(db);
+    } catch (_) {}
+    final check = await sourceCheck(db);
+    final w = await db.healthRecordsBetween(
+      DateTime.now().subtract(const Duration(days: 365)),
+      DateTime.now(),
+      kinds: const ['weight'],
+    );
+    if (!mounted) return;
+    setState(() {
+      _progress = 1;
+      _check = check;
+      if (w.isNotEmpty) {
+        final kg = (w..sort((a, b) => a.endMs - b.endMs)).last.value;
+        if (kg > 25 && kg < 300) {
+          _wt.text = '${_p.metric ? kg.round() : (kg * 2.2046).round()}';
+          _weightFromHealth = true;
+        }
+      }
+    });
+  }
+
+  Future<void> _finish({required bool notify}) async {
     final db = ref.read(dbProvider);
     await saveAppProfile(db, _p);
     await CoachService(db).ensureWeek(DateTime.now(), rebuild: true);
-    if (pair) {
-      await requestBluetooth();
-      await TempoNotifications.instance.requestPermission();
+    if (await db.setting(Keys.dataSource) == null) {
+      await saveDataSource(db, _source);
+    }
+    if (notify) {
+      try {
+        await TempoNotifications.instance.requestPermission();
+      } catch (_) {} // optional; never blocks finishing
     }
     await db.putSetting(Keys.onboarded, '1');
-    if (pair && mounted) await push(context, const PairingScreen());
   }
 
   @override
@@ -159,17 +194,23 @@ class _OnboardingState extends ConsumerState<OnboardingScreen> {
         bottom = MediaQuery.of(context).padding.bottom;
     final age = int.tryParse(_age.text) ?? 31;
     if (!_maxEdited) _mx.text = '${sc.maxHrFromAge(age)}';
+    final reading = _step == _Step.check && (_progress ?? 0) < 1;
     final (cta, enabled) = switch (_step) {
-      _Step.value3 => ('Get started', true),
-      _Step.profile => ('Continue', _profileValid),
-      _Step.workouts => ('Continue', _p.likes.isNotEmpty),
-      _Step.availability => ('Continue', _p.days.isNotEmpty),
-      _Step.permissions when _source.isHealth => (
+      _Step.welcome => ('Get started', true),
+      _Step.connect => (
         _connecting ? 'Connecting…' : 'Connect ${_source.label}',
         !_connecting,
       ),
-      _Step.permissions => ('Allow Bluetooth', true),
+      _Step.check => (reading ? 'Reading…' : 'Looks right', !reading),
+      _Step.profile => ('Continue', _profileValid),
+      _Step.goal => ('Continue', _p.likes.isNotEmpty && _p.days.isNotEmpty),
+      _Step.notify => ('Turn on notifications', true),
       _ => ('Continue', true),
+    };
+    final secondary = switch (_step) {
+      _Step.connect => 'Not now',
+      _Step.notify => 'Not now',
+      _ => null,
     };
     return Scaffold(
       backgroundColor: c.bg,
@@ -184,49 +225,41 @@ class _OnboardingState extends ConsumerState<OnboardingScreen> {
                 children: [
                   SizedBox(
                     width: 44,
-                    child: _i > 0
+                    child: _i > 0 && !reading
                         ? TempoIconButton(
                             TempoIcons.back,
                             label: 'Back',
-                            onTap: () => _go(-1),
+                            // Back from the profile skips the finished read.
+                            onTap: () =>
+                                _step == _Step.profile && _check == null
+                                ? _goTo(_Step.connect)
+                                : _go(-1),
                           )
                         : null,
                   ),
                   Expanded(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        for (var k = 0; k < _Step.values.length; k++)
-                          AnimatedContainer(
-                            duration: TempoMotion.base,
-                            margin: const EdgeInsets.symmetric(horizontal: 3),
-                            width: k == _i ? 18 : 6,
-                            height: 4,
-                            decoration: BoxDecoration(
-                              color: k <= _i ? c.text1 : c.trackOff,
-                              borderRadius: BorderRadius.circular(2),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                  SizedBox(
-                    width: 44,
-                    child: _i < 2
-                        ? Pressable(
-                            onTap: () => setState(() => _step = _Step.profile),
-                            child: Center(
-                              child: Text(
-                                'Skip',
-                                style: TempoType.body.copyWith(
-                                  fontSize: 14,
-                                  color: c.text2,
+                    child: _i == 0
+                        ? const SizedBox()
+                        : Row(
+                            children: [
+                              for (var k = 1; k < _Step.values.length; k++)
+                                Expanded(
+                                  child: AnimatedContainer(
+                                    duration: TempoMotion.base,
+                                    margin: const EdgeInsets.symmetric(
+                                      horizontal: 3,
+                                    ),
+                                    height: 4,
+                                    decoration: BoxDecoration(
+                                      color: k <= _i ? c.text1 : c.trackOff,
+                                      borderRadius: BorderRadius.circular(2),
+                                    ),
+                                  ),
                                 ),
-                              ),
-                            ),
-                          )
-                        : null,
+                            ],
+                          ),
                   ),
+                  const SizedBox(width: 44),
                 ],
               ),
             ),
@@ -257,29 +290,28 @@ class _OnboardingState extends ConsumerState<OnboardingScreen> {
                   onTap: !enabled
                       ? null
                       : () {
-                          if (_step == _Step.profile) _readProfile();
-                          if (_step == _Step.permissions) {
-                            if (_source.isHealth) {
-                              _finishHealth(connect: true);
-                            } else {
-                              _finish(pair: true);
-                            }
-                          } else {
-                            _go(1);
+                          switch (_step) {
+                            case _Step.connect:
+                              _connect();
+                            case _Step.profile:
+                              _readProfile();
+                              _go(1);
+                            case _Step.notify:
+                              _finish(notify: true);
+                            default:
+                              _go(1);
                           }
                         },
                 ),
-                if (_step == _Step.permissions) ...[
+                if (secondary != null) ...[
                   const SizedBox(height: 4),
                   TempoButton(
-                    _source.isHealth
-                        ? 'Not now — I’ll connect later'
-                        : 'Not now — I’ll pair later',
+                    secondary,
                     kind: ButtonKind.text,
                     expand: true,
-                    onTap: () => _source.isHealth
-                        ? _finishHealth(connect: false)
-                        : _finish(pair: false),
+                    onTap: () => _step == _Step.connect
+                        ? _goTo(_Step.profile)
+                        : _finish(notify: false),
                   ),
                 ],
               ],
@@ -299,176 +331,249 @@ class _OnboardingState extends ConsumerState<OnboardingScreen> {
     ],
   );
 
-  Widget _hero(Widget art, String title, String body, {Widget? extra}) =>
-      Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          art,
-          const SizedBox(height: 40),
-          Text(
-            title,
-            style: TempoType.titleL.copyWith(
-              fontSize: 32,
-              height: 38 / 32,
-              color: context.c.text1,
+  /// A score ring for the welcome and the three numbers.
+  Widget _ring(String v, double fill, Color col, {double size = 88}) =>
+      SizedBox.square(
+        dimension: size,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            SizedBox.expand(
+              child: CircularProgressIndicator(
+                value: fill,
+                strokeWidth: size * .1,
+                strokeCap: StrokeCap.round,
+                color: col,
+                backgroundColor: context.c.trackOff,
+              ),
             ),
-          ),
-          const SizedBox(height: 10),
-          Text(body, style: TempoType.body.c(context.c.text2)),
-          if (extra != null) ...[const SizedBox(height: 40), extra],
-        ],
+            Text(
+              v,
+              style: TempoType.label.copyWith(
+                fontSize: size * .26,
+                color: context.c.text1,
+              ),
+            ),
+          ],
+        ),
       );
 
   Widget _body(BuildContext context) {
     final c = context.c, s = context.s;
     switch (_step) {
-      case _Step.value1:
-        Widget ladder(int filled, Color col) => Column(
-          verticalDirection: VerticalDirection.up,
+      case _Step.welcome:
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            for (var i = 0; i < 20; i++)
-              SizedBox(
-                height: 10,
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Container(
-                    width: (i + 1) % 5 == 0 ? 64 : 46,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: i < filled ? col : c.trackOff,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
+            const SizedBox(height: 8),
+            const Align(
+              alignment: Alignment.centerLeft,
+              child: TempoLockup(size: 34),
+            ),
+            const SizedBox(height: 48),
+            Row(
+              children: [
+                _ring('78', .78, s.recHigh),
+                const SizedBox(width: 14),
+                _ring('11.2', .53, s.strain[1]),
+                const SizedBox(width: 14),
+                _ring('91', .91, s.sleepChannel),
+              ],
+            ),
+            const SizedBox(height: 32),
+            Text(
+              'Know how ready you are, every morning.',
+              style: TempoType.titleL.copyWith(
+                fontSize: 34,
+                height: 38 / 34,
+                color: c.text1,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Recovery, strain and sleep from the watch or ring you already wear, measured against your own normal.',
+              style: TempoType.body.c(c.text2),
+            ),
+            const SizedBox(height: 32),
+            TempoCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text('Used Tempo before?', style: TempoType.label.c(c.text1)),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Bring your history back from a backup.',
+                    style: TempoType.bodyS.c(c.text2),
+                  ),
+                  const SizedBox(height: 12),
+                  RestorePanel(onboarding: true, onRestored: _restored),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                TempoIcon(TempoIcons.private, size: 18, color: c.text2),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'No account needed. Your health data stays on this phone.',
+                    style: TempoType.bodyS.c(c.text2),
                   ),
                 ),
-              ),
+              ],
+            ),
           ],
         );
-        return _hero(
-          SizedBox(
-            height: 240,
+      case _Step.numbers:
+        Widget card(Widget ring, String t, String sub) => Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: TempoCard(
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                ladder(16, s.recHigh),
-                const SizedBox(width: 28),
-                ladder(11, s.strain[1]),
-                const SizedBox(width: 28),
-                ladder(18, s.sleepChannel),
-              ],
-            ),
-          ),
-          'Know how ready you are, every morning.',
-          'Recovery, strain and sleep from your Mi Band 6 — or the watch you already wear, through ${DataSource.platformHealth.label} — measured against your own normal, not anyone else’s.',
-          extra: TempoCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text('Used Tempo before?', style: TempoType.label.c(c.text1)),
-                const SizedBox(height: 4),
-                Text(
-                  'Bring your history back from a backup.',
-                  style: TempoType.bodyS.c(c.text2),
-                ),
-                const SizedBox(height: 12),
-                RestorePanel(onboarding: true, onRestored: _restored),
-              ],
-            ),
-          ),
-        );
-      case _Step.value2:
-        return _hero(
-          TempoCard(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text.rich(
-                  TextSpan(
+                ring,
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      TextSpan(
-                        text: 'Recovery 41%',
-                        style: TextStyle(color: s.recMid),
+                      Text(
+                        t,
+                        style: TempoType.label.copyWith(
+                          fontSize: 17,
+                          color: c.text1,
+                        ),
                       ),
-                      const TextSpan(text: ' — keep strain under 12 today.'),
+                      const SizedBox(height: 2),
+                      Text(sub, style: TempoType.bodyS.c(c.text2)),
                     ],
                   ),
-                  style: TempoType.titleL.c(c.text1),
-                ),
-                const SizedBox(height: 14),
-                const IntervalBars(
-                  segments: [(5, 1), (30, 2), (5, 1)],
-                  height: 30,
-                  base: 8,
-                  step: 6,
-                ),
-                const SizedBox(height: 14),
-                Text(
-                  'Easy aerobic ride · 40 min · Z2',
-                  style: TempoType.bodyS.c(c.text2),
                 ),
               ],
             ),
           ),
-          'One clear call. One workout.',
-          'Each morning answers “what should I do today?” — and your week adapts when your body says otherwise.',
         );
-      case _Step.value3:
-        Widget row(String a, Widget b) => Padding(
-          padding: const EdgeInsets.all(16),
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _title(
+              'Three numbers, one clear call',
+              'Each morning Tempo turns last night and yesterday into what to do today.',
+            ),
+            const SizedBox(height: 24),
+            card(
+              _ring('78', .78, s.recHigh, size: 56),
+              'Recovery',
+              'How ready your body is, from sleep, resting heart rate and HRV.',
+            ),
+            card(
+              _ring('11', .53, s.strain[1], size: 56),
+              'Strain',
+              'How much load your day added, 0 to 21, with a target sized to your recovery.',
+            ),
+            card(
+              _ring('91', .91, s.sleepChannel, size: 56),
+              'Sleep',
+              'How well you slept against what you needed, and when to go to bed tonight.',
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'The first 14 nights teach Tempo your normal. Nights already in ${_source.label} count, so you may start with real numbers.',
+              style: TempoType.bodyS.c(c.text2),
+            ),
+          ],
+        );
+      case _Step.connect:
+        Widget row(String icon, Color col, String t, String sub) => Padding(
+          padding: const EdgeInsets.all(14),
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              TempoIcon(icon, size: 22, color: col),
+              const SizedBox(width: 14),
               Expanded(
-                child: DefaultTextStyle(
-                  style: TempoType.body.c(c.text1),
-                  child: Row(children: [Text(a)]),
-                ),
-              ),
-              b,
-            ],
-          ),
-        );
-        return _hero(
-          CardList(
-            children: [
-              row(
-                'Resting HR',
-                Text(
-                  '▲ 4 bpm below normal',
-                  style: TempoType.body.c(s.recHigh),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Stress index', style: TempoType.body.c(c.text1)),
-                    const SizedBox(width: 6),
-                    const TempoBadge('≈', small: true),
-                    const Spacer(),
-                    Text('▲ calmer', style: TempoType.body.c(s.recHigh)),
+                    Text(t, style: TempoType.body.c(c.text1)),
+                    Text(sub, style: TempoType.bodyS.c(c.text2)),
                   ],
                 ),
               ),
-              row(
-                'Sleep',
-                Text('▼ 1h 10m short', style: TempoType.body.c(s.recLow)),
-              ),
             ],
           ),
-          'Every number explains itself.',
-          'Tap any score to see exactly what moved it. Estimates are labelled as estimates.',
-          extra: Row(
-            children: [
-              TempoIcon(TempoIcons.private, size: 18, color: c.text2),
-              const SizedBox(width: 10),
-              Text(
-                'All data stays on this phone. No account, no cloud.',
-                style: TempoType.bodyS.c(c.text2),
+        );
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _title(
+              'Connect ${_source.label}',
+              'Tempo reads what your watch, ring or other apps already save. It only reads, and nothing is uploaded.',
+            ),
+            const SizedBox(height: 24),
+            CardList(
+              children: [
+                row(
+                  TempoIcons.heartRate,
+                  s.recLow,
+                  'Heart rate and HRV',
+                  'Strain, resting heart rate and recovery.',
+                ),
+                row(
+                  TempoIcons.sleep,
+                  s.sleepChannel,
+                  'Sleep',
+                  'Your nights and their stages.',
+                ),
+                row(
+                  TempoIcons.hiit,
+                  s.strain[1],
+                  'Workouts and steps',
+                  'Activity, your plan and Tempo Age.',
+                ),
+                row(
+                  TempoIcons.spo2,
+                  s.recHigh,
+                  'Body signals · optional',
+                  'SpO₂, breathing rate, temperature, weight and cycle.',
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Text(
+              DataSource.platformHealth == DataSource.appleHealth
+                  ? 'On the next screen, turn on all categories. Apple doesn’t tell apps what you allowed, so Tempo checks what it can read right after.'
+                  : 'Allow every category, plus past data and background access, so Tempo can learn from your history and stay current while closed.',
+              style: TempoType.bodyS.c(c.text3),
+            ),
+          ],
+        );
+      case _Step.check:
+        final check = _check;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _title(
+              check == null ? 'Reading your history…' : 'Here’s what we found',
+              check == null
+                  ? 'Up to 90 days from ${_source.label}. This takes a moment the first time.'
+                  : check.anything
+                  ? 'From the last 90 days in ${_source.label}.'
+                  : 'Nothing yet. Wear your watch today and tonight; Tempo reads it next time you open the app.',
+            ),
+            const SizedBox(height: 20),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(3),
+              child: LinearProgressIndicator(
+                value: _progress,
+                minHeight: 6,
+                color: s.recHigh,
+                backgroundColor: c.trackOff,
               ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 20),
+            if (check != null) SourceCheckView(check: check),
+          ],
         );
       case _Step.profile:
         Widget f(
@@ -490,8 +595,10 @@ class _OnboardingState extends ConsumerState<OnboardingScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _title(
-              'About you',
-              'Used to set your heart-rate zones and strain. You can change these any time.',
+              'A little about you',
+              _weightFromHealth
+                  ? 'For your heart-rate zones and strain. Weight is from ${_source.label}; check the rest.'
+                  : 'For your heart-rate zones and strain. You can change these any time.',
             ),
             const SizedBox(height: 24),
             Row(
@@ -523,7 +630,7 @@ class _OnboardingState extends ConsumerState<OnboardingScreen> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      'Max HR is estimated from your age. If you’ve seen a higher number in a hard effort, use that — your zones will be more accurate.',
+                      'Max HR is estimated from your age. Tempo raises it if your watch sees higher in a hard effort; if you’ve seen a higher number yourself, enter it.',
                       style: TempoType.bodyS.c(c.text2),
                     ),
                   ),
@@ -558,261 +665,121 @@ class _OnboardingState extends ConsumerState<OnboardingScreen> {
             ),
           ],
         );
-      case _Step.goals:
+      case _Step.goal:
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _title(
               'What matters most?',
-              'Pick one. It shapes which workouts Coach suggests. You can add a race or event goal any time in Plan → Goal.',
+              'It shapes what Tempo suggests. Add a race or event any time in Plan → Goal.',
             ),
-            const SizedBox(height: 24),
-            for (final g in sc.Goal.values) ...[
-              Pressable(
-                selected: _p.goal == g,
-                label: goalLabel(g),
-                onTap: () => setState(() => _p = _p.copyWith(goal: g)),
-                child: AnimatedContainer(
-                  duration: TempoMotion.fast,
-                  constraints: const BoxConstraints(minHeight: 72),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 14,
-                  ),
-                  decoration: BoxDecoration(
-                    color: c.surface1,
-                    borderRadius: BorderRadius.circular(TempoRadii.lg),
-                    border: Border.all(
-                      color: _p.goal == g ? c.text1 : Colors.transparent,
-                      width: 1.5,
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              goalLabel(g),
-                              style: TempoType.label.copyWith(
-                                fontSize: 15,
-                                color: c.text1,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(goalSub(g), style: TempoType.bodyS.c(c.text2)),
-                          ],
-                        ),
-                      ),
-                      AnimatedContainer(
-                        duration: TempoMotion.fast,
-                        width: 22,
-                        height: 22,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: c.text1,
-                            width: _p.goal == g ? 7 : 1.5,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 10),
-            ],
-          ],
-        );
-      case _Step.workouts:
-        return WorkoutsEditor(
-          profile: _p,
-          onChanged: (p) => setState(() => _p = p),
-        );
-      case _Step.availability:
-        return AvailabilityEditor(
-          profile: _p,
-          onChanged: (p) => setState(() => _p = p),
-        );
-      case _Step.source:
-        final health = DataSource.platformHealth;
-        Widget option(DataSource src, String title, String sub) => Padding(
-          padding: const EdgeInsets.only(bottom: 10),
-          child: Pressable(
-            selected: _source == src,
-            label: title,
-            onTap: () => setState(() => _source = src),
-            child: AnimatedContainer(
-              duration: TempoMotion.fast,
-              constraints: const BoxConstraints(minHeight: 72),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              decoration: BoxDecoration(
-                color: c.surface1,
-                borderRadius: BorderRadius.circular(TempoRadii.lg),
-                border: Border.all(
-                  color: _source == src ? c.text1 : Colors.transparent,
-                  width: 1.5,
-                ),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          title,
-                          style: TempoType.label.copyWith(
-                            fontSize: 15,
-                            color: c.text1,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(sub, style: TempoType.bodyS.c(c.text2)),
-                      ],
-                    ),
-                  ),
-                  AnimatedContainer(
-                    duration: TempoMotion.fast,
-                    width: 22,
-                    height: 22,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: c.text1,
-                        width: _source == src ? 7 : 1.5,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _title(
-              'Where does your data come from?',
-              'Pick one. You can switch later in Profile; your scores stay.',
-            ),
-            const SizedBox(height: 24),
-            option(
-              DataSource.band,
-              'Mi Band 6',
-              'Tempo talks to the band directly over Bluetooth. Every-minute heart rate, sleep, stress and live workouts.',
-            ),
-            option(
-              health,
-              health.label,
-              health == DataSource.appleHealth
-                  ? 'Any watch or ring that writes to Apple Health (Apple Watch and others). Heart rate, sleep stages, HRV, steps and workouts, read-only.'
-                  : 'Any watch or ring that writes to Health Connect. Heart rate, sleep stages, HRV, steps and workouts, read-only.',
-            ),
-            const SizedBox(height: 14),
-            PrivacyNote(
-              _source.isHealth
-                  ? 'Tempo reads Health on this phone. Nothing is uploaded, and what it reads is never written back.'
-                  : 'All data stays on this phone.',
-            ),
-          ],
-        );
-      case _Step.permissions when _source.isHealth:
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _title(
-              'Connect ${_source.label}',
-              'Tempo only reads. There’s no account and nothing is uploaded.',
-            ),
-            const SizedBox(height: 24),
-            CardList(
+            const SizedBox(height: 20),
+            GridView.count(
+              crossAxisCount: 2,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              mainAxisSpacing: 10,
+              crossAxisSpacing: 10,
+              childAspectRatio: 1.45,
               children: [
-                for (final (icon, t, body) in [
-                  (
-                    TempoIcons.heartRate,
-                    'Heart rate and HRV',
-                    'For strain, resting heart rate and recovery. Every reading your watch saved.',
-                  ),
-                  (
-                    TempoIcons.sleep,
-                    'Sleep',
-                    'Your nights and their stages, as your watch recorded them.',
-                  ),
-                  (
-                    TempoIcons.steps,
-                    'Steps, workouts and SpO₂',
-                    'For activity, Coach and Tempo Age.',
-                  ),
-                  (
-                    TempoIcons.bell,
-                    'Notifications · optional',
-                    'One message a morning with your call for the day, and a bedtime nudge.',
-                  ),
-                ])
-                  Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        TempoIcon(icon, size: 20, color: c.text1),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(t, style: TempoType.label.c(c.text1)),
-                              const SizedBox(height: 4),
-                              Text(body, style: TempoType.bodyS.c(c.text2)),
-                            ],
-                          ),
+                for (final g in sc.Goal.values)
+                  Pressable(
+                    selected: _p.goal == g,
+                    label: goalLabel(g),
+                    onTap: () => setState(() => _p = _p.copyWith(goal: g)),
+                    child: AnimatedContainer(
+                      duration: TempoMotion.fast,
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: c.surface1,
+                        borderRadius: BorderRadius.circular(TempoRadii.lg),
+                        border: Border.all(
+                          color: _p.goal == g
+                              ? s.strain[1]
+                              : Colors.transparent,
+                          width: 1.5,
                         ),
-                      ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            goalLabel(g),
+                            style: TempoType.label.copyWith(
+                              fontSize: 15,
+                              color: c.text1,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Expanded(
+                            child: Text(
+                              goalSub(g),
+                              overflow: TextOverflow.fade,
+                              style: TempoType.caption.c(c.text2),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
               ],
             ),
-            const SizedBox(height: 16),
-            Text(
-              _source == DataSource.appleHealth
-                  ? 'Turn on every category in the next screen. Apple doesn’t tell apps what you allowed, so if something’s missing later, check Settings → Health → Data Access & Devices → Tempo.'
-                  : 'Allow every category, plus past data and background access, so Tempo can learn from your history and stay current while closed.',
-              style: TempoType.caption.c(c.text3),
+            const SizedBox(height: 28),
+            WorkoutsEditor(
+              profile: _p,
+              onChanged: (p) => setState(() => _p = p),
             ),
+            const SizedBox(height: 28),
+            AvailabilityEditor(
+              profile: _p,
+              onChanged: (p) => setState(() => _p = p),
+            ),
+            const SizedBox(height: 16),
           ],
         );
-      case _Step.permissions:
-        Widget perm(String icon, String t, String req, String body) => Padding(
-          padding: const EdgeInsets.all(16),
+      case _Step.notify:
+        Widget bubble(String time, Widget body) => Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: c.surface2,
+            borderRadius: BorderRadius.circular(22),
+          ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: c.surface2,
-                  borderRadius: BorderRadius.circular(12),
-                ),
+                width: 38,
+                height: 38,
                 alignment: Alignment.center,
-                child: TempoIcon(icon, size: 20, color: c.text1),
+                decoration: BoxDecoration(
+                  color: c.bg,
+                  borderRadius: BorderRadius.circular(9),
+                ),
+                child: TempoMark(size: 22, color: c.text1),
               ),
-              const SizedBox(width: 14),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       children: [
-                        Expanded(
-                          child: Text(t, style: TempoType.label.c(c.text1)),
+                        Text(
+                          'Tempo',
+                          style: TempoType.caption.copyWith(
+                            color: c.text1,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
-                        Text(req, style: TempoType.caption.c(c.text3)),
+                        const Spacer(),
+                        Text(time, style: TempoType.caption.c(c.text3)),
                       ],
                     ),
-                    const SizedBox(height: 4),
-                    Text(body, style: TempoType.bodyS.c(c.text2)),
+                    const SizedBox(height: 2),
+                    DefaultTextStyle(
+                      style: TempoType.bodyS.c(c.text1),
+                      child: body,
+                    ),
                   ],
                 ),
               ),
@@ -823,29 +790,36 @@ class _OnboardingState extends ConsumerState<OnboardingScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _title(
-              'Two permissions, explained',
-              'Tempo talks to your band directly. There’s no account and nothing is uploaded.',
+              'One message a morning',
+              'Your call for the day when you wake, and a nudge before bed. Nothing else, and you can turn either off in You → Notifications.',
             ),
             const SizedBox(height: 24),
-            CardList(
-              children: [
-                perm(
-                  TempoIcons.bluetooth,
-                  'Bluetooth',
-                  'Required',
-                  'To read heart rate, sleep and steps from your band, and to sync in the background.',
+            bubble(
+              '7:02',
+              Text.rich(
+                TextSpan(
+                  children: [
+                    TextSpan(
+                      text: 'Primed · 78%. ',
+                      style: TextStyle(color: s.recHigh),
+                    ),
+                    const TextSpan(
+                      text:
+                          'Go for today’s tempo run, 35 min. In bed by 22:45.',
+                    ),
+                  ],
                 ),
-                perm(
-                  TempoIcons.bell,
-                  'Notifications',
-                  'Optional',
-                  'One message a morning with your call for the day, and a bedtime nudge. Nothing else.',
-                ),
-              ],
+              ),
             ),
-            const SizedBox(height: 24),
-            const PrivacyNote(
-              'All data stays on this phone. Export it any time from Profile.',
+            const SizedBox(height: 10),
+            Opacity(
+              opacity: .8,
+              child: bubble(
+                '22:15',
+                const Text(
+                  'Wind down: in bed by 22:45 covers the 8 h 05 you need.',
+                ),
+              ),
             ),
           ],
         );
