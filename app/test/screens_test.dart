@@ -542,7 +542,7 @@ void main() {
       final ringsY = t.getTopLeft(find.text('RECOVERY')).dy;
       expect(ringsY, lessThan(t.getTopLeft(find.text('TODAY’S PLAN')).dy));
       // The card shows Start and More; the rest unfolds.
-      expect(find.text('Skip'), findsNothing);
+      expect(find.text('Move or skip'), findsNothing);
       await t.tap(
         find.descendant(
           of: find.byType(WorkoutCard),
@@ -551,7 +551,7 @@ void main() {
       );
       await settle(t);
       expect(find.text('Why this?'), findsOneWidget);
-      expect(find.text('Skip'), findsOneWidget);
+      expect(find.text('Move or skip'), findsOneWidget);
       expect(t.takeException(), isNull);
       await teardown(t, db);
     });
@@ -624,15 +624,29 @@ void main() {
       expect(find.textContaining('How: '), findsWidgets);
       expect(find.textContaining('Why: '), findsWidgets);
 
-      // Move opens the sheet; Keep it closes it.
-      await t.tap(find.text('Move').first);
+      // Move or skip opens one sheet; Keep it closes it.
+      await t.tap(find.text('Move or skip').first);
       await settle(t);
-      expect(find.text('Move strength'), findsOneWidget);
+      expect(find.text('Move or skip strength'), findsOneWidget);
       await t.tap(find.text('Keep it'));
       await settle(t);
 
+      // A reason changes the coach's note and the options.
+      await t.tap(find.text('Move or skip').first);
+      await settle(t);
+      await t.tap(find.text('Sore'));
+      await settle(t);
+      expect(find.textContaining('Soreness is the body'), findsOneWidget);
+      expect(find.text('Skip and ease the week'), findsOneWidget);
+      await t.tap(find.text('Ill'));
+      await settle(t);
+      expect(find.text('Pause the plan · ill'), findsOneWidget);
+      expect(find.text('MOVE TO'), findsNothing);
+      await t.tap(find.text('Ill')); // picked again: no reason
+      await settle(t);
+
       // Skip, then Undo on the card.
-      await t.tap(find.text('Skip').first);
+      await t.tap(find.text('Skip today'));
       await settle(t);
       expect(find.text('Skipped. Nothing to make up.'), findsWidgets);
       await t.tap(find.text('Undo').first);
@@ -795,7 +809,13 @@ void main() {
       addTearDown(() => testHour = 9);
       final db = (await t.runAsync(() => seededDb(days: 30)))!;
       await render(t, db, const TodayScreen(), h: 2600);
-      expect(find.text('Tonight'), findsOneWidget);
+      // The title stays "Today"; the tonight card leads, above the rings.
+      expect(find.text('Today'), findsOneWidget);
+      expect(find.text('TONIGHT'), findsOneWidget);
+      expect(
+        t.getTopLeft(find.text('TONIGHT')).dy,
+        lessThan(t.getTopLeft(find.text('RECOVERY')).dy),
+      );
       expect(find.text('YOUR DAY'), findsNothing);
       await teardown(t, db);
     });

@@ -8,6 +8,7 @@ import '../core/format.dart';
 import '../core/profile.dart' show Keys;
 import '../core/week_review.dart';
 import '../design/components.dart';
+import '../design/icons.dart';
 import '../design/tokens.dart';
 import '../design/type.dart';
 import '../state/providers.dart';
@@ -17,6 +18,7 @@ import 'coach_settings.dart';
 import 'highlight.dart' show DiscoveriesSection;
 import 'longevity.dart';
 import 'nav.dart';
+import 'week_story.dart';
 import 'weekly_report.dart';
 
 /// The review of the week starting [monday] (a date key). A past week is
@@ -114,6 +116,13 @@ class WeeklyReviewScreen extends ConsumerWidget {
               : 'This week so far, from ${dayShort(r.monday)}',
         ),
         Text(r.headline, style: TempoType.titleL.c(c.text1)),
+        TempoButton(
+          'Play the week',
+          icon: TempoIcons.play,
+          kind: ButtonKind.secondary,
+          expand: true,
+          onTap: () => push(context, WeekStoryScreen(monday: mon)),
+        ),
         if (report != null)
           TempoCard(
             child: Column(

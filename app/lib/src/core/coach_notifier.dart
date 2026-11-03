@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:scoring/scoring.dart' as sc;
 import 'package:store/store.dart' as st;
 
+import 'block_service.dart' show loadGoalView;
 import 'coach_extras.dart' show stepsToday;
 import 'sleep_coach.dart' show loadSleepPlan;
 import 'coach_service.dart';
@@ -451,6 +452,16 @@ class CoachNotifier {
     final beforeKm = km(
       await db.workoutsBetween(day.subtract(const Duration(days: 90)), day),
     );
+    // Halfway through a dated goal's block.
+    sc.BlockWeek? bw;
+    String? goalName;
+    try {
+      final gv = await loadGoalView(db, at: now);
+      if (gv != null && gv.block.isEvent) {
+        bw = gv.week;
+        goalName = sc.goalName(gv.block.goal);
+      }
+    } catch (_) {}
     final recent = <sc.WinKind>{
       for (final r in log)
         if (r.kind == sc.NudgeKind.win.name &&
@@ -475,9 +486,15 @@ class CoachNotifier {
         longestKmBefore: beforeKm,
         bedtime: fmtHm(t.bedtimeMinute),
         recentWins: recent,
+        blockWeek: bw?.index,
+        blockWeeks: bw == null || bw.weeks == 0 ? null : bw.weeks,
+        goal: goalName,
       ),
     );
   }
+
+  /// Today's win for the moment card on Today, whatever was notified.
+  Future<sc.Win?> todayWin(TodayData t, DateTime now) => _win(t, now, const []);
 
   static double? r0(TodayData t) => t.stale ? null : t.recovery;
 

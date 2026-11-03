@@ -174,3 +174,45 @@ String? betterSignal(
   }
   return best;
 }
+
+/// The line Today shows right after the morning rating, answering it with
+/// the night's recovery ([recovery] 0–100, null while Tempo is still
+/// learning or there's no night). Feel is asked before the score is
+/// shown, so this is the first time the two meet.
+String feelResponse(int feel, double? recovery) {
+  final w = feelWords[(feel.clamp(1, 5)) - 1].toLowerCase();
+  final r = recovery;
+  if (r == null) {
+    return 'Noted: $w. Once Tempo knows your normal, it checks this '
+        'against recovery each morning.';
+  }
+  final pct = '${r.round()}%';
+  final band = recoveryColor(r);
+  final felt = feelColor(feel);
+  if (felt == band) {
+    return switch (band) {
+      RecoveryColor.green =>
+        'You feel $w and recovery agrees at $pct. A good day to do the work.',
+      RecoveryColor.yellow =>
+        'You feel $w and recovery says the same at $pct. Today’s plan fits; '
+            'no need to chase extra.',
+      RecoveryColor.red =>
+        'You feel $w and recovery agrees at $pct. Take it easy today; that '
+            'is the training.',
+    };
+  }
+  if (felt.index > band.index) {
+    // Felt better than recovery reads (enum order: red, yellow, green).
+    return band == RecoveryColor.red
+        ? 'You feel $w, but recovery is only $pct. Your body may be behind '
+              'how you feel: keep today’s effort in check.'
+        : 'You feel $w; recovery at $pct says moderate. Go by feel, but '
+              'don’t add anything hard.';
+  }
+  return band == RecoveryColor.green
+      ? 'You feel $w, yet your body recovered well ($pct). That is often '
+            'sleepiness or mood rather than fatigue: start easy and decide '
+            'after ten minutes.'
+      : 'You feel $w and recovery is middling at $pct. Keep the session '
+            'easy and drop the hard part if it still feels wrong.';
+}

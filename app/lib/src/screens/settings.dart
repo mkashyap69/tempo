@@ -40,6 +40,7 @@ import 'data_health.dart';
 import 'data_sources.dart';
 import 'health_check.dart';
 import 'journal_customise.dart';
+import 'feedback.dart';
 import 'learn.dart';
 import 'nav.dart';
 import 'week_template.dart';
@@ -1179,6 +1180,11 @@ class SettingsScreen extends ConsumerWidget {
             'Journal questions',
             sub: 'What the morning check-in asks',
             onTap: () => push(context, const JournalCustomiseScreen()),
+          ),
+          ListRow(
+            'Send feedback',
+            sub: 'A bug, a score that looks off, an idea',
+            onTap: () => push(context, const FeedbackScreen()),
           ),
         ]),
         _VersionLine(dev: dev),

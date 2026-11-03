@@ -4,6 +4,8 @@ import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:scoring/scoring.dart' as sc;
 
+import '../core/day_tags.dart' show addQuickTag;
+import '../core/format.dart' show clockOf;
 import '../core/profile.dart';
 import '../design/components.dart';
 import '../design/icons.dart';
@@ -208,6 +210,27 @@ Future<void> showStartSheet(BuildContext context, WidgetRef ref) async {
             expand: true,
             onTap: () => Navigator.pop(ctx, 'start'),
           ),
+          const SizedBox(height: 16),
+          const Overline('Tag now'),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final tag in sc.QuickTag.values)
+                TempoChip(
+                  sc.quickTagName(tag),
+                  height: 40,
+                  selected: false,
+                  onTap: () => Navigator.pop(ctx, 'tag:${tag.name}'),
+                ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Goes in today’s journal at this time, for the insights.',
+            style: TempoType.caption.c(c.text3),
+          ),
           const SizedBox(height: 14),
           CardList(
             children: [
@@ -230,6 +253,23 @@ Future<void> showStartSheet(BuildContext context, WidgetRef ref) async {
     },
   );
   if (pick == null || !context.mounted) return;
+  if (sc.QuickTag.values.asNameMap()[pick.replaceFirst('tag:', '')]
+      case final tag? when pick.startsWith('tag:')) {
+    final db = ref.read(dbProvider);
+    final now = DateTime.now();
+    final bed = ref.read(todayProvider).value?.bedtimeMinute ?? 23 * 60;
+    final undo = await addQuickTag(db, tag, now, bedtime: bed);
+    TempoHaptics.light();
+    if (context.mounted) {
+      showTempoToast(
+        context,
+        '${sc.quickTagName(tag)} at ${clockOf(now)}',
+        action: 'Undo',
+        onAction: undo,
+      );
+    }
+    return;
+  }
   switch (pick) {
     case 'start':
       await openLive(context, ref, ask: true);

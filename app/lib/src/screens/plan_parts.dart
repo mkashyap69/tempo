@@ -13,6 +13,7 @@ import '../core/coach_service.dart';
 import '../core/format.dart';
 import '../core/home_widgets.dart' show rescheduleNotifications;
 import '../core/profile.dart';
+import '../core/skip_reasons.dart';
 import '../core/today.dart';
 import '../design/components.dart';
 import '../design/icons.dart';
@@ -23,6 +24,7 @@ import '../state/providers.dart';
 import 'coach.dart' show WeekView, weekProvider;
 import 'coach_parts.dart' show coachExtrasProvider, statusColor, statusLabel;
 import 'goal.dart';
+import 'move_skip.dart';
 import 'nav.dart';
 import 'workout_detail.dart';
 
@@ -36,26 +38,6 @@ const _dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 Future<void> _changed(WidgetRef ref) async {
   HapticFeedback.selectionClick();
   await rescheduleNotifications(ref.read(dbProvider));
-}
-
-/// Skips [day] with a toast that undoes it.
-Future<void> _skip(BuildContext context, WidgetRef ref, DateTime day) async {
-  // The row that was tapped may be rebuilt away; toast from the navigator.
-  final host = Navigator.of(context).context;
-  final coach = CoachService(ref.read(dbProvider));
-  await coach.setIntent(day, sc.Intent.skipped);
-  await _changed(ref);
-  if (host.mounted) {
-    showTempoToast(
-      host,
-      'Skipped. Nothing to make up.',
-      action: 'Undo',
-      onAction: () async {
-        await coach.setIntent(day, sc.Intent.planned);
-        await _changed(ref);
-      },
-    );
-  }
 }
 
 /// A small tag on a session: Key, Easy, Hard, Today.
@@ -207,7 +189,9 @@ class PlanTodayCard extends ConsumerWidget {
                 children: [
                   Expanded(
                     child: Text(
-                      'Skipped. Nothing to make up.',
+                      skippedLine(
+                        ref.watch(skipReasonProvider(st.dateKey(t.day))).value,
+                      ),
                       style: TempoType.bodyS.c(c.text2),
                     ),
                   ),
@@ -217,6 +201,7 @@ class PlanTodayCard extends ConsumerWidget {
                     kind: ButtonKind.secondary,
                     onTap: () async {
                       await coach.setIntent(t.day, sc.Intent.planned);
+                      await saveSkipReason(ref.read(dbProvider), t.day, null);
                       await _changed(ref);
                     },
                   ),
@@ -235,15 +220,9 @@ class PlanTodayCard extends ConsumerWidget {
                   ),
                   const SizedBox(width: 8),
                   TempoButton(
-                    'Move',
+                    'Move or skip',
                     kind: ButtonKind.secondary,
-                    onTap: () => showMoveSheet(context, ref, t.day),
-                  ),
-                  const SizedBox(width: 8),
-                  TempoButton(
-                    'Skip',
-                    kind: ButtonKind.secondary,
-                    onTap: () => _skip(context, ref, t.day),
+                    onTap: () => showMoveOrSkipSheet(context, ref, t.day),
                   ),
                 ],
               ),
@@ -555,24 +534,21 @@ class _UpcomingRow extends ConsumerWidget {
                               small: true,
                               kind: ButtonKind.secondary,
                               onTap: () async {
-                                await CoachService(ref.read(dbProvider))
+                                final db = ref.read(dbProvider);
+                                await CoachService(db)
                                     .setIntent(d.date, sc.Intent.planned);
+                                await saveSkipReason(db, d.date, null);
                                 await _changed(ref);
                               },
                             ),
                           ]
                         : [
                             TempoButton(
-                              'Move',
+                              'Move or skip',
                               small: true,
                               kind: ButtonKind.secondary,
-                              onTap: () => showMoveSheet(context, ref, d.date),
-                            ),
-                            TempoButton(
-                              'Skip',
-                              small: true,
-                              kind: ButtonKind.secondary,
-                              onTap: () => _skip(context, ref, d.date),
+                              onTap: () =>
+                                  showMoveOrSkipSheet(context, ref, d.date),
                             ),
                           ],
                   ),
@@ -621,91 +597,6 @@ class _PastRow extends StatelessWidget {
       ),
     );
   }
-}
-
-/// Where a session can go this week: days that swap without two heavy
-/// days back to back.
-Future<void> showMoveSheet(
-  BuildContext context,
-  WidgetRef ref,
-  DateTime day,
-) async {
-  final host = Navigator.of(context).context;
-  final db = ref.read(dbProvider);
-  final w = await ref.read(weekProvider.future);
-  final prof = await loadAppProfile(db) ?? const Profile();
-  if (!context.mounted) return;
-  final from = day.weekday - 1;
-  final today = DateTime.now().weekday - 1;
-  final week = [for (var i = 0; i < 7; i++) w.session(i)];
-  final targets = sc.moveTargets(
-    week,
-    from,
-    today: today,
-    available: prof.days,
-  );
-  final s = week[from];
-  await showTempoSheet<void>(
-    context,
-    builder: (ctx) {
-      final c = ctx.c;
-      return Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            'Move ${s.title.toLowerCase()}',
-            style: TempoType.titleM.c(c.text1),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            targets.isEmpty
-                ? 'No other day this week takes it without two hard days in a '
-                      'row. Skip it instead, or keep it where it is.'
-                : 'It swaps with that day’s session. Tempo keeps hard days '
-                      'apart.',
-            style: TempoType.bodyS.c(c.text2),
-          ),
-          const SizedBox(height: 12),
-          if (targets.isNotEmpty)
-            CardList(
-              children: [
-                for (final j in targets)
-                  ListRow(
-                    '${_dayNames[j]} ${w.date(j).day}${j == today ? ' · today' : ''}',
-                    sub: week[j].isRest
-                        ? 'A rest day now; rest moves to ${_dayNames[from]}'
-                        : 'Swaps with ${week[j].title.toLowerCase()} · ${week[j].minutes} min',
-                    onTap: () async {
-                      await CoachService(db).moveDay(day, w.date(j));
-                      await _changed(ref);
-                      if (ctx.mounted) Navigator.pop(ctx);
-                      if (host.mounted) {
-                        showTempoToast(
-                          host,
-                          '${s.title} moved to ${_dayNames[j]}',
-                          action: 'Undo',
-                          onAction: () async {
-                            await CoachService(db).moveDay(w.date(j), day);
-                            await _changed(ref);
-                          },
-                        );
-                      }
-                    },
-                  ),
-              ],
-            ),
-          const SizedBox(height: 8),
-          TempoButton(
-            'Keep it',
-            kind: ButtonKind.ghost,
-            expand: true,
-            onTap: () => Navigator.pop(ctx),
-          ),
-        ],
-      );
-    },
-  );
 }
 
 /// Missed sessions: let them go (the default), fit a key one back in, make
@@ -1287,26 +1178,11 @@ class _PlanDayCard extends ConsumerWidget {
           _HowWhy(how: sc.effortCue(p), why: sc.sessionPurpose(p)),
           if (!past && thisWeek && status != sc.DayStatus.skipped) ...[
             const SizedBox(height: 14),
-            Row(
-              children: [
-                Expanded(
-                  child: TempoButton(
-                    'Move',
-                    kind: ButtonKind.secondary,
-                    expand: true,
-                    onTap: () => showMoveSheet(context, ref, d.date),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: TempoButton(
-                    'Skip',
-                    kind: ButtonKind.secondary,
-                    expand: true,
-                    onTap: () => _skip(context, ref, d.date),
-                  ),
-                ),
-              ],
+            TempoButton(
+              'Move or skip',
+              kind: ButtonKind.secondary,
+              expand: true,
+              onTap: () => showMoveOrSkipSheet(context, ref, d.date),
             ),
           ] else if (!past && !thisWeek) ...[
             const SizedBox(height: 10),

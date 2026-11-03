@@ -26,9 +26,14 @@ class TodayRings extends StatelessWidget {
     required this.t,
     required this.noData,
     this.dim = false,
+    this.past = false,
   });
   final TodayData t;
   final bool noData, dim;
+
+  /// An earlier day (Today's ‹ arrow): no "to go", and the numbers don't
+  /// open today's detail screens.
+  final bool past;
 
   @override
   Widget build(BuildContext context) {
@@ -64,7 +69,7 @@ class TodayRings extends StatelessWidget {
         : calibrating
         ? ('${t.nights}', 'of 14 nights')
         : r == null
-        ? ('—', 'After tonight')
+        ? ('—', t.hasNight ? 'No score' : 'No night recorded')
         : ('${r.round()}%', recoveryWord(r));
 
     final tg = t.target;
@@ -82,7 +87,9 @@ class TodayRings extends StatelessWidget {
               : calibrating
               ? '${14 - t.nights} ${14 - t.nights == 1 ? 'night' : 'nights'} to go'
               : _rhrLine(t),
-          onTap: noData ? null : () => push(context, const RecoveryScreen()),
+          onTap: noData || past
+              ? null
+              : () => push(context, const RecoveryScreen()),
         ),
         const SizedBox(height: 10),
         _LegendItem(
@@ -108,8 +115,12 @@ class TodayRings extends StatelessWidget {
               ? (tg.cap ? 'Cap reached' : 'Target reached')
               : t.strain >= tg.lo
               ? 'In range'
+              : past
+              ? 'Under target'
               : '${n1(tg.lo - t.strain)} to go',
-          onTap: noData ? null : () => push(context, const StrainScreen()),
+          onTap: noData || past
+              ? null
+              : () => push(context, const StrainScreen()),
         ),
         const SizedBox(height: 10),
         _LegendItem(
@@ -119,9 +130,15 @@ class TodayRings extends StatelessWidget {
           sub: noData
               ? ''
               : sp == null
-              ? 'Wear the band tonight'
+              ? (past
+                    ? 'No night recorded'
+                    : t.source == sc.bandSource
+                    ? 'No night · wear the band tonight'
+                    : 'No night · wear your watch tonight')
               : '${hmShort(t.slept!)} · needed ${hmShort(t.need!)}',
-          onTap: noData ? null : () => push(context, const SleepScreen()),
+          onTap: noData || past
+              ? null
+              : () => push(context, const SleepScreen()),
         ),
       ],
     );
@@ -138,24 +155,32 @@ class TodayRings extends StatelessWidget {
               label: noData
                   ? 'No data yet'
                   : 'Recovery $big, strain ${n1(t.strain)}, sleep ${sp == null ? 'no data' : '${sp.round()} percent'}',
-              child: NestedRings(
-                size: ring,
-                stroke: 15 * k,
-                gap: 5 * k,
-                rings: rings,
-                center: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      big,
-                      style: TempoType.scoreL.copyWith(
-                        fontSize: 34 * k,
-                        height: 1.1,
-                        color: dim ? c.text2 : c.text1,
+              onLongPressHint: 'explain the rings',
+              onLongPress: () => showRingsExplainer(context, t, noData: noData),
+              child: GestureDetector(
+                onLongPress: () {
+                  TempoHaptics.medium();
+                  showRingsExplainer(context, t, noData: noData);
+                },
+                child: NestedRings(
+                  size: ring,
+                  stroke: 15 * k,
+                  gap: 5 * k,
+                  rings: rings,
+                  center: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        big,
+                        style: TempoType.scoreL.copyWith(
+                          fontSize: 34 * k,
+                          height: 1.1,
+                          color: dim ? c.text2 : c.text1,
+                        ),
                       ),
-                    ),
-                    Text(word, style: TempoType.caption.c(c.text2)),
-                  ],
+                      Text(word, style: TempoType.caption.c(c.text2)),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -790,4 +815,106 @@ class LastNightStrip extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// Holding the rings: what each ring is, today's value and how to read it.
+Future<void> showRingsExplainer(
+  BuildContext context,
+  TodayData t, {
+  bool noData = false,
+}) {
+  final s = context.s;
+  final r = t.recovery, sp = t.sleepScore, tg = t.target;
+  final rows = [
+    (
+      'Outer ring · Recovery',
+      s.recoveryFor(r ?? 50),
+      noData
+          ? '—'
+          : t.calibrating
+          ? 'Learning · ${t.nights} of 14 nights'
+          : r == null
+          ? '—'
+          : '${r.round()}% · ${recoveryWord(r)}',
+      'How ready your body is, from last night’s heart rate, HRV and sleep '
+          'against your own normal. 67% and up is ready for hard work; under '
+          '34% says go easy.',
+    ),
+    (
+      'Middle ring · Strain',
+      s.strain[2],
+      noData
+          ? '—'
+          : tg.cap
+          ? '${n1(t.strain)} of a cap of ${tg.hi.round()}'
+          : '${n1(t.strain)} · target ${tg.lo.round()}–${tg.hi.round()}',
+      'The day’s load on the heart, 0 to 21. The marks on the ring are '
+          'today’s target, set from recovery: wider on a good day, a cap on '
+          'a rest day.',
+    ),
+    (
+      'Inner ring · Sleep',
+      s.sleepChannel,
+      noData || sp == null
+          ? 'No night recorded'
+          : '${sp.round()}% · ${hmShort(t.slept!)} of ${hmShort(t.need!)}',
+      'Last night against what you needed, plus regular timing and how '
+          'unbroken it was. A full ring is the sleep your body asked for.',
+    ),
+  ];
+  return showTempoSheet<void>(
+    context,
+    builder: (ctx) {
+      final c = ctx.c;
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text('Your three rings', style: TempoType.titleL.c(c.text1)),
+          const SizedBox(height: 4),
+          Text(
+            'Each ring fills toward a full day. Tap a number on Today to see '
+            'what moved it.',
+            style: TempoType.bodyS.c(c.text2),
+          ),
+          for (final (name, color, value, body) in rows) ...[
+            const SizedBox(height: 18),
+            Row(
+              children: [
+                Container(
+                  width: 12,
+                  height: 12,
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(child: Text(name, style: TempoType.label.c(c.text1))),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Padding(
+              padding: const EdgeInsets.only(left: 22),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(value, style: TempoType.titleM.c(c.text1).tnum),
+                  const SizedBox(height: 2),
+                  Text(body, style: TempoType.bodyS.c(c.text2)),
+                ],
+              ),
+            ),
+          ],
+          const SizedBox(height: 20),
+          TempoButton(
+            'Got it',
+            kind: ButtonKind.secondary,
+            expand: true,
+            onTap: () => Navigator.pop(ctx),
+          ),
+        ],
+      );
+    },
+  );
 }

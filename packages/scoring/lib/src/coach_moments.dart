@@ -18,6 +18,9 @@ enum WinKind {
   stepStreak,
   calibrated,
   longest,
+
+  /// Halfway through a goal's block (appended: stored names hold).
+  halfway,
 }
 
 final class Win {
@@ -45,6 +48,9 @@ final class WinInput {
     this.longestKmBefore,
     this.bedtime = '22:45',
     this.recentWins = const {},
+    this.blockWeek,
+    this.blockWeeks,
+    this.goal,
   });
 
   /// Today's recovery (null while learning).
@@ -77,7 +83,16 @@ final class WinInput {
 
   /// Kinds already celebrated in the last 7 days.
   final Set<WinKind> recentWins;
+
+  /// This week of a dated goal's block (0-based) and its length in weeks;
+  /// null without one. [goal] names it ("10K", "Half marathon").
+  final int? blockWeek, blockWeeks;
+  final String? goal;
 }
+
+/// The block week that counts as halfway, or null for blocks too short
+/// to have a middle worth marking (under 4 weeks).
+int? halfwayWeek(int weeks) => weeks >= 4 ? weeks ~/ 2 : null;
 
 /// Streak lengths worth a word: a run of these is noise.
 const streakMarks = {3, 7, 14, 21, 30, 50, 100};
@@ -126,6 +141,18 @@ Win? pickWin(WinInput i) {
         WinKind.longest,
         'Longest in 90 days: ${today.toStringAsFixed(1)} km',
         'Previous best ${before.toStringAsFixed(1)} km. Sleep well tonight so it lands.',
+        weight: 3,
+      ),
+    );
+  }
+  final bw = i.blockWeek, bn = i.blockWeeks;
+  if (bw != null && bn != null && bw == halfwayWeek(bn)) {
+    out.add(
+      Win(
+        WinKind.halfway,
+        'Halfway to ${i.goal ?? 'your goal'}',
+        'Week ${bw + 1} of $bn. The base is in; from here the plan builds '
+            'toward the day itself.',
         weight: 3,
       ),
     );

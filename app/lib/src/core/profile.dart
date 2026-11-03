@@ -133,6 +133,12 @@ abstract final class Keys {
   /// Quick tags for Today's timeline: JSON {yyyy-mm-dd: [[tag, minute]]}.
   /// The Journal entries they mean are written to `journal` as well.
   static const dayTags = 'day_tags';
+
+  /// Why sessions were skipped or moved: JSON {yyyy-mm-dd: reason name}.
+  static const skipReasons = 'skip_reasons';
+
+  /// The moment card dismissed on Today: "yyyy-mm-dd|win kind".
+  static const momentSeen = 'moment_seen';
 }
 
 /// Everything the user tells Tempo in onboarding and Profile.

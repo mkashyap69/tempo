@@ -609,7 +609,11 @@ class _SleepScreenState extends ConsumerState<SleepScreen> {
               ),
             ],
           ),
-          BreathingCard(breathing: night.breathing),
+          BreathingCard(
+            breathing: night.breathing,
+            spo2: night.spo2,
+            source: night.source,
+          ),
         ],
         if (latest) TonightCard(t: t),
         if (latest) const SleepTypeCard(),
@@ -892,12 +896,66 @@ Future<void> pickSmartAlarm(
 /// Sleep breathing from the band's overnight SpO₂ (type 0x26) and
 /// desaturation events (0x27).
 class BreathingCard extends StatelessWidget {
-  const BreathingCard({super.key, required this.breathing});
+  const BreathingCard({
+    super.key,
+    required this.breathing,
+    this.spo2 = const [],
+    this.source = DataSource.band,
+  });
   final sc.BreathingNight? breathing;
+
+  /// The night's SpO₂ readings, for a watch that measures too sparsely to
+  /// score dips (Apple Watch: a few spot readings a night).
+  final List<st.Spo2Sample> spo2;
+  final DataSource source;
+
   @override
   Widget build(BuildContext context) {
     final c = context.c, s = context.s;
     final b = breathing;
+    final watch = source.isHealth;
+    final readings = [
+      for (final x in spo2)
+        if (x.value > 0) x.value,
+    ];
+    if (b == null && readings.isNotEmpty) {
+      final avg = readings.reduce((a, b) => a + b) / readings.length;
+      final low = readings.reduce((a, b) => a < b ? a : b);
+      Widget stat(String k, String v) => Expanded(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(k, style: TempoType.caption.c(c.text3)),
+            const SizedBox(height: 2),
+            Text(v, style: TempoType.label.c(c.text1).tnum),
+          ],
+        ),
+      );
+      return TempoCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('Blood oxygen', style: TempoType.label.c(c.text1)),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                stat('Avg SpO₂', '${avg.round()}%'),
+                stat('Lowest', '${low.round()}%'),
+                stat('Readings', '${readings.length}'),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              '${watch ? 'Your watch' : 'The band'} took ${readings.length == 1 ? 'one reading' : '${readings.length} readings'} '
+              'overnight: too few to count oxygen dips, so there’s no breathing '
+              'score. 95% and up is typical; a wellness signal, not a medical '
+              'test.',
+              style: TempoType.caption.c(c.text3),
+            ),
+          ],
+        ),
+      );
+    }
     if (b == null) {
       return TempoCard(
         child: Column(
@@ -906,7 +964,11 @@ class BreathingCard extends StatelessWidget {
             Text('Breathing', style: TempoType.label.c(c.text1)),
             const SizedBox(height: 6),
             Text(
-              'No overnight SpO₂ for this night. Turn on sleep breathing monitoring for the band in Mi Fitness and Tempo picks it up from the next night.',
+              source == DataSource.appleHealth
+                  ? 'No blood-oxygen readings for this night. In the Watch app, turn on Blood Oxygen measurements, including during Sleep Focus.'
+                  : watch
+                  ? 'No blood-oxygen readings for this night. If your watch measures SpO₂, let its app write it to Health Connect and allow Tempo to read it.'
+                  : 'No overnight SpO₂ for this night. Turn on sleep breathing monitoring for the band in Mi Fitness and Tempo picks it up from the next night.',
               style: TempoType.bodyS.c(c.text2),
             ),
           ],
@@ -971,7 +1033,7 @@ class BreathingCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            'From the band’s overnight SpO₂: ${b.events} oxygen dips of 3 points or more.${b.artifactMinutes >= 10 ? ' ${hmShort(b.artifactMinutes / 60)} of flat, steady low readings were left out — that pattern usually comes from lying on the band, not your breathing.' : ''} A wellness signal, not a sleep-apnea test; talk to a doctor if you snore loudly or wake unrefreshed.',
+            'From ${watch ? 'your watch’s' : 'the band’s'} overnight SpO₂: ${b.events} oxygen dips of 3 points or more.${b.artifactMinutes >= 10 ? ' ${hmShort(b.artifactMinutes / 60)} of flat, steady low readings were left out — that pattern usually comes from lying on the band, not your breathing.' : ''} A wellness signal, not a sleep-apnea test; talk to a doctor if you snore loudly or wake unrefreshed.',
             style: TempoType.caption.c(c.text3),
           ),
         ],

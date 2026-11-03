@@ -44,6 +44,7 @@ each board to the code that implements it.
 | 10 Weekly report + share card | `screens/weekly_review.dart` (Week in review), `screens/weekly_report.dart` (share card) |
 | 11 Profile & settings | `screens/settings.dart` |
 | 12 Widgets | Android `kotlin/.../TempoWidgets.kt` + `res/layout/tempo_widget_*.xml`; iOS `ios/TempoWidget/`; data from `core/home_widgets.dart` |
+| Design boards review (D1: every kind of day, reveal and moments, details, native touches, beta) | Move or skip `screens/move_skip.dart`; reveal, earlier days and moments `screens/today_more.dart`; rings explainer `screens/today_charts.dart` (`showRingsExplainer`); Week story `screens/week_story.dart`; Feedback `screens/feedback.dart` |
 | States × screens | rules applied per screen; covered by `app/test/screens_test.dart` |
 
 ## Flows

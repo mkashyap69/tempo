@@ -40,6 +40,7 @@ import 'shared.dart';
 import 'strain.dart';
 import 'workout_detail.dart';
 import 'today_charts.dart';
+import 'today_more.dart';
 import 'workouts.dart';
 import 'sleep_type.dart' show SleepPlanRow;
 import 'today_tiles.dart';
@@ -60,6 +61,13 @@ class TodayScreen extends ConsumerWidget {
     final noPermission =
         adapter == BluetoothAdapterState.unauthorized ||
         sync.problem == SyncProblem.noPermission;
+    final back = ref.watch(todayBackProvider);
+    if (back > 0) {
+      return TempoPage(
+        bottom: 140,
+        children: pastDayChildren(context, ref, back),
+      );
+    }
     return TempoPage(
       bottom: 140, // clear the start button over the last row
       onRefresh: paired
@@ -94,7 +102,11 @@ abstract final class TodayBody {
   }) {
     final c = context.c;
     final noData = !paired || noPermission;
-    final dim = sync.running || (t.stale && !noData);
+    final failed =
+        !sync.running &&
+        (sync.problem == SyncProblem.failed ||
+            sync.problem == SyncProblem.healthUnreadable);
+    final dim = sync.running || ((t.stale || failed) && !noData);
     final adds = planAdds(t);
     final done =
         t.plan != null &&
@@ -119,6 +131,9 @@ abstract final class TodayBody {
       syncText = 'No access';
     } else if (sync.running) {
       syncText = 'Syncing…';
+    } else if (failed && t.lastSync != null) {
+      // The numbers stay; say when they're from.
+      syncText = 'As of ${clockOf(t.lastSync!)}';
     } else if (sync.problem == SyncProblem.failed) {
       syncText = 'Sync failed';
     } else if (sync.problem == SyncProblem.healthUnreadable) {
@@ -308,7 +323,14 @@ abstract final class TodayBody {
       health: source.isHealth,
       onWhy: noData || t.firstDay ? null : () => showWhySheet(context, t),
     );
-    final rings = TodayRings(t: t, noData: noData, dim: dim);
+    // Rating the morning (and Replay) draws the rings in again.
+    final rings = TodayRings(
+      key: ValueKey('rings-${felt.value}-${ref.watch(ringsReplayProvider)}'),
+      t: t,
+      noData: noData,
+      dim: dim,
+    );
+    final moment = noData || t.firstDay ? null : const MomentCard();
 
     // Today's session: done, a rest day, or the plan with its actions and
     // the alternatives inside the card.
@@ -402,7 +424,12 @@ abstract final class TodayBody {
         case sc.DayPhase.newcomer:
           body = [
             if (checkIn)
-              MorningCheckIn(day: t.day, askFeel: askFeel, showDone: morning),
+              MorningCheckIn(
+                day: t.day,
+                askFeel: askFeel,
+                showDone: morning,
+                recovery: t.stale ? null : t.recovery,
+              ),
             rings,
             call,
             LearningCard(t: t, checkins: checkins),
@@ -413,7 +440,12 @@ abstract final class TodayBody {
         case sc.DayPhase.rest:
           body = [
             if (checkIn && !evening)
-              MorningCheckIn(day: t.day, askFeel: askFeel, showDone: morning),
+              MorningCheckIn(
+                day: t.day,
+                askFeel: askFeel,
+                showDone: morning,
+                recovery: t.stale ? null : t.recovery,
+              ),
             // Evening: tonight is what's left to do; one box, not three.
             if (evening) TonightCard(t: t),
             rings,
@@ -428,9 +460,15 @@ abstract final class TodayBody {
             if (showGraduation) const GraduationCard(),
             if (away != null) WelcomeBackCard(days: away),
             if (checkIn)
-              MorningCheckIn(day: t.day, askFeel: askFeel, showDone: morning),
+              MorningCheckIn(
+                day: t.day,
+                askFeel: askFeel,
+                showDone: morning,
+                recovery: t.stale ? null : t.recovery,
+              ),
             rings,
             call,
+            ?moment,
             ?session,
             ...coachNotes,
             insight,
@@ -444,9 +482,15 @@ abstract final class TodayBody {
         case sc.DayPhase.day:
           body = [
             if (checkIn)
-              MorningCheckIn(day: t.day, askFeel: askFeel, showDone: morning),
+              MorningCheckIn(
+                day: t.day,
+                askFeel: askFeel,
+                showDone: morning,
+                recovery: t.stale ? null : t.recovery,
+              ),
             rings,
             call,
+            ?moment,
             ?session,
             ...coachNotes,
             insight,
@@ -461,6 +505,7 @@ abstract final class TodayBody {
           body = [
             rings,
             call,
+            ?moment,
             ?session,
             if (latest != null) RecoveryHrCard(workoutId: latest.id),
             ...coachNotes,
@@ -495,13 +540,12 @@ abstract final class TodayBody {
                 children: [
                   Overline(dayLong(t.day)),
                   const SizedBox(height: 2),
-                  Text(
-                    phase == sc.DayPhase.evening ? 'Tonight' : 'Today',
-                    style: TempoType.titleM.c(c.text1),
-                  ),
+                  Text('Today', style: TempoType.titleM.c(c.text1)),
                 ],
               ),
             ),
+            if (!noData) const DayStepper(),
+            const SizedBox(width: 4),
             Pressable(
               label: 'Sync now',
               onTap: paired

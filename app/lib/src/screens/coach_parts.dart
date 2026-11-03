@@ -9,6 +9,7 @@ import '../core/coach_extras.dart';
 import '../core/coach_service.dart';
 import '../core/home_widgets.dart' show rescheduleNotifications;
 import '../core/profile.dart';
+import '../core/skip_reasons.dart' show saveSkipReason;
 import '../core/today.dart';
 import '../design/components.dart';
 import '../design/icons.dart';
@@ -16,6 +17,7 @@ import '../design/tokens.dart';
 import '../design/type.dart';
 import '../state/providers.dart';
 import 'longevity.dart';
+import 'move_skip.dart';
 import 'nav.dart';
 
 final coachExtrasProvider = FutureProvider<CoachExtras>((ref) async {
@@ -94,6 +96,16 @@ class SessionActions extends ConsumerWidget {
       );
     }
 
+    void moveOrSkip() => buttons.add(
+      TempoButton(
+        'Move or skip',
+        small: true,
+        fontSize: 14,
+        kind: ButtonKind.ghost,
+        onTap: () => showMoveOrSkipSheet(context, ref, day),
+      ),
+    );
+
     switch (t.status) {
       case sc.DayStatus.pending:
         if ((t.plannedMinute ?? 0) < pm && nowMin < pm) {
@@ -103,15 +115,18 @@ class SessionActions extends ConsumerWidget {
           );
         }
         add('Done already', () => coach.setIntent(day, sc.Intent.done));
-        add('Skip', () => coach.setIntent(day, sc.Intent.skipped));
+        moveOrSkip();
       case sc.DayStatus.moved:
         add('Done already', () => coach.setIntent(day, sc.Intent.done));
-        add('Skip', () => coach.setIntent(day, sc.Intent.skipped));
+        moveOrSkip();
       case sc.DayStatus.missedSlot || sc.DayStatus.partial:
         add('Done already', () => coach.setIntent(day, sc.Intent.done));
       case sc.DayStatus.skipped || sc.DayStatus.missedDay:
         if (t.intent != sc.Intent.planned) {
-          add('Undo', () => coach.setIntent(day, sc.Intent.planned));
+          add('Undo', () async {
+            await coach.setIntent(day, sc.Intent.planned);
+            await saveSkipReason(ref.read(dbProvider), day, null);
+          });
         }
       case _:
         if (t.intent == sc.Intent.done) {

@@ -19,6 +19,7 @@ import 'coach_parts.dart' show WeekStatusRow, coachExtrasProvider;
 import 'journal.dart';
 import 'learn.dart';
 import 'nav.dart';
+import 'today_more.dart' show FeelResponse;
 import 'recovery.dart';
 import 'shared.dart';
 import 'sleep.dart';
@@ -32,8 +33,13 @@ class MorningCheckIn extends ConsumerStatefulWidget {
     required this.day,
     required this.askFeel,
     this.showDone = true,
+    this.recovery,
   });
   final DateTime day;
+
+  /// This morning's recovery, for the line that answers the rating (null
+  /// while learning or out of date).
+  final double? recovery;
 
   /// Keep the one-line "checked in" once both are in (mornings only).
   final bool showDone;
@@ -61,7 +67,11 @@ class _MorningCheckInState extends ConsumerState<MorningCheckIn> {
       if (!widget.showDone || felt == null && (j == null || !j.checkedIn)) {
         return const SizedBox.shrink();
       }
-      return _Done(feel: felt, journal: j?.checkedIn ?? false);
+      return _Done(
+        feel: felt,
+        journal: j?.checkedIn ?? false,
+        recovery: widget.recovery,
+      );
     }
     Widget option(int v) => Expanded(
       child: Pressable(
@@ -128,6 +138,10 @@ class _MorningCheckInState extends ConsumerState<MorningCheckIn> {
             ),
             const SizedBox(height: 14),
             Row(children: [for (var v = 1; v <= 5; v++) option(v)]),
+            if (felt != null) ...[
+              const SizedBox(height: 12),
+              FeelResponse(feel: felt, recovery: widget.recovery),
+            ],
           ],
           if (journalOpen) ...[
             if (widget.askFeel || felt != null) ...[
@@ -199,9 +213,10 @@ class _MorningCheckInState extends ConsumerState<MorningCheckIn> {
 }
 
 class _Done extends StatelessWidget {
-  const _Done({required this.feel, required this.journal});
+  const _Done({required this.feel, required this.journal, this.recovery});
   final int? feel;
   final bool journal;
+  final double? recovery;
 
   @override
   Widget build(BuildContext context) {
@@ -210,7 +225,7 @@ class _Done extends StatelessWidget {
       if (feel != null) 'feeling ${sc.feelWords[feel! - 1].toLowerCase()}',
       if (journal) 'journal saved',
     ];
-    return TempoCard(
+    final row = TempoCard(
       label: 'Checked in',
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       onTap: () => push(context, const JournalScreen(standalone: true)),
@@ -236,6 +251,17 @@ class _Done extends StatelessWidget {
           TempoIcon(TempoIcons.chevron, size: 16, color: c.text3),
         ],
       ),
+    );
+    if (feel == null) return row;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        row,
+        Padding(
+          padding: const EdgeInsets.fromLTRB(4, 10, 0, 0),
+          child: FeelResponse(feel: feel!, recovery: recovery),
+        ),
+      ],
     );
   }
 }
