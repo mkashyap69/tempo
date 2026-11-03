@@ -105,6 +105,10 @@ abstract final class Keys {
   /// Today's insights shown, newest last: JSON [[kind, key, date, title]].
   static const highlightLog = 'highlight_log';
 
+  /// When Tempo was last brought to the front (ISO), for the come-back
+  /// notification and to skip an insight already seen on Today.
+  static const lastOpened = 'last_opened';
+
   /// Date (yyyy-mm-dd) the week review card was put away on Today.
   static const weekCardDone = 'week_card_done';
 

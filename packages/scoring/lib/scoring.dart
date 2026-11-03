@@ -24,6 +24,7 @@ export 'src/load.dart';
 export 'src/longevity.dart';
 export 'src/manual.dart';
 export 'src/nudges.dart';
+export 'src/coach_moments.dart';
 export 'src/pace.dart';
 export 'src/picks.dart';
 export 'src/plan_brief.dart';

@@ -37,12 +37,15 @@ String? tapTarget(String? payload, String? actionId) {
     kind = (jsonDecode(payload ?? '{}') as Map)['kind'] as String?;
   } catch (_) {}
   if (actionId == 'start') return 'start';
+  if (actionId == 'share') return 'today';
   if (actionId != null && actionId != 'open') return null;
   return switch (kind) {
     'rpe' => 'workouts',
     'weekly' => 'review',
     'journal' => 'journal',
     'workout' => 'workout',
+    'weekGoal' => 'coach',
+    'win' || 'insight' || 'comeback' => 'today',
     _ => 'coach',
   };
 }
@@ -90,6 +93,18 @@ String nudgePayload(sc.NudgeSpec n) => jsonEncode({
     desc:
         'When your night heart rate runs well above usual, or several '
         'body signals are off together.',
+    imp: Importance.defaultImportance,
+  ),
+  sc.NudgeKind.win || sc.NudgeKind.insight => (
+    id: 'coach_wins',
+    name: 'Wins and insights',
+    desc: 'Personal bests, streaks and what Tempo found in your data.',
+    imp: Importance.low,
+  ),
+  sc.NudgeKind.weekGoal || sc.NudgeKind.comeback => (
+    id: 'coach_progress',
+    name: 'Goal progress',
+    desc: 'Your week against your goal, and a catch-up after days away.',
     imp: Importance.defaultImportance,
   ),
   sc.NudgeKind.journal => (

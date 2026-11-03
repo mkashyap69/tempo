@@ -1,10 +1,14 @@
 import 'dart:io';
 
 import 'package:flutter/widgets.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:store/store.dart' show TempoDb;
 import 'package:workmanager/workmanager.dart';
 
+import '../screens/highlight.dart' show todayHighlightProvider;
+import '../state/providers.dart' show dbProvider;
 import 'band_link.dart';
+import 'coach_notifier.dart';
 import 'data_source.dart';
 import 'db.dart';
 import 'health_sync.dart';
@@ -19,9 +23,22 @@ void backgroundDispatcher() {
   Workmanager().executeTask((task, _) async {
     WidgetsFlutterBinding.ensureInitialized();
     final db = openDb();
+    // Today's insight for the quiet insight notification (N2): the same
+    // pick Today would show, from a provider container on this database.
+    final container = ProviderContainer(
+      overrides: [dbProvider.overrideWithValue(db)],
+    );
+    CoachNotifier.insightPicker = (_) async {
+      final h = await container
+          .read(todayHighlightProvider.future)
+          .timeout(const Duration(seconds: 20));
+      return h == null ? null : (h.title, h.body);
+    };
     try {
       return await runBackgroundSync(db);
     } finally {
+      CoachNotifier.insightPicker = null;
+      container.dispose();
       await db.close();
     }
   });

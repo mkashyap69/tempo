@@ -7,6 +7,8 @@
 /// stays true even if no sync ran after it was scheduled.
 library;
 
+import 'coach_moments.dart';
+
 import 'dart:math';
 
 import 'coach_day.dart';
@@ -24,13 +26,25 @@ enum NudgeKind {
   health,
   weekly,
   journal,
+
+  /// N2 coach moments (coach_moments.dart).
+  win,
+  weekGoal,
+  insight,
+  comeback,
 }
 
 /// How a kind interrupts. Passive ones go quietly to the shade.
 enum NudgeLevel { passive, active }
 
 /// Proactive kinds share the daily budget (the user didn't ask for them).
-const proactiveKinds = {NudgeKind.session, NudgeKind.missed, NudgeKind.lever};
+const proactiveKinds = {
+  NudgeKind.session,
+  NudgeKind.missed,
+  NudgeKind.lever,
+  NudgeKind.weekGoal,
+  NudgeKind.comeback,
+};
 
 /// Kinds on by default; weekly is opt-in.
 const defaultKinds = {
@@ -42,6 +56,10 @@ const defaultKinds = {
   NudgeKind.rpe,
   NudgeKind.health,
   NudgeKind.journal,
+  NudgeKind.win,
+  NudgeKind.weekGoal,
+  NudgeKind.insight,
+  NudgeKind.comeback,
 };
 
 final class NudgeAction {
@@ -76,7 +94,8 @@ final class NudgeSpec {
   NudgeLevel get level =>
       kind == NudgeKind.brief ||
           kind == NudgeKind.weekly ||
-          kind == NudgeKind.journal
+          kind == NudgeKind.journal ||
+          kind == NudgeKind.insight
       ? NudgeLevel.passive
       : NudgeLevel.active;
 }
@@ -137,6 +156,12 @@ final class NudgeContext {
     this.seed = 0,
     this.needTonight,
     this.sleepPlanLine,
+    this.briefTitle,
+    this.win,
+    this.weekGoal,
+    this.weekGoalDay = DateTime.wednesday,
+    this.insight,
+    this.comeback,
   });
 
   final DateTime now;
@@ -197,6 +222,23 @@ final class NudgeContext {
 
   /// "Day 9 · up by 8:00" while a sleep plan runs.
   final String? sleepPlanLine;
+
+  /// Today's brief title from the call ("Primed · recovery 78%"): the
+  /// reason to open the app. Null keeps the plan title.
+  final String? briefTitle;
+
+  /// Today's win (coach_moments.dart pickWin), not yet sent.
+  final Win? win;
+
+  /// The week-goal check-in copy (weekGoalCopy), and the weekday it goes.
+  final (String, String)? weekGoal;
+  final int weekGoalDay;
+
+  /// Something new Tempo found (title, body), not sent in 3 days.
+  final (String, String)? insight;
+
+  /// The come-back copy (comebackCopy), for today only.
+  final (String, String)? comeback;
 }
 
 String _hours(double h) {
@@ -277,7 +319,9 @@ List<NudgeSpec> planNudges(NudgeContext c) {
           kind: NudgeKind.brief,
           id: nudgeId(NudgeKind.brief, o),
           fireAt: t,
-          title: d == null
+          title: o == 0 && c.briefTitle != null
+              ? c.briefTitle!
+              : d == null
               ? 'Your plan for today'
               : d.rest
               ? 'Today: rest day'
@@ -532,6 +576,91 @@ List<NudgeSpec> planNudges(NudgeContext c) {
     }
   }
 
+  // A win: morning facts after waking, the rest in the evening.
+  final w = c.win;
+  if (w != null && on(NudgeKind.win)) {
+    final morning =
+        w.kind == WinKind.recoveryBest || w.kind == WinKind.calibrated;
+    var t = at(0, morning ? c.wake + 90 : 19 * 60 + 30);
+    if (!future(t)) t = soon;
+    if (!quiet(t)) {
+      out.add(
+        NudgeSpec(
+          kind: NudgeKind.win,
+          id: nudgeId(NudgeKind.win, 0),
+          fireAt: t,
+          title: w.title,
+          body: w.body,
+          actions: const [
+            NudgeAction('open', 'See it', foreground: true),
+            NudgeAction('share', 'Share', foreground: true),
+          ],
+          payload: {'win': w.kind.name},
+        ),
+      );
+    }
+  }
+
+  // Week goal, mid-week at lunch.
+  final wg = c.weekGoal;
+  if (wg != null &&
+      on(NudgeKind.weekGoal) &&
+      c.now.weekday == c.weekGoalDay &&
+      !slowed(NudgeKind.weekGoal, 0)) {
+    final t = at(0, 12 * 60 + 30);
+    if (future(t)) {
+      out.add(
+        NudgeSpec(
+          kind: NudgeKind.weekGoal,
+          id: nudgeId(NudgeKind.weekGoal, 0),
+          fireAt: t,
+          title: wg.$1,
+          body: wg.$2,
+          actions: const [
+            NudgeAction('open', 'See the week', foreground: true),
+          ],
+        ),
+      );
+    }
+  }
+
+  // An insight, quietly, early afternoon.
+  final ins = c.insight;
+  if (ins != null && on(NudgeKind.insight)) {
+    final t = at(0, 13 * 60 + 15);
+    if (future(t)) {
+      out.add(
+        NudgeSpec(
+          kind: NudgeKind.insight,
+          id: nudgeId(NudgeKind.insight, 0),
+          fireAt: t,
+          title: ins.$1,
+          body: ins.$2,
+          actions: const [NudgeAction('open', 'Show me', foreground: true)],
+        ),
+      );
+    }
+  }
+
+  // Come back, an hour after waking.
+  final cb = c.comeback;
+  if (cb != null && on(NudgeKind.comeback)) {
+    var t = at(0, c.wake + 60);
+    if (!future(t)) t = soon;
+    if (!quiet(t)) {
+      out.add(
+        NudgeSpec(
+          kind: NudgeKind.comeback,
+          id: nudgeId(NudgeKind.comeback, 0),
+          fireAt: t,
+          title: cb.$1,
+          body: cb.$2,
+          actions: const [NudgeAction('open', 'Open', foreground: true)],
+        ),
+      );
+    }
+  }
+
   return _budget(c, out, quiet);
 }
 
@@ -541,8 +670,12 @@ const _priority = [
   NudgeKind.missed,
   NudgeKind.rpe,
   NudgeKind.winddown,
+  NudgeKind.win,
+  NudgeKind.comeback,
+  NudgeKind.weekGoal,
   NudgeKind.lever,
   NudgeKind.brief,
+  NudgeKind.insight,
   NudgeKind.journal,
   NudgeKind.weekly,
 ];

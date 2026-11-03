@@ -280,6 +280,7 @@ class CoachNotifier {
       body = const sc.BodySignals([], sc.BodyLevel.learning);
     }
 
+    final m = await moments(t, now, log);
     final model = learnedModel(log, now);
     _algo = model == null ? sc.nudgeAlgo : sc.nudgeAlgoLearned;
     final sleepPlan = await loadSleepPlan(db, now: now);
@@ -321,6 +322,11 @@ class CoachNotifier {
         day.subtract(const Duration(days: 1)),
       ),
       needTonight: t.needTonight,
+      briefTitle: m.briefTitle,
+      win: m.win,
+      weekGoal: m.weekGoal,
+      insight: m.insight,
+      comeback: m.comeback,
       sleepPlanLine: sleepPlan == null || sleepPlan.finished
           ? null
           : 'day ${sleepPlan.day + 1} · up by ${fmtHm(sleepPlan.plan.wake)}',
@@ -332,6 +338,235 @@ class CoachNotifier {
       ),
     );
   }
+
+  /// The N2 coach moments for [now]: the brief's title, today's win, the
+  /// week-goal check-in, an insight and the come-back message. Each part
+  /// fails alone: a broken query costs that moment, not the schedule.
+  Future<
+    ({
+      String? briefTitle,
+      sc.Win? win,
+      (String, String)? weekGoal,
+      (String, String)? insight,
+      (String, String)? comeback,
+    })
+  >
+  moments(TodayData t, DateTime now, List<st.NudgeLogData> log) async {
+    final day = dayOf(now);
+    Future<T?> safe<T>(Future<T?> Function() f) async {
+      try {
+        return await f();
+      } catch (e) {
+        debugPrint('coach moments: $e');
+        return null;
+      }
+    }
+
+    String? briefTitle;
+    final r = t.recovery;
+    if (!t.calibrating && r != null && !t.stale) {
+      final lead = callFor(t).lead.trim().replaceAll(RegExp(r'[.:,—–-]+$'), '');
+      briefTitle = '$lead · recovery ${r.round()}%';
+    }
+    final win = await safe(() => _win(t, now, log));
+    final weekGoal = await safe(() => _weekGoal(day));
+    final comeback = await safe(() => _comeback(t, now));
+    final insight = await safe(() => _insight(now, log));
+    return (
+      briefTitle: briefTitle,
+      win: win,
+      weekGoal: weekGoal,
+      insight: insight,
+      comeback: comeback,
+    );
+  }
+
+  Future<sc.Win?> _win(
+    TodayData t,
+    DateTime now,
+    List<st.NudgeLogData> log,
+  ) async {
+    final day = dayOf(now);
+    final past = [
+      for (final s in t.history)
+        if (!s.calibrating && s.recovery != null) s.recovery!,
+    ].take(30).toList();
+    // Nights in a row in bed within 30 min of the bedtime Tempo set.
+    var kept = 0;
+    for (final s in [?t.score, ...t.history]) {
+      final a = s.sleepStart;
+      if (a == null) break;
+      final at = st.fromTs(a);
+      var diff = at.hour * 60 + at.minute - t.bedtimeMinute % 1440;
+      if (diff > 720) diff -= 1440;
+      if (diff < -720) diff += 1440;
+      if (diff > 30) break;
+      kept++;
+    }
+    // This week's sessions.
+    final week = await CoachService(db).ensureWeek(day);
+    var planned = 0, done = 0;
+    var todayDone = false;
+    const doneNames = {'done', 'doneEasier', 'doneHarder'};
+    for (final row in week) {
+      final s = sc.Session.fromJson(
+        jsonDecode(row.session) as Map<String, dynamic>,
+      );
+      if (s.isRest) continue;
+      planned++;
+      if (doneNames.contains(row.status)) {
+        done++;
+        if (row.date == st.dateKey(day)) todayDone = true;
+      }
+    }
+    // Days in a row at the step goal, today counted once reached.
+    final goal = t.profile.effectiveStepGoal;
+    final health = t.source != sc.bandSource;
+    var stepDays = 0;
+    for (var i = 0; i < 31; i++) {
+      final d0 = day.subtract(Duration(days: i));
+      final n = i == 0
+          ? await stepsToday(db, now)
+          : await db.stepsBetween(
+              d0,
+              d0.add(const Duration(days: 1)),
+              health: health,
+            );
+      if (n < goal) {
+        if (i == 0) continue;
+        break;
+      }
+      stepDays++;
+    }
+    // Longest measured walk or run today against the 90 days before.
+    double? km(Iterable<st.Workout> ws) {
+      final xs = [
+        for (final w in ws)
+          if (w.distanceM != null) w.distanceM!,
+      ];
+      return xs.isEmpty ? null : xs.reduce((a, b) => a > b ? a : b) / 1000;
+    }
+
+    final todayKm = km(await db.workoutsBetween(day, now));
+    final beforeKm = km(
+      await db.workoutsBetween(day.subtract(const Duration(days: 90)), day),
+    );
+    final recent = <sc.WinKind>{
+      for (final r in log)
+        if (r.kind == sc.NudgeKind.win.name &&
+            r.ts >= st.toTs(now.subtract(const Duration(days: 7))))
+          ?sc.WinKind.values.asNameMap()[_payload(r)['win']],
+    };
+    return sc.pickWin(
+      sc.WinInput(
+        recovery: r0(t),
+        recoveryLast30: past,
+        bedtimeKeptNights: kept,
+        sessionsDone: done,
+        sessionsPlanned: planned,
+        weekJustDone: todayDone && done == planned,
+        stepGoalDays: stepDays,
+        stepGoal: goal,
+        calibratedToday:
+            !t.calibrating &&
+            t.history.isNotEmpty &&
+            t.history.first.calibrating,
+        longestKmToday: todayKm,
+        longestKmBefore: beforeKm,
+        bedtime: fmtHm(t.bedtimeMinute),
+        recentWins: recent,
+      ),
+    );
+  }
+
+  static double? r0(TodayData t) => t.stale ? null : t.recovery;
+
+  Future<(String, String)?> _weekGoal(DateTime day) async {
+    final week = await CoachService(db).ensureWeek(day);
+    var planned = 0, done = 0;
+    String? nextTitle, nextDay;
+    const doneNames = {'done', 'doneEasier', 'doneHarder'};
+    const days = [
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+      'Sunday',
+    ];
+    for (final row in week) {
+      final s = sc.Session.fromJson(
+        jsonDecode(row.session) as Map<String, dynamic>,
+      );
+      if (s.isRest) continue;
+      planned++;
+      if (doneNames.contains(row.status)) {
+        done++;
+      } else if (nextTitle == null &&
+          row.date.compareTo(st.dateKey(day)) >= 0) {
+        final d = DateTime.parse(row.date);
+        nextTitle = '${s.title} ${s.minutes}′';
+        nextDay = row.date == st.dateKey(day) ? 'Today' : days[d.weekday - 1];
+      }
+    }
+    return sc.weekGoalCopy(
+      done: done,
+      planned: planned,
+      nextTitle: nextTitle,
+      nextDay: nextDay,
+    );
+  }
+
+  Future<(String, String)?> _comeback(TodayData t, DateTime now) async {
+    final last = DateTime.tryParse(await db.setting(Keys.lastOpened) ?? '');
+    if (last == null) return null;
+    final away = dayOf(now).difference(dayOf(last)).inDays;
+    final since = [
+      for (final s in [?t.score, ...t.history])
+        if (parseDateKey(s.date).isAfter(dayOf(last)) && s.sleptHours != null)
+          s,
+    ];
+    final best14 = [
+      for (final s in t.history.take(14))
+        if (s.recovery != null && !s.calibrating) s.recovery!,
+    ];
+    return sc.comebackCopy(
+      daysAway: away,
+      nights: since.length,
+      avgSleepH: since.isEmpty
+          ? null
+          : since.fold<double>(0, (a, s) => a + s.sleptHours!) / since.length,
+      recovery: r0(t),
+      recoveryBest14: best14.isEmpty
+          ? null
+          : best14.reduce((a, b) => a > b ? a : b),
+    );
+  }
+
+  /// Today's insight as a quiet notification, when Tempo wasn't opened
+  /// today (else Today already shows it) and none went in 3 days.
+  Future<(String, String)?> _insight(
+    DateTime now,
+    List<st.NudgeLogData> log,
+  ) async {
+    final last = DateTime.tryParse(await db.setting(Keys.lastOpened) ?? '');
+    if (last != null && dayOf(last) == dayOf(now)) return null;
+    final recent = log.any(
+      (r) =>
+          r.kind == sc.NudgeKind.insight.name &&
+          r.event == 'posted' &&
+          r.ts >= st.toTs(now.subtract(const Duration(days: 3))),
+    );
+    if (recent) return null;
+    final h = await insightPicker?.call(db);
+    if (h == null) return null;
+    return (h.$1, h.$2);
+  }
+
+  /// Picks today's insight (title, body); set by the app, which owns the
+  /// providers the picker reads. Null in tests and the background run.
+  static Future<(String, String)?> Function(st.TempoDb db)? insightPicker;
 
   /// The morning call, short: the same decision Today shows.
   static String? _brief(TodayData t) {
@@ -375,7 +610,10 @@ class CoachNotifier {
           fire,
           'posted',
           ts: fire,
-          payload: {if (o['choice'] != null) 'choice': o['choice']},
+          payload: {
+            if (o['choice'] != null) 'choice': o['choice'],
+            if (o['win'] != null) 'win': o['win'],
+          },
         );
       } else {
         await sink.cancel(id);
@@ -418,6 +656,7 @@ class CoachNotifier {
             'kind': n.kind.name,
             'fireAt': n.fireAt.millisecondsSinceEpoch,
             if (n.payload['choice'] != null) 'choice': n.payload['choice'],
+            if (n.payload['win'] != null) 'win': n.payload['win'],
           },
       ]),
     );

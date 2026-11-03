@@ -83,6 +83,10 @@ String kindName(sc.NudgeKind k) => switch (k) {
   sc.NudgeKind.health => 'Health alert',
   sc.NudgeKind.weekly => 'Weekly look-back',
   sc.NudgeKind.journal => 'Journal reminder',
+  sc.NudgeKind.win => 'Wins',
+  sc.NudgeKind.weekGoal => 'Week goal check-in',
+  sc.NudgeKind.insight => 'Insights',
+  sc.NudgeKind.comeback => 'Catch-up after days away',
 };
 
 String kindWhen(sc.NudgeKind k) => switch (k) {
@@ -97,6 +101,12 @@ String kindWhen(sc.NudgeKind k) => switch (k) {
     'Once, when night heart rate runs high or 2+ body signals are off',
   sc.NudgeKind.weekly => 'Sunday 18:00',
   sc.NudgeKind.journal => '2 h after waking, while yesterday is open',
+  sc.NudgeKind.win =>
+    'Personal bests and streaks, at most one a day, each kind weekly',
+  sc.NudgeKind.weekGoal => 'Wednesday lunch: sessions done and the next one',
+  sc.NudgeKind.insight =>
+    'Something new in your data, quietly, if you haven’t opened Tempo',
+  sc.NudgeKind.comeback => 'After 3 and 7 days away, then never',
 };
 
 /// Tempo Coach notifications: which kinds, how many, and your slots.

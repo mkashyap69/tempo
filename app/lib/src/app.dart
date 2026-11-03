@@ -315,13 +315,25 @@ class _ShellState extends ConsumerState<Shell> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState s) {
     if (s == AppLifecycleState.resumed) {
+      _markOpened();
       _sync();
       // Rebuild the pending set even if the sync can't reach the band.
       unawaited(rescheduleNotifications(ref.read(dbProvider)));
     }
   }
 
+  /// For the come-back notification and the insight one (N2): written
+  /// before notifications are rebuilt, so neither fires while Tempo is in
+  /// use.
+  void _markOpened() => unawaited(
+    ref
+        .read(dbProvider)
+        .putSetting(Keys.lastOpened, DateTime.now().toIso8601String())
+        .catchError((Object _) {}),
+  );
+
   Future<void> _onOpen() async {
+    _markOpened();
     final db = ref.read(dbProvider);
     // Keep widgets, the plan and notifications current even before a sync.
     unawaited(
