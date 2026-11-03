@@ -116,17 +116,23 @@ struct LiveWorkoutActivity: Widget {
       let s = ctx.state
       return DynamicIsland {
         DynamicIslandExpandedRegion(.leading) {
-          HStack(spacing: 6) {
-            Image(systemName: "heart.fill").foregroundColor(LA.heart)
-            Text(s.bpm.map { "\($0)" } ?? "—").font(.system(size: 26, weight: .medium))
-              .monospacedDigit()
+          // The leading region is narrow: heart, a 3-digit bpm and the zone
+          // chip on one row wrapped "104" to "1…". The bpm stays on one line
+          // (shrinking a little before it could clip) and the chip sits below.
+          VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 5) {
+              Image(systemName: "heart.fill").foregroundColor(LA.heart)
+              Text(s.bpm.map { "\($0)" } ?? "—").font(.system(size: 26, weight: .medium))
+                .monospacedDigit().lineLimit(1).minimumScaleFactor(0.6).layoutPriority(1)
+            }
             if s.zone > 0 {
-              Text("Z\(s.zone)").font(.system(size: 12, weight: .bold))
+              Text("Z\(s.zone)").font(.system(size: 12, weight: .bold)).lineLimit(1)
                 .padding(.horizontal, 5).padding(.vertical, 2)
                 .background(RoundedRectangle(cornerRadius: 4).fill(LA.zone(s.zone)))
                 .foregroundColor(s.zone == 1 ? .white : .black)
             }
           }
+          .dynamicIsland(verticalPlacement: .belowIfTooWide)
         }
         DynamicIslandExpandedRegion(.trailing) {
           Clock(s: s).font(.system(size: 26, weight: .medium)).monospacedDigit()
@@ -154,7 +160,8 @@ struct LiveWorkoutActivity: Widget {
       } compactLeading: {
         HStack(spacing: 3) {
           Image(systemName: "heart.fill").foregroundColor(LA.heart)
-          Text(s.bpm.map { "\($0)" } ?? "—").monospacedDigit()
+          Text(s.bpm.map { "\($0)" } ?? "—").monospacedDigit().lineLimit(1)
+            .minimumScaleFactor(0.7)
         }
       } compactTrailing: {
         if let d = s.distance {
