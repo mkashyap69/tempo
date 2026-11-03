@@ -381,11 +381,12 @@ class LearningCard extends StatelessWidget {
         'Says if you’re building, holding or overdoing it',
       ),
       (
-        'Journal insights',
+        'Journal insights (optional)',
         checkins,
         journalInsightsAt,
         'check-ins',
-        'Shows what your habits do to your sleep and recovery',
+        'Optional; never changes your scores. Shows what your habits do to '
+            'your sleep and recovery',
       ),
     ];
     final ready = rows.where((r) => r.$2 >= r.$3).length;
