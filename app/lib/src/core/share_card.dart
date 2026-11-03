@@ -282,7 +282,20 @@ Future<void> shareCard(
         key: key,
         child: MediaQuery(
           data: const MediaQueryData(textScaler: TextScaler.noScaling),
-          child: Directionality(textDirection: TextDirection.ltr, child: card),
+          child: Directionality(
+            textDirection: TextDirection.ltr,
+            // Off screen there is no Material above the card, so text that
+            // inherits its style (the tempo wordmark) would get Flutter's
+            // yellow "missing style" underline baked into the image.
+            child: DefaultTextStyle(
+              style: const TextStyle(
+                fontFamily: TempoType.family,
+                color: Color(0xFFF3F2EF),
+                decoration: TextDecoration.none,
+              ),
+              child: card,
+            ),
+          ),
         ),
       ),
     ),
