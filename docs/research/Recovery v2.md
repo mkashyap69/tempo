@@ -1,6 +1,6 @@
 # Recovery v2: physiology only, whatever data is there
 
-Status: design, not built (proposed as algo 12). Owner question, 3 Nov 2026: recovery must never depend on the journal; it should come from heart rate, HRV, sleep and the other signals available, the way Apple, Whoop, Garmin and COROS do it.
+Status: built as algo 12 (3 Nov 2026). See §5 for what changed from this design. Owner question, 3 Nov 2026: recovery must never depend on the journal; it should come from heart rate, HRV, sleep and the other signals available, the way Apple, Whoop, Garmin and COROS do it.
 
 ## 1. Where we are (algo 11)
 
@@ -88,3 +88,17 @@ Every score carries a confidence (high / medium / low) from which groups were pr
 4. Provisional nights 4–13.
 5. A journal-independence test in `packages/scoring/test`.
 6. `docs/decisions.md` line; stale-algo pass recomputes stored days.
+
+## 5. As built (algo 12, 3 Nov 2026)
+
+- Weights: tonight's HRV (or the band's stress index) 0.25, HRV trend 0.10, resting HR 0.25, last night's sleep 0.15, 7-night sleep balance 0.10, load 0.15 (`RecoveryParams`).
+- **Vitals stay a penalty**, not a 0.05 input: only the penalty is stored per day, so Today's breakdown couldn't rebuild a vitals input and the "why" line would disagree with the score. Their 0.05 went to resting HR.
+- HRV trend: the 7-night mean against a 60-day robust normal, judged once 21 nights are in it; the stress index the same way, lower being better.
+- Sleep balance: last 7 nights' sufficiency (capped 120 %), weights 1, 0.8, 0.64, … , against meeting the need (100 %, spread 15); needs 3 nights.
+- Load: max of yesterday's strain and the 3-day mean above the 28-day median (spread floor 3), pulling down only; needs 7 days of strain.
+- A day needs at least one night signal (HRV/stress, resting HR or sleep): load alone never makes a score (20 Oct, band off overnight, stays unscored).
+- Provisional from night 4 on Today, in a neutral colour, without population-anchored defaults (the minimum spreads already keep early z small); fully personal at night 14 as before.
+- Confidence ("From HRV, resting HR, sleep and load"; high / medium / low) is derived from the breakdown at display time (`recoveryBasis`), not stored.
+- No journal, feel or tag reaches `scoreDay`: its inputs are minutes, stress readings, score history and night vitals only.
+
+Owner backup replay (24–25 rated mornings): feel ↔ recovery Spearman 0.49 → 0.55; days at ≤ 5: 2 → 1; mean day-to-day change 24 → 19; 1 Nov (after a strain-17 day) 34 → 23; colours unchanged at 1 green / 7 red (cut-offs still for the multi-tester backtest).

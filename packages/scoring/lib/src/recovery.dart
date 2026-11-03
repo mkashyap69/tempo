@@ -39,10 +39,14 @@ final class RecoveryParams {
   const RecoveryParams({
     this.slope = 1.5,
     this.calibrationNights = 14,
-    this.wHrv = 0.4,
-    this.wRhr = 0.3,
-    this.wSleep = 0.3,
+    this.wHrv = 0.25,
+    this.wHrvTrend = 0.10,
+    this.wRhr = 0.25,
+    this.wSleep = 0.15,
+    this.wSleepBalance = 0.10,
+    this.wLoad = 0.15,
     this.zCap = 2.5,
+    this.provisionalNights = 4,
   });
   final double slope;
 
@@ -51,7 +55,15 @@ final class RecoveryParams {
   /// "well below normal" without pinning the score to 0 by itself.
   final double zCap;
   final int calibrationNights;
-  final double wHrv, wRhr, wSleep;
+
+  /// Algo 12 weights (docs/research/Recovery v2.md): tonight's HRV (or the
+  /// band's stress index) and its 7-night trend, resting HR, last night's
+  /// sleep and the 7-night sleep balance, and yesterday's load. Physiology
+  /// and load only; the journal is never an input.
+  final double wHrv, wHrvTrend, wRhr, wSleep, wSleepBalance, wLoad;
+
+  /// Nights before a provisional score shows (full at [calibrationNights]).
+  final int provisionalNights;
 }
 
 /// 0–100, or null if no input is computable. Missing inputs drop out and

@@ -154,5 +154,5 @@ void main() {
     });
   });
 
-  test('algo 11', () => expect(algoVersion, 11));
+  test('algo 12', () => expect(algoVersion, 12));
 }

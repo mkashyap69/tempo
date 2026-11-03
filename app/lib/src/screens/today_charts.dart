@@ -39,10 +39,17 @@ class TodayRings extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.c, s = context.s;
     final r = t.recovery;
-    final calibrating = !noData && t.calibrating;
+    // Algo 12: from night 4 a provisional score shows, in a neutral colour
+    // (never red on a still-learning baseline); full at night 14.
+    final provisional =
+        !noData &&
+        t.calibrating &&
+        t.recovery != null &&
+        t.nights >= const sc.RecoveryParams().provisionalNights;
+    final calibrating = !noData && t.calibrating && !provisional;
     final recColor = noData
         ? c.trackOff
-        : calibrating || r == null
+        : calibrating || provisional || r == null
         ? c.text2
         : s.recoveryFor(r);
     final recFrac = noData
@@ -70,6 +77,8 @@ class TodayRings extends StatelessWidget {
         ? ('${t.nights}', 'of 14 nights')
         : r == null
         ? ('—', t.hasNight ? 'No score' : 'No night recorded')
+        : provisional
+        ? ('${r.round()}%', 'Provisional')
         : ('${r.round()}%', recoveryWord(r));
 
     final tg = t.target;
@@ -86,6 +95,8 @@ class TodayRings extends StatelessWidget {
               ? ''
               : calibrating
               ? '${14 - t.nights} ${14 - t.nights == 1 ? 'night' : 'nights'} to go'
+              : provisional
+              ? 'Provisional · ${14 - t.nights} more ${14 - t.nights == 1 ? 'night' : 'nights'}'
               : _rhrLine(t),
           onTap: noData || past
               ? null

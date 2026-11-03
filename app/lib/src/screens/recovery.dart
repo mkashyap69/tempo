@@ -128,6 +128,19 @@ class RecoveryScreen extends ConsumerWidget {
                   ),
             const SizedBox(height: 14),
             Text(recoveryWhy(t, cs), style: TempoType.body.c(c.text2)),
+            // Algo 12: what the score was built from, and how sure it is.
+            if (t.recoveryShares.isNotEmpty) ...[
+              const SizedBox(height: 6),
+              Text(
+                '${sc.recoveryBasis(t.recoveryShares).line}'
+                '${switch (sc.recoveryBasis(t.recoveryShares).level) {
+                  'high' => '',
+                  'medium' => '. Wear a watch with HRV overnight for a fuller score.',
+                  _ => '. A rough read: no heart signal from last night.',
+                }}',
+                style: TempoType.caption.c(c.text3),
+              ),
+            ],
             if ((t.score?.vitalsPenalty ?? 0) >= .5) ...[
               const SizedBox(height: 8),
               Text(

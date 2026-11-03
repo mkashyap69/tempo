@@ -22,7 +22,11 @@
 ///    out, a smallest spread and a ±2.5 cap per recovery z, early bedtimes
 ///    cost half, base need cross-checked with free-day sleep, "done,
 ///    harder", SpO₂ judged after 7 nights.
-const algoVersion = 11;
+/// 12: recovery v2 (docs/research/Recovery v2.md): HRV trend against a
+///    60-day normal, 7-night sleep balance and yesterday's load join HRV,
+///    resting HR and sleep; physiology and load only, never the journal;
+///    a provisional score from night 4.
+const algoVersion = 12;
 
 enum Stage { wake, light, deep, rem, unknown }
 

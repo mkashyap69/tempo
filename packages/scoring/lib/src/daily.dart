@@ -319,9 +319,18 @@ List<RecoveryPart> recoveryInputsFor({
   required double? sufficiency,
   required List<DailyScore> normal,
   double? baseHours,
+  DateTime? day,
+  List<DailyScore> history = const [],
   ScoringParams p = const ScoringParams(),
 }) {
   String rk(DailyScore d) => d.rhrKind ?? rhrFromSleep;
+  // Days before [day] within [n] days, newest first (algo 12 trends).
+  List<DailyScore> within(int n) => day == null
+      ? const []
+      : [
+          for (final d in history)
+            if (d.date.isBefore(day) && day.difference(d.date).inDays <= n) d,
+        ];
   final rhrBase = rhrKind == null
       ? null
       : Baseline.robust([
@@ -349,6 +358,79 @@ List<RecoveryPart> recoveryInputsFor({
           d.sleptHours!,
           d.baseNeedHours ?? baseHours ?? p.sleep.baseNeedHours,
         );
+
+  // HRV status (Garmin) / HRV balance (Oura): the 7-night average against a
+  // 60-day normal, needing 21 nights in it. ln ms for a watch; the band's
+  // overnight stress index (lower is better) stands in without one.
+  final long = [
+    for (final d in within(60))
+      if (d.vitalsPenalty <= 0) d,
+  ];
+  double? mean(Iterable<double> xs) =>
+      xs.isEmpty ? null : xs.reduce((a, b) => a + b) / xs.length;
+  double? trendValue;
+  Baseline? trendBase;
+  var trendBetter = true;
+  if (hrvMs != null && hrvMs > 0) {
+    final lns = [
+      for (final d in long)
+        if (d.hrv != null && d.hrv! > 0 && d.hrvKind == hrvKind) log(d.hrv!),
+    ];
+    if (lns.length >= trendMinNights) {
+      final week = [
+        for (final d in within(6))
+          if (d.hrv != null && d.hrv! > 0 && d.hrvKind == hrvKind) log(d.hrv!),
+      ];
+      trendValue = mean([log(hrvMs), ...week]);
+      trendBase = Baseline.robust(lns);
+    }
+  } else if (stress != null) {
+    final xs = [for (final d in long) ?d.hrvProxy];
+    if (xs.length >= trendMinNights) {
+      trendValue = mean([
+        stress,
+        ...[for (final d in within(6)) ?d.hrvProxy],
+      ]);
+      trendBase = Baseline.robust(xs);
+      trendBetter = false;
+    }
+  }
+
+  // Sleep balance (Oura; Garmin's sleep history): the last 7 nights against
+  // the need, recency-weighted, judged against meeting it (100 %).
+  double? balance;
+  if (sufficiency != null) {
+    final nights = [sufficiency, for (final d in within(6)) ?suffOf(d)];
+    if (nights.length >= 3) {
+      var acc = 0.0, ws = 0.0, w = 1.0;
+      for (final v in nights) {
+        acc += w * min(120.0, v);
+        ws += w;
+        w *= .8;
+      }
+      balance = acc / ws;
+    }
+  }
+
+  // Load (Garmin's acute load, Oura's previous-day activity, COROS's
+  // recovery timer): yesterday's strain, or the last 3 days' average,
+  // above your 28-day median pulls recovery down; a light day never lifts
+  // it above neutral.
+  double? loadValue;
+  Baseline? loadBase;
+  if (day != null) {
+    final month = [for (final d in within(28)) d.strain];
+    if (month.length >= recoveryLoadMinDays) {
+      final b = Baseline.robust(month)!;
+      final y = within(1).map((d) => d.strain).firstOrNull;
+      final last3 = mean(within(3).map((d) => d.strain));
+      if (y != null || last3 != null) {
+        final over = max((y ?? 0) - b.mean, (last3 ?? 0) - b.mean);
+        loadValue = -max(0.0, over);
+        loadBase = Baseline(0, max(b.sd, recoveryMinSd.load), b.n);
+      }
+    }
+  }
   return [
     (
       key: 'stress',
@@ -392,7 +474,70 @@ List<RecoveryPart> recoveryInputsFor({
         minSd: recoveryMinSd.sleep,
       ),
     ),
+    (
+      key: 'trend',
+      input: RecoveryInput(
+        value: trendValue,
+        baseline: trendBase,
+        higherIsBetter: trendBetter,
+        weight: p.recovery.wHrvTrend,
+        minSd: trendBetter ? recoveryMinSd.lnHrv : recoveryMinSd.stress,
+      ),
+    ),
+    (
+      key: 'balance',
+      input: RecoveryInput(
+        value: balance,
+        baseline: balance == null ? null : const Baseline(100, 15, 1),
+        higherIsBetter: true,
+        weight: p.recovery.wSleepBalance,
+      ),
+    ),
+    (
+      key: 'load',
+      input: RecoveryInput(
+        value: loadValue,
+        baseline: loadBase,
+        higherIsBetter: true,
+        weight: p.recovery.wLoad,
+      ),
+    ),
   ];
+}
+
+/// Nights in the 60-day window before the HRV trend is judged (Garmin's
+/// HRV status takes about three weeks).
+const trendMinNights = 21;
+
+/// Days of strain in the last 28 before load enters recovery.
+const recoveryLoadMinDays = 7;
+
+/// What a recovery was built from and how sure it is (algo 12), from the
+/// parts [recoveryBreakdown] found: high with a heart signal (HRV or the
+/// band's stress index), resting HR and sleep; medium with resting HR and
+/// sleep; low otherwise. [line] names the parts for Today ("From HRV,
+/// resting HR, sleep and load").
+({String level, String line}) recoveryBasis(List<RecoveryShare> parts) {
+  final k = {for (final x in parts) x.key};
+  final heart = k.contains('hrv') || k.contains('stress');
+  final names = [
+    if (k.contains('hrv')) 'HRV',
+    if (k.contains('stress')) 'overnight stress',
+    if (k.contains('rhr')) 'resting HR',
+    if (k.contains('sleep') || k.contains('balance')) 'sleep',
+    if (k.contains('load')) 'load',
+  ];
+  final level = heart && k.contains('rhr') && k.contains('sleep')
+      ? 'high'
+      : k.contains('rhr') && k.contains('sleep')
+      ? 'medium'
+      : 'low';
+  final list = names.isEmpty
+      ? 'no signals yet'
+      : names.length == 1
+      ? names.single
+      : '${names.take(names.length - 1).join(', ')} and ${names.last}';
+  return (level: level, line: 'From $list');
 }
 
 /// One part of today's recovery as Today shows it: your value, your normal,
@@ -422,6 +567,9 @@ String? recoveryWhyLine(List<RecoveryShare> parts, {double minPush = .1}) {
     'stress' => 'overnight stress',
     'hrv' => 'HRV',
     'rhr' => 'resting HR',
+    'trend' => 'your HRV trend',
+    'balance' => 'recent sleep',
+    'load' => 'yesterday’s load',
     _ => 'sleep',
   };
   final moved = [
@@ -470,6 +618,11 @@ List<RecoveryShare> recoveryBreakdown(
           ),
     normal: normal,
     baseHours: today.baseNeedHours,
+    day: today.date,
+    history: [
+      for (final d in history)
+        if (d.source == today.source) d,
+    ],
     p: p,
   );
   final used = [
@@ -498,7 +651,13 @@ List<RecoveryShare> recoveryBreakdown(
 /// readings wobble ~2 bpm a night; body signals call +3 bpm "off"), band
 /// sleep stress 2 points, ln HRV 0.07 (~7 %, a night's typical swing:
 /// Plews 2012), and sleep 10 points of the base need (~40 min).
-const recoveryMinSd = (rhr: 2.5, stress: 2.0, lnHrv: 0.07, sleep: 10.0);
+const recoveryMinSd = (
+  rhr: 2.5,
+  stress: 2.0,
+  lnHrv: 0.07,
+  sleep: 10.0,
+  load: 3.0,
+);
 
 /// Scores [date]. [minutes] should cover at least noon the day before to
 /// noon the day after. [history] holds earlier days, newest first.
@@ -611,9 +770,20 @@ DailyScore scoreDay({
     sufficiency: suff,
     normal: normal,
     baseHours: base,
+    day: day,
+    history: same,
     p: p,
   );
-  final rec = recoveryScore([for (final x in parts) x.input], p.recovery);
+  // Load alone isn't a recovery: a night signal must be there (algo 12; a
+  // day with the band off overnight stays unscored).
+  final measured = parts.any(
+    (x) =>
+        const {'stress', 'hrv', 'rhr', 'sleep'}.contains(x.key) &&
+        x.input.z != null,
+  );
+  final rec = measured
+      ? recoveryScore([for (final x in parts) x.input], p.recovery)
+      : null;
   final penalty = rec == null ? 0.0 : recoveryPenalty(vitalsZ);
 
   // Sleep score v3: base-need sufficiency, bedtime against the 14-night
