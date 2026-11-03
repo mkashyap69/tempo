@@ -1,9 +1,14 @@
+import 'dart:convert';
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:scoring/scoring.dart' as sc;
+import 'package:store/store.dart' as st;
 
 import '../core/block_service.dart';
+import '../core/coach_extras.dart' show statusOf;
 import '../core/coach_service.dart';
 import '../core/format.dart';
 import '../core/home_widgets.dart' show rescheduleNotifications;
@@ -1011,6 +1016,306 @@ class GoalPill extends ConsumerWidget {
           border: Border.all(color: c.lineStrong),
         ),
         child: Text(text, style: TempoType.label.c(c.text1).tnum),
+      ),
+    );
+  }
+}
+
+// ---- Day calendar --------------------------------------------------------------
+
+/// One day on the Plan calendar: its session (null when no plan is built
+/// for it yet) and, for a past day, how it went.
+typedef PlanCalDay = ({
+  DateTime date,
+  sc.Session? session,
+  sc.DayStatus? status,
+});
+
+/// Last week, this week and next week, for the scrollable day strip.
+final planCalendarProvider = dbQuery<List<PlanCalDay>>((db, ref) async {
+  final today = dayOf(DateTime.now());
+  final mon = mondayOf(today);
+  final from = mon.subtract(const Duration(days: 7));
+  final to = mon.add(const Duration(days: 13));
+  await CoachService(db).ensureWeek(today);
+  final rows = {for (final r in await db.planBetween(from, to)) r.date: r};
+  final out = <PlanCalDay>[];
+  for (var d = from; !d.isAfter(to); d = DateTime(d.year, d.month, d.day + 1)) {
+    final r = rows[st.dateKey(d)];
+    out.add((
+      date: d,
+      session: r == null
+          ? null
+          : sc.Session.fromJson(jsonDecode(r.session) as Map<String, dynamic>),
+      status: r != null && d.isBefore(today) ? await statusOf(db, r, d) : null,
+    ));
+  }
+  return out;
+});
+
+/// The top of Plan: a scrollable strip of days and the chosen day's card.
+/// Today keeps [PlanTodayCard]; other days show their session read-only,
+/// with Move and Skip on the days still to come this week.
+class PlanDaysSection extends ConsumerStatefulWidget {
+  const PlanDaysSection(this.t, {super.key});
+  final TodayData t;
+
+  @override
+  ConsumerState<PlanDaysSection> createState() => _PlanDaysSectionState();
+}
+
+class _PlanDaysSectionState extends ConsumerState<PlanDaysSection> {
+  static const _w = 58.0, _gap = 8.0;
+  DateTime? _picked;
+  ScrollController? _scroll;
+
+  @override
+  void dispose() {
+    _scroll?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = widget.t;
+    final days = ref.watch(planCalendarProvider).value;
+    final picked = _picked ?? t.day;
+    final day = days?.where((d) => d.date == picked).firstOrNull;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (days != null) ...[
+          _strip(context, days, t.day, picked),
+          const SizedBox(height: 14),
+        ],
+        if (picked == t.day || day == null)
+          PlanTodayCard(t)
+        else
+          _PlanDayCard(day, today: t.day),
+      ],
+    );
+  }
+
+  Widget _strip(
+    BuildContext context,
+    List<PlanCalDay> days,
+    DateTime today,
+    DateTime picked,
+  ) {
+    final i = days.indexWhere((d) => d.date == today);
+    // First build: start with today a little in from the left edge.
+    _scroll ??= ScrollController(
+      initialScrollOffset: math.max(0, (i - 1) * (_w + _gap)),
+    );
+    return SizedBox(
+      height: 78,
+      child: ListView.separated(
+        controller: _scroll,
+        scrollDirection: Axis.horizontal,
+        itemCount: days.length,
+        separatorBuilder: (_, _) => const SizedBox(width: _gap),
+        itemBuilder: (context, k) => _DayChip(
+          days[k],
+          today: today,
+          selected: days[k].date == picked,
+          onTap: () {
+            HapticFeedback.selectionClick();
+            setState(() => _picked = days[k].date);
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _DayChip extends StatelessWidget {
+  const _DayChip(
+    this.d, {
+    required this.today,
+    required this.selected,
+    required this.onTap,
+  });
+  final PlanCalDay d;
+  final DateTime today;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c, x = context.s;
+    final s = d.session;
+    final done =
+        d.status == sc.DayStatus.done ||
+        d.status == sc.DayStatus.doneEasier ||
+        d.status == sc.DayStatus.doneHarder;
+    final dot = s == null
+        ? Colors.transparent
+        : done
+        ? x.recHigh
+        : s.isRest
+        ? c.line
+        : s.sport == sc.Sport.strength
+        ? x.sleepChannel
+        : switch (s.intensity) {
+            sc.Intensity.hard => x.recLow,
+            sc.Intensity.moderate => x.recMid,
+            _ => c.text3,
+          };
+    final isToday = d.date == today;
+    final past = d.date.isBefore(today);
+    final fg = selected ? c.textInverse : (past ? c.text3 : c.text1);
+    return Semantics(
+      button: true,
+      selected: selected,
+      label:
+          '${dayShort(d.date)}${s == null ? '' : ', ${s.isRest ? 'rest' : s.title}'}',
+      excludeSemantics: true,
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          width: _PlanDaysSectionState._w,
+          decoration: BoxDecoration(
+            color: selected ? c.text1 : c.surface1,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: isToday && !selected ? c.lineStrong : Colors.transparent,
+            ),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                _dayNames[d.date.weekday - 1].toUpperCase(),
+                style: TempoType.caption.c(fg),
+              ),
+              const SizedBox(height: 2),
+              Text('${d.date.day}', style: TempoType.titleM.c(fg).tnum),
+              const SizedBox(height: 4),
+              Container(
+                width: 6,
+                height: 6,
+                decoration: BoxDecoration(color: dot, shape: BoxShape.circle),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A day other than today: its session, how it went if it's past, and
+/// Move / Skip while it's still to come this week.
+class _PlanDayCard extends ConsumerWidget {
+  const _PlanDayCard(this.d, {required this.today});
+  final PlanCalDay d;
+  final DateTime today;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final c = context.c;
+    final p = d.session;
+    final label = dayShort(d.date);
+    final past = d.date.isBefore(today);
+    final thisWeek = mondayOf(d.date) == mondayOf(today);
+    final status = d.status;
+    final chip = switch (status) {
+      sc.DayStatus.done => 'Done ✓',
+      sc.DayStatus.doneEasier => 'Done, easier',
+      sc.DayStatus.doneHarder => 'Done, harder',
+      sc.DayStatus.partial => 'Partly done',
+      sc.DayStatus.skipped => 'Skipped',
+      sc.DayStatus.missedDay || sc.DayStatus.missedSlot => 'Missed',
+      _ => null,
+    };
+    if (p == null) {
+      return _Brief(
+        overline: label,
+        title: 'Not planned yet',
+        sub: 'Next week’s plan is built on Monday from how this week went.',
+      );
+    }
+    if (p.isRest) {
+      return _Brief(
+        overline: label,
+        title: 'Rest day',
+        sub: 'Nothing planned. A walk is fine.',
+        why: sc.sessionPurpose(sc.sessionTemplate('rest')),
+      );
+    }
+    final detail = p.detail;
+    final names = detail is sc.StrengthDetail
+        ? [for (final e in detail.exercises) e.name]
+        : const <String>[];
+    return TempoCard(
+      padding: const EdgeInsets.all(18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              PlanTag(label, fg: c.textInverse, bg: c.text1),
+              ...sessionTags(context, p),
+              if (chip != null)
+                TempoBadge(chip, color: statusColor(context, status!)),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(p.title, style: TempoType.titleL.c(c.text1)),
+          Text('${p.minutes} minutes', style: TempoType.titleM.c(c.text2).tnum),
+          const SizedBox(height: 14),
+          if (p.sport == sc.Sport.strength)
+            Text(
+              names.isEmpty
+                  ? 'Log sets as you go; Tempo suggests weights from your last '
+                        'session.'
+                  : names.take(4).join(' · '),
+              style: TempoType.bodyS.c(c.text1),
+            )
+          else ...[
+            IntervalBars(
+              segments: [for (final g in p.segments) (g.minutes, g.zone)],
+            ),
+            const SizedBox(height: 6),
+            Text(p.structure, style: TempoType.caption.c(c.text3).tnum),
+          ],
+          const SizedBox(height: 14),
+          _HowWhy(how: sc.effortCue(p), why: sc.sessionPurpose(p)),
+          if (!past && thisWeek && status != sc.DayStatus.skipped) ...[
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Expanded(
+                  child: TempoButton(
+                    'Move',
+                    kind: ButtonKind.secondary,
+                    expand: true,
+                    onTap: () => showMoveSheet(context, ref, d.date),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: TempoButton(
+                    'Skip',
+                    kind: ButtonKind.secondary,
+                    expand: true,
+                    onTap: () => _skip(context, ref, d.date),
+                  ),
+                ),
+              ],
+            ),
+          ] else if (!past && !thisWeek) ...[
+            const SizedBox(height: 10),
+            Text(
+              'Next week can still change until Monday morning.',
+              style: TempoType.caption.c(c.text3),
+            ),
+          ],
+        ],
       ),
     );
   }

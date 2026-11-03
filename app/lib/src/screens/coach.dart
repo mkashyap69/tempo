@@ -141,7 +141,7 @@ class CoachScreen extends ConsumerWidget {
               onTap: () => ref.read(syncProvider.notifier).syncNow(),
             ),
           ),
-        PlanTodayCard(t),
+        PlanDaysSection(t),
         PlanWeekCard(t),
         const PlanGoalCard(),
         LoadNote(t: t, monotony: x?.monotony ?? false),
