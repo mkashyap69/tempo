@@ -17,7 +17,6 @@ import '../design/tokens.dart';
 import '../design/type.dart';
 import '../state/live_session.dart';
 import 'activity_detail.dart' show effectProvider, EffectQuery;
-import 'nav.dart' show push;
 import 'strength_log.dart';
 
 /// Reads at arm's length: 132 px HR, 72 px controls.
@@ -42,8 +41,8 @@ class LiveWorkoutScreen extends ConsumerWidget {
   }
 }
 
-class _Live extends ConsumerWidget {
-  const _Live({required this.s});
+class _Classic extends ConsumerWidget {
+  const _Classic({required this.s});
   final LiveState s;
 
   @override
@@ -51,7 +50,6 @@ class _Live extends ConsumerWidget {
     final c = context.c, sc0 = context.s;
     final n = ref.read(liveSessionProvider.notifier);
     final top = MediaQuery.of(context).padding.top;
-    final bottom = MediaQuery.of(context).padding.bottom;
     final z = s.zone;
     final zc = z == 0 ? c.trackOff : sc0.zoneColor(z);
     final paused = s.phase == LivePhase.paused;
@@ -412,74 +410,14 @@ class _Live extends ConsumerWidget {
             ],
           ),
         ),
-        if (s.sport == sc.Sport.strength && !failed)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
-            child: TempoButton(
-              'Log sets',
-              kind: ButtonKind.secondary,
-              expand: true,
-              onTap: () => push(context, StrengthLogScreen(plan: s.plan)),
-            ),
-          ),
-        Padding(
-          padding: EdgeInsets.fromLTRB(20, 16, 20, 16 + bottom),
-          child: Row(
-            children: [
-              Expanded(
-                child: TempoButton(
-                  paused ? 'Resume' : 'Pause',
-                  kind: ButtonKind.secondary,
-                  height: 72,
-                  radius: 24,
-                  fontSize: 18,
-                  expand: true,
-                  onTap: connecting || failed
-                      ? null
-                      : (paused ? n.resume : n.pause),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: failed || connecting
-                    ? TempoButton(
-                        failed ? 'Close' : 'End',
-                        height: 72,
-                        radius: 24,
-                        fontSize: 18,
-                        expand: true,
-                        onTap: () async {
-                          await n.end();
-                          n.close();
-                          if (context.mounted) {
-                            Navigator.of(context).maybePop();
-                          }
-                        },
-                      )
-                    // Hold to end: one stray tap mid-run can't end it.
-                    // Screen readers get the confirm sheet instead.
-                    : _HoldToEnd(
-                        onEnd: n.end,
-                        onConfirm: () async {
-                          final ok = await confirmSheet(
-                            context,
-                            title: 'End workout?',
-                            body: 'Tempo saves the session and asks how hard it felt.',
-                            action: 'End and save',
-                          );
-                          if (ok) await n.end();
-                        },
-                      ),
-              ),
-            ],
-          ),
-        ),
+        _Controls(s: s),
       ],
     );
   }
 
   static String _segLabel(sc.Session p, int i) {
     final seg = p.segments[i];
+    if (p.segments.length == 1) return seg.zone >= 3 ? 'Main set' : 'Steady';
     if (i == 0) return 'Warm-up';
     if (i == p.segments.length - 1) return 'Cool-down';
     final work = [
@@ -883,9 +821,19 @@ class RoutePainter extends CustomPainter {
     required this.line,
     required this.start,
     required this.grid,
+    this.width = 3,
+    this.casing,
+    this.frame = true,
   });
   final List<RoutePoint?> route;
   final Color line, start, grid;
+
+  /// Line width; [casing] draws a wider halo under it (the live map).
+  final double width;
+  final Color? casing;
+
+  /// The rounded outline around the box.
+  final bool frame;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -910,12 +858,14 @@ class RoutePainter extends CustomPainter {
       size.width / 2 + (p.x - cx) * k,
       size.height / 2 - (p.y - cy) * k,
     );
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(12)),
-      Paint()
-        ..color = grid
-        ..style = PaintingStyle.stroke,
-    );
+    if (frame) {
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(12)),
+        Paint()
+          ..color = grid
+          ..style = PaintingStyle.stroke,
+      );
+    }
     final path = Path();
     var pen = false;
     for (final p in route) {
@@ -927,26 +877,33 @@ class RoutePainter extends CustomPainter {
       pen ? path.lineTo(o.dx, o.dy) : path.moveTo(o.dx, o.dy);
       pen = true;
     }
-    canvas.drawPath(
-      path,
-      Paint()
-        ..color = line
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 3
-        ..strokeJoin = StrokeJoin.round
-        ..strokeCap = StrokeCap.round,
-    );
-    canvas.drawCircle(at(pts.first), 4, Paint()..color = start);
+    Paint stroke(Color c, double w) => Paint()
+      ..color = c
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = w
+      ..strokeJoin = StrokeJoin.round
+      ..strokeCap = StrokeCap.round;
+    if (casing != null) canvas.drawPath(path, stroke(casing!, width * 2));
+    canvas.drawPath(path, stroke(line, width));
+    final r = width / 3;
+    if (casing != null) {
+      canvas.drawCircle(at(pts.first), 6 * r, Paint()..color = casing!);
+    }
+    canvas.drawCircle(at(pts.first), 4 * r, Paint()..color = start);
     final end = at(pts.last);
-    canvas.drawCircle(end, 7, Paint()..color = line.withValues(alpha: .3));
-    canvas.drawCircle(end, 4.5, Paint()..color = line);
+    canvas.drawCircle(end, 7 * r, Paint()..color = line.withValues(alpha: .3));
+    if (casing != null) {
+      canvas.drawCircle(end, 4.5 * r + 2, Paint()..color = casing!);
+    }
+    canvas.drawCircle(end, 4.5 * r, Paint()..color = line);
   }
 
   @override
   bool shouldRepaint(RoutePainter o) =>
       o.route.length != route.length ||
       !identical(o.route, route) ||
-      o.line != line;
+      o.line != line ||
+      o.width != width;
 }
 
 /// Heart rate over the last 15 minutes on the zone bands, then steps and
@@ -1128,9 +1085,20 @@ class _TracePainter extends CustomPainter {
 
 /// Fills over 0.9 s while held, then ends. Letting go early shows a hint.
 class _HoldToEnd extends StatefulWidget {
-  const _HoldToEnd({required this.onEnd, required this.onConfirm});
+  const _HoldToEnd({
+    required this.onEnd,
+    required this.onConfirm,
+    this.label = 'Hold to end',
+    this.quiet = false,
+  });
   final Future<Object?> Function() onEnd;
   final VoidCallback onConfirm;
+
+  /// What it says at rest.
+  final String label;
+
+  /// A grey button (strength, where Set done is the main action).
+  final bool quiet;
 
   @override
   State<_HoldToEnd> createState() => _HoldToEndState();
@@ -1187,11 +1155,11 @@ class _HoldToEndState extends State<_HoldToEnd>
           child: AnimatedBuilder(
             animation: _a,
             builder: (context, _) => Container(
-              height: 72,
+              height: 64,
               clipBehavior: Clip.antiAlias,
               decoration: BoxDecoration(
-                color: c.text1,
-                borderRadius: BorderRadius.circular(24),
+                color: widget.quiet ? c.surface3 : c.text1,
+                borderRadius: BorderRadius.circular(32),
               ),
               child: Stack(
                 fit: StackFit.expand,
@@ -1204,16 +1172,18 @@ class _HoldToEndState extends State<_HoldToEnd>
                   Center(
                     child: Text(
                       _a.value > 0 && _a.status == AnimationStatus.forward
-                          ? 'Keep holding'
+                          ? (widget.quiet ? 'Hold…' : 'Keep holding')
                           : _hint
-                          ? 'Hold to end'
-                          : 'End',
+                          ? (widget.quiet ? 'Hold' : 'Hold a second')
+                          : widget.label,
                       style: TextStyle(
                         fontFamily: TempoType.family,
-                        fontSize: 18,
+                        fontSize: widget.quiet ? 15 : 17,
                         fontWeight: FontWeight.w500,
                         letterSpacing: -0.075,
-                        color: c.textInverse,
+                        color: widget.quiet && _a.value == 0
+                            ? c.text1
+                            : c.textInverse,
                       ),
                     ),
                   ),
@@ -1588,5 +1558,1138 @@ class _SummaryState extends ConsumerState<_Summary> {
     return hard >= planned * .8
         ? 'The work blocks landed in Z${work.first.zone}.'
         : 'About ${hard.round()} of $planned planned minutes landed in Z${work.first.zone}.';
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Live layouts (design canvas, 2026-11-03): walks and runs put the route
+// first with a sheet of numbers over it, open or guided; strength logs the
+// set in place. Other sports keep the [_Classic] card stack.
+
+/// Picks the layout for the sport.
+class _Live extends ConsumerWidget {
+  const _Live({required this.s});
+  final LiveState s;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final failed = s.phase == LivePhase.failed;
+    if (s.sport == sc.Sport.strength && !failed) {
+      return StrengthLogScreen(
+        plan: s.plan,
+        embedded: true,
+        header: _StrengthStrip(s: s),
+        controls: (primary) => _Controls(s: s, primary: primary),
+      );
+    }
+    if (s.onFoot && !failed) return _OnFoot(s: s);
+    return _Classic(s: s);
+  }
+}
+
+/// Where the heart rate sits against the target or the next zone, and
+/// whether it's in the target.
+(String, bool) _hrNote(LiveState s) {
+  final z = s.zone;
+  final (seg, _) = s.segment;
+  final plan = s.plan;
+  if (s.phase == LivePhase.connecting) return ('Connecting to band…', false);
+  if (s.timerOnly) return ('Timing · HR from Health later', false);
+  if (s.signalLost) return ('Signal lost — timer keeps running', false);
+  if (z == 0) return ('Below Z1 · warming up', false);
+  if (s.guided && seg < plan!.segments.length) {
+    final want = plan.segments[seg].zone;
+    final r = sc.zoneRange(want, s.hrMax, hrRest: s.zoneRest);
+    if (z == want) return ('In target · Z$want ${r.lo}–${r.hi}', true);
+    return (
+      z < want
+          ? 'Push a little · Z$want ${r.lo}–${r.hi}'
+          : 'Ease off · Z$want ${r.lo}–${r.hi}',
+      false,
+    );
+  }
+  final r = sc.zoneRange(z, s.hrMax, hrRest: s.zoneRest);
+  return (
+    z == 5
+        ? 'Z5 · ${r.lo}+ bpm'
+        : 'Z$z ${r.lo}–${r.hi} · Z${z + 1} at ${r.hi + 1}',
+    false,
+  );
+}
+
+/// Pause (round) and Hold to end, or for strength a small End next to the
+/// [primary] action (Set done).
+class _Controls extends ConsumerWidget {
+  const _Controls({required this.s, this.primary});
+  final LiveState s;
+  final Widget? primary;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final n = ref.read(liveSessionProvider.notifier);
+    final paused = s.phase == LivePhase.paused;
+    final connecting = s.phase == LivePhase.connecting;
+    final failed = s.phase == LivePhase.failed;
+    final bottom = MediaQuery.of(context).padding.bottom;
+    Future<void> close() async {
+      await n.end();
+      n.close();
+      if (context.mounted) Navigator.of(context).maybePop();
+    }
+
+    Future<void> confirm() async {
+      final ok = await confirmSheet(
+        context,
+        title: 'End workout?',
+        body: 'Tempo saves the session and asks how hard it felt.',
+        action: 'End and save',
+      );
+      if (ok) await n.end();
+    }
+
+    final Widget end = failed || connecting
+        ? TempoButton(
+            failed ? 'Close' : 'End',
+            height: 64,
+            radius: 32,
+            fontSize: 17,
+            expand: true,
+            kind: primary == null ? ButtonKind.primary : ButtonKind.secondary,
+            onTap: close,
+          )
+        // Hold to end: one stray tap mid-run can't end it.
+        // Screen readers get the confirm sheet instead.
+        : _HoldToEnd(
+            onEnd: n.end,
+            onConfirm: confirm,
+            label: primary == null ? 'Hold to end' : 'End',
+            quiet: primary != null,
+          );
+    return Container(
+      color: context.c.bg,
+      padding: EdgeInsets.fromLTRB(20, 12, 20, 12 + bottom),
+      child: Row(
+        children: [
+          _PauseButton(
+            paused: paused,
+            onTap: connecting || failed ? null : (paused ? n.resume : n.pause),
+          ),
+          const SizedBox(width: 12),
+          if (primary == null)
+            Expanded(child: end)
+          else ...[
+            SizedBox(width: 96, child: end),
+            const SizedBox(width: 12),
+            Expanded(child: primary!),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _PauseButton extends StatelessWidget {
+  const _PauseButton({required this.paused, this.onTap});
+  final bool paused;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c;
+    Widget bar() => Container(
+      width: 5,
+      height: 18,
+      decoration: BoxDecoration(
+        color: c.text1,
+        borderRadius: BorderRadius.circular(2),
+      ),
+    );
+    return Opacity(
+      opacity: onTap == null ? .4 : 1,
+      child: Pressable(
+        label: paused ? 'Resume' : 'Pause',
+        onTap: onTap,
+        child: Container(
+          width: 64,
+          height: 64,
+          decoration: BoxDecoration(color: c.surface3, shape: BoxShape.circle),
+          alignment: Alignment.center,
+          child: paused
+              ? TempoIcon(TempoIcons.play, size: 24, color: c.text1)
+              : Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [bar(), const SizedBox(width: 5), bar()],
+                ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A white 44 px circle for buttons floating over the route.
+class _Float extends StatelessWidget {
+  const _Float({required this.child});
+  final Widget child;
+  @override
+  Widget build(BuildContext context) => Container(
+    decoration: BoxDecoration(
+      color: context.c.surface1,
+      shape: BoxShape.circle,
+      boxShadow: context.c.shadowFloat,
+    ),
+    child: child,
+  );
+}
+
+/// Walks and runs: the route fills the top, a sheet with the numbers sits
+/// over it (drag it down to see more of the route), controls stay pinned.
+class _OnFoot extends StatelessWidget {
+  const _OnFoot({required this.s});
+  final LiveState s;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c, sc0 = context.s;
+    final top = MediaQuery.of(context).padding.top;
+    final paused = s.phase == LivePhase.paused;
+    final (seg, _) = s.segment;
+    final guided = s.guided && seg < s.plan!.segments.length;
+    final run = s.sport == sc.Sport.running;
+    final sheet = guided ? .72 : .66;
+    final drawn = s.route.whereType<RoutePoint>().length >= 2;
+    final String? mapNote = drawn
+        ? null
+        : switch (s.gps) {
+            GpsState.searching => 'Finding GPS… stay outside for a moment.',
+            GpsState.denied =>
+              s.timerOnly
+                  ? 'Allow location for Tempo in Settings to see distance and pace.'
+                  : 'Location is off: distance comes from the band’s steps.',
+            _ => 'Your route draws here once you’ve covered a few metres.',
+          };
+    final unit = s.metric ? 'km' : 'mi';
+    final title = guided
+        ? '${s.plan!.title} · ${mmss(s.elapsed)}'
+        : '${run ? 'Run' : 'Walk'} · ${mmss(s.elapsed)}';
+    return Column(
+      children: [
+        Expanded(
+          child: LayoutBuilder(
+            builder: (context, box) {
+              final mapBottom = box.maxHeight * (1 - sheet);
+              return Stack(
+                children: [
+                  Positioned.fill(child: ColoredBox(color: c.surface2)),
+                  Positioned(
+                    left: 28,
+                    right: 28,
+                    top: top + 68,
+                    height: math.max(40, mapBottom - top - 68 - 20),
+                    child: drawn
+                        ? CustomPaint(
+                            painter: RoutePainter(
+                              route: s.route,
+                              line: sc0.strain[2],
+                              start: c.text3,
+                              grid: c.line,
+                              width: 5,
+                              casing: c.surface1,
+                              frame: false,
+                            ),
+                          )
+                        : Center(
+                            child: Text(
+                              mapNote!,
+                              textAlign: TextAlign.center,
+                              style: TempoType.bodyS.c(c.text2),
+                            ),
+                          ),
+                  ),
+                  Positioned(
+                    left: 16,
+                    bottom: box.maxHeight * sheet + 12,
+                    child: GpsChip(s: s),
+                  ),
+                  Positioned(
+                    left: 16,
+                    right: 16,
+                    top: top + 12,
+                    child: Row(
+                      children: [
+                        _Float(
+                          child: TempoIconButton(
+                            TempoIcons.down,
+                            label: 'Minimise',
+                            onTap: () => Navigator.of(context).maybePop(),
+                          ),
+                        ),
+                        Expanded(
+                          child: Center(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 10,
+                              ),
+                              decoration: BoxDecoration(
+                                color: c.surface1,
+                                borderRadius: BorderRadius.circular(
+                                  TempoRadii.pill,
+                                ),
+                                boxShadow: c.shadowFloat,
+                              ),
+                              child: Text(
+                                title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TempoType.label.c(c.text1).tnum,
+                              ),
+                            ),
+                          ),
+                        ),
+                        _Float(child: _BandStatus(s: s)),
+                      ],
+                    ),
+                  ),
+                  DraggableScrollableSheet(
+                    initialChildSize: sheet,
+                    minChildSize: .45,
+                    maxChildSize: .92,
+                    snap: true,
+                    snapSizes: [sheet],
+                    builder: (context, ctl) => Container(
+                      decoration: BoxDecoration(
+                        color: c.bg,
+                        borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(TempoRadii.xl),
+                        ),
+                        boxShadow: c.shadowFloat,
+                      ),
+                      child: AnimatedOpacity(
+                        duration: TempoMotion.base,
+                        opacity: paused ? .35 : 1,
+                        child: ListView(
+                          controller: ctl,
+                          padding: const EdgeInsets.fromLTRB(20, 10, 20, 24),
+                          children: [
+                            Center(
+                              child: Container(
+                                width: 40,
+                                height: 5,
+                                decoration: BoxDecoration(
+                                  color: c.lineStrong,
+                                  borderRadius: BorderRadius.circular(3),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 14),
+                            if (guided)
+                              ..._guided(context, s, run: run, unit: unit)
+                            else if (run)
+                              ..._openRun(context, s, unit: unit)
+                            else
+                              ..._openWalk(context, s, unit: unit),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  if (paused)
+                    Positioned(
+                      left: 20,
+                      right: 20,
+                      top: mapBottom + 40,
+                      child: _PausedCard(s: s),
+                    ),
+                ],
+              );
+            },
+          ),
+        ),
+        _Controls(s: s),
+      ],
+    );
+  }
+
+  static List<Widget> _openWalk(
+    BuildContext context,
+    LiveState s, {
+    required String unit,
+  }) {
+    final d = s.distanceM;
+    return [
+      _BigPair(
+        ('Time', mmss(s.elapsed), null),
+        (
+          'Distance',
+          d == null ? '—' : distanceText(d, metric: s.metric),
+          ' $unit',
+        ),
+      ),
+      const SizedBox(height: 14),
+      TempoCard(
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _HrLine(s: s),
+            if (!s.timerOnly && s.trace.length >= 2) ...[
+              const SizedBox(height: 12),
+              _MinuteBars(s: s),
+            ],
+          ],
+        ),
+      ),
+      const SizedBox(height: 8),
+      _StrainRow(s: s),
+      const SizedBox(height: 14),
+      _StatRow([
+        ('Steps', s.steps == null ? '—' : grouped(s.steps!), null),
+        (
+          'Speed',
+          _speed(s) ?? '—',
+          _speed(s) == null ? null : (s.metric ? ' km/h' : ' mph'),
+        ),
+        (
+          'Last $unit',
+          s.splits.isEmpty ? '—' : sc.durationText(s.splits.last),
+          null,
+        ),
+        (
+          'Climb',
+          _climb(s) ?? '—',
+          _climb(s) == null ? null : (s.metric ? ' m' : ' ft'),
+        ),
+      ]),
+    ];
+  }
+
+  static List<Widget> _openRun(
+    BuildContext context,
+    LiveState s, {
+    required String unit,
+  }) {
+    final d = s.distanceM;
+    String pace(double? v) =>
+        v == null ? '—' : sc.paceText(v, miles: !s.metric);
+    return [
+      _BigPair(
+        ('Pace now', pace(s.paceNow), ' /$unit'),
+        (
+          'Distance',
+          d == null ? '—' : distanceText(d, metric: s.metric),
+          ' $unit',
+        ),
+      ),
+      const SizedBox(height: 12),
+      TempoCard(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+        child: _HrLine(
+          s: s,
+          trailing: s.cadence == null ? null : '${s.cadence} spm',
+        ),
+      ),
+      if (d != null) ...[
+        const SizedBox(height: 8),
+        _SplitCard(s: s, unit: unit),
+      ],
+      const SizedBox(height: 8),
+      _StrainRow(s: s),
+      const SizedBox(height: 14),
+      _StatRow([
+        ('Time', mmss(s.elapsed), null),
+        ('Avg pace', pace(s.paceAvg), null),
+        ('Avg HR', s.avgHr?.toString() ?? '—', null),
+        (
+          'Climb',
+          _climb(s) ?? '—',
+          _climb(s) == null ? null : (s.metric ? ' m' : ' ft'),
+        ),
+      ]),
+    ];
+  }
+
+  static List<Widget> _guided(
+    BuildContext context,
+    LiveState s, {
+    required bool run,
+    required String unit,
+  }) {
+    final c = context.c;
+    final plan = s.plan!;
+    final (seg, _) = s.segment;
+    final leftAll = math.max(0, plan.minutes * 60 - s.elapsed.inSeconds);
+    final d = s.distanceM;
+    String label(int i) {
+      final l = _Classic._segLabel(plan, i);
+      return run ? l : l.replaceFirst('Rep', 'Brisk');
+    }
+
+    final next = seg + 1 < plan.segments.length ? plan.segments[seg + 1] : null;
+    return [
+      _RepCard(s: s, run: run, label: label(seg)),
+      const SizedBox(height: 14),
+      IntervalBars(
+        segments: [for (final g in plan.segments) (g.minutes, g.zone)],
+        height: 34,
+        base: 10,
+        step: 6,
+        doneMinutes: s.elapsed.inSeconds / 60,
+        playhead: s.elapsed.inSeconds / (plan.minutes * 60),
+      ),
+      const SizedBox(height: 6),
+      Row(
+        children: [
+          Text('Warm-up', style: TempoType.caption.c(c.text3)),
+          const Spacer(),
+          Text(
+            'Cool-down · ~${(leftAll / 60).ceil()}′ left',
+            style: TempoType.caption.c(c.text3).tnum,
+          ),
+        ],
+      ),
+      const SizedBox(height: 12),
+      TempoCard(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+        child: Row(
+          children: [
+            _ZoneChip(zone: next?.zone ?? 1, size: 40),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Next', style: TempoType.caption.c(c.text3)),
+                  Text(
+                    next == null
+                        ? 'Last block — finish easy'
+                        : '${next.minutes}′ ${next.zone >= 3 ? 'hard' : 'easy'}',
+                    style: TempoType.titleM.c(c.text1),
+                  ),
+                ],
+              ),
+            ),
+            if (seg + 2 < plan.segments.length)
+              Text(
+                'then\n${label(seg + 2).toLowerCase()}',
+                textAlign: TextAlign.right,
+                style: TempoType.caption.c(c.text3),
+              ),
+          ],
+        ),
+      ),
+      const SizedBox(height: 14),
+      _StatRow([
+        (
+          'Distance',
+          d == null ? '—' : distanceText(d, metric: s.metric),
+          ' $unit',
+        ),
+        ('Avg HR', s.avgHr?.toString() ?? '—', null),
+        ('Day strain', n1(s.dayStrain), null),
+        ('Session', '+${n1(s.sessionStrain)}', null),
+      ]),
+    ];
+  }
+
+  static String? _speed(LiveState s) => s.paceNow == null
+      ? null
+      : (3600 / (s.paceNow! * (s.metric ? 1 : 1.609344))).toStringAsFixed(1);
+
+  static String? _climb(LiveState s) {
+    final g = s.elevationGainM;
+    return g == null ? null : (s.metric ? g : g * 3.28084).round().toString();
+  }
+}
+
+class _PausedCard extends StatelessWidget {
+  const _PausedCard({required this.s});
+  final LiveState s;
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c;
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: c.surface3,
+        borderRadius: BorderRadius.circular(TempoRadii.lg),
+        boxShadow: c.shadowFloat,
+      ),
+      child: Column(
+        children: [
+          Text(
+            'Paused · ${mmss(s.elapsed)}',
+            style: TempoType.titleM.c(c.text1).tnum,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Strain and the interval clock are on hold.',
+            style: TempoType.bodyS.c(c.text2),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Two big numbers side by side.
+class _BigPair extends StatelessWidget {
+  const _BigPair(this.a, this.b);
+  final (String, String, String?) a, b;
+  @override
+  Widget build(BuildContext context) {
+    final big = TempoType.scoreL.copyWith(fontSize: 52, height: 1.05);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (final (l, v, u) in [a, b])
+          Expanded(
+            child: Stat(l, v, unit: u, valueStyle: big),
+          ),
+      ],
+    );
+  }
+}
+
+/// A row of small numbers.
+class _StatRow extends StatelessWidget {
+  const _StatRow(this.items);
+  final List<(String, String, String?)> items;
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 4),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (final (l, v, u) in items)
+          Expanded(
+            child: Stat(
+              l,
+              v,
+              unit: u,
+              valueStyle: TempoType.titleM.copyWith(
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
+            ),
+          ),
+      ],
+    ),
+  );
+}
+
+class _ZoneChip extends StatelessWidget {
+  const _ZoneChip({required this.zone, this.size});
+  final int zone;
+
+  /// A square of this size; null = a small pill.
+  final double? size;
+  @override
+  Widget build(BuildContext context) {
+    final sc0 = context.s;
+    final z = zone.clamp(1, 5);
+    return Container(
+      width: size,
+      height: size ?? 24,
+      padding: size == null ? const EdgeInsets.symmetric(horizontal: 8) : null,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: sc0.zoneColor(z),
+        borderRadius: BorderRadius.circular(size == null ? 7 : 12),
+      ),
+      child: Text(
+        'Z$z',
+        style: TempoType.label.copyWith(
+          fontWeight: FontWeight.w700,
+          color: sc0.onZone(z),
+        ),
+      ),
+    );
+  }
+}
+
+/// Heart, bpm, zone chip and where it sits; [trailing] on the right.
+class _HrLine extends StatelessWidget {
+  const _HrLine({required this.s, this.trailing});
+  final LiveState s;
+  final String? trailing;
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c, sc0 = context.s;
+    final (note, _) = _hrNote(s);
+    if (s.timerOnly || s.bpm == null) {
+      return Row(
+        children: [
+          TempoIcon(TempoIcons.heart, size: 16, color: c.text3),
+          const SizedBox(width: 10),
+          Expanded(child: Text(note, style: TempoType.body.c(c.text2))),
+        ],
+      );
+    }
+    return Row(
+      children: [
+        BeatingHeart(
+          bpm: s.bpm,
+          color: sc0.recLow,
+          size: 16,
+          active: s.phase == LivePhase.live && !s.signalLost,
+        ),
+        const SizedBox(width: 8),
+        Text('${s.bpm}', style: TempoType.scoreS.c(c.text1)),
+        const SizedBox(width: 8),
+        if (s.zone > 0) ...[_ZoneChip(zone: s.zone), const SizedBox(width: 8)],
+        Expanded(
+          child: Text(
+            note,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TempoType.caption.c(c.text2).tnum,
+          ),
+        ),
+        if (trailing != null)
+          Text(trailing!, style: TempoType.caption.c(c.text2).tnum),
+      ],
+    );
+  }
+}
+
+/// Heart rate as one bar a minute over the last 15′, coloured by zone.
+class _MinuteBars extends StatelessWidget {
+  const _MinuteBars({required this.s});
+  final LiveState s;
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c, sc0 = context.s;
+    final sums = <int, (int, int)>{};
+    for (final (t, b) in s.trace) {
+      final m = t ~/ 60;
+      final (sum, n) = sums[m] ?? (0, 0);
+      sums[m] = (sum + b, n + 1);
+    }
+    final keys = sums.keys.toList()..sort();
+    final avg = [for (final k in keys) sums[k]!.$1 / sums[k]!.$2];
+    if (avg.isEmpty) return const SizedBox.shrink();
+    final lo = avg.reduce(math.min) - 8, hi = avg.reduce(math.max) + 4;
+    final window = math.min(s.elapsed.inSeconds, LiveState.traceWindow);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Semantics(
+          label:
+              'Heart rate each minute, ${avg.first.round()} to ${avg.last.round()} bpm',
+          child: SizedBox(
+            height: 52,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                for (final (i, v) in avg.indexed) ...[
+                  if (i > 0) const SizedBox(width: 3),
+                  Expanded(
+                    child: FractionallySizedBox(
+                      heightFactor: ((v - lo) / (hi - lo)).clamp(.12, 1.0),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: sc0.zoneColor(
+                            math.max(
+                              1,
+                              sc.zoneFor(
+                                v.round(),
+                                s.hrMax,
+                                hrRest: s.zoneRest,
+                              ),
+                            ),
+                          ),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 6),
+        Row(
+          children: [
+            Text(
+              window >= LiveState.traceWindow ? '15′ ago' : 'Start',
+              style: TempoType.caption.c(c.text3),
+            ),
+            const Spacer(),
+            if (s.avgHr != null)
+              Text(
+                'avg ${s.avgHr}${s.maxHr == null ? '' : ' · max ${s.maxHr}'}',
+                style: TempoType.caption.c(c.text3).tnum,
+              ),
+            const Spacer(),
+            Text('now', style: TempoType.caption.c(c.text3)),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+/// Today's strain in one slim row: the number, a bar with the target and
+/// how far off it is.
+class _StrainRow extends StatelessWidget {
+  const _StrainRow({required this.s});
+  final LiveState s;
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c, sc0 = context.s;
+    final t = s.target;
+    final String note;
+    var good = false;
+    if (t == null || s.timerOnly) {
+      note = '+${n1(s.sessionStrain)} now';
+    } else if (t.cap) {
+      final m = s.minutesTo(t.hi);
+      note = s.dayStrain >= t.hi
+          ? 'Past the cap'
+          : m == null
+          ? 'cap ${t.hi.round()}'
+          : '≈ $m′ to the cap';
+    } else if (s.dayStrain > t.hi) {
+      note = 'Above target';
+    } else if (s.dayStrain >= t.lo) {
+      note = 'In range';
+      good = true;
+    } else {
+      final m = s.minutesTo(t.lo);
+      note = m == null
+          ? 'target ${t.lo.round()}–${t.hi.round()}'
+          : '≈ $m′ to ${t.lo.round()}–${t.hi.round()}';
+    }
+    return TempoCard(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        children: [
+          Text('Strain', style: TempoType.caption.c(c.text3)),
+          const SizedBox(width: 10),
+          Text(n1(s.dayStrain), style: TempoType.titleM.c(c.text1).tnum),
+          const SizedBox(width: 12),
+          Expanded(
+            child: TargetStrip(
+              value: s.dayStrain,
+              max: 21,
+              lo: t?.cap == true ? null : t?.lo,
+              hi: t?.hi,
+              color: sc0.strain[2],
+              height: 12,
+              track: 6,
+              marker: false,
+              shaded: true,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            note,
+            style: good
+                ? TempoType.label.c(sc0.recHigh)
+                : TempoType.caption.c(c.text2).tnum,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The km (or mile) you're in and the splits so far, the best one dark.
+class _SplitCard extends StatelessWidget {
+  const _SplitCard({required this.s, required this.unit});
+  final LiveState s;
+  final String unit;
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c, sc0 = context.s;
+    final per = s.metric ? 1000.0 : 1609.344;
+    final d = s.distanceM!;
+    final k = (d / per).floor() + 1;
+    final frac = (d % per) / per;
+    final splits = s.splits;
+    final shown = splits.length > 5
+        ? splits.sublist(splits.length - 5)
+        : splits;
+    final first = splits.length - shown.length;
+    final best = splits.isEmpty ? null : splits.reduce(math.min);
+    final into = s.metric
+        ? '${(d % per).round()} m in'
+        : '${((d % per) / per).toStringAsFixed(2)} mi in';
+    return TempoCard(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              Text(
+                '${unit == 'km' ? 'Km' : 'Mile'} $k',
+                style: TempoType.label.c(c.text1),
+              ),
+              const Spacer(),
+              Text(
+                s.paceNow == null
+                    ? into
+                    : '$into · on track for ${sc.paceText(s.paceNow!, miles: !s.metric)}',
+                style: TempoType.caption.c(c.text2).tnum,
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: frac,
+              minHeight: 8,
+              backgroundColor: c.surface2,
+              color: sc0.strain[2],
+            ),
+          ),
+          if (shown.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                for (final (i, v) in shown.indexed) ...[
+                  if (i > 0) const SizedBox(width: 6),
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 5),
+                      decoration: BoxDecoration(
+                        color: v == best ? c.text1 : c.surface2,
+                        borderRadius: BorderRadius.circular(TempoRadii.sm),
+                      ),
+                      child: Column(
+                        children: [
+                          Text(
+                            '${first + i + 1}',
+                            style: TempoType.caption.c(
+                              v == best ? c.textInverse : c.text3,
+                            ),
+                          ),
+                          Text(
+                            sc.durationText(v),
+                            style: TempoType.label
+                                .c(v == best ? c.textInverse : c.text1)
+                                .tnum,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// The block you're in: zone, label, countdown with a bar, and the
+/// numbers to hold (pace on a run; steps a minute and speed on a walk).
+class _RepCard extends StatelessWidget {
+  const _RepCard({required this.s, required this.run, required this.label});
+  final LiveState s;
+  final bool run;
+  final String label;
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c, sc0 = context.s;
+    final plan = s.plan!;
+    final (seg, left) = s.segment;
+    final g = plan.segments[seg];
+    final r = sc.zoneRange(g.zone, s.hrMax, hrRest: s.zoneRest);
+    final (note, inTarget) = _hrNote(s);
+    final total = g.minutes * 60;
+    final unit = s.metric ? 'km' : 'mi';
+    final tag = inTarget
+        ? 'In target'
+        : s.zone == 0 || s.timerOnly || s.signalLost
+        ? null
+        : s.zone < g.zone
+        ? 'Push a little'
+        : 'Ease off';
+    final speed = _OnFoot._speed(s);
+    return TempoCard(
+      padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              _ZoneChip(zone: g.zone),
+              const SizedBox(width: 8),
+              Expanded(child: Text(label, style: TempoType.label.c(c.text1))),
+              if (tag != null)
+                Container(
+                  height: 28,
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  decoration: BoxDecoration(
+                    color: inTarget ? sc0.tintRecHigh : c.surface2,
+                    borderRadius: BorderRadius.circular(TempoRadii.pill),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (inTarget) ...[
+                        TempoIcon(
+                          TempoIcons.check,
+                          size: 14,
+                          color: sc0.recHigh,
+                          stroke: 2.6,
+                        ),
+                        const SizedBox(width: 6),
+                      ],
+                      Text(
+                        tag,
+                        style: TempoType.label.c(
+                          inTarget ? sc0.recHigh : c.text1,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              Text(
+                mmss(Duration(seconds: left)),
+                textScaler: TextScaler.noScaling,
+                style: TempoType.hero.c(c.text1),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                'left of ${mmss(Duration(seconds: total))}',
+                style: TempoType.body.c(c.text2).tnum,
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: total == 0 ? 0 : (1 - left / total).clamp(0.0, 1.0),
+              minHeight: 8,
+              backgroundColor: c.surface2,
+              color: sc0.zoneColor(g.zone),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Divider(height: 1, color: c.line),
+          const SizedBox(height: 14),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Stat(
+                  s.timerOnly ? 'Heart rate' : 'HR · aim ${r.lo}–${r.hi}',
+                  s.bpm?.toString() ?? '—',
+                ),
+              ),
+              if (run)
+                Expanded(
+                  child: Stat(
+                    'Pace',
+                    s.paceNow == null
+                        ? '—'
+                        : sc.paceText(s.paceNow!, miles: !s.metric),
+                    unit: ' /$unit',
+                  ),
+                )
+              else ...[
+                Expanded(
+                  child: Stat('Steps/min', s.cadence?.toString() ?? '—'),
+                ),
+                Expanded(
+                  child: Stat(
+                    'Speed',
+                    speed ?? '—',
+                    unit: speed == null ? null : (s.metric ? ' km/h' : ' mph'),
+                  ),
+                ),
+              ],
+            ],
+          ),
+          if (!inTarget && tag == null) ...[
+            const SizedBox(height: 8),
+            Text(note, style: TempoType.caption.c(c.text2)),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// Strength: minimise, then time · heart rate · strain in one pill, then
+/// the band.
+class _StrengthStrip extends StatelessWidget {
+  const _StrengthStrip({required this.s});
+  final LiveState s;
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c, sc0 = context.s;
+    final top = MediaQuery.of(context).padding.top;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(10, top + 8, 10, 0),
+      child: Row(
+        children: [
+          TempoIconButton(
+            TempoIcons.down,
+            label: 'Minimise',
+            onTap: () => Navigator.of(context).maybePop(),
+          ),
+          const SizedBox(width: 4),
+          Expanded(
+            child: Container(
+              height: 44,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: BoxDecoration(
+                color: c.surface1,
+                borderRadius: BorderRadius.circular(TempoRadii.pill),
+              ),
+              child: Row(
+                children: [
+                  Text(mmss(s.elapsed), style: TempoType.label.c(c.text1).tnum),
+                  const SizedBox(width: 14),
+                  if (s.bpm != null && !s.timerOnly) ...[
+                    BeatingHeart(
+                      bpm: s.bpm,
+                      color: sc0.recLow,
+                      size: 14,
+                      active: s.phase == LivePhase.live && !s.signalLost,
+                    ),
+                    const SizedBox(width: 5),
+                    Text('${s.bpm}', style: TempoType.label.c(c.text1).tnum),
+                  ] else
+                    Flexible(
+                      child: Text(
+                        _hrNote(s).$1,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TempoType.caption.c(c.text2),
+                      ),
+                    ),
+                  const Spacer(),
+                  Text('Strain ', style: TempoType.caption.c(c.text2)),
+                  Text(
+                    '+${n1(s.sessionStrain)}',
+                    style: TempoType.label.c(sc0.strain[3]).tnum,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 4),
+          _BandStatus(s: s),
+        ],
+      ),
+    );
   }
 }

@@ -911,9 +911,13 @@ void main() {
   });
 
   group('Live workout', () {
-    LiveState state(LivePhase p, {bool guided = true}) => LiveState(
+    LiveState state(
+      LivePhase p, {
+      bool guided = true,
+      sc.Sport sport = sc.Sport.running,
+    }) => LiveState(
       phase: p,
-      sport: sc.Sport.running,
+      sport: sport,
       title: guided ? 'Threshold intervals' : 'Running · open session',
       plan: guided ? sc.sessionTemplate('threshold_run') : null,
       bpm: 158,
@@ -938,13 +942,47 @@ void main() {
         state(LivePhase.live, guided: false),
         'Z4 149–167 · Z5 at 168',
       ),
-      ('no-signal column', state(LivePhase.live, guided: false), 'No HR'),
+      // Rides keep the card stack with the zone split and the trace.
+      (
+        'no-signal column',
+        state(LivePhase.live, guided: false, sport: sc.Sport.cycling),
+        'No HR',
+      ),
       (
         'heart-rate trace',
-        state(LivePhase.live, guided: false),
+        state(LivePhase.live, guided: false, sport: sc.Sport.cycling),
         'Heart rate · last 15′'.toUpperCase(),
       ),
-      ('paused', state(LivePhase.paused), 'Resume'),
+      ('paused', state(LivePhase.paused), 'Paused · 16:48'),
+      (
+        'open walk: route first, steps and the strain row',
+        state(
+          LivePhase.live,
+          guided: false,
+          sport: sc.Sport.walking,
+        ).copyWith(steps: 3052, distanceM: 2080, gps: GpsState.on),
+        'Steps',
+      ),
+      (
+        'open walk: strain against the target',
+        state(LivePhase.live, guided: false, sport: sc.Sport.walking),
+        'Strain',
+      ),
+      (
+        'guided run: the rep counts down',
+        state(LivePhase.live),
+        'left of 3:00',
+      ),
+      (
+        'guided walk: brisk blocks',
+        state(LivePhase.live, sport: sc.Sport.walking),
+        'Brisk 2 of 5',
+      ),
+      (
+        'strength logs in place',
+        state(LivePhase.live, guided: false, sport: sc.Sport.strength),
+        'Add exercise',
+      ),
       ('summary', state(LivePhase.ended), 'How hard did that feel?'),
       (
         'distance and pace on a run',
@@ -1027,12 +1065,12 @@ void main() {
         ),
       );
       await settle(t, frames: 5);
-      await t.tap(find.text('End'));
+      await t.tap(find.text('Hold to end'));
       await t.pump(const Duration(milliseconds: 100));
-      expect(find.text('Hold to end'), findsOneWidget);
+      expect(find.text('Hold a second'), findsOneWidget);
       expect(live.ends, 0);
 
-      final g = await t.startGesture(t.getCenter(find.text('Hold to end')));
+      final g = await t.startGesture(t.getCenter(find.text('Hold a second')));
       await t.pump(); // the ticker's first frame sets its start time
       await t.pump(const Duration(milliseconds: 300));
       expect(find.text('Keep holding'), findsOneWidget);

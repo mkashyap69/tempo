@@ -26,11 +26,25 @@ import 'nav.dart';
 /// and reps in reserve, a rest timer that sounds, a plate calculator,
 /// supersets and the library. Sets are saved as they're ticked.
 class StrengthLogScreen extends ConsumerStatefulWidget {
-  const StrengthLogScreen({super.key, this.plan});
+  const StrengthLogScreen({
+    super.key,
+    this.plan,
+    this.embedded = false,
+    this.header,
+    this.controls,
+  });
 
   /// A session whose detail lists exercises (a strength pick), or null to
   /// start empty.
   final sc.Session? plan;
+
+  /// Inside the live workout: one exercise at a time with the set you're
+  /// on opened up, [header] on top and [controls] (given the Set done
+  /// button) at the bottom. The live session owns the workout, so there's
+  /// no Finish.
+  final bool embedded;
+  final Widget? header;
+  final Widget Function(Widget primary)? controls;
 
   @override
   ConsumerState<StrengthLogScreen> createState() => _LogState();
@@ -42,6 +56,9 @@ class _Row {
   int reps, seconds;
   int? rir;
   int? savedId;
+
+  /// The same set last time, as "57.5 × 8".
+  String? last;
   bool get done => savedId != null;
 }
 
@@ -181,12 +198,15 @@ class _LogState extends ConsumerState<StrengthLogScreen> {
               : last.sets[min(i, last.sets.length - 1)];
           e.rows.add(
             _Row(
-              kg: x.kg ?? prev?.kg ?? 0,
-              reps: range?.$1 ?? prev?.reps ?? 0,
-              seconds: def.kind == sc.SetKind.timed
-                  ? (_seconds(x.reps) ?? prev?.seconds ?? 30)
-                  : 0,
-            ),
+                kg: x.kg ?? prev?.kg ?? 0,
+                reps: range?.$1 ?? prev?.reps ?? 0,
+                seconds: def.kind == sc.SetKind.timed
+                    ? (_seconds(x.reps) ?? prev?.seconds ?? 30)
+                    : 0,
+              )
+              ..last = prev == null
+                  ? null
+                  : _setText(def, prev.kg, prev.reps, prev.seconds),
           );
         }
         _ex.add(e);
@@ -291,8 +311,257 @@ class _LogState extends ConsumerState<StrengthLogScreen> {
     if (done > 0) showTempoToast(context, '$done sets saved');
   }
 
+  /// The exercise open in the live view.
+  int _cur = 0;
+
+  /// The first set not yet done in [e], or null.
+  int? _next(_Ex e) {
+    final i = e.rows.indexWhere((r) => !r.done);
+    return i < 0 ? null : i;
+  }
+
+  /// Ticks the open set, then moves on: to the partner in a superset, or
+  /// to the next exercise once this one's done.
+  Future<void> _setDone() async {
+    if (_ex.isEmpty) return;
+    final e = _ex[_cur];
+    final i = _next(e);
+    if (i == null) return;
+    await _toggle(e, i);
+    if (!mounted) return;
+    setState(() {
+      final linked =
+          e.superset != null &&
+          _cur + 1 < _ex.length &&
+          _ex[_cur + 1].superset == e.superset &&
+          _next(_ex[_cur + 1]) != null;
+      if (linked) {
+        _cur++;
+      } else if (_cur > 0 &&
+          _ex[_cur - 1].superset != null &&
+          _ex[_cur - 1].superset == e.superset &&
+          _next(_ex[_cur - 1]) != null) {
+        _cur--;
+      } else if (_next(e) == null) {
+        final k = _ex.indexWhere((x) => _next(x) != null);
+        if (k >= 0) _cur = k;
+      }
+    });
+  }
+
+  Future<void> _addExercise() async {
+    final def = await Navigator.of(context).push<sc.ExerciseDef>(
+      MaterialPageRoute(builder: (_) => const ExercisePickerScreen()),
+    );
+    if (def == null) return;
+    final last = (await exerciseHistory(
+      ref.read(dbProvider),
+      def.id,
+    )).lastOrNull;
+    if (!mounted) return;
+    setState(() {
+      final e = _Ex(def, rest: 90);
+      for (var i = 0; i < 3; i++) {
+        final p = last == null || last.sets.isEmpty
+            ? null
+            : last.sets[min(i, last.sets.length - 1)];
+        e.rows.add(
+          _Row(
+            kg: p?.kg ?? 0,
+            reps: p?.reps ?? 8,
+            seconds: def.kind == sc.SetKind.timed ? (p?.seconds ?? 30) : 0,
+          )..last = p == null ? null : _setText(def, p.kg, p.reps, p.seconds),
+        );
+      }
+      _ex.add(e);
+      _cur = _ex.length - 1;
+    });
+  }
+
+  Widget _live(BuildContext context) {
+    final c = context.c;
+    _cur = _ex.isEmpty ? 0 : _cur.clamp(0, _ex.length - 1);
+    final e = _ex.isEmpty ? null : _ex[_cur];
+    final i = e == null ? null : _next(e);
+    final total = _ex.fold(0, (a, x) => a + x.rows.length);
+    final done = _ex.fold(0, (a, x) => a + x.rows.where((r) => r.done).length);
+    final primary = TempoButton(
+      e == null
+          ? 'Add exercise'
+          : i == null
+          ? (done == total ? 'All sets done' : 'Next exercise')
+          : 'Set done',
+      height: 64,
+      radius: 32,
+      fontSize: 17,
+      expand: true,
+      onTap: e == null
+          ? _addExercise
+          : i != null
+          ? _setDone
+          : done == total
+          ? null
+          : () =>
+                setState(() => _cur = _ex.indexWhere((x) => _next(x) != null)),
+    );
+    return Column(
+      children: [
+        ?widget.header,
+        Expanded(
+          child: !_ready
+              ? const SizedBox.shrink()
+              : ListView(
+                  padding: const EdgeInsets.fromLTRB(20, 14, 20, 16),
+                  children: [
+                    if (_ex.isEmpty) ...[
+                      if (_last != null)
+                        _RepeatCard(
+                          routine: _last!,
+                          day: _lastDay!,
+                          onTap: () => _repeat(_last!),
+                        ),
+                      if (_saved.isNotEmpty) ...[
+                        const SizedBox(height: 14),
+                        CardList(
+                          children: [
+                            for (final r in _saved)
+                              ListRow(
+                                r.name,
+                                sub: [for (final x in r.items) x.name]
+                                    .join(' · '),
+                                onTap: () => _repeat(r),
+                              ),
+                          ],
+                        ),
+                      ],
+                      if (_last == null && _saved.isEmpty)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 40),
+                          child: Text(
+                            'Add your first exercise, then tick each set as you go.',
+                            textAlign: TextAlign.center,
+                            style: TempoType.body.c(c.text2),
+                          ),
+                        ),
+                    ] else ...[
+                      SizedBox(
+                        height: 36,
+                        child: ListView(
+                          scrollDirection: Axis.horizontal,
+                          children: [
+                            for (final (k, x) in _ex.indexed) ...[
+                              if (k > 0) const SizedBox(width: 8),
+                              TempoChip(
+                                '${x.def.name} ${x.rows.where((r) => r.done).length}/${x.rows.length}',
+                                height: 36,
+                                selected: k == _cur,
+                                onTap: () => setState(() => _cur = k),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      _FocusCard(
+                        e!,
+                        open: i,
+                        onToggle: (k) async {
+                          await _toggle(e, k);
+                          if (mounted) setState(() {});
+                        },
+                        onChanged: (r) async {
+                          setState(() {});
+                          await _edit(e, r);
+                        },
+                      ),
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TempoButton(
+                              e.rest == 0
+                                  ? 'No rest timer'
+                                  : 'Rest ${e.rest} s',
+                              kind: ButtonKind.text,
+                              small: true,
+                              expand: true,
+                              onTap: () async {
+                                final v = await pickOption<int>(
+                                  context,
+                                  title: 'Rest between sets',
+                                  options: const [
+                                    0,
+                                    30,
+                                    45,
+                                    60,
+                                    90,
+                                    120,
+                                    180,
+                                    240,
+                                  ],
+                                  selected: e.rest,
+                                  label: (s) => s == 0 ? 'No timer' : '$s s',
+                                );
+                                if (v != null) setState(() => e.rest = v);
+                              },
+                            ),
+                          ),
+                          Expanded(
+                            child: TempoButton(
+                              'Add set',
+                              kind: ButtonKind.text,
+                              small: true,
+                              expand: true,
+                              onTap: () => setState(() {
+                                final last = e.rows.lastOrNull;
+                                e.rows.add(
+                                  _Row(
+                                    kg: last?.kg ?? 0,
+                                    reps: last?.reps ?? 8,
+                                    seconds: last?.seconds ?? 0,
+                                  ),
+                                );
+                              }),
+                            ),
+                          ),
+                          Expanded(
+                            child: TempoButton(
+                              'Add exercise',
+                              kind: ButtonKind.text,
+                              small: true,
+                              expand: true,
+                              onTap: _addExercise,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
+        ),
+        if (_restLeft > 0)
+          _RestBar(
+            left: _restLeft,
+            total: _restTotal,
+            bpm: null,
+            inset: false,
+            onSkip: () => setState(() => _restLeft = 0),
+            onAdd: () => setState(() {
+              _restLeft += 15;
+              _restTotal += 15;
+            }),
+          ),
+        if (widget.controls != null)
+          widget.controls!(primary)
+        else
+          Padding(padding: const EdgeInsets.all(20), child: primary),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (widget.embedded) return _live(context);
     final c = context.c;
     final live = ref.watch(liveSessionProvider);
     final el = DateTime.now().difference(_started);
@@ -442,6 +711,13 @@ String _mmss(Duration d) =>
 
 String _kg(double kg) =>
     kg == kg.roundToDouble() ? '${kg.round()}' : kg.toStringAsFixed(1);
+
+String _setText(sc.ExerciseDef d, double kg, int reps, int seconds) =>
+    switch (d.kind) {
+      sc.SetKind.weighted => '${_kg(kg)} × $reps',
+      sc.SetKind.timed => '$seconds s',
+      _ => '$reps reps',
+    };
 
 String _rir(int? r) => r == null ? 'RIR' : (r >= 3 ? '3+ left' : '$r left');
 
@@ -646,6 +922,304 @@ class _ExerciseCard extends StatelessWidget {
   }
 }
 
+/// One exercise in the live view: done sets as rows, the open set with
+/// − and + for weight and reps and a reps-in-reserve pick, the rest after.
+class _FocusCard extends StatelessWidget {
+  const _FocusCard(
+    this.e, {
+    required this.open,
+    required this.onToggle,
+    required this.onChanged,
+  });
+  final _Ex e;
+  final int? open;
+  final ValueChanged<int> onToggle;
+  final ValueChanged<_Row> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c, sc0 = context.s;
+    final d = e.def;
+    final weighted = d.kind == sc.SetKind.weighted;
+    final timed = d.kind == sc.SetKind.timed;
+    String value(_Row r) => weighted
+        ? '${_kg(r.kg)} × ${r.reps}'
+        : timed
+        ? '${r.seconds} s'
+        : '${r.reps} reps';
+    Widget check(int i, _Row r) => Pressable(
+      label: r.done ? 'Undo set ${i + 1}' : 'Done set ${i + 1}',
+      selected: r.done,
+      onTap: () => onToggle(i),
+      child: SizedBox.square(
+        dimension: 44,
+        child: Center(
+          child: Container(
+            width: 26,
+            height: 26,
+            decoration: BoxDecoration(
+              color: r.done ? sc0.recHigh : Colors.transparent,
+              shape: BoxShape.circle,
+              border: r.done ? null : Border.all(color: c.lineStrong, width: 2),
+            ),
+            child: r.done
+                ? Center(
+                    child: TempoIcon(
+                      TempoIcons.check,
+                      size: 14,
+                      color: c.textInverse,
+                      stroke: 2.6,
+                    ),
+                  )
+                : null,
+          ),
+        ),
+      ),
+    );
+    Widget row(int i, _Row r) => Row(
+      children: [
+        SizedBox(
+          width: 32,
+          child: Text('${i + 1}', style: TempoType.label.c(c.text3).tnum),
+        ),
+        Expanded(
+          child: Text(r.last ?? '—', style: TempoType.body.c(c.text3).tnum),
+        ),
+        Expanded(
+          child: Text(
+            value(r),
+            style: TempoType.body
+                .c(r.done ? c.text1 : c.text2)
+                .copyWith(fontWeight: r.done ? FontWeight.w600 : null)
+                .tnum,
+          ),
+        ),
+        check(i, r),
+      ],
+    );
+    Widget stepper(
+      String text,
+      String unit,
+      String what,
+      VoidCallback less,
+      VoidCallback more,
+    ) {
+      Widget b(String icon, String label, VoidCallback f) => Pressable(
+        label: label,
+        onTap: () {
+          HapticFeedback.selectionClick();
+          f();
+        },
+        child: Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: c.surface2,
+            borderRadius: BorderRadius.circular(TempoRadii.sm),
+          ),
+          alignment: Alignment.center,
+          child: TempoIcon(icon, size: 18, color: c.text1),
+        ),
+      );
+      return Expanded(
+        child: Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: c.surface1,
+            borderRadius: BorderRadius.circular(TempoRadii.md),
+          ),
+          child: Row(
+            children: [
+              b(TempoIcons.minus, 'Less $what', less),
+              Expanded(
+                child: Text.rich(
+                  TextSpan(
+                    text: text,
+                    style: TempoType.scoreS.c(c.text1),
+                    children: [
+                      TextSpan(
+                        text: ' $unit',
+                        style: TempoType.caption.c(c.text3),
+                      ),
+                    ],
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              b(TempoIcons.plus, 'More $what', more),
+            ],
+          ),
+        ),
+      );
+    }
+
+    Widget openSet(int i, _Row r) => Container(
+      margin: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.fromLTRB(10, 12, 10, 12),
+      decoration: BoxDecoration(
+        color: c.bg,
+        borderRadius: BorderRadius.circular(TempoRadii.lg),
+        border: Border.all(color: c.text1, width: 2),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Text('Set ${i + 1} · now', style: TempoType.label.c(c.text1)),
+              const Spacer(),
+              if (r.last != null)
+                Text(
+                  'last time ${r.last}',
+                  style: TempoType.caption.c(c.text2).tnum,
+                ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              if (weighted) ...[
+                stepper(
+                  _kg(r.kg),
+                  'kg',
+                  'weight',
+                  () {
+                    r.kg = max(0, r.kg - d.stepKg);
+                    onChanged(r);
+                  },
+                  () {
+                    r.kg += d.stepKg;
+                    onChanged(r);
+                  },
+                ),
+                const SizedBox(width: 8),
+              ],
+              if (timed)
+                stepper(
+                  '${r.seconds}',
+                  's',
+                  'time',
+                  () {
+                    r.seconds = max(0, r.seconds - 5);
+                    onChanged(r);
+                  },
+                  () {
+                    r.seconds += 5;
+                    onChanged(r);
+                  },
+                )
+              else
+                stepper(
+                  '${r.reps}',
+                  'reps',
+                  'reps',
+                  () {
+                    r.reps = max(0, r.reps - 1);
+                    onChanged(r);
+                  },
+                  () {
+                    r.reps++;
+                    onChanged(r);
+                  },
+                ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Text('In reserve', style: TempoType.caption.c(c.text2)),
+              const SizedBox(width: 10),
+              for (final v in const [0, 1, 2, 3]) ...[
+                Pressable(
+                  label: v == 3 ? '3 or more in reserve' : '$v in reserve',
+                  selected: r.rir == v,
+                  onTap: () {
+                    r.rir = r.rir == v ? null : v;
+                    onChanged(r);
+                  },
+                  child: Container(
+                    width: 44,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: r.rir == v ? c.text1 : c.surface1,
+                      borderRadius: BorderRadius.circular(TempoRadii.sm),
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      v == 3 ? '3+' : '$v',
+                      style: TempoType.label.c(
+                        r.rir == v ? c.textInverse : c.text1,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 6),
+              ],
+            ],
+          ),
+        ],
+      ),
+    );
+
+    return TempoCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              Expanded(child: Text(d.name, style: TempoType.titleM.c(c.text1))),
+              Text(
+                [
+                  '${e.rows.length} × ${e.target ?? (timed ? 'time' : 'reps')}',
+                  if (e.superset != null) 'superset ${e.superset}',
+                ].join(' · '),
+                style: TempoType.caption.c(c.text3),
+              ),
+            ],
+          ),
+          if (e.why != null) ...[
+            const SizedBox(height: 4),
+            Text(e.why!, style: TempoType.caption.c(sc0.recHigh)),
+          ],
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              SizedBox(
+                width: 32,
+                child: Text('Set', style: TempoType.caption.c(c.text3)),
+              ),
+              Expanded(
+                child: Text('Last time', style: TempoType.caption.c(c.text3)),
+              ),
+              Expanded(
+                child: Text(
+                  weighted ? 'kg × reps' : (timed ? 'Time' : 'Reps'),
+                  style: TempoType.caption.c(c.text3),
+                ),
+              ),
+              const SizedBox(width: 44),
+            ],
+          ),
+          for (final (i, r) in e.rows.indexed)
+            if (i == open) openSet(i, r) else row(i, r),
+          const SizedBox(height: 4),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TempoButton(
+              'Progression',
+              kind: ButtonKind.text,
+              small: true,
+              onTap: () => push(context, ExerciseHistoryScreen(d)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _Cell extends StatelessWidget {
   const _Cell(
     this.text, {
@@ -698,15 +1272,19 @@ class _RestBar extends StatelessWidget {
     required this.bpm,
     required this.onSkip,
     required this.onAdd,
+    this.inset = true,
   });
   final int left, total;
   final int? bpm;
   final VoidCallback onSkip, onAdd;
 
+  /// Pad for the home indicator (false when controls sit below it).
+  final bool inset;
+
   @override
   Widget build(BuildContext context) {
     final c = context.c;
-    final bottom = MediaQuery.of(context).padding.bottom;
+    final bottom = inset ? MediaQuery.of(context).padding.bottom : 0.0;
     return Container(
       padding: EdgeInsets.fromLTRB(16, 10, 16, 10 + bottom),
       decoration: BoxDecoration(
