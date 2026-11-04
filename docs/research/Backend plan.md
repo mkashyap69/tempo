@@ -244,6 +244,8 @@ Beta order with these: B0 (+G0) → B1 → B2 alongside G1 → G2 alongside S1 �
 
 ## Open decisions
 
+All six closed 2026-11-04 as recommended; G-O1 is asia-south1 (Mumbai). See `docs/decisions.md`.
+
 | # | Decision | Recommendation |
 | --- | --- | --- |
 | G-O1 | GCP region (Firestore's can't change later) | **asia-south1 (Mumbai)** if most testers are in India, with Cloud Run and buckets in the same region. If the beta is mostly EU or US, `eur3` or `nam5` multi-region. |

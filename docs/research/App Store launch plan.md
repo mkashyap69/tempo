@@ -1,6 +1,6 @@
 # App Store launch plan: store readiness, freemium and running costs
 
-As of Nov 3, 2026 · Status: proposal for the owner. Builds on `docs/research/Beta release plan.md` (B0–B6) and `docs/research/Backend plan.md` (G0–G4, S1); where this differs, the owner's choice goes into `docs/decisions.md`. Store rules and cloud prices change: every number and rule below is a starting point to re-check at setup (marked TODO(verify) where it matters most).
+As of Nov 3, 2026 · Status: L-O1…L-O6 accepted by the owner on Nov 4 (see `docs/decisions.md`); L-O7 (name) open. Builds on `docs/research/Beta release plan.md` (B0–B6) and `docs/research/Backend plan.md` (G0–G4, S1); where this differs, the owner's choice goes into `docs/decisions.md`. Store rules and cloud prices change: every number and rule below is a starting point to re-check at setup (marked TODO(verify) where it matters most).
 
 ## Summary
 
@@ -194,7 +194,9 @@ On top of the beta plan, with B1 done. One engineer full-time; part-time doubles
 
 About **5–6 months** to a public 1.0 for one full-time engineer, the same 14–18 weeks to the external beta as the beta plan plus beta and launch. A faster path, if wanted: ship the beta with on-device store purchases only (StoreKit 2 checks on the phone, Play acknowledgement from the app) and add the GCP billing service before launch. That departs from G-D3, so it's the owner's call.
 
-## Open decisions
+## Decisions
+
+L-O1…L-O6 accepted 2026-11-04, along with B-O3, B-O7, B-O9 and G-O1…G-O6 (region: asia-south1, Mumbai). L-O7 is open.
 
 | # | Decision | Recommendation |
 | --- | --- | --- |
@@ -208,7 +210,8 @@ About **5–6 months** to a public 1.0 for one full-time engineer, the same 14�
 
 ## Checklist
 
-- [ ] L-O1 … L-O7 closed in `docs/decisions.md`
+- [x] L-O1 … L-O6 closed in `docs/decisions.md` (2026-11-04)
+- [ ] L-O7: name and entity
 - [ ] L0: entity, D-U-N-S, Apple and Play organisation accounts, name, domain, Small Business Program
 - [ ] L1: app id, flavours, signing, privacy manifest, export compliance, iPhone-only, store flavour without BLE, Android permissions, target SDK
 - [ ] Beta plan B2–B6 and Backend plan G0–G4, S1 with the changes above

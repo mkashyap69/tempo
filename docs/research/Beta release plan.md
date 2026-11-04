@@ -160,7 +160,7 @@ Targets are starting values to revisit after the first wave.
 
 ## Open decisions
 
-Closed 2026-10-21: B-O1 (Identity Platform, the GCP edition of Firebase Authentication), B-O2 (billing on GCP, no RevenueCat), B-O4 (encrypted sync in the beta), B-O5 (Crashlytics plus our own events endpoint into BigQuery; no Sentry, PostHog or Google Analytics), B-O6 (domain and organisation account), B-O8 (starting split and prices). Still open: B-O3, B-O7, B-O9, and G-O1…G-O6 in the Backend plan.
+Closed 2026-10-21: B-O1 (Identity Platform, the GCP edition of Firebase Authentication), B-O2 (billing on GCP, no RevenueCat), B-O4 (encrypted sync in the beta), B-O5 (Crashlytics plus our own events endpoint into BigQuery; no Sentry, PostHog or Google Analytics), B-O6 (domain and organisation account), B-O8 (starting split and prices). B-O3 (now optional accounts, L-O1), B-O7, B-O9 and G-O1…G-O6 closed 2026-11-04; see `docs/decisions.md` and the App Store launch plan.
 
 As proposed:
 
