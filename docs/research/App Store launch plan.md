@@ -1,6 +1,6 @@
 # App Store launch plan: store readiness, freemium and running costs
 
-As of Nov 3, 2026 · Status: L-O1…L-O6 accepted by the owner on Nov 4 (see `docs/decisions.md`); L-O7 (name) open. Builds on `docs/research/Beta release plan.md` (B0–B6) and `docs/research/Backend plan.md` (G0–G4, S1); where this differs, the owner's choice goes into `docs/decisions.md`. Store rules and cloud prices change: every number and rule below is a starting point to re-check at setup (marked TODO(verify) where it matters most).
+As of Nov 3, 2026 · Status: L-O1…L-O7 accepted by the owner on Nov 4 (see `docs/decisions.md`); the name stays Tempo. Builds on `docs/research/Beta release plan.md` (B0–B6) and `docs/research/Backend plan.md` (G0–G4, S1); where this differs, the owner's choice goes into `docs/decisions.md`. Store rules and cloud prices change: every number and rule below is a starting point to re-check at setup (marked TODO(verify) where it matters most).
 
 ## Summary
 
@@ -18,7 +18,7 @@ As of Nov 3, 2026 · Status: L-O1…L-O6 accepted by the owner on Nov 4 (see `do
 | Legal entity | Needed for an organisation developer account (B-O6). In India an LLP or Pvt Ltd; a D-U-N-S number (free) for both stores | ₹10–25k setup, then yearly compliance |
 | Apple Developer Program (organisation) | Also unlocks Xcode Cloud (25 compute hours a month included) | $99 a year |
 | Google Play Console (organisation) | Organisation accounts skip the 12-testers-for-14-days rule | $25 once |
-| Name and trademark | "Tempo" is almost certainly taken in both stores. Search both stores, USPTO and the Indian TM registry; file in class 9 (software) and 44 (health) | India ₹4.5–9k per class; US ~$350 per class |
+| Store name | The name stays Tempo (L-O7). App Store names must be unique, so list with a subtitle-style name such as "Tempo: Recovery & Sleep", checked for availability in App Store Connect when the app record is created; the same on Play. No trademark filing for now | India ₹4.5–9k per class; US ~$350 per class |
 | Domain, website, support email | Marketing page, privacy policy and terms on Firebase Hosting (GCP, free tier); a support inbox | ~$12 a year domain; email $0–7 a month |
 | Privacy policy and terms | Lawyer review, as the beta plan says; source is the backend plan's data inventory | One-time, roughly ₹30–80k / $500–2,000 |
 | Store Small Business Program | Apple: 15 % instead of 30 % under $1M a year (enrol, it isn't automatic). Google: 15 % on the first $1M a year, and 15 % on all subscriptions | $0 |
@@ -182,7 +182,7 @@ On top of the beta plan, with B1 done. One engineer full-time; part-time doubles
 
 | Phase | Weeks | Scope | Gate |
 | --- | --- | --- | --- |
-| L0 · Business setup | 1–3 (calendar; paperwork waits) | Entity, D-U-N-S, both developer accounts, name + trademark search, domain, Small Business Program | Both consoles open under the organisation |
+| L0 · Business setup | 1–3 (calendar; paperwork waits) | Entity, D-U-N-S, both developer accounts, store name with a subtitle, domain, Small Business Program | Both consoles open under the organisation |
 | L1 · Store hygiene (alongside B2) | 1–2 | App id, flavours, signing, privacy manifest, export compliance answer, iPhone-only, App Store flavour without BLE, Android permission clean-up, target SDK, disclosures | A `prod` build uploads to TestFlight and Play internal testing with no warnings |
 | B2 · Connector proof | 2–3 | As planned | As planned |
 | G0 + G1 · GCP and accounts | 3 | As planned, with optional accounts and anonymous uid (section 2), plain Firebase Auth (lever 1), budgets | As planned + budget alerts fire in a drill |
@@ -196,7 +196,7 @@ About **5–6 months** to a public 1.0 for one full-time engineer, the same 14�
 
 ## Decisions
 
-L-O1…L-O6 accepted 2026-11-04, along with B-O3, B-O7, B-O9 and G-O1…G-O6 (region: asia-south1, Mumbai). L-O7 is open.
+L-O1…L-O6 accepted 2026-11-04, along with B-O3, B-O7, B-O9 and G-O1…G-O6 (region: asia-south1, Mumbai). L-O7: keep Tempo.
 
 | # | Decision | Recommendation |
 | --- | --- | --- |
@@ -206,12 +206,12 @@ L-O1…L-O6 accepted 2026-11-04, along with B-O3, B-O7, B-O9 and G-O1…G-O6 (re
 | L-O4 | India prices ₹249 / ₹1,499 / ₹3,999 | Yes, tune from beta |
 | L-O5 | App Store and Play builds without BLE (band stays in the dev flavour) | Yes for 1.0 |
 | L-O6 | iPhone-only for 1.0 | Yes |
-| L-O7 | Name and entity | Owner; needs the trademark search first |
+| L-O7 | Name and entity | Decided: keep Tempo, listed with a subtitle-style store name |
 
 ## Checklist
 
 - [x] L-O1 … L-O6 closed in `docs/decisions.md` (2026-11-04)
-- [ ] L-O7: name and entity
+- [x] L-O7: keep Tempo (2026-11-04)
 - [ ] L0: entity, D-U-N-S, Apple and Play organisation accounts, name, domain, Small Business Program
 - [ ] L1: app id, flavours, signing, privacy manifest, export compliance, iPhone-only, store flavour without BLE, Android permissions, target SDK
 - [ ] Beta plan B2–B6 and Backend plan G0–G4, S1 with the changes above
