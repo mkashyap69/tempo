@@ -1,8 +1,33 @@
+import java.util.Base64
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
+
+// Flutter passes --dart-define values to Gradle as base64 "KEY=value"
+// entries, comma-separated. A store build (TEMPO_STORE=true, see
+// lib/src/core/build_info.dart) overlays src/store/AndroidManifest.xml on
+// release builds.
+val dartDefines: Map<String, String> =
+    (project.findProperty("dart-defines") as String?)
+        ?.split(",")
+        ?.mapNotNull { runCatching { String(Base64.getDecoder().decode(it)) }.getOrNull() }
+        ?.mapNotNull { it.split("=", limit = 2).takeIf { p -> p.size == 2 } }
+        ?.associate { it[0] to it[1] }
+        ?: emptyMap()
+val storeBuild = dartDefines["TEMPO_STORE"] == "true"
+
+// Release signing from android/key.properties (untracked; CI writes it from
+// secrets). Without it, release builds fall back to the debug key so
+// `flutter run --release` keeps working locally.
+val keyProperties = Properties().apply {
+    val f = rootProject.file("key.properties")
+    if (f.exists()) f.inputStream().use { load(it) }
+}
+val hasReleaseKey = keyProperties.getProperty("storeFile") != null
 
 android {
     namespace = "dev.tempo.tempo"
@@ -17,7 +42,8 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
+        // TODO(launch): move to a reverse domain we own before the first Play
+        // upload (L1); also tempoAppId in packages/health_source.
         applicationId = "dev.tempo.tempo"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
@@ -32,12 +58,26 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        if (hasReleaseKey) {
+            create("release") {
+                storeFile = file(keyProperties.getProperty("storeFile"))
+                storePassword = keyProperties.getProperty("storePassword")
+                keyAlias = keyProperties.getProperty("keyAlias")
+                keyPassword = keyProperties.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig =
+                signingConfigs.getByName(if (hasReleaseKey) "release" else "debug")
         }
+    }
+
+    if (storeBuild) {
+        sourceSets.getByName("release").manifest.srcFile("src/store/AndroidManifest.xml")
     }
 }
 

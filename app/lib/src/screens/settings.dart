@@ -47,6 +47,7 @@ import 'week_template.dart';
 import 'onboarding.dart' show AvailabilityEditor, WorkoutsEditor;
 import 'pairing.dart';
 import 'score_check.dart';
+import '../core/build_info.dart';
 
 final _bandInfoProvider = FutureProvider<Map<String, String?>>((ref) async {
   ref.watch(dbTickProvider);
@@ -1060,15 +1061,16 @@ class SettingsScreen extends ConsumerWidget {
           ]),
         if (dev)
           group('Developer', [
-            ListRow(
-              'Band explorer',
-              sub: health
-                  ? 'Needs the Mi Band as the data source'
-                  : 'Read-only survey of what your band can share',
-              onTap: health || !paired
-                  ? null
-                  : () => push(context, const BandExplorerScreen()),
-            ),
+            if (BuildInfo.bandAllowed)
+              ListRow(
+                'Band explorer',
+                sub: health
+                    ? 'Needs the Mi Band as the data source'
+                    : 'Read-only survey of what your band can share',
+                onTap: health || !paired
+                    ? null
+                    : () => push(context, const BandExplorerScreen()),
+              ),
             ListRow(
               'Score check',
               sub: 'How your scores spread and whether they track you',

@@ -12,6 +12,7 @@ import 'package:timezone/timezone.dart' as tz;
 
 import 'coach_notifier.dart';
 import 'db.dart';
+import 'build_info.dart';
 
 /// Where coach notifications go. The app uses [TempoNotifications]; tests
 /// swap in a fake so scheduling can be checked without a platform.
@@ -341,7 +342,8 @@ class TempoNotifications implements NotificationSink {
   /// Android: whether exact alarms are allowed (the user grants it in
   /// Settings). Always false elsewhere — iOS is exact already.
   Future<bool> canScheduleExact() async =>
-      await _android?.canScheduleExactNotifications() ?? false;
+      BuildInfo.restrictedAndroidPermissions &&
+      (await _android?.canScheduleExactNotifications() ?? false);
 
   Future<void> requestExact() async {
     await _android?.requestExactAlarmsPermission();

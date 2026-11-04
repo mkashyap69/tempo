@@ -14,6 +14,7 @@ import '../design/components.dart';
 import '../design/tokens.dart';
 import '../design/type.dart';
 import '../state/providers.dart';
+import '../core/build_info.dart';
 
 class _State {
   _State(
@@ -263,24 +264,25 @@ class CoachSettingsScreen extends ConsumerWidget {
             title: 'Android',
             child: CardList(
               children: [
-                ListRow(
-                  'Precise reminders',
-                  sub: 'Fire on the minute. Android may otherwise delay a reminder by a few minutes to save battery.',
-                  chevron: false,
-                  trailing: TempoSwitch(
-                    label: 'Precise reminders',
-                    value: st.precise,
-                    onChanged: (v) async {
-                      if (v &&
-                          !await TempoNotifications.instance
-                              .canScheduleExact()) {
-                        await TempoNotifications.instance.requestExact();
-                      }
-                      await db.putSetting(Keys.notifPrecise, v ? '1' : '0');
-                      await apply();
-                    },
+                if (BuildInfo.restrictedAndroidPermissions)
+                  ListRow(
+                    'Precise reminders',
+                    sub: 'Fire on the minute. Android may otherwise delay a reminder by a few minutes to save battery.',
+                    chevron: false,
+                    trailing: TempoSwitch(
+                      label: 'Precise reminders',
+                      value: st.precise,
+                      onChanged: (v) async {
+                        if (v &&
+                            !await TempoNotifications.instance
+                                .canScheduleExact()) {
+                          await TempoNotifications.instance.requestExact();
+                        }
+                        await db.putSetting(Keys.notifPrecise, v ? '1' : '0');
+                        await apply();
+                      },
+                    ),
                   ),
-                ),
                 ListRow(
                   'Not getting notifications?',
                   sub: 'On Xiaomi, Redmi and POCO phones, turn on Autostart for Tempo and set Battery saver to “No restrictions”.',

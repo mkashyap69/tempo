@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		03090181B101897B43115D5C /* TempoWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37E103F65CB1159B6B77A5BD /* TempoWidget.swift */; };
+		0743E0762B2AA306B6E6CC58 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 5C7B96DF04EB150301E28F83 /* PrivacyInfo.xcprivacy */; };
 		1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */ = {isa = PBXBuildFile; fileRef = 1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */; };
 		184BE87762ACD12C0FDF5813 /* TempoWorkoutAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE3DE2B0957773A790785BE6 /* TempoWorkoutAttributes.swift */; };
 		2419635529E177D86BF5A2D2 /* TempoWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 6FD02DA98B8F1499B5203FAB /* TempoWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -26,6 +27,7 @@
 		A9D07C6A25A5963735A56D03 /* ActivityKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2FC3563E8A3BB105BA60511C /* ActivityKit.framework */; };
 		CCA0841662CFD3096DE9EAA1 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9D8A0A655947ECB70C121B64 /* SwiftUI.framework */; };
 		E320CADEE92513839A7C0B44 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 55961F5DA437D2E80ED035A9 /* Foundation.framework */; };
+		EE2A3BDE92675111326F980B /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = A3000394F6A799CC08FF4EA4 /* PrivacyInfo.xcprivacy */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -78,6 +80,7 @@
 		37E103F65CB1159B6B77A5BD /* TempoWidget.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TempoWidget.swift; sourceTree = "<group>"; };
 		3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = AppFrameworkInfo.plist; path = Flutter/AppFrameworkInfo.plist; sourceTree = "<group>"; };
 		55961F5DA437D2E80ED035A9 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
+		5C7B96DF04EB150301E28F83 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		66B3D40D0A7834C3D86026FA /* TempoWidget.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = TempoWidget.entitlements; sourceTree = "<group>"; };
 		697AB4723493288E0A718566 /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		6FD02DA98B8F1499B5203FAB /* TempoWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = TempoWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -94,6 +97,7 @@
 		97C147001CF9000F007C117D /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		97C147021CF9000F007C117D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		9D8A0A655947ECB70C121B64 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk/System/Library/Frameworks/SwiftUI.framework; sourceTree = DEVELOPER_DIR; };
+		A3000394F6A799CC08FF4EA4 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		AF8BA1C68A1CA502B934EAAD /* LiveWorkoutActivity.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LiveWorkoutActivity.swift; sourceTree = "<group>"; };
 		BE09D8E34DF70A01EACAB5E7 /* LiveActivityChannel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LiveActivityChannel.swift; sourceTree = "<group>"; };
 		C95D2CBE73BD8A525372BED5 /* README.md */ = {isa = PBXFileReference; includeInIndex = 1; path = README.md; sourceTree = "<group>"; };
@@ -140,6 +144,7 @@
 				697AB4723493288E0A718566 /* Info.plist */,
 				66B3D40D0A7834C3D86026FA /* TempoWidget.entitlements */,
 				C95D2CBE73BD8A525372BED5 /* README.md */,
+				A3000394F6A799CC08FF4EA4 /* PrivacyInfo.xcprivacy */,
 			);
 			name = TempoWidget;
 			path = TempoWidget;
@@ -202,6 +207,7 @@
 				7884E8672EC3CC0400C636F2 /* SceneDelegate.swift */,
 				74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */,
 				BE09D8E34DF70A01EACAB5E7 /* LiveActivityChannel.swift */,
+				5C7B96DF04EB150301E28F83 /* PrivacyInfo.xcprivacy */,
 			);
 			path = Runner;
 			sourceTree = "<group>";
@@ -273,6 +279,7 @@
 				9705A1C41CF9048500538489 /* Embed Frameworks */,
 				0E6CB5E084DB1460AD76FA00 /* Embed Foundation Extensions */,
 				3B06AD1E1E4923F5004D2608 /* Thin Binary */,
+				E5D9FBBEF8C6915F4251260D /* Store Info.plist */,
 			);
 			buildRules = (
 			);
@@ -346,6 +353,7 @@
 				3B3967161E833CAA004F5970 /* AppFrameworkInfo.plist in Resources */,
 				97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */,
 				97C146FC1CF9000F007C117D /* Main.storyboard in Resources */,
+				0743E0762B2AA306B6E6CC58 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -353,6 +361,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				EE2A3BDE92675111326F980B /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -389,6 +398,25 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "/bin/sh \"$FLUTTER_ROOT/packages/flutter_tools/bin/xcode_backend.sh\" build";
+		};
+		E5D9FBBEF8C6915F4251260D /* Store Info.plist */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Store Info.plist";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "/bin/sh \"${SRCROOT}/scripts/store_info_plist.sh\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -485,7 +513,7 @@
 				SKIP_INSTALL = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 				VALIDATE_PRODUCT = YES;
 			};
 			name = Release;
@@ -538,7 +566,7 @@
 				SDKROOT = iphoneos;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SUPPORTED_PLATFORMS = iphoneos;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 				VALIDATE_PRODUCT = YES;
 			};
 			name = Profile;
@@ -643,7 +671,7 @@
 				SKIP_INSTALL = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 				VALIDATE_PRODUCT = YES;
 			};
 			name = Profile;
@@ -702,7 +730,7 @@
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Debug;
 		};
@@ -756,7 +784,7 @@
 				SUPPORTED_PLATFORMS = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 				VALIDATE_PRODUCT = YES;
 			};
 			name = Release;
@@ -842,7 +870,7 @@
 				SKIP_INSTALL = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Debug;
 		};

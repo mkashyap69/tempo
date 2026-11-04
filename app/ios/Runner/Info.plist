@@ -57,6 +57,8 @@
 	<string>When you choose Apple Health as your data source, Tempo reads heart rate, HRV, resting heart rate, breathing rate, sleep, steps, SpO₂ and workouts to score recovery, strain and sleep. Everything stays on this phone.</string>
 	<key>NSHealthUpdateUsageDescription</key>
 	<string>Tempo saves your workouts and sleep to Apple Health when you turn on Health export.</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>NSBluetoothAlwaysUsageDescription</key>
 	<string>Tempo reads heart rate, sleep and steps directly from your Mi Band 6, including in the background. All data stays on this phone.</string>
 	<key>UIApplicationSceneManifest</key>

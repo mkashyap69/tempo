@@ -3,6 +3,7 @@ import 'dart:io' show Platform;
 import 'package:scoring/scoring.dart' as sc;
 import 'package:store/store.dart' as st;
 
+import 'build_info.dart';
 import 'profile.dart' show Keys;
 
 /// Where Tempo's data comes from. One per install (decisions.md,
@@ -79,9 +80,16 @@ final class Capabilities {
 Future<DataSource> loadDataSource(st.TempoDb db) async =>
     resolveDataSource(await db.setting(Keys.dataSource));
 
-DataSource resolveDataSource(String? stored, {DataSource? platform}) {
+/// The stored source, or the band when nothing is stored (installs from
+/// before onboarding chose one). Store builds have no band (L-O5), so there
+/// it always resolves to the platform's Health source.
+DataSource resolveDataSource(
+  String? stored, {
+  DataSource? platform,
+  bool bandAllowed = BuildInfo.bandAllowed,
+}) {
   final s = DataSource.fromKey(stored) ?? DataSource.band;
-  if (!s.isHealth) return s;
+  if (!s.isHealth && bandAllowed) return s;
   return platform ?? DataSource.platformHealth;
 }
 

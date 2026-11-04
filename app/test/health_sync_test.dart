@@ -248,6 +248,19 @@ void main() {
     expect(resolveDataSource('band'), DataSource.band);
   });
 
+  test('a store build never resolves to the band', () {
+    for (final stored in [null, 'band', 'apple_health']) {
+      expect(
+        resolveDataSource(
+          stored,
+          platform: DataSource.healthConnect,
+          bandAllowed: false,
+        ),
+        DataSource.healthConnect,
+      );
+    }
+  });
+
   test('plugin data points map to records', () {
     // Exercised on device; the mapping is covered by health_source tests.
     expect(PluginHealthReader(ios: true).kinds, contains(HealthKind.hrvSdnn));

@@ -21,6 +21,7 @@ import '../state/providers.dart';
 import 'data_source.dart';
 import 'nav.dart';
 import 'pairing.dart';
+import '../core/build_info.dart';
 
 /// The source check for this screen (B1b), refreshed after each read.
 final sourceCheckProvider = dbQuery((db, _) => sourceCheck(db));
@@ -137,7 +138,8 @@ class DataSourcesScreen extends ConsumerWidget {
         ),
         // The Mi Band is a developer option (B1c): shown when Developer is
         // on, or when it's already this install's source.
-        if (dev || source == DataSource.band)
+        // Store builds have no band at all (L-O5).
+        if (BuildInfo.bandAllowed && (dev || source == DataSource.band))
           _SourceCard(
             title: 'Mi Band 6 (beta)',
             subtitle: 'Direct Bluetooth · heart rate every minute, sleep, stress, SpO₂',

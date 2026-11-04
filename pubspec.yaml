@@ -8,4 +8,5 @@ workspace:
   - packages/store
   - packages/scoring
   - packages/health_source
+  - packages/sync
   - tools/backtest
