@@ -4,7 +4,16 @@ Every place the app talks to a server is listed here (CLAUDE.md → Non-negotiab
 
 ## Today
 
-None. The app makes no network calls: Apple Health, Health Connect and the Mi Band are all on the phone, and store purchases go through the platform's own billing UI.
+Only in builds given the backend settings (`app/lib/src/account/backend_config.dart`, `tools/build_store.sh` with `.env.store`); without them the app makes no network calls. Apple Health, Health Connect and the Mi Band are on the phone either way.
+
+| Call | Code | Carries | When |
+| --- | --- | --- | --- |
+| Firebase Auth (anonymous; Apple, Google, email link) | `app/lib/src/account/account_service.dart` | Account identity, email if the user signs in with one | First purchase, or when the user signs in |
+| App Check token | same | Device attestation | With each api call |
+| `POST /account/init`, `GET /billing/entitlement` | `app/lib/src/account/api_client.dart` | uid only | After sign-in; on open at most once a day (`app.dart` → `_refreshPro`) |
+| `POST /billing/apple/verify`, `/billing/google/verify` | `app/lib/src/billing/billing_service.dart` | Signed StoreKit 2 transaction or Play purchase token | After a purchase or restore |
+| `POST /account/consent`, `/account/delete` | `api_client.dart`, `screens/account.dart` | uid, two booleans | User's choice |
+| Store links (manage subscription, terms, privacy) | `screens/account.dart`, `screens/paywall.dart` | Opens the browser or store | User taps |
 
 ## Planned (launch plan and Backend plan)
 

@@ -17,6 +17,8 @@ import '../state/providers.dart';
 import 'biomarker.dart';
 import 'labs.dart';
 import 'nav.dart';
+import '../billing/pro.dart';
+import 'paywall.dart';
 
 class LongevityData {
   LongevityData({
@@ -135,6 +137,15 @@ class _LongevityScreenState extends ConsumerState<LongevityScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (!ref.watch(proProvider)) {
+      return const ProGate(
+        title: 'Tempo Age',
+        lockTitle: 'Tempo Age',
+        body: 'An estimate of how old your body acts, from fitness, sleep, resting heart rate and, if you add them, blood tests, with the levers that move it most.',
+        entry: PaywallEntry.longevity,
+        child: SizedBox.shrink(),
+      );
+    }
     final c = context.c;
     final d = ref.watch(longevityProvider).value;
     final info = Transform.translate(

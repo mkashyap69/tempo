@@ -15,6 +15,8 @@ import '../state/providers.dart';
 import 'insight_detail.dart';
 import 'journal_customise.dart';
 import 'nav.dart';
+import '../billing/pro.dart';
+import 'paywall.dart';
 
 /// Check-ins needed before Insights show (the engine shrinks thin
 /// evidence, so this can be lower than the old 30).
@@ -505,6 +507,13 @@ class _InsightsState extends ConsumerState<_Insights> {
             ),
           ),
         ],
+      );
+    }
+    if (!ref.watch(proProvider)) {
+      return const ProLock(
+        title: 'What works for you',
+        body: 'Once you’ve logged for a few weeks, Tempo shows which habits move your recovery and sleep, by how much, and how sure it is.',
+        entry: PaywallEntry.other,
       );
     }
     final v = ref.watch(impactsProvider(_o)).value;

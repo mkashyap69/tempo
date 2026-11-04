@@ -48,6 +48,10 @@ import 'onboarding.dart' show AvailabilityEditor, WorkoutsEditor;
 import 'pairing.dart';
 import 'score_check.dart';
 import '../core/build_info.dart';
+import '../account/account_service.dart';
+import '../billing/pro.dart';
+import 'account.dart';
+import 'paywall.dart';
 
 final _bandInfoProvider = FutureProvider<Map<String, String?>>((ref) async {
   ref.watch(dbTickProvider);
@@ -518,9 +522,24 @@ class SettingsScreen extends ConsumerWidget {
         PrivacyNote(
           'Your health data stays on this phone',
           sub: health
-              ? 'No account and no cloud. Tempo reads ${source.label} here and never writes back what it read.'
+              ? 'No cloud for health data. Tempo reads ${source.label} here and never writes back what it read. An account, if you make one, holds only your Pro purchase.'
               : 'No account, no cloud, no analytics. Your auth key is stored in the device keychain.',
         ),
+        group('Account', [
+          ListRow(
+            'Tempo Pro',
+            value: proStatusLine(ref),
+            onTap: ref.watch(proProvider)
+                ? null
+                : () => showPaywall(context, PaywallEntry.settings),
+          ),
+          if (AccountService.instance.available)
+            ListRow(
+              'Account',
+              sub: 'Optional · keeps Pro on a new phone',
+              onTap: () => push(context, const AccountScreen()),
+            ),
+        ]),
         group('About you', [
           ListRow(
             'Age',

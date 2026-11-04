@@ -34,6 +34,9 @@ import 'screens/weekly_review.dart';
 import 'screens/workouts.dart';
 import 'state/live_session.dart';
 import 'state/providers.dart';
+import 'screens/paywall.dart';
+import 'account/account_service.dart';
+import 'billing/pro.dart';
 
 class TempoApp extends ConsumerWidget {
   const TempoApp({super.key});
@@ -332,8 +335,22 @@ class _ShellState extends ConsumerState<Shell> with WidgetsBindingObserver {
         .catchError((Object _) {}),
   );
 
+  /// Store builds with an account service: listen for purchases the store
+  /// redelivers (verification that failed offline) and refresh Pro at most
+  /// once a day, so a lapsed or renewed subscription shows up.
+  void _refreshPro() {
+    if (!AccountService.instance.available) return;
+    final billing = ref.read(billingProvider);
+    final e = ref.read(entitlementProvider);
+    if (e == null ||
+        DateTime.now().difference(e.checkedAt) > const Duration(hours: 20)) {
+      unawaited(billing.refresh());
+    }
+  }
+
   Future<void> _onOpen() async {
     _markOpened();
+    _refreshPro();
     final db = ref.read(dbProvider);
     // Keep widgets, the plan and notifications current even before a sync.
     unawaited(
@@ -404,7 +421,14 @@ class _ShellState extends ConsumerState<Shell> with WidgetsBindingObserver {
               index: _tab,
               children: [
                 TodayScreen(onTab: select),
-                const CoachScreen(),
+                const ProGate(
+                  tab: true,
+                  title: 'Plan',
+                  lockTitle: 'Your coach',
+                  body: 'Each morning Tempo plans your day from your recovery: what to do, how hard, and why, with Move or skip when life gets in the way. Your week and your goal live here too.',
+                  entry: PaywallEntry.coach,
+                  child: CoachScreen(),
+                ),
                 const TrendsScreen(tab: true),
                 const SettingsScreen(),
               ],

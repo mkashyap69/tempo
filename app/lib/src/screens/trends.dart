@@ -31,6 +31,8 @@ import 'today_charts.dart'
     show LoadGaugeCard, WeekRecoveryStrain, ZoneDonutCard;
 import 'weekly_review.dart';
 import 'workouts.dart';
+import '../billing/pro.dart';
+import 'paywall.dart';
 
 /// One value per day for each metric, oldest first; null = no data.
 class TrendSeries {
@@ -404,7 +406,13 @@ class _TrendsState extends ConsumerState<TrendsScreen> {
           values: const [7, 30, 90, 182, 365, 0],
           labels: const ['7d', '30d', '90d', '6m', '1y', 'All'],
           selected: _range,
-          onChanged: (v) => setState(() => _range = v),
+          onChanged: (v) async {
+            // Free keeps 30 days of Trends (launch plan §3).
+            if ((v == 0 || v > 30) && !ref.read(proProvider)) {
+              if (!await showPaywall(context, PaywallEntry.trends)) return;
+            }
+            if (mounted) setState(() => _range = v);
+          },
         ),
         if (data == null)
           const SizedBox(height: 400)

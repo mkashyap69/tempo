@@ -13,6 +13,8 @@ import '../design/tokens.dart';
 import '../design/type.dart';
 import '../state/providers.dart';
 import 'nav.dart';
+import '../billing/pro.dart';
+import 'paywall.dart';
 
 final sleepTypeProvider = dbQuery((db, _) => loadSleepType(db));
 final sleepPlanProvider = dbQuery((db, _) => loadSleepPlan(db));
@@ -303,6 +305,15 @@ class SleepPlanScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    if (!ref.watch(proProvider)) {
+      return const ProGate(
+        title: 'Sleep plan',
+        lockTitle: 'The 21-day sleep plan',
+        body: 'Three weeks built around your sleep type: a bedtime that moves a little at a time, and what to change each week.',
+        entry: PaywallEntry.other,
+        child: SizedBox.shrink(),
+      );
+    }
     final v = ref.watch(sleepPlanProvider);
     final t = ref.watch(todayProvider).value;
     if (!v.hasValue || t == null) {

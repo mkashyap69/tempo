@@ -13,6 +13,15 @@ set -euo pipefail
 cd "$(dirname "$0")/../app"
 target="${1:-}"
 defines=(--dart-define=TEMPO_STORE=true)
+# Backend settings (lib/src/account/backend_config.dart) from an untracked
+# file: TEMPO_API_URL=…, TEMPO_FIREBASE_PROJECT=…, one per line. Without it
+# the build has no account or purchases. Covered by .gitignore (.env.*).
+store_env="${TEMPO_STORE_ENV:-../.env.store}"
+if [ -f "$store_env" ]; then
+  defines+=("--dart-define-from-file=$store_env")
+else
+  echo "warning: $store_env missing; building without the account service" >&2
+fi
 case "$target" in
   android)
     [ -f android/key.properties ] || echo "warning: android/key.properties missing; signing with the debug key (not uploadable)" >&2

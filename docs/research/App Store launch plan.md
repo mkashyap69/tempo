@@ -213,7 +213,8 @@ L-O1…L-O6 accepted 2026-11-04, along with B-O3, B-O7, B-O9 and G-O1…G-O6 (re
 - [x] L-O1 … L-O6 closed in `docs/decisions.md` (2026-11-04)
 - [x] L-O7: keep Tempo (2026-11-04)
 - [ ] L0: entity, D-U-N-S, Apple and Play organisation accounts, name, domain, Small Business Program
-- [ ] L1: app id, flavours, signing, privacy manifest, export compliance, iPhone-only, store flavour without BLE, Android permissions, target SDK
+- [x] L1 (code): store build flag, signing, privacy manifest, export compliance, iPhone-only, store build without BLE, Android permissions (2026-11-04)
+- [ ] L1 (needs L0): final app id on our domain; target SDK checked at first upload
 - [ ] Beta plan B2–B6 and Backend plan G0–G4, S1 with the changes above
 - [ ] GCP budgets and alerts in both projects
 - [ ] L2: production review, tester offer, phased rollout
