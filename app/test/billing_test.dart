@@ -1,4 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:scoring/scoring.dart' as sc;
+import 'package:tempo/src/billing/pro.dart' show proNudgeKinds;
 import 'package:tempo/src/billing/account_ids.dart';
 import 'package:tempo/src/billing/entitlement.dart';
 import 'package:tempo/src/billing/products.dart';
@@ -108,5 +110,19 @@ void main() {
       expect(c.expiresAt, isNull);
       expect(c.checkedAt, now);
     });
+  });
+
+  test('Free keeps the morning call, bedtime, body signals and reports', () {
+    for (final k in [
+      sc.NudgeKind.brief,
+      sc.NudgeKind.winddown,
+      sc.NudgeKind.health,
+      sc.NudgeKind.weekly,
+      sc.NudgeKind.journal,
+      sc.NudgeKind.rpe,
+    ]) {
+      expect(proNudgeKinds.contains(k), isFalse, reason: k.name);
+    }
+    expect(proNudgeKinds, contains(sc.NudgeKind.session));
   });
 }

@@ -15,6 +15,8 @@ import '../design/tokens.dart';
 import '../design/type.dart';
 import '../state/providers.dart';
 import '../core/build_info.dart';
+import '../billing/pro.dart';
+import 'paywall.dart';
 
 class _State {
   _State(
@@ -117,6 +119,7 @@ class CoachSettingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final st = ref.watch(_stateProvider).value;
+    final pro = ref.watch(proProvider);
     final c = context.c;
     if (st == null) return Scaffold(backgroundColor: c.bg);
     final db = ref.read(dbProvider);
@@ -228,34 +231,41 @@ class CoachSettingsScreen extends ConsumerWidget {
           child: CardList(
             children: [
               for (final k in sc.NudgeKind.values)
-                ListRow(
-                  kindName(k),
-                  sub: st.paused[k] == null
-                      ? kindWhen(k)
-                      : pausedWhy(k, st.paused[k]!),
-                  chevron: false,
-                  trailing: TempoSwitch(
-                    label: kindName(k),
-                    value: st.kinds.contains(k),
-                    onChanged: (v) async {
-                      if (v) {
-                        await TempoNotifications.instance.requestPermission();
-                      }
-                      if (k == sc.NudgeKind.brief && v) {
-                        if (await db.setting(Keys.morningCall) == 'off') {
-                          await db.putSetting(Keys.morningCall, '07:00');
+                if (!pro && proNudgeKinds.contains(k))
+                  ListRow(
+                    kindName(k),
+                    sub: '${kindWhen(k)} · Tempo Pro',
+                    onTap: () => showPaywall(context, PaywallEntry.coach),
+                  )
+                else
+                  ListRow(
+                    kindName(k),
+                    sub: st.paused[k] == null
+                        ? kindWhen(k)
+                        : pausedWhy(k, st.paused[k]!),
+                    chevron: false,
+                    trailing: TempoSwitch(
+                      label: kindName(k),
+                      value: st.kinds.contains(k),
+                      onChanged: (v) async {
+                        if (v) {
+                          await TempoNotifications.instance.requestPermission();
                         }
-                      }
-                      if (k == sc.NudgeKind.winddown && v) {
-                        if (await db.setting(Keys.bedtimeNudge) == 'off') {
-                          await db.putSetting(Keys.bedtimeNudge, '45');
+                        if (k == sc.NudgeKind.brief && v) {
+                          if (await db.setting(Keys.morningCall) == 'off') {
+                            await db.putSetting(Keys.morningCall, '07:00');
+                          }
                         }
-                      }
-                      await CoachNotifier.setKind(db, k, v);
-                      await apply();
-                    },
+                        if (k == sc.NudgeKind.winddown && v) {
+                          if (await db.setting(Keys.bedtimeNudge) == 'off') {
+                            await db.putSetting(Keys.bedtimeNudge, '45');
+                          }
+                        }
+                        await CoachNotifier.setKind(db, k, v);
+                        await apply();
+                      },
+                    ),
                   ),
-                ),
             ],
           ),
         ),

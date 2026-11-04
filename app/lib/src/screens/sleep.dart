@@ -35,6 +35,8 @@ import 'nav.dart';
 import 'night_detail.dart';
 import 'settings.dart' show bandAction;
 import 'sleep_type.dart';
+import '../billing/pro.dart';
+import 'paywall.dart';
 
 /// Last night for the morning of [day], decoded to stages.
 class Night {
@@ -360,7 +362,18 @@ class _SleepScreenState extends ConsumerState<SleepScreen> {
                 size: 18,
                 onTap: _back >= sleepDaysBack
                     ? null
-                    : () => setState(() => _back++),
+                    : () async {
+                        // Free keeps 30 days of history (launch plan §3).
+                        if (_back + 1 > 30 && !ref.read(proProvider)) {
+                          if (!await showPaywall(
+                            context,
+                            PaywallEntry.trends,
+                          )) {
+                            return;
+                          }
+                        }
+                        if (mounted) setState(() => _back++);
+                      },
               ),
               Expanded(
                 child: Column(

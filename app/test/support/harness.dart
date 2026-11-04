@@ -7,6 +7,7 @@ import 'package:tempo/src/core/notifications.dart';
 import 'package:tempo/src/design/theme.dart';
 import 'package:tempo/src/core/today.dart' show appNow;
 import 'package:tempo/src/state/providers.dart';
+import 'package:tempo/src/billing/pro.dart';
 
 import 'fake_sink.dart';
 
@@ -30,10 +31,11 @@ Widget harness(
   Brightness b = Brightness.dark,
   SyncStatus sync = const SyncStatus(),
   BluetoothAdapterState adapter = BluetoothAdapterState.on,
+  bool pro = true,
 }) {
   notificationSink = FakeNotificationSink();
   appNow = clockAt(testHour);
-  return _scope(db, child, b: b, sync: sync, adapter: adapter);
+  return _scope(db, child, b: b, sync: sync, adapter: adapter, pro: pro);
 }
 
 Widget _scope(
@@ -42,8 +44,10 @@ Widget _scope(
   required Brightness b,
   required SyncStatus sync,
   required BluetoothAdapterState adapter,
+  bool pro = true,
 }) => ProviderScope(
   overrides: [
+    proProvider.overrideWithValue(pro),
     dbProvider.overrideWithValue(db),
     syncProvider.overrideWith(() => IdleSync(sync)),
     adapterProvider.overrideWith((ref) => Stream.value(adapter)),

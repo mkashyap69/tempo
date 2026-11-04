@@ -13,6 +13,7 @@ import 'format.dart';
 import 'today.dart';
 import 'coach_service.dart';
 import 'health_export.dart';
+import '../billing/pro.dart' show proOpenInDb;
 
 /// iOS app group shared with the WidgetKit extension.
 const widgetAppGroup = 'group.dev.tempo.tempo';
@@ -32,7 +33,11 @@ const _ios = [
 /// Fills are percentages; each widget lights that share of its ticks.
 /// Pushes today's numbers to the home-screen widgets (WidgetKit / Android
 /// AppWidget). Widgets show their own timestamp and dim when stale.
-Future<void> updateHomeWidgets(TodayData t, {int? steps}) async {
+Future<void> updateHomeWidgets(
+  TodayData t, {
+  int? steps,
+  bool pro = true,
+}) async {
   try {
     await HomeWidget.setAppGroupId(widgetAppGroup);
     final rec = t.recovery;
@@ -65,7 +70,7 @@ Future<void> updateHomeWidgets(TodayData t, {int? steps}) async {
       'sleep_state': t.slept == null ? 'No data' : hmShort(t.slept!),
       'sleep_fill': (t.sleepScore ?? 0).round(),
       'updated_at': '${(t.lastSync ?? DateTime.now()).millisecondsSinceEpoch}',
-      ...sessionWidgetData(t),
+      ...sessionWidgetData(t, pro: pro),
       ...dayWidgetData(t, steps: steps),
     };
     for (final e in data.entries) {
@@ -107,7 +112,17 @@ Map<String, Object?> dayWidgetData(TodayData t, {int? steps}) {
 
 /// Tempo Coach session widget: today's session, its status and whether
 /// Start applies. Levels: pending, late, done, missed, rest.
-Map<String, Object?> sessionWidgetData(TodayData t) {
+///
+/// Without Pro the widget shows where the plan lives instead of the plan.
+Map<String, Object?> sessionWidgetData(TodayData t, {bool pro = true}) {
+  if (!pro) {
+    return {
+      'session_title': 'Your plan',
+      'session_detail': 'A session for today, with Tempo Pro',
+      'session_status': '',
+      'session_level': 'rest',
+    };
+  }
   final p = t.plan;
   if (p == null || p.isRest || t.restDay) {
     return {
@@ -169,7 +184,7 @@ Future<void> afterSync(st.TempoDb db) async {
   try {
     steps = await stepsToday(db, DateTime.now());
   } catch (_) {}
-  await updateHomeWidgets(t, steps: steps);
+  await updateHomeWidgets(t, steps: steps, pro: await proOpenInDb(db));
   await rescheduleNotifications(db, t);
   try {
     await HealthExport(db).exportNew();

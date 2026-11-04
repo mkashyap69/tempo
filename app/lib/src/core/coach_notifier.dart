@@ -17,6 +17,7 @@ import 'pause.dart';
 import 'profile.dart';
 import 'score_service.dart';
 import 'today.dart';
+import '../billing/pro.dart' show proNudgeKinds, proOpenInDb;
 
 /// Tempo Coach notifications: works out the next 48 hours from today's
 /// plan and data ([sc.planNudges]), replaces whatever was pending, and
@@ -76,6 +77,7 @@ class CoachNotifier {
     if (await db.setting(Keys.bedtimeNudge) == 'off') {
       out.remove(sc.NudgeKind.winddown);
     }
+    if (!await proOpenInDb(db)) out.removeAll(proNudgeKinds);
     return out;
   }
 

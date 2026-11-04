@@ -11,6 +11,8 @@ import '../design/type.dart';
 import '../state/providers.dart';
 import 'coach.dart' show loadHistoryProvider;
 import 'shared.dart';
+import '../billing/pro.dart';
+import 'paywall.dart';
 
 List<String> loadAdvice(sc.LoadStatus s, [sc.CardioLoad? l]) => switch (s) {
   sc.LoadStatus.building => [
@@ -53,6 +55,15 @@ class _CardioLoadState extends ConsumerState<CardioLoadScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (!ref.watch(proProvider)) {
+      return const ProGate(
+        title: 'Cardio load',
+        lockTitle: 'Cardio load',
+        body: 'Fitness against fatigue over six weeks: whether you’re building, holding or overreaching.',
+        entry: PaywallEntry.trends,
+        child: SizedBox.shrink(),
+      );
+    }
     final t = ref.watch(todayProvider).value;
     final all = ref.watch(loadHistoryProvider).value;
     if (t == null || all == null) {

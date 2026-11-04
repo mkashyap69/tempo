@@ -21,6 +21,8 @@ import '../design/type.dart';
 import '../state/live_session.dart';
 import '../state/providers.dart';
 import 'nav.dart';
+import '../billing/pro.dart';
+import 'paywall.dart';
 
 /// Strength log (decisions.md, 2026-10-16): every set with weight, reps
 /// and reps in reserve, a rest timer that sounds, a plate calculator,
@@ -1657,6 +1659,15 @@ class _HistState extends ConsumerState<ExerciseHistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (!ref.watch(proProvider)) {
+      return ProGate(
+        title: widget.def.name,
+        lockTitle: 'Your progression',
+        body: 'Estimated one-rep max, top weight and volume for each exercise over time.',
+        entry: PaywallEntry.other,
+        child: const SizedBox.shrink(),
+      );
+    }
     final c = context.c;
     final h = ref.watch(_historyProvider(widget.def.id)).value;
     final pts = [
@@ -1751,6 +1762,13 @@ class FreshnessCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final f = ref.watch(freshnessProvider).value;
     if (f == null) return const SizedBox.shrink();
+    if (!ref.watch(proProvider)) {
+      return const ProLock(
+        title: 'Muscle freshness',
+        body: 'Which muscle groups are ready to train again, from the sets you logged.',
+        entry: PaywallEntry.other,
+      );
+    }
     final c = context.c;
     Color tone(double v) => v >= 80
         ? context.s.recHigh

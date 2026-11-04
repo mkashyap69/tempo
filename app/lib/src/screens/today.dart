@@ -44,6 +44,8 @@ import 'today_more.dart';
 import 'workouts.dart';
 import 'sleep_type.dart' show SleepPlanRow;
 import 'today_tiles.dart';
+import '../billing/pro.dart';
+import 'paywall.dart';
 
 class TodayScreen extends ConsumerWidget {
   const TodayScreen({super.key, this.onTab});
@@ -399,9 +401,19 @@ abstract final class TodayBody {
         (phase == sc.DayPhase.morning || phase == sc.DayPhase.day)) {
       session = const PicksEntry();
     }
+    // Free: the coach's session and picks become one way into Pro. A done
+    // workout and a rest day (a safety call from the night) stay.
+    final pro = ref.watch(proProvider);
+    if (!pro && (session is WorkoutCard || session is PicksEntry)) {
+      session = const ProLock(
+        title: 'Your plan for today is ready',
+        body: 'A session sized to this morning’s recovery, with how hard to go and why, and picks to choose from.',
+        entry: PaywallEntry.coach,
+      );
+    }
     // What the coach did to today: a counted swap, a rescue, a realign.
     final coachNotes = <Widget>[
-      if (!noData && t.pause == null && !t.firstDay) ...[
+      if (pro && !noData && t.pause == null && !t.firstDay) ...[
         SwapNote(t),
         if (!restLike && t.plan != null && t.status == sc.DayStatus.missedSlot)
           RescueCard(t),

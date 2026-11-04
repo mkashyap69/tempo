@@ -19,6 +19,10 @@ import '../design/type.dart';
 import '../state/providers.dart';
 import 'backups.dart' show RestorePanel;
 import 'source_check_view.dart';
+import '../account/account_service.dart';
+import '../billing/pro.dart';
+import '../core/build_info.dart';
+import 'paywall.dart';
 
 /// Launch onboarding (B1a, decisions.md 2026-11-03): health-first, no
 /// account. Welcome → three numbers → connect Apple Health / Health
@@ -183,6 +187,14 @@ class _OnboardingState extends ConsumerState<OnboardingScreen> {
       try {
         await TempoNotifications.instance.requestPermission();
       } catch (_) {} // optional; never blocks finishing
+    }
+    // Store builds that can sell Pro end onboarding on the paywall, once.
+    // Closing it goes straight to Today (launch plan §3, entry point 1).
+    if (BuildInfo.store &&
+        AccountService.instance.available &&
+        !ref.read(proProvider) &&
+        mounted) {
+      await showPaywall(context, PaywallEntry.onboarding);
     }
     await db.putSetting(Keys.onboarded, '1');
   }

@@ -360,6 +360,7 @@ class _ShellState extends ConsumerState<Shell> with WidgetsBindingObserver {
             await updateHomeWidgets(
               t,
               steps: await stepsToday(db, DateTime.now()).catchError((_) => 0),
+              pro: await proOpenInDb(db),
             );
             await rescheduleNotifications(db, t);
           })
