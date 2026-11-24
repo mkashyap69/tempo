@@ -101,6 +101,10 @@ class PluginHealthReader implements HealthReader {
           HealthKind.weight: [HealthDataType.WEIGHT],
           HealthKind.bodyFat: [HealthDataType.BODY_FAT_PERCENTAGE],
           HealthKind.menstruation: [HealthDataType.MENSTRUATION_FLOW],
+          HealthKind.activeEnergy: [HealthDataType.ACTIVE_ENERGY_BURNED],
+          HealthKind.restingEnergy: [HealthDataType.BASAL_ENERGY_BURNED],
+          HealthKind.dietaryEnergy: [HealthDataType.DIETARY_ENERGY_CONSUMED],
+          HealthKind.protein: [HealthDataType.DIETARY_PROTEIN_CONSUMED],
         }
       : const {
           HealthKind.heartRate: [HealthDataType.HEART_RATE],
@@ -125,6 +129,11 @@ class PluginHealthReader implements HealthReader {
           HealthKind.weight: [HealthDataType.WEIGHT],
           HealthKind.bodyFat: [HealthDataType.BODY_FAT_PERCENTAGE],
           HealthKind.menstruation: [HealthDataType.MENSTRUATION_FLOW],
+          HealthKind.activeEnergy: [HealthDataType.ACTIVE_ENERGY_BURNED],
+          HealthKind.totalEnergy: [HealthDataType.TOTAL_CALORIES_BURNED],
+          // One nutrition record gives both (recordOf splits it).
+          HealthKind.dietaryEnergy: [HealthDataType.NUTRITION],
+          HealthKind.protein: [HealthDataType.NUTRITION],
         };
 
   @override
@@ -301,6 +310,15 @@ class PluginHealthReader implements HealthReader {
       value = 0;
     } else if (v is NumericHealthValue) {
       value = v.numericValue.toDouble();
+    } else if (v is NutritionHealthValue) {
+      // Health Connect nutrition: one record holds kcal and protein.
+      final x = switch (kind) {
+        HealthKind.dietaryEnergy => v.calories,
+        HealthKind.protein => v.protein,
+        _ => null,
+      };
+      if (x == null) return null;
+      value = x;
     } else if (v is MenstruationFlowHealthValue) {
       value = switch (v.flow) {
         MenstrualFlow.none => 0,

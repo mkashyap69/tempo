@@ -57,6 +57,20 @@ enum HealthKind {
   /// unspecified, 2 medium, 3 heavy; `extra` is "start" when the app
   /// marked the first day of a cycle. TODO(verify) on both phones.
   menstruation,
+
+  /// Energy burned, kcal per record, for the maintenance estimate behind
+  /// food targets (D2). Apple Health: active and resting (basal) energy;
+  /// Health Connect: active and total calories burned (total already holds
+  /// the resting part). TODO(verify) units and coverage on both phones.
+  activeEnergy,
+  restingEnergy,
+  totalEnergy,
+
+  /// Food logged by another app, kcal and grams of protein per record
+  /// (D2). Apple Health: dietary energy and protein; Health Connect: both
+  /// come from one nutrition record. TODO(verify) on both phones.
+  dietaryEnergy,
+  protein,
 }
 
 extension HealthKindX on HealthKind {

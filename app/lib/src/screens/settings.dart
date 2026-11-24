@@ -36,6 +36,7 @@ import 'backups.dart';
 import 'band_explorer.dart';
 import 'coach.dart' show CoachTab, openCoachAt;
 import 'coach_settings.dart';
+import 'food.dart';
 import 'data_health.dart';
 import 'data_sources.dart';
 import 'health_check.dart';
@@ -47,6 +48,7 @@ import 'week_template.dart';
 import 'onboarding.dart' show AvailabilityEditor, WorkoutsEditor;
 import 'pairing.dart';
 import 'score_check.dart';
+import 'what_tempo_uses.dart';
 
 final _bandInfoProvider = FutureProvider<Map<String, String?>>((ref) async {
   ref.watch(dbTickProvider);
@@ -520,6 +522,23 @@ class SettingsScreen extends ConsumerWidget {
               ? 'No account and no cloud. Tempo reads ${source.label} here and never writes back what it read.'
               : 'No account, no cloud, no analytics. Your auth key is stored in the device keychain.',
         ),
+        group('Your plan', [
+          ListRow(
+            'What Tempo uses',
+            sub: 'Every input behind the plan, and where it came from',
+            onTap: () => push(context, const WhatTempoUsesScreen()),
+          ),
+          ListRow(
+            'How Tempo plans',
+            sub: 'The rules behind every change to your plan',
+            onTap: () => push(context, const RulesScreen()),
+          ),
+          ListRow(
+            'Food targets',
+            sub: 'Protein and calories for your goal',
+            onTap: () => push(context, const FoodScreen()),
+          ),
+        ]),
         group('About you', [
           ListRow(
             'Age',

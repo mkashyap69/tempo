@@ -280,6 +280,9 @@ final class HealthCheckReport {
   // iOS a fraction, Health Connect a percent (TODO(verify)).
   HealthKind.bodyFat => (0.01, 80),
   HealthKind.menstruation => (0, 3),
+  HealthKind.activeEnergy || HealthKind.restingEnergy => (0, 6000),
+  HealthKind.totalEnergy || HealthKind.dietaryEnergy => (0, 10000),
+  HealthKind.protein => (0, 500),
   _ => null,
 };
 

@@ -69,6 +69,65 @@ WeightTrend? weightTrend(List<DayWeight> days, DateTime today) {
   );
 }
 
+/// Weight rate (D2): the least-squares slope through the
+/// daily weights of the last 28 days, kg a week. Null with fewer than 4
+/// readings or when they span under 14 days: a week of water swings is
+/// not a direction.
+double? weightRate(List<DayWeight> days, DateTime today) {
+  final t = _day(today);
+  final from = t.subtract(const Duration(days: 27));
+  final use = [
+    for (final d in days)
+      if (!d.day.isBefore(from) && !d.day.isAfter(t)) d,
+  ];
+  if (use.length < 4) return null;
+  final xs = [for (final d in use) d.day.difference(from).inDays.toDouble()];
+  if (xs.last - xs.first < 14) return null;
+  final ys = [for (final d in use) d.kg];
+  final mx = xs.reduce((a, b) => a + b) / xs.length;
+  final my = ys.reduce((a, b) => a + b) / ys.length;
+  var sxy = 0.0, sxx = 0.0;
+  for (var i = 0; i < xs.length; i++) {
+    sxy += (xs[i] - mx) * (ys[i] - my);
+    sxx += (xs[i] - mx) * (xs[i] - mx);
+  }
+  return sxx == 0 ? null : sxy / sxx * 7;
+}
+
+/// The rate against a fat-loss goal: 0.25–1 % of body weight a week is
+/// the pace that keeps muscle (Helms 2014); faster costs muscle, slower
+/// is fine but slow. Other goals want weight steady.
+enum WeightPace { onPace, slow, fast, gaining, steady, drifting }
+
+WeightPace weightPace(
+  double ratePerWeek,
+  double weightKg, {
+  required bool fatLoss,
+}) {
+  final pct = ratePerWeek / weightKg * 100;
+  if (fatLoss) {
+    if (pct > .1) return WeightPace.gaining;
+    if (pct > -.25) return WeightPace.slow;
+    if (pct >= -1) return WeightPace.onPace;
+    return WeightPace.fast;
+  }
+  return pct.abs() <= .25 ? WeightPace.steady : WeightPace.drifting;
+}
+
+/// One plain line for [weightPace].
+String weightPaceLine(WeightPace p, double ratePerWeek) {
+  final r =
+      '${ratePerWeek < 0 ? '−' : '+'}${ratePerWeek.abs().toStringAsFixed(1)} kg a week';
+  return switch (p) {
+    WeightPace.onPace => '$r: a pace that keeps muscle',
+    WeightPace.slow => '$r: slower than the goal needs',
+    WeightPace.fast => '$r: faster than 1 % a week costs muscle',
+    WeightPace.gaining => '$r: going up while the goal is fat loss',
+    WeightPace.steady => '$r: steady',
+    WeightPace.drifting => '$r: moving more than ¼ % a week',
+  };
+}
+
 /// A day's menstrual flow as stored (0 none … 3 heavy), and whether the
 /// app marked it as the first day of a cycle.
 typedef FlowDay = ({DateTime day, double flow, bool start});

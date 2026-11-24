@@ -81,6 +81,11 @@ const _accessRows = <(String, List<HealthKind>)>[
   ('Weight', [HealthKind.weight]),
   ('Body fat', [HealthKind.bodyFat]),
   ('Cycle', [HealthKind.menstruation]),
+  (
+    'Energy burned',
+    [HealthKind.activeEnergy, HealthKind.restingEnergy, HealthKind.totalEnergy],
+  ),
+  ('Food logged', [HealthKind.dietaryEnergy, HealthKind.protein]),
 ];
 
 /// Profile → Data sources: where Tempo gets its data, how fresh it is,

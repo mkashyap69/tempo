@@ -762,7 +762,7 @@ class LastNightStrip extends ConsumerWidget {
           const SizedBox(height: 10),
           if (empty)
             Text(
-              'No sleep yet. Wear your band tonight.',
+              'No sleep yet. Wear your band or watch tonight and it shows here in the morning.',
               style: TempoType.bodyS.c(c.text2),
             )
           else ...[

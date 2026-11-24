@@ -602,8 +602,8 @@ class _TrendCard extends StatelessWidget {
           if (!enough)
             TempoEmpty(
               spec.key == 'recovery'
-                  ? 'Recovery trend starts after night 14.'
-                  : 'Appears after 7 days.',
+                  ? 'Your recovery line starts after night 14, once Tempo knows your normal.'
+                  : 'Your line starts after 7 days; gaps stay gaps, not zeros.',
               kind: EmptyKind.trend,
             )
           else ...[

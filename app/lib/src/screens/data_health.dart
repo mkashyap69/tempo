@@ -293,7 +293,9 @@ class DataHealthScreen extends ConsumerWidget {
         Section(
           title: 'Sync log',
           child: h.log.isEmpty
-              ? const TempoEmpty('No syncs yet.')
+              ? const TempoEmpty(
+                  'No syncs yet. Each read lands here with what it found.',
+                )
               : CardList(
                   children: [
                     for (final l in h.log)

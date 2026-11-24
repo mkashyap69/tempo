@@ -399,7 +399,7 @@ class _SleepScreenState extends ConsumerState<SleepScreen> {
         if (night.empty)
           TempoEmpty(
             latest
-                ? 'No sleep yet — wear your band tonight.'
+                ? 'No sleep yet. Wear your band or watch tonight and the night shows here in the morning.'
                 : 'No sleep recorded this night.',
           )
         else ...[

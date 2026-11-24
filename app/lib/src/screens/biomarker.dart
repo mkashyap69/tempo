@@ -273,7 +273,10 @@ class _BiomarkerState extends ConsumerState<BiomarkerScreen> {
       children: [
         DetailHeader(title: leverName(l)),
         if (d == null || x == null)
-          const TempoEmpty('No data for this measure yet.')
+          const TempoEmpty(
+            'No reading for this yet. It appears once Tempo Age has one; '
+            'Longevity says what it needs.',
+          )
         else ...[
           TempoCard(
             child: Column(

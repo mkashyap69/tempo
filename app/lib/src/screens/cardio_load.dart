@@ -212,7 +212,7 @@ class _CardioLoadState extends ConsumerState<CardioLoadScreen> {
               const SizedBox(height: 12),
               if (hist.length < 2)
                 const TempoEmpty(
-                  'Trends appear after 7 days.',
+                  'Load adds up a week, so the trend starts after your first 7 days.',
                   kind: EmptyKind.trend,
                 )
               else

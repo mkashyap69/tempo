@@ -18,6 +18,7 @@ import '../design/tokens.dart';
 import '../design/type.dart';
 import '../state/providers.dart';
 import 'coach_parts.dart' show statusLabel, statusColor;
+import 'day_targets.dart';
 import 'everyday_cards.dart';
 import 'coach_parts.dart'
     show
@@ -32,6 +33,7 @@ import 'highlight.dart';
 import 'journal.dart' show journalProvider;
 import 'sleep.dart' show TonightCard;
 import 'today_parts.dart';
+import 'move_skip.dart' show showMoveOrSkipSheet;
 import 'nav.dart';
 import 'pairing.dart';
 import 'picks.dart';
@@ -367,27 +369,27 @@ abstract final class TodayBody {
         chipColor: statusColor(context, t.status),
         onStart: () => openLive(context, ref, plan: t.plan),
         onWhy: () => push(context, const WorkoutDetailScreen()),
-        more: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Align(
-              alignment: Alignment.centerLeft,
-              child: TempoButton(
-                'Why this?',
-                small: true,
-                fontSize: 14,
-                kind: ButtonKind.ghost,
-                onTap: () => push(context, const WorkoutDetailScreen()),
-              ),
-            ),
-            if (t.pause == null) ...[
-              SessionActions(t),
-              const SizedBox(height: 14),
-              const Hair(),
-              const PicksEntry(inline: true),
-            ],
-          ],
+        // D2: why and move-or-skip sit under Start, not behind More.
+        footer: WhyMoveRow(
+          onWhy: () => push(context, const WorkoutDetailScreen()),
+          onMove:
+              t.pause == null &&
+                  (t.status == sc.DayStatus.pending ||
+                      t.status == sc.DayStatus.moved)
+              ? () => showMoveOrSkipSheet(context, ref, t.day)
+              : null,
         ),
+        more: t.pause == null
+            ? Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  SessionActions(t, moveOrSkip: false),
+                  const SizedBox(height: 14),
+                  const Hair(),
+                  const PicksEntry(inline: true),
+                ],
+              )
+            : null,
       );
     }
     // A planned rest day has no plan card; the picks stand on their own.
@@ -413,6 +415,8 @@ abstract final class TodayBody {
         ? const WeekReviewCard()
         : const TodayInsightCard();
     final latest = t.workouts.isEmpty ? null : t.workouts.last;
+    // D2: what's left today, ticked from data where Tempo can see it.
+    final targets = DayTargetsCard(day: t.day);
 
     // Rings first, then the day's one line, then the session (31 Oct
     // layout: no repeated numbers, no "Your day so far", no "Also today").
@@ -432,6 +436,7 @@ abstract final class TodayBody {
               ),
             rings,
             call,
+            targets,
             LearningCard(t: t, checkins: checkins),
             if (!t.firstDay) LessonCard(t: t),
             ?session,
@@ -471,6 +476,7 @@ abstract final class TodayBody {
             ?moment,
             ?session,
             ...coachNotes,
+            targets,
             insight,
             const LastTimeCard(),
             const TodayTiles(),
@@ -493,6 +499,7 @@ abstract final class TodayBody {
             ?moment,
             ?session,
             ...coachNotes,
+            targets,
             insight,
             const LastTimeCard(),
             const TodayTiles(),
@@ -509,6 +516,7 @@ abstract final class TodayBody {
             ?session,
             if (latest != null) RecoveryHrCard(workoutId: latest.id),
             ...coachNotes,
+            targets,
             TonightLine(t: t),
             insight,
             const LastTimeCard(),
@@ -993,6 +1001,45 @@ Future<void> showWhySheet(BuildContext context, TodayData t) =>
         );
       },
     );
+
+/// "Why this session" and "Move or skip" side by side under Start (D2).
+class WhyMoveRow extends StatelessWidget {
+  const WhyMoveRow({super.key, required this.onWhy, this.onMove});
+  final VoidCallback onWhy;
+  final VoidCallback? onMove;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(top: 2),
+    child: Row(
+      children: [
+        Expanded(
+          child: TempoButton(
+            'Why this session',
+            small: true,
+            fontSize: 14,
+            kind: ButtonKind.secondary,
+            expand: true,
+            onTap: onWhy,
+          ),
+        ),
+        if (onMove != null) ...[
+          const SizedBox(width: 10),
+          Expanded(
+            child: TempoButton(
+              'Move or skip',
+              small: true,
+              fontSize: 14,
+              kind: ButtonKind.secondary,
+              expand: true,
+              onTap: onMove,
+            ),
+          ),
+        ],
+      ],
+    ),
+  );
+}
 
 /// Today's session once it's done: one line instead of the full card.
 class _DoneCard extends StatelessWidget {

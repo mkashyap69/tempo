@@ -227,6 +227,11 @@ class HealthGrid {
           HealthKind.weight ||
           HealthKind.bodyFat ||
           HealthKind.menstruation ||
+          HealthKind.activeEnergy ||
+          HealthKind.restingEnergy ||
+          HealthKind.totalEnergy ||
+          HealthKind.dietaryEnergy ||
+          HealthKind.protein ||
           HealthKind.workout:
         break; // read per night / per day, see vitals.dart, workouts.dart
     }

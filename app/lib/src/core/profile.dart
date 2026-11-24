@@ -139,6 +139,10 @@ abstract final class Keys {
 
   /// The moment card dismissed on Today: "yyyy-mm-dd|win kind".
   static const momentSeen = 'moment_seen';
+
+  /// Food targets you accepted or adjusted (D2): JSON {kcal, protein,
+  /// set}; kcal may be null. Absent = only suggested.
+  static const foodTargets = 'food_targets';
 }
 
 /// Everything the user tells Tempo in onboarding and Profile.

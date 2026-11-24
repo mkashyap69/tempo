@@ -8,7 +8,9 @@ import 'package:tempo/src/core/data_source.dart';
 import 'package:tempo/src/core/health_reader.dart';
 import 'package:tempo/src/core/health_sync.dart';
 import 'package:tempo/src/core/minutes.dart';
-import 'package:tempo/src/core/profile.dart' show Keys;
+import 'package:tempo/src/core/profile.dart' show Keys, Profile, saveAppProfile;
+import 'package:tempo/src/core/today.dart' show loadToday;
+import 'package:tempo/src/screens/day_targets.dart' show dayTargetsFor;
 import 'package:tempo/src/core/score_service.dart';
 
 import 'support/health_fake.dart';
@@ -83,6 +85,35 @@ void main() {
     expect(mins.minutes.any((m) => m.stage == sc.Stage.deep), isTrue);
     expect(await loadStress(db, y, day0), isEmpty);
   });
+
+  // D2: the first Today after onboarding already has Recovery and HRV
+  // when Health holds the history: the first read backfills 90 days and
+  // scores every one of them.
+  test(
+    'the first Today shows recovery and HRV from backfilled nights',
+    () async {
+      await saveAppProfile(db, const Profile());
+      await service(FakeReader(watchData(20))).run();
+      final t = await loadToday(db, at: day0.add(const Duration(hours: 9)));
+      expect(t.calibrating, isFalse);
+      expect(t.recovery, isNotNull);
+      expect(t.hrvBase, isNotNull);
+      expect(t.nights, greaterThanOrEqualTo(14));
+      final targets = await dayTargetsFor(
+        db,
+        t,
+        now: day0.add(const Duration(hours: 9)),
+      );
+      expect(
+        targets.map((x) => x.kind),
+        containsAll([
+          sc.TargetKind.steps,
+          sc.TargetKind.habit,
+          sc.TargetKind.sleep,
+        ]),
+      );
+    },
+  );
 
   test('a kind added by an update is backfilled and asked for once', () async {
     final r = FakeReader(watchData(20));

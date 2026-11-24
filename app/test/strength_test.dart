@@ -142,7 +142,12 @@ void main() {
     await settle(t);
     expect(find.text('Romanian deadlift'), findsOneWidget);
     await render(t, db, ExerciseHistoryScreen(sc.exerciseById['back_squat']!));
-    expect(find.text('Two sessions are needed for a line.'), findsOneWidget);
+    expect(
+      find.text(
+        'Log this lift in two sessions and the line shows where it’s heading.',
+      ),
+      findsOneWidget,
+    );
     await teardown(t, db);
   });
 

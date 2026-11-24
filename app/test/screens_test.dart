@@ -541,8 +541,9 @@ void main() {
       expect(find.textContaining('Tonight · need'), findsOneWidget);
       final ringsY = t.getTopLeft(find.text('RECOVERY')).dy;
       expect(ringsY, lessThan(t.getTopLeft(find.text('TODAY’S PLAN')).dy));
-      // The card shows Start and More; the rest unfolds.
-      expect(find.text('Move or skip'), findsNothing);
+      // D2: why and move-or-skip sit under Start; More unfolds the rest.
+      expect(find.text('Why this session'), findsOneWidget);
+      expect(find.text('Move or skip'), findsOneWidget);
       await t.tap(
         find.descendant(
           of: find.byType(WorkoutCard),
@@ -550,7 +551,6 @@ void main() {
         ),
       );
       await settle(t);
-      expect(find.text('Why this?'), findsOneWidget);
       expect(find.text('Move or skip'), findsOneWidget);
       expect(t.takeException(), isNull);
       await teardown(t, db);

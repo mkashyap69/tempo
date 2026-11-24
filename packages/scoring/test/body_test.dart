@@ -76,4 +76,48 @@ void main() {
       expect(cycleAt([f(5, .5, start: true)], today)!.day, 6);
     });
   });
+
+  group('weight rate (D2)', () {
+    test('slope through 28 days, kg a week', () {
+      final d = dailyWeights([
+        for (var i = 0; i <= 27; i += 3) (ago(i), 80 - (27 - i) / 7 * .5),
+      ]);
+      expect(weightRate(d, today), closeTo(-.5, 1e-9));
+    });
+
+    test('needs 4 readings over 14 days', () {
+      expect(
+        weightRate(
+          dailyWeights([
+            (ago(0), 80.0),
+            (ago(10), 81.0),
+            (ago(5), 80.5),
+            (ago(2), 80.2),
+          ]),
+          today,
+        ),
+        isNull,
+      );
+      expect(
+        weightRate(
+          dailyWeights([(ago(0), 80.0), (ago(20), 81.0), (ago(10), 80.5)]),
+          today,
+        ),
+        isNull,
+      );
+    });
+
+    test('pace against the goal', () {
+      expect(weightPace(-.5, 80, fatLoss: true), WeightPace.onPace);
+      expect(weightPace(-.1, 80, fatLoss: true), WeightPace.slow);
+      expect(weightPace(-1.0, 80, fatLoss: true), WeightPace.fast);
+      expect(weightPace(.2, 80, fatLoss: true), WeightPace.gaining);
+      expect(weightPace(.1, 80, fatLoss: false), WeightPace.steady);
+      expect(weightPace(-.4, 80, fatLoss: false), WeightPace.drifting);
+      expect(
+        weightPaceLine(WeightPace.onPace, -.46),
+        '−0.5 kg a week: a pace that keeps muscle',
+      );
+    });
+  });
 }

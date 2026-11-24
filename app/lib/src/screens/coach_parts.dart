@@ -71,8 +71,11 @@ Future<void> _afterChange(WidgetRef ref) async {
 
 /// Buttons under today's session: move, skip, mark done, undo.
 class SessionActions extends ConsumerWidget {
-  const SessionActions(this.t, {super.key});
+  const SessionActions(this.t, {super.key, this.moveOrSkip = true});
   final TodayData t;
+
+  /// False where "Move or skip" already shows beside the card (Today, D2).
+  final bool moveOrSkip;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -96,15 +99,18 @@ class SessionActions extends ConsumerWidget {
       );
     }
 
-    void moveOrSkip() => buttons.add(
-      TempoButton(
-        'Move or skip',
-        small: true,
-        fontSize: 14,
-        kind: ButtonKind.ghost,
-        onTap: () => showMoveOrSkipSheet(context, ref, day),
-      ),
-    );
+    void moveOrSkipButton() {
+      if (!moveOrSkip) return;
+      buttons.add(
+        TempoButton(
+          'Move or skip',
+          small: true,
+          fontSize: 14,
+          kind: ButtonKind.ghost,
+          onTap: () => showMoveOrSkipSheet(context, ref, day),
+        ),
+      );
+    }
 
     switch (t.status) {
       case sc.DayStatus.pending:
@@ -115,10 +121,10 @@ class SessionActions extends ConsumerWidget {
           );
         }
         add('Done already', () => coach.setIntent(day, sc.Intent.done));
-        moveOrSkip();
+        moveOrSkipButton();
       case sc.DayStatus.moved:
         add('Done already', () => coach.setIntent(day, sc.Intent.done));
-        moveOrSkip();
+        moveOrSkipButton();
       case sc.DayStatus.missedSlot || sc.DayStatus.partial:
         add('Done already', () => coach.setIntent(day, sc.Intent.done));
       case sc.DayStatus.skipped || sc.DayStatus.missedDay:

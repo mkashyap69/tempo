@@ -287,13 +287,30 @@ final todayTilesProvider = FutureProvider<List<TileData>>((ref) async {
       t.day,
     );
     final byDay = {for (final d in days) d.day: d.kg};
+    // D2: the weight rate against the goal (kg only: the
+    // pace line is worded in kg).
+    final rate = sc.weightRate(
+      await loadWeights(db, t.day.subtract(const Duration(days: 27)), t.day),
+      t.day,
+    );
+    final pace = rate == null
+        ? null
+        : sc.weightPace(
+            rate,
+            weight.weekMean,
+            fatLoss: t.profile.goal == sc.Goal.fatLoss,
+          );
     tiles.add(
       TileData(
         id: TileId.weight,
         value: u(weight.weekMean).toStringAsFixed(1),
         unit: kg ? 'kg' : 'lb',
         line:
-            '${ch == null || ch.abs() < .3 ? weight.word.toLowerCase() : '${ch < 0 ? '▼' : '▲'} ${u(ch.abs()).toStringAsFixed(1)} in 4 weeks'}'
+            '${pace != null && kg
+                ? sc.weightPaceLine(pace, rate!)
+                : ch == null || ch.abs() < .3
+                ? weight.word.toLowerCase()
+                : '${ch < 0 ? '▼' : '▲'} ${u(ch.abs()).toStringAsFixed(1)} in 4 weeks'}'
             '${fat == null ? '' : ' · ${fat.round()}% fat'}',
         spark: [
           for (var i = 6; i >= 0; i--)
@@ -302,7 +319,10 @@ final todayTilesProvider = FutureProvider<List<TileData>>((ref) async {
             else
               null,
         ],
-        unusual: ch != null && ch.abs() >= 1,
+        unusual:
+            (ch != null && ch.abs() >= 1) ||
+            pace == sc.WeightPace.fast ||
+            pace == sc.WeightPace.gaining,
       ),
     );
   }
@@ -489,7 +509,9 @@ String tileHow(TileId id) => switch (id) {
         'more. Longevity shows every part.',
   TileId.weight =>
     'The mean of this week’s readings from Health. Weight moves a kilo or '
-        'more a day with water and food, so only weekly means are compared.',
+        'more a day with water and food, so only weekly means are compared. '
+        'With 4 weigh-ins over 2 weeks, the line shows the rate a week; for '
+        'fat loss, ¼ to 1 % of your weight a week keeps muscle.',
   TileId.cycle =>
     'Day of your cycle from the period days in Health. In the week before a '
         'period, resting HR and night temperature often run higher and HRV '

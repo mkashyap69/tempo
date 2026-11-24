@@ -41,6 +41,15 @@ class LabsScreen extends ConsumerWidget {
           'for 6 months, then less until it drops out at 2 years.',
           style: TempoType.bodyS.c(c.text2),
         ),
+        if (v != null && v.$1.isNotEmpty)
+          _LatestRead(test: v.$1.first, male: v.$2.male)
+        else
+          TempoEmpty(
+            'Add your last blood test: Tempo shows which markers are in '
+            'range, which to recheck and which to raise with your doctor, '
+            'and adds a PhenoAge to Tempo Age.',
+            kind: EmptyKind.trend,
+          ),
         const _AskTheLab(),
         if (v != null && v.$1.isNotEmpty)
           CardList(
@@ -254,6 +263,121 @@ class _AskTheLab extends StatelessWidget {
           row(
             'High-sensitivity CRP (hs-CRP)',
             'A standard CRP often reads "under 5", which PhenoAge can’t use',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The newest test's nine markers by how far each sits from common adult
+/// ranges (D2). A wellness read, not a diagnosis.
+class _LatestRead extends StatelessWidget {
+  const _LatestRead({required this.test, required this.male});
+  final LabTest test;
+  final bool male;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c, s = context.s;
+    final reads = sc.readLabs(test.labs, male: male);
+    String fmt(double v) =>
+        v == v.roundToDouble() ? v.toStringAsFixed(0) : v.toStringAsFixed(1);
+    Widget bucket(sc.LabBucket b, String title, String sub, Color color) {
+      final xs = [
+        for (final r in reads)
+          if (r.bucket == b) r,
+      ];
+      if (xs.isEmpty) return const SizedBox.shrink();
+      return Padding(
+        padding: const EdgeInsets.only(top: 14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  '$title · ${xs.length}',
+                  style: TempoType.label.c(c.text1),
+                ),
+              ],
+            ),
+            const SizedBox(height: 2),
+            Text(sub, style: TempoType.caption.c(c.text3)),
+            for (final r in xs)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(r.name, style: TempoType.bodyS.c(c.text1)),
+                          Text(r.note, style: TempoType.caption.c(c.text2)),
+                        ],
+                      ),
+                    ),
+                    Text(
+                      '${fmt(r.value)} ${r.unit}',
+                      style: TempoType.bodyS.c(c.text1).tnum,
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        ),
+      );
+    }
+
+    final ask = reads.where((r) => r.bucket == sc.LabBucket.askDoctor).length;
+    final recheck = reads.where((r) => r.bucket == sc.LabBucket.recheck).length;
+    return TempoCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Overline('Latest test · ${_date(test.date)}'),
+          const SizedBox(height: 8),
+          Text(
+            ask == 0 && recheck == 0
+                ? 'All nine markers are in range.'
+                : '${9 - ask - recheck} of 9 in range'
+                      '${ask == 0 ? '' : ' · $ask to ask your doctor about'}'
+                      '${recheck == 0 ? '' : ' · $recheck to recheck'}',
+            style: TempoType.titleM.c(c.text1),
+          ),
+          bucket(
+            sc.LabBucket.askDoctor,
+            'Ask your doctor',
+            'Well outside the usual adult range.',
+            s.recLow,
+          ),
+          bucket(
+            sc.LabBucket.recheck,
+            'Recheck',
+            'Just outside the usual range. Look again at your next test.',
+            s.recMid,
+          ),
+          bucket(
+            sc.LabBucket.inRange,
+            'In range',
+            'Inside the usual adult range.',
+            s.recHigh,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Typical adult ranges; where your lab’s report gives its own '
+            'range, go by that. A wellness read, not a diagnosis.',
+            style: TempoType.caption.c(c.text3),
           ),
         ],
       ),

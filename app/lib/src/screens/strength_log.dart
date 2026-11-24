@@ -1675,7 +1675,9 @@ class _HistState extends ConsumerState<ExerciseHistoryScreen> {
           height: 34,
         ),
         if (pts.length < 2)
-          const TempoEmpty('Two sessions are needed for a line.')
+          const TempoEmpty(
+            'Log this lift in two sessions and the line shows where it’s heading.',
+          )
         else
           TempoCard(
             child: SvgChart(

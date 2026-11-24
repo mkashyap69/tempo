@@ -33,7 +33,9 @@ class ScoreCheckScreen extends ConsumerWidget {
         if (r == null)
           const SizedBox.shrink()
         else if (r.days == 0)
-          const TempoEmpty('No scored days yet.')
+          const TempoEmpty(
+            'No scored days yet. This fills in from your first scored morning.',
+          )
         else ...[
           const Overline('Spread and day-to-day noise'),
           CardList(
