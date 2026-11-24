@@ -7,6 +7,7 @@ import 'package:store/store.dart' as st;
 
 import '../core/coach_service.dart' show dayOf;
 import '../core/everyday.dart' show signalName;
+import '../core/format.dart' show dayShort;
 import '../core/home_widgets.dart';
 import '../core/journal.dart';
 import '../core/profile.dart';
@@ -28,8 +29,22 @@ import 'strain.dart';
 import 'strength_log.dart';
 import 'weekly_review.dart';
 
-/// One shown insight as kept in [Keys.highlightLog].
-typedef ShownInsight = ({String kind, String key, DateTime day, String title});
+/// One shown insight as kept in [Keys.highlightLog]: kind, key, day and
+/// title, and (from the archive, 24 Nov) its text, tag and action so the
+/// archive can show it again as it was. Older entries have only a title.
+typedef ShownInsight = ({
+  String kind,
+  String key,
+  DateTime day,
+  String title,
+  String body,
+  String tag,
+  String? action,
+  String actionLabel,
+});
+
+/// How many shown insights the archive keeps (about a year).
+const insightLogKeep = 365;
 
 Future<List<ShownInsight>> loadInsightLog(st.TempoDb db) async {
   try {
@@ -42,6 +57,10 @@ Future<List<ShownInsight>> loadInsightLog(st.TempoDb db) async {
           key: e[1] as String,
           day: DateTime.parse(e[2] as String),
           title: e.length > 3 ? e[3] as String : '',
+          body: e.length > 4 ? e[4] as String : '',
+          tag: e.length > 5 ? e[5] as String : '',
+          action: e.length > 6 ? e[6] as String? : null,
+          actionLabel: e.length > 7 ? e[7] as String : '',
         ),
     ];
   } catch (_) {
@@ -54,12 +73,33 @@ Future<void> _logInsight(st.TempoDb db, sc.Highlight h, DateTime day) async {
   if (log.any((s) => s.key == h.key && st.dateKey(s.day) == st.dateKey(day))) {
     return;
   }
-  log.add((kind: h.kind.name, key: h.key, day: day, title: h.title));
-  final keep = log.length > 60 ? log.sublist(log.length - 60) : log;
+  log.add((
+    kind: h.kind.name,
+    key: h.key,
+    day: day,
+    title: h.title,
+    body: h.body,
+    tag: h.tag,
+    action: h.action.name,
+    actionLabel: h.actionLabel,
+  ));
+  final keep = log.length > insightLogKeep
+      ? log.sublist(log.length - insightLogKeep)
+      : log;
   await db.putSetting(
     Keys.highlightLog,
     jsonEncode([
-      for (final s in keep) [s.kind, s.key, st.dateKey(s.day), s.title],
+      for (final s in keep)
+        [
+          s.kind,
+          s.key,
+          st.dateKey(s.day),
+          s.title,
+          s.body,
+          s.tag,
+          s.action,
+          s.actionLabel,
+        ],
     ]),
   );
 }
@@ -434,16 +474,28 @@ class DiscoveriesSection extends ConsumerWidget {
           onTap: () => push(context, const JournalScreen(standalone: true)),
         ),
       for (final e in earlier)
-        ListRow(e.title, sub: 'Insight · ${_ago(e.day)}', chevron: false),
+        ListRow(
+          e.title,
+          sub: 'Insight · ${_ago(e.day)}',
+          onTap: () => push(context, const InsightArchiveScreen()),
+        ),
     ];
     return Section(
       title: 'Discoveries',
       trailing: Pressable(
-        label: 'Journal',
-        onTap: () => push(context, const JournalScreen(standalone: true)),
+        label: log.isEmpty ? 'Journal' : 'All insights',
+        onTap: () => push(
+          context,
+          log.isEmpty
+              ? const JournalScreen(standalone: true)
+              : const InsightArchiveScreen(),
+        ),
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 4),
-          child: Text('Journal ›', style: TempoType.bodyS.c(c.text2)),
+          child: Text(
+            log.isEmpty ? 'Journal ›' : 'All insights ›',
+            style: TempoType.bodyS.c(c.text2),
+          ),
         ),
       ),
       child: rows.isEmpty
@@ -477,3 +529,118 @@ class DiscoveriesSection extends ConsumerWidget {
 }
 
 final _logProvider = dbQuery((db, _) => loadInsightLog(db));
+
+final _archiveProvider = dbQuery((db, _) => loadInsightLog(db));
+
+/// Every insight Today has shown, newest first, by month: an insight never
+/// disappears once its day is over. Kept on the phone in the insight log
+/// (about a year).
+class InsightArchiveScreen extends ConsumerWidget {
+  const InsightArchiveScreen({super.key});
+
+  static const _months = [
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
+  ];
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final c = context.c;
+    final log = (ref.watch(_archiveProvider).value ?? const [])
+        .where((e) => e.title.isNotEmpty)
+        .toList()
+        .reversed
+        .toList();
+    final byMonth = <String, List<ShownInsight>>{};
+    for (final e in log) {
+      (byMonth['${_months[e.day.month - 1]} ${e.day.year}'] ??= []).add(e);
+    }
+    return TempoPage(
+      gap: 22,
+      children: [
+        const DetailHeader(title: 'All insights'),
+        Text(
+          log.isEmpty
+              ? 'Today shows one insight a day once your scores are ready. '
+                    'Each one is kept here.'
+              : '${log.length} insights so far. Each stays here after its day.',
+          style: TempoType.body.c(c.text2),
+        ),
+        for (final m in byMonth.entries)
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(left: 4),
+                child: Overline(m.key),
+              ),
+              const SizedBox(height: 8),
+              for (final e in m.value)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: _ArchivedInsight(e),
+                ),
+            ],
+          ),
+      ],
+    );
+  }
+}
+
+class _ArchivedInsight extends ConsumerWidget {
+  const _ArchivedInsight(this.e);
+  final ShownInsight e;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final c = context.c;
+    final action = sc.HighlightAction.values.asNameMap()[e.action];
+    final kind = sc.HighlightKind.values.asNameMap()[e.kind];
+    return TempoCard(
+      label: e.title,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(child: Overline(dayShort(e.day))),
+              if (e.tag.isNotEmpty)
+                TempoBadge(
+                  e.tag,
+                  color: kind == null ? null : _tagColor(context, kind),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(e.title, style: TempoType.label.c(c.text1).tnum),
+          if (e.body.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(e.body, style: TempoType.bodyS.c(c.text2).tnum),
+          ],
+          if (action != null && e.actionLabel.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TempoButton(
+                e.actionLabel,
+                small: true,
+                kind: ButtonKind.ghost,
+                onTap: () => runInsightAction(context, ref, action),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}

@@ -11,6 +11,7 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../core/coach_service.dart' show dayOf;
 import '../core/format.dart' show dm;
+import '../core/notes.dart' show NoteScope, sessionRef;
 import '../core/score_service.dart';
 import '../core/strength.dart';
 import '../design/chart.dart';
@@ -21,6 +22,7 @@ import '../design/type.dart';
 import '../state/live_session.dart';
 import '../state/providers.dart';
 import 'nav.dart';
+import 'notes.dart' show NoteLine, openFormVideos;
 
 /// Strength log (decisions.md, 2026-10-16): every set with weight, reps
 /// and reps in reserve, a rest timer that sounds, a plate calculator,
@@ -102,6 +104,9 @@ class _LogState extends ConsumerState<StrengthLogScreen> {
   /// Your saved routines (U3), offered when the log opens empty.
   var _saved = const <sc.Routine>[];
 
+  /// The saved routine this session started from, for its note (D3).
+  String? _routine;
+
   Future<void> _load() async {
     final db = ref.read(dbProvider);
     final d = widget.plan?.detail;
@@ -134,6 +139,7 @@ class _LogState extends ConsumerState<StrengthLogScreen> {
     await _fill(xs);
     if (mounted) {
       setState(() {
+        _routine = _saved.any((x) => x.name == r.name) ? r.name : null;
         _last = null;
         _saved = const [];
       });
@@ -461,6 +467,8 @@ class _LogState extends ConsumerState<StrengthLogScreen> {
                           ],
                         ),
                       ),
+                      if (_routine != null)
+                        NoteLine(NoteScope.routine, _routine!, compact: true),
                       const SizedBox(height: 12),
                       _FocusCard(
                         e!,
@@ -600,6 +608,8 @@ class _LogState extends ConsumerState<StrengthLogScreen> {
                           ),
                       ],
                     ),
+                  if (_routine != null && _ex.isNotEmpty)
+                    TempoCard(child: NoteLine(NoteScope.routine, _routine!)),
                   for (final (k, e) in _ex.indexed) ...[
                     _ExerciseCard(
                       e,
@@ -678,13 +688,20 @@ class _LogState extends ConsumerState<StrengthLogScreen> {
                       });
                     },
                   ),
-                  if (_ex.isNotEmpty)
+                  if (_ex.isNotEmpty) ...[
+                    TempoCard(
+                      child: NoteLine(
+                        NoteScope.session,
+                        sessionRef(DateTime.now()),
+                      ),
+                    ),
                     TempoButton(
                       'Save as a routine',
                       kind: ButtonKind.ghost,
                       expand: true,
                       onTap: _saveRoutine,
                     ),
+                  ],
                   const SizedBox(height: 90),
                 ],
               ],
@@ -893,6 +910,7 @@ class _ExerciseCard extends StatelessWidget {
                 ],
               ),
             ),
+          NoteLine(NoteScope.exercise, d.id, compact: true),
           Wrap(
             alignment: WrapAlignment.spaceBetween,
             children: [
@@ -901,6 +919,12 @@ class _ExerciseCard extends StatelessWidget {
                 kind: ButtonKind.text,
                 small: true,
                 onTap: () => push(context, ExerciseHistoryScreen(d)),
+              ),
+              TempoButton(
+                'Form videos',
+                kind: ButtonKind.text,
+                small: true,
+                onTap: () => openFormVideos(context, d.name),
               ),
               TempoButton(
                 'Remove',
@@ -1205,14 +1229,22 @@ class _FocusCard extends StatelessWidget {
           for (final (i, r) in e.rows.indexed)
             if (i == open) openSet(i, r) else row(i, r),
           const SizedBox(height: 4),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: TempoButton(
-              'Progression',
-              kind: ButtonKind.text,
-              small: true,
-              onTap: () => push(context, ExerciseHistoryScreen(d)),
-            ),
+          NoteLine(NoteScope.exercise, d.id, compact: true),
+          Row(
+            children: [
+              TempoButton(
+                'Progression',
+                kind: ButtonKind.text,
+                small: true,
+                onTap: () => push(context, ExerciseHistoryScreen(d)),
+              ),
+              TempoButton(
+                'Form videos',
+                kind: ButtonKind.text,
+                small: true,
+                onTap: () => openFormVideos(context, d.name),
+              ),
+            ],
           ),
         ],
       ),

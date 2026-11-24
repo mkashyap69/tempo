@@ -143,6 +143,16 @@ abstract final class Keys {
   /// Food targets you accepted or adjusted (D2): JSON {kcal, protein,
   /// set}; kcal may be null. Absent = only suggested.
   static const foodTargets = 'food_targets';
+
+  /// Workout notes and reflections (D3): JSON {routine: {name: text},
+  /// exercise: {id: text}, session: {yyyy-mm-dd: text}, reflect: {start
+  /// ms: {t, tags, title}}, handled: [start ms]}.
+  static const workoutNotes = 'workout_notes';
+
+  /// Weather on Today (D3): '1' when on; the last lookup as JSON
+  /// {at, code, day}. Off by default.
+  static const weather = 'weather_on';
+  static const weatherLast = 'weather_last';
 }
 
 /// Everything the user tells Tempo in onboarding and Profile.

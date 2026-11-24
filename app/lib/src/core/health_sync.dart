@@ -698,3 +698,91 @@ Future<void> setMetricSource(TempoDb db, SourceMetric m, String? id) async {
   await rebuildHealthMinutes(db, from, DateTime.now());
   await ScoreService(db).recomputeFrom(from);
 }
+
+/// How one measure was built on a day from the apps that wrote it (D3).
+typedef DaySource = ({String measure, List<String> apps, String how});
+
+/// For [day]: which apps wrote each measure to Health and how Tempo
+/// combined them. Read-only; from the stored records.
+Future<List<DaySource>> daySources(TempoDb db, DateTime day) async {
+  final from = DateTime(day.year, day.month, day.day);
+  final to = from.add(const Duration(days: 1));
+  final rows = await db.healthRecordsBetween(from, to);
+  final names = await sourceNames(db);
+  final byKind = <HealthKind, Set<String>>{};
+  for (final r in rows) {
+    if (r.sourceApp == tempoAppId) continue;
+    final k = HealthKind.values.asNameMap()[r.kind];
+    if (k == null) continue;
+    (byKind[k] ??= {}).add(r.sourceApp);
+  }
+  Set<String> apps(Iterable<HealthKind> ks) => {
+    for (final k in ks) ...?byKind[k],
+  };
+  final out = <DaySource>[];
+  Future<void> add(
+    String measure,
+    Iterable<HealthKind> ks,
+    SourceMetric? m,
+    String merged,
+  ) async {
+    final a = apps(ks);
+    if (a.isEmpty) return;
+    final chosen = m == null ? null : await metricSource(db, m);
+    final labels = [for (final x in a) sourceLabel(x, names)]..sort();
+    out.add((
+      measure: measure,
+      apps: labels,
+      how: chosen != null
+          ? 'Only ${sourceLabel(chosen, names)}, as you chose'
+          : a.length == 1
+          ? 'One app'
+          : merged,
+    ));
+  }
+
+  await add(
+    'Heart rate',
+    const [HealthKind.heartRate],
+    SourceMetric.heartRate,
+    'Readings in the same minute averaged into one line',
+  );
+  await add(
+    'Steps',
+    const [HealthKind.steps],
+    SourceMetric.steps,
+    'The busier app each minute, never added together',
+  );
+  await add(
+    'Sleep',
+    [
+      for (final k in HealthKind.values)
+        if (k.isSleep) k,
+    ],
+    SourceMetric.sleep,
+    'Every app, merged into one night',
+  );
+  await add(
+    'HRV',
+    const [HealthKind.hrvSdnn, HealthKind.hrvRmssd],
+    SourceMetric.hrv,
+    'Every reading kept',
+  );
+  await add(
+    'Workouts',
+    const [HealthKind.workout],
+    null,
+    'The same workout from two apps counts once',
+  );
+  await add(
+    'Energy',
+    const [
+      HealthKind.activeEnergy,
+      HealthKind.restingEnergy,
+      HealthKind.totalEnergy,
+    ],
+    null,
+    'The app with the most each day, never added together',
+  );
+  return out;
+}

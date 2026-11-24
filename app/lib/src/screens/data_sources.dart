@@ -225,6 +225,8 @@ class DataSourcesScreen extends ConsumerWidget {
                 selected: data.chosen[m],
               ),
             ],
+          const Overline('Yesterday came from'),
+          const _YesterdaySources(),
         ],
         const Overline('Writing to Health'),
         CardList(
@@ -497,4 +499,43 @@ class _Tick extends StatelessWidget {
   @override
   Widget build(BuildContext context) =>
       Text('✓', style: TempoType.label.c(context.c.text1));
+}
+
+final _yesterdayProvider = FutureProvider<List<DaySource>>((ref) {
+  ref.watch(dbTickProvider);
+  final n = DateTime.now();
+  return daySources(
+    ref.watch(dbProvider),
+    DateTime(n.year, n.month, n.day - 1),
+  );
+});
+
+/// Which apps fed each measure yesterday, and how Tempo combined them
+/// (D3): one timeline from several watches, rings or phones.
+class _YesterdaySources extends ConsumerWidget {
+  const _YesterdaySources();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final xs = ref.watch(_yesterdayProvider).value;
+    if (xs == null) return const SizedBox.shrink();
+    if (xs.isEmpty) {
+      return const TempoEmpty(
+        'Nothing from yesterday yet. Each measure lists the apps that '
+        'wrote it once Health has synced.',
+      );
+    }
+    return CardList(
+      children: [
+        for (final (i, x) in xs.indexed) ...[
+          if (i > 0) const Hair(),
+          ListRow(
+            x.measure,
+            sub: '${x.apps.join(' · ')}\n${x.how}',
+            chevron: false,
+          ),
+        ],
+      ],
+    );
+  }
 }

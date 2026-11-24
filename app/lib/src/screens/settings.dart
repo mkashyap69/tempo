@@ -27,6 +27,7 @@ import '../core/coach_service.dart' show CoachService;
 import '../core/score_service.dart';
 import '../core/sync_service.dart';
 import '../core/today.dart';
+import '../core/weather.dart' show setWeather;
 import '../design/components.dart';
 import '../design/icons.dart';
 import '../design/tokens.dart';
@@ -246,6 +247,7 @@ class SettingsScreen extends ConsumerWidget {
     final extras = ref.watch(_profileExtrasProvider).value;
     final sync = ref.watch(syncProvider);
     final mode = ref.watch(settingProvider(Keys.theme)).value ?? 'dark';
+    final weatherOn = ref.watch(settingProvider(Keys.weather)).value == '1';
     final dev = ref.watch(settingProvider(Keys.devMode)).value == '1';
     final c = context.c;
     if (p == null || info == null) return Scaffold(backgroundColor: c.bg);
@@ -1181,6 +1183,32 @@ class SettingsScreen extends ConsumerWidget {
               labels: const ['System', 'Dark', 'Light'],
               selected: mode,
               onChanged: (v) => db.putSetting(Keys.theme, v),
+            ),
+            const SizedBox(height: 10),
+            CardList(
+              children: [
+                ListRow(
+                  'Weather on Today',
+                  sub:
+                      'The sky over you behind Today. Sends only a rough '
+                      'location (about 11 km) to Open-Meteo, at most every '
+                      '3 hours. No health data.',
+                  chevron: false,
+                  trailing: TempoSwitch(
+                    label: 'Weather on Today',
+                    value: weatherOn,
+                    onChanged: (v) async {
+                      final on = await setWeather(db, v);
+                      if (v && !on && context.mounted) {
+                        showTempoToast(
+                          context,
+                          'Needs location access, in Settings → Tempo',
+                        );
+                      }
+                    },
+                  ),
+                ),
+              ],
             ),
           ],
         ),

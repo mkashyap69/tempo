@@ -675,10 +675,14 @@ class TempoField extends StatefulWidget {
     this.fontSize = 17,
     this.hint,
     this.autofocus = false,
+    this.maxLines = 1,
   });
   final TextEditingController controller;
   final String? label, suffix, hint;
   final bool error, mono, estimate, autofocus;
+
+  /// Lines before it scrolls; above 1 the field is a multi-line note.
+  final int maxLines;
   final TextInputType? keyboardType;
   final Widget? trailing;
   final ValueChanged<String>? onChanged;
@@ -728,7 +732,11 @@ class _TempoFieldState extends State<TempoField> {
               controller: widget.controller,
               focusNode: _focus,
               autofocus: widget.autofocus,
-              keyboardType: widget.keyboardType,
+              keyboardType: widget.maxLines > 1
+                  ? TextInputType.multiline
+                  : widget.keyboardType,
+              maxLines: widget.maxLines,
+              minLines: 1,
               onChanged: widget.onChanged,
               autocorrect: false,
               enableSuggestions: false,
@@ -1241,12 +1249,16 @@ class TempoPage extends StatelessWidget {
     this.footer,
     this.onRefresh,
     this.overlay,
+    this.backdrop,
   });
   final List<Widget> children;
   final double gap, bottom;
   final Widget? footer;
   final Future<void> Function()? onRefresh;
   final Widget? overlay;
+
+  /// Drawn behind the top of the page, under the content (Today's sky).
+  final Widget? backdrop;
 
   @override
   Widget build(BuildContext context) {
@@ -1281,6 +1293,8 @@ class TempoPage extends StatelessWidget {
       backgroundColor: context.c.bg,
       body: Stack(
         children: [
+          if (backdrop != null)
+            Positioned(top: 0, left: 0, right: 0, child: backdrop!),
           Column(
             children: [
               Expanded(child: list),

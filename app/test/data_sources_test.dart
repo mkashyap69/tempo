@@ -119,7 +119,7 @@ void main() {
       await addRingNight(db);
       return db;
     }))!;
-    t.view.physicalSize = const Size(390, 2600);
+    t.view.physicalSize = const Size(390, 3600);
     t.view.devicePixelRatio = 1;
     addTearDown(t.view.reset);
     await t.pumpWidget(harness(db, const DataSourcesScreen()));
@@ -133,6 +133,7 @@ void main() {
     expect(find.text('SLEEP FROM'), findsOneWidget);
     expect(find.text('Every app, merged'), findsOneWidget);
     expect(find.text('Sleep Ring'), findsOneWidget);
+    expect(find.text('YESTERDAY CAME FROM'), findsOneWidget);
     expect(find.text('WRITING TO HEALTH'), findsOneWidget);
     await t.tap(find.text('Sleep Ring'));
     await settle(t, frames: 60);

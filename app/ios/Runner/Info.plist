@@ -48,7 +48,7 @@
 		</dict>
 	</array>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>During a walk or run, Tempo uses GPS for distance and pace. Locations stay on this phone and no route is saved.</string>
+	<string>During a walk or run, Tempo uses GPS for distance and pace; locations stay on this phone and no route is saved. If you turn on Weather on Today, a rough location (about 11 km) is used to look up the sky.</string>
 	<key>NSSupportsLiveActivities</key>
 	<true/>
 	<key>NSSupportsLiveActivitiesFrequentUpdates</key>

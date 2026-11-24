@@ -35,11 +35,13 @@ import 'sleep.dart' show TonightCard;
 import 'today_parts.dart';
 import 'move_skip.dart' show showMoveOrSkipSheet;
 import 'nav.dart';
+import 'notes.dart' show ReflectFollowUpCard;
 import 'pairing.dart';
 import 'picks.dart';
 import 'recovery.dart';
 import 'shared.dart';
 import 'strain.dart';
+import 'weather_backdrop.dart';
 import 'workout_detail.dart';
 import 'today_charts.dart';
 import 'today_more.dart';
@@ -72,6 +74,7 @@ class TodayScreen extends ConsumerWidget {
     }
     return TempoPage(
       bottom: 140, // clear the start button over the last row
+      backdrop: const WeatherBackdrop(), // D3: nothing when weather is off
       onRefresh: paired
           ? () {
               TempoHaptics.light(); // pull-to-sync threshold reached
@@ -417,6 +420,8 @@ abstract final class TodayBody {
     final latest = t.workouts.isEmpty ? null : t.workouts.last;
     // D2: what's left today, ticked from data where Tempo can see it.
     final targets = DayTargetsCard(day: t.day);
+    // D3: after a workout marked sore or painful, what the plan can do.
+    const followUp = ReflectFollowUpCard();
 
     // Rings first, then the day's one line, then the session (31 Oct
     // layout: no repeated numbers, no "Your day so far", no "Also today").
@@ -476,6 +481,7 @@ abstract final class TodayBody {
             ?moment,
             ?session,
             ...coachNotes,
+            followUp,
             targets,
             insight,
             const LastTimeCard(),
@@ -499,6 +505,7 @@ abstract final class TodayBody {
             ?moment,
             ?session,
             ...coachNotes,
+            followUp,
             targets,
             insight,
             const LastTimeCard(),
@@ -516,6 +523,7 @@ abstract final class TodayBody {
             ?session,
             if (latest != null) RecoveryHrCard(workoutId: latest.id),
             ...coachNotes,
+            followUp,
             targets,
             TonightLine(t: t),
             insight,

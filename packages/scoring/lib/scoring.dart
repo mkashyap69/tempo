@@ -33,6 +33,7 @@ export 'src/picks.dart';
 export 'src/plan_brief.dart';
 export 'src/quick_tags.dart';
 export 'src/recovery.dart';
+export 'src/reflection.dart';
 export 'src/resting_hr.dart';
 export 'src/routines.dart';
 export 'src/sleep.dart';

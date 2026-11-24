@@ -131,6 +131,39 @@ Future<void> requestBluetooth() async {
   } catch (_) {}
 }
 
+/// Up to three sports for one-tap quick start (D3): the ones you did most
+/// in the last 30 days, else the ones you like. Strength opens the log, so
+/// it isn't offered here.
+Future<List<sc.Sport>> quickStartSports(WidgetRef ref) async {
+  final db = ref.read(dbProvider);
+  final now = DateTime.now();
+  final count = <sc.Sport, int>{};
+  try {
+    for (final w in await db.workoutsBetween(
+      now.subtract(const Duration(days: 30)),
+      now,
+    )) {
+      final sp = sc.Sport.values.asNameMap()[w.sport];
+      if (sp == null || sp == sc.Sport.strength) continue;
+      count[sp] = (count[sp] ?? 0) + 1;
+    }
+  } catch (_) {}
+  final ranked = count.keys.toList()
+    ..sort((a, b) => count[b]!.compareTo(count[a]!));
+  if (ranked.length < 3) {
+    final t = await ref.read(todayProvider.future);
+    for (final s in sportOrder) {
+      if (ranked.length >= 3) break;
+      if (s != sc.Sport.strength &&
+          t.profile.likes.contains(s) &&
+          !ranked.contains(s)) {
+        ranked.add(s);
+      }
+    }
+  }
+  return ranked.take(3).toList();
+}
+
 /// FAB sheet: today's suggested session or an open session by sport.
 Future<(sc.Session?, sc.Sport?)?> pickWorkout(
   BuildContext context,
@@ -193,6 +226,8 @@ Future<(sc.Session?, sc.Sport?)?> pickWorkout(
 /// The centre button: start a workout (today's suggestion or an open
 /// session), log a lift, check in, or say "not today".
 Future<void> showStartSheet(BuildContext context, WidgetRef ref) async {
+  final quick = await quickStartSports(ref);
+  if (!context.mounted) return;
   final pick = await showTempoSheet<String>(
     context,
     builder: (ctx) {
@@ -210,6 +245,26 @@ Future<void> showStartSheet(BuildContext context, WidgetRef ref) async {
             expand: true,
             onTap: () => Navigator.pop(ctx, 'start'),
           ),
+          if (quick.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            // D3: one tap starts an open session of what you do most.
+            Row(
+              children: [
+                for (final (i, sp) in quick.indexed) ...[
+                  if (i > 0) const SizedBox(width: 8),
+                  Expanded(
+                    child: TempoButton(
+                      sportLabel(sp),
+                      small: true,
+                      kind: ButtonKind.secondary,
+                      expand: true,
+                      onTap: () => Navigator.pop(ctx, 'quick:${sp.name}'),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ],
           const SizedBox(height: 16),
           const Overline('Tag now'),
           const SizedBox(height: 8),
@@ -268,6 +323,11 @@ Future<void> showStartSheet(BuildContext context, WidgetRef ref) async {
         onAction: undo,
       );
     }
+    return;
+  }
+  if (pick.startsWith('quick:')) {
+    final sp = sc.Sport.values.asNameMap()[pick.substring(6)];
+    if (sp != null) await openLive(context, ref, sport: sp);
     return;
   }
   switch (pick) {

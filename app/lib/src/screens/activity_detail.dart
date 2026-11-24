@@ -21,6 +21,7 @@ import '../design/tokens.dart';
 import '../design/type.dart';
 import '../state/providers.dart';
 import 'everyday_cards.dart';
+import 'notes.dart' show ReflectionCard;
 import 'strain.dart' show changeActivity;
 
 @immutable
@@ -484,6 +485,8 @@ class ActivityDetailScreen extends ConsumerWidget {
             ),
           ),
         RecoveryHrCard(workoutId: w.id),
+        // D3: how it went, for any workout; sore and pain feed the coach.
+        ReflectionCard(start: st.fromTs(w.start), title: w.title),
         if (data.similar.length > 1)
           Section(
             title: 'Compared with similar ${w.title.toLowerCase()}',
