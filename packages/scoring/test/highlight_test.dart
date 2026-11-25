@@ -41,6 +41,23 @@ void main() {
       ]);
     });
 
+    test('a load drop on an easy day agrees with the day', () {
+      final push = highlightCandidates(
+        const HighlightFacts(load: LoadStatus.detraining, loadPercent: -21),
+      ).single;
+      expect(push.body, contains('Fitness slips'));
+      final easy = highlightCandidates(
+        const HighlightFacts(
+          load: LoadStatus.detraining,
+          loadPercent: -21,
+          easyDay: true,
+        ),
+      ).single;
+      expect(easy.title, 'Your load is 21% under your usual');
+      expect(easy.body, isNot(contains('Fitness slips')));
+      expect(easy.body, contains('right for an easy day'));
+    });
+
     test('brisk waits for Thursday and a real gap', () {
       List<Highlight> b(double avg, int wd) =>
           highlightCandidates(HighlightFacts(briskAvg: avg, weekday: wd));

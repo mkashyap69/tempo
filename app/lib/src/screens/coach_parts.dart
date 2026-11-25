@@ -36,7 +36,7 @@ String statusLabel(TodayData t) => switch (t.status) {
     t.plannedMinute == null ? 'Any time' : 'Planned ${fmtHm(t.plannedMinute!)}',
   sc.DayStatus.moved =>
     t.plannedMinute == null ? 'Moved' : 'Moved to ${fmtHm(t.plannedMinute!)}',
-  sc.DayStatus.missedSlot => 'Not seen yet',
+  sc.DayStatus.missedSlot => 'Not done yet',
   sc.DayStatus.missedDay => 'Missed',
   sc.DayStatus.skipped => 'Skipped',
   sc.DayStatus.rest => 'Rest',
@@ -154,6 +154,36 @@ class SessionActions extends ConsumerWidget {
 }
 
 /// "Missed this morning → 18:00 easy 30′" with Plan it / Skip.
+/// The rescue is the same session, whole, just later today: Today folds it
+/// into the plan card rather than showing a second card (D4).
+bool rescueFolds(TodayData t) {
+  final r = t.rescue;
+  final p = t.plan;
+  return t.status == sc.DayStatus.missedSlot &&
+      p != null &&
+      r.offered &&
+      r.start != null &&
+      r.tier == sc.RescueTier.full &&
+      r.session!.key == p.key &&
+      r.session!.minutes == p.minutes;
+}
+
+/// Plans the missed session for its rescue time today ("Plan it").
+Future<void> planRescue(WidgetRef ref, TodayData t) async {
+  final r = t.rescue;
+  final ses = r.session!;
+  await CoachService(ref.read(dbProvider)).setIntent(
+    t.day,
+    sc.Intent.moved,
+    minute: r.start,
+    slot: 'pm',
+    session: ses.key == t.plan!.key && ses.minutes == t.plan!.minutes
+        ? null
+        : ses,
+  );
+  await _afterChange(ref);
+}
+
 class RescueCard extends ConsumerWidget {
   const RescueCard(this.t, {super.key});
   final TodayData t;

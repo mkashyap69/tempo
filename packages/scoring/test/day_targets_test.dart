@@ -103,4 +103,19 @@ void main() {
     expect((s.done, s.total, s.next), (4, 4, null));
     expect(s.share, 1);
   });
+
+  test('up next passes over the session when its card is on screen', () {
+    final t = dayTargets(input());
+    expect(
+      summarise(t, notNext: {TargetKind.session}).next!.kind,
+      TargetKind.steps,
+    );
+    final onlyWalk = dayTargets(
+      input(steps: 9000, habit: true, nightBed: 22 * 60),
+    );
+    expect(
+      summarise(onlyWalk, notNext: {TargetKind.session}).next!.kind,
+      TargetKind.session,
+    );
+  });
 }

@@ -95,7 +95,8 @@ class _DayTargetsCardState extends ConsumerState<DayTargetsCard> {
     final ts = ref.watch(dayTargetsProvider).value;
     if (ts == null || ts.isEmpty) return const SizedBox.shrink();
     final c = context.c, s = context.s;
-    final sum = sc.summarise(ts);
+    // The plan card above already shows the session.
+    final sum = sc.summarise(ts, notNext: {sc.TargetKind.session});
     final next = sum.next;
     return TempoCard(
       child: Column(

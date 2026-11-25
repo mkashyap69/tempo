@@ -221,13 +221,26 @@ final class TargetsSummary {
 }
 
 /// Skipped targets leave the count; the next one is the first still open.
-TargetsSummary summarise(List<DayTarget> ts) {
+/// Kinds in [notNext] are passed over for "up next" (the session, when its
+/// own card is already on screen) unless nothing else is open.
+TargetsSummary summarise(
+  List<DayTarget> ts, {
+  Set<TargetKind> notNext = const {},
+}) {
   final counted = ts.where((t) => t.state != TargetState.skipped).toList();
   DayTarget? next;
   for (final t in counted) {
-    if (t.state == TargetState.open) {
+    if (t.state == TargetState.open && !notNext.contains(t.kind)) {
       next = t;
       break;
+    }
+  }
+  if (next == null) {
+    for (final t in counted) {
+      if (t.state == TargetState.open) {
+        next = t;
+        break;
+      }
     }
   }
   return TargetsSummary(

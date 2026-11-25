@@ -500,6 +500,28 @@ void main() {
       await teardown(t, db);
     });
 
+    test('D4: the same session later today folds into the plan card', () async {
+      final now = DateTime.now();
+      final d = TempoDb(NativeDatabase.memory());
+      await saveAppProfile(d, const Profile());
+      await CoachService(d).swapToday(sc.sessionTemplate('easy_run'), 'x');
+      await d.putSetting(Keys.coachSlot, 'am');
+      final data = await loadToday(
+        d,
+        at: DateTime(now.year, now.month, now.day, 11),
+      );
+      final r = data.rescue;
+      expect(
+        rescueFolds(data),
+        r.tier == sc.RescueTier.full &&
+            r.session?.key == data.plan!.key &&
+            r.session?.minutes == data.plan!.minutes,
+      );
+      expect(statusLabel(data), 'Not done yet');
+      expect(paceWord(1), 'Easy pace you can talk at');
+      await d.close();
+    });
+
     testWidgets('walk instead of strength: credited, strength stands', (
       t,
     ) async {

@@ -107,7 +107,12 @@ final class HighlightFacts {
     this.hrv,
     this.hrvHigh,
     this.strengthGapDays,
+    this.easyDay = false,
   });
+
+  /// Today is an ease-off or rest day: insights must agree with that, so a
+  /// load drop reads as fine for today rather than a push to do more.
+  final bool easyDay;
 
   /// Night signals off when they aren't enough for the rest-day alert.
   final List<String> bodyOff;
@@ -213,9 +218,15 @@ List<Highlight> highlightCandidates(HighlightFacts f) {
         kind: HighlightKind.load,
         key: 'load:${f.load.name}',
         tag: 'Load',
-        title: over ? 'Your load is running hot' : 'Your load has dropped',
+        title: over
+            ? 'Your load is running hot'
+            : f.easyDay
+            ? 'Your load is ${p == null ? 'well' : '$p%'} under your usual'
+            : 'Your load has dropped',
         body: over
             ? 'The last 7 days are ${p == null ? 'well' : '$p%'} above your usual 28. The plan eases the next days.'
+            : f.easyDay
+            ? 'That’s right for an easy day. The plan builds back up once you’ve recovered.'
             : 'The last 7 days are ${p == null ? 'well' : '$p%'} under your usual 28. Fitness slips if it stays there.',
         action: HighlightAction.week,
         actionLabel: 'See this week',

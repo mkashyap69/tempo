@@ -212,6 +212,10 @@ Future<sc.HighlightFacts> highlightFacts(
     hrv: t.score?.hrv,
     hrvHigh: highest(prior.map((d) => d.hrv)),
     strengthGapDays: strengthGap,
+    easyDay:
+        t.restDay ||
+        t.state == sc.DayState.easeOff ||
+        t.state == sc.DayState.rest,
   );
 }
 
@@ -376,11 +380,14 @@ class TodayInsightCard extends ConsumerWidget {
           const SizedBox(height: 4),
           Text(h.body, style: TempoType.bodyS.c(c.text2).tnum),
           const SizedBox(height: 14),
+          // A link, not a button: Start on the plan card is the one primary
+          // action on Today.
           Align(
             alignment: Alignment.centerLeft,
             child: TempoButton(
-              h.actionLabel,
+              '${h.actionLabel} ›',
               small: true,
+              kind: ButtonKind.text,
               onTap: () => runInsightAction(context, ref, h.action),
             ),
           ),

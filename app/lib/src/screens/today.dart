@@ -25,6 +25,8 @@ import 'coach_parts.dart'
         RealignCard,
         RescueCard,
         SessionActions,
+        planRescue,
+        rescueFolds,
         SlotHintCard,
         SwapNote,
         coachExtrasProvider;
@@ -337,6 +339,9 @@ abstract final class TodayBody {
     );
     final moment = noData || t.firstDay ? null : const MomentCard();
 
+    // D4: when the planned session simply moves later today, the plan card
+    // says so itself instead of a second "Still time today" card.
+    final fold = !noData && t.pause == null && rescueFolds(t) ? t.rescue : null;
     // Today's session: done, a rest day, or the plan with its actions and
     // the alternatives inside the card.
     Widget? session;
@@ -357,6 +362,10 @@ abstract final class TodayBody {
     } else if (!noData && !t.firstDay && t.plan != null && !t.plan!.isRest) {
       session = WorkoutCard(
         session: t.plan!,
+        plain: true,
+        when: fold == null
+            ? null
+            : 'Still time today · best around ${fmtHm(fold.start!)}',
         onWatch: source.isHealth,
         paces: t.profile.vdot == null
             ? null
@@ -378,9 +387,12 @@ abstract final class TodayBody {
           onMove:
               t.pause == null &&
                   (t.status == sc.DayStatus.pending ||
-                      t.status == sc.DayStatus.moved)
+                      t.status == sc.DayStatus.moved ||
+                      fold != null)
               ? () => showMoveOrSkipSheet(context, ref, t.day)
               : null,
+          planLabel: fold == null ? null : 'Plan for ${fmtHm(fold.start!)}',
+          onPlan: fold == null ? null : () => planRescue(ref, t),
         ),
         more: t.pause == null
             ? Column(
@@ -408,7 +420,10 @@ abstract final class TodayBody {
     final coachNotes = <Widget>[
       if (!noData && t.pause == null && !t.firstDay) ...[
         SwapNote(t),
-        if (!restLike && t.plan != null && t.status == sc.DayStatus.missedSlot)
+        if (!restLike &&
+            t.plan != null &&
+            t.status == sc.DayStatus.missedSlot &&
+            fold == null)
           RescueCard(t),
         if (x != null && x.realign) const RealignCard(),
         if (x?.slotHint case final h?) SlotHintCard(h),
@@ -707,7 +722,18 @@ class WorkoutCard extends StatelessWidget {
     this.more,
     this.onWatch = false,
     this.paces,
+    this.plain = false,
+    this.when,
   });
+
+  /// Today's card in plain words (D4): no "Personal" badge, no strain
+  /// estimate, and a steady session gets a pace word instead of a one-block
+  /// zone bar.
+  final bool plain;
+
+  /// When it still fits today ("Still time today · best around 18:00"),
+  /// folded in from the rescue card.
+  final String? when;
 
   /// Pace per zone for a run, from your race time (U5).
   final String? paces;
@@ -757,6 +783,8 @@ class WorkoutCard extends StatelessWidget {
         : '${session.sport!.name[0].toUpperCase()}${session.sport!.name.substring(1)} · ';
     final lead = strength && focus != null ? '$focus · ' : sport;
     final zones = strength ? '' : ' · ${session.zones}';
+    // One steady block: the bar would be a single grey slab (D4).
+    final steady = plain && !strength && segs.length == 1;
     return TempoCard(
       onTap: onTap,
       child: Column(
@@ -767,29 +795,43 @@ class WorkoutCard extends StatelessWidget {
               Expanded(child: Overline(overline)),
               if (chip != null) ...[
                 TempoBadge(chip!, color: chipColor),
-                const SizedBox(width: 6),
+                if (!plain || general) const SizedBox(width: 6),
               ],
-              TempoBadge(general ? 'General' : 'Personal'),
+              if (!plain || general)
+                TempoBadge(general ? 'General' : 'Personal'),
             ],
           ),
           const SizedBox(height: 14),
           Text(session.title, style: TempoType.titleM.c(c.text1)),
           const SizedBox(height: 4),
           Text(
-            why != null
+            plain
+                ? '$lead${session.minutes} min'
+                : why != null
                 ? '$lead${session.minutes} min$zones · +${session.strainLo > 0 ? (adds - 1).clamp(1, 21).round() : 1} to +${(adds + 1).round()} strain'
                 : '$lead${session.minutes} min$zones · adds ~${adds.round()} strain',
             style: TempoType.bodyS.c(c.text2).tnum,
           ),
+          if (when != null) ...[
+            const SizedBox(height: 4),
+            Text(when!, style: TempoType.bodyS.c(context.s.recMid)),
+          ],
           const SizedBox(height: 14),
           if (strength)
             Text(strengthLine, style: TempoType.bodyS.c(c.text1))
+          else if (steady)
+            Text(paceWord(segs.first.$2), style: TempoType.bodyS.c(c.text1))
           else
             IntervalBars(segments: segs),
           if (why == null) ...[
             if (!strength) ...[
-              const SizedBox(height: 6),
-              Text(session.structure, style: TempoType.caption.c(c.text3).tnum),
+              if (!steady) ...[
+                const SizedBox(height: 6),
+                Text(
+                  session.structure,
+                  style: TempoType.caption.c(c.text3).tnum,
+                ),
+              ],
               if (paces != null) ...[
                 const SizedBox(height: 4),
                 Text(paces!, style: TempoType.caption.c(c.text2).tnum),
@@ -1010,42 +1052,71 @@ Future<void> showWhySheet(BuildContext context, TodayData t) =>
       },
     );
 
+/// A steady session's zone in words people use (D4).
+String paceWord(int zone) => switch (zone) {
+  <= 1 => 'Easy pace you can talk at',
+  2 => 'Steady, still able to talk',
+  3 => 'Comfortably hard, short sentences only',
+  4 => 'Hard, a few words at a time',
+  _ => 'All out',
+};
+
 /// "Why this session" and "Move or skip" side by side under Start (D2).
 class WhyMoveRow extends StatelessWidget {
-  const WhyMoveRow({super.key, required this.onWhy, this.onMove});
+  const WhyMoveRow({
+    super.key,
+    required this.onWhy,
+    this.onMove,
+    this.planLabel,
+    this.onPlan,
+  });
   final VoidCallback onWhy;
   final VoidCallback? onMove;
 
+  /// "Plan for 18:00", when the session was missed in its slot but still
+  /// fits today (folded in from the rescue card, D4).
+  final String? planLabel;
+  final VoidCallback? onPlan;
+
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(top: 2),
-    child: Row(
-      children: [
-        Expanded(
-          child: TempoButton(
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      if (planLabel != null && onPlan != null) ...[
+        const SizedBox(height: 2),
+        TempoButton(
+          planLabel!,
+          small: true,
+          fontSize: 14,
+          kind: ButtonKind.secondary,
+          expand: true,
+          onTap: onPlan,
+        ),
+      ],
+      // Links, not buttons: Start is the one primary action (D4).
+      Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          TempoButton(
             'Why this session',
             small: true,
             fontSize: 14,
-            kind: ButtonKind.secondary,
-            expand: true,
+            kind: ButtonKind.text,
             onTap: onWhy,
           ),
-        ),
-        if (onMove != null) ...[
-          const SizedBox(width: 10),
-          Expanded(
-            child: TempoButton(
+          if (onMove != null) ...[
+            Text('·', style: TempoType.bodyS.c(context.c.text3)),
+            TempoButton(
               'Move or skip',
               small: true,
               fontSize: 14,
-              kind: ButtonKind.secondary,
-              expand: true,
+              kind: ButtonKind.text,
               onTap: onMove,
             ),
-          ),
+          ],
         ],
-      ],
-    ),
+      ),
+    ],
   );
 }
 
