@@ -26,6 +26,13 @@ Same steps 1–6. Accept the system pairing prompt if it appears. Step 7:
 background runs are at iOS's discretion; check that open/resume syncs.
 Logs: Xcode → Devices → Download Container → `AppData/Documents/packets/`.
 
+## Demo mode (no band or watch needed)
+`cd app && flutter run --dart-define=TEMPO_DEMO=true` opens its own
+database (`tempo_demo`), starts set up and fills from made-up Health data
+on the first sync: 90 days with a cold, a training block, a short-sleep
+week and a drink every 6th evening. Today shows a Demo badge. For
+screenshots, design review and trying screens; never for gates.
+
 ## Scoring backtest (no band needed)
 ```
 cd tools/backtest

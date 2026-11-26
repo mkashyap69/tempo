@@ -929,3 +929,185 @@ Future<void> showRingsExplainer(
     },
   );
 }
+
+// ---- P9: the rings stay in view ---------------------------------------------
+
+/// Today's mini-rings link (P9, docs/research/Pulse comparison.md §7): the
+/// rings tell Today where they end in the list, and Today, watching the
+/// scroll, shows the mini rings once that point has gone under the status
+/// bar. Provided by the Today screen only; elsewhere [RingsAnchor] does
+/// nothing.
+class MiniRingsScope extends InheritedWidget {
+  const MiniRingsScope({super.key, required this.report, required super.child});
+
+  /// The list's scroll position, and the scroll offset at which the rings'
+  /// bottom edge reaches the top of the screen.
+  final void Function(ScrollPosition position, double awayAt) report;
+
+  static MiniRingsScope? maybeOf(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<MiniRingsScope>();
+
+  @override
+  bool updateShouldNotify(MiniRingsScope old) => old.report != report;
+}
+
+/// Wraps Today's rings and tells [MiniRingsScope] where they end.
+class RingsAnchor extends StatefulWidget {
+  const RingsAnchor({super.key, required this.child});
+  final Widget child;
+
+  @override
+  State<RingsAnchor> createState() => _RingsAnchorState();
+}
+
+class _RingsAnchorState extends State<RingsAnchor> {
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _measure());
+  }
+
+  @override
+  void didUpdateWidget(RingsAnchor old) {
+    super.didUpdateWidget(old);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _measure());
+  }
+
+  void _measure() {
+    if (!mounted) return;
+    final scope = MiniRingsScope.maybeOf(context);
+    final position = Scrollable.maybeOf(context)?.position;
+    final box = context.findRenderObject();
+    if (scope == null || position == null || !position.hasPixels) return;
+    if (box is! RenderBox || !box.attached || !box.hasSize) return;
+    // Screen y of the bottom edge plus the scroll so far is where that
+    // edge sits in the list, whatever the scroll is now.
+    final bottom = box.localToGlobal(Offset(0, box.size.height)).dy;
+    final top = MediaQuery.paddingOf(context).top + 8;
+    scope.report(position, bottom + position.pixels - top);
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
+}
+
+/// The three numbers in a slim bar under the status bar, shown while the
+/// big rings are scrolled away (P9). Tap to scroll back up.
+class MiniRingsBar extends StatelessWidget {
+  const MiniRingsBar({super.key, required this.t, this.onTap});
+  final TodayData t;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c, s = context.s;
+    final r = t.recovery;
+    final learning = t.calibrating && r == null;
+    final sp = t.sleepScore;
+    Widget item(String label, String value, double frac, Color color) => Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SizedBox.square(
+          dimension: 20,
+          child: CustomPaint(
+            painter: _MiniRingPainter(
+              frac.clamp(0, 1).toDouble(),
+              color,
+              c.trackOff,
+            ),
+          ),
+        ),
+        const SizedBox(width: 6),
+        Text(value, style: TempoType.label.c(c.text1).tnum),
+        const SizedBox(width: 4),
+        Text(label, style: TempoType.caption.c(c.text3)),
+      ],
+    );
+    return Semantics(
+      button: true,
+      label:
+          'Recovery ${r == null ? 'none' : '${r.round()} percent'}, strain ${n1(t.strain)}, sleep ${sp == null ? 'none' : '${sp.round()} percent'}. Scroll to top.',
+      excludeSemantics: true,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: Container(
+          height: 40,
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          decoration: BoxDecoration(
+            color: c.bg,
+            border: Border(bottom: BorderSide(color: c.line)),
+          ),
+          // Each third scales down to fit: 320 px wide, large text.
+          child: Row(
+            children: [
+              for (final (i, w) in [
+                item(
+                  'Recovery',
+                  learning
+                      ? '—'
+                      : r == null
+                      ? '—'
+                      : '${r.round()}%',
+                  learning ? t.nights / 14 : (r ?? 0) / 100,
+                  learning || r == null || t.calibrating
+                      ? c.text2
+                      : s.recoveryFor(r),
+                ),
+                item('Strain', n1(t.strain), t.strain / 21, s.strain[2]),
+                item(
+                  'Sleep',
+                  sp == null ? '—' : '${sp.round()}%',
+                  (sp ?? 0) / 100,
+                  s.sleepChannel,
+                ),
+              ].indexed)
+                Expanded(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: switch (i) {
+                      0 => Alignment.centerLeft,
+                      1 => Alignment.center,
+                      _ => Alignment.centerRight,
+                    },
+                    child: w,
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// One small ring for [MiniRingsBar]: a track and an arc from 12 o'clock.
+class _MiniRingPainter extends CustomPainter {
+  _MiniRingPainter(this.frac, this.color, this.track);
+  final double frac;
+  final Color color, track;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const stroke = 3.5;
+    final rect = (Offset.zero & size).deflate(stroke / 2);
+    final p = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = stroke
+      ..strokeCap = StrokeCap.round;
+    canvas.drawArc(rect, 0, math.pi * 2, false, p..color = track);
+    if (frac > 0) {
+      canvas.drawArc(
+        rect,
+        -math.pi / 2,
+        math.pi * 2 * frac,
+        false,
+        p..color = color,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_MiniRingPainter old) =>
+      old.frac != frac || old.color != color || old.track != track;
+}

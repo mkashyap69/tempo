@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:store/store.dart';
 import 'package:tempo/src/core/demo.dart';
 import 'package:tempo/src/core/health_sync.dart';
+import 'package:tempo/src/core/longevity_service.dart';
 import 'package:tempo/src/core/profile.dart' show Keys, loadAppProfile;
 import 'package:tempo/src/core/today.dart';
 
@@ -46,5 +47,8 @@ void main() {
       DateTime.now(),
     );
     expect(week.where((s) => s.sleptHours != null).length, greaterThan(5));
+    // P8: the demo scale's body fat gives a lean mass reading.
+    final inputs = await longevityInputs(db);
+    expect(inputs.ffmi, closeTo(19.8, 1.0));
   }, timeout: const Timeout(Duration(minutes: 5)));
 }

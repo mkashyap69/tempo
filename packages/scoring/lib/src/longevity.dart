@@ -27,6 +27,11 @@ enum Lever {
 
   /// PhenoAge from a blood test (Levine 2018); value is the PhenoAge.
   blood,
+
+  /// Fat-free mass index, kg/m² (P8): weight × (1 − body fat) ÷ height²,
+  /// from a scale that writes body fat to Health. Added last so stored
+  /// lever names and order don't move.
+  leanMass,
 }
 
 enum Smoking { never, former, current }
@@ -43,7 +48,7 @@ AgeGroup groupOf(Lever l) => switch (l) {
   Lever.steps || Lever.activeMinutes || Lever.strength => AgeGroup.activity,
   Lever.fitness || Lever.restingHr || Lever.stress => AgeGroup.fitness,
   Lever.smoking || Lever.alcohol => AgeGroup.lifestyle,
-  Lever.bloodPressure || Lever.waist => AgeGroup.body,
+  Lever.bloodPressure || Lever.waist || Lever.leanMass => AgeGroup.body,
   Lever.blood => AgeGroup.blood,
 };
 
@@ -159,6 +164,7 @@ final class LongevityInputs {
     this.vigorousMinutes,
     this.phenoAge,
     this.labDaysOld,
+    this.ffmi,
   });
   final int age;
   final bool male;
@@ -208,7 +214,26 @@ final class LongevityInputs {
   /// From the latest blood test, and how old that test is.
   final double? phenoAge;
   final int? labDaysOld;
+
+  /// Fat-free mass index, kg/m² ([fatFreeMassIndex]); null without body
+  /// fat or height.
+  final double? ffmi;
 }
+
+/// Fat-free mass index, kg/m²: the lean part of body weight over height
+/// squared, so it compares people of different heights. [bodyFatPct] in
+/// percent (21, not 0.21). Null for values a scale can't really give.
+double? fatFreeMassIndex(double weightKg, double bodyFatPct, int heightCm) {
+  if (heightCm < 120 || weightKg < 30 || bodyFatPct <= 2 || bodyFatPct >= 70) {
+    return null;
+  }
+  final m = heightCm / 100;
+  return weightKg * (1 - bodyFatPct / 100) / (m * m);
+}
+
+/// Typical fat-free mass index (median of adults 18–34, Schutz 2002):
+/// men 18.9, women 15.4 kg/m².
+double ffmiNorm(bool male) => male ? 18.9 : 15.4;
 
 /// Resting HR's weight when VO₂ max is estimated from it.
 const derivedRhrWeight = .3;
@@ -309,6 +334,7 @@ final class TempoAge {
       Lever.bloodPressure,
       Lever.waist,
       Lever.blood,
+      Lever.leanMass,
     };
     return [
       for (final c in contributors)
@@ -411,6 +437,12 @@ double hazard(Lever l, double v, {int age = 35, bool male = true}) {
     case Lever.blood:
       // PhenoAge is already in years: the hazard that gives back v − age.
       return pow(2, (v - age) / 8).toDouble();
+    case Lever.leanMass:
+      // Sedlmeier 2021 (Am J Clin Nutr, 7 cohorts): fat-free mass index
+      // 21.9 against 16.1 kg/m², adjusted for fat mass → 0.70. Log-linear
+      // between, flat outside 14–24 kg/m²; typical [ffmiNorm].
+      final x = v.clamp(14.0, 24.0);
+      return pow(.70, (x - ffmiNorm(male)) / (21.9 - 16.1)).toDouble();
   }
 }
 
@@ -454,6 +486,7 @@ double leverTarget(Lever l, {required int age, required bool male}) =>
       Lever.bloodPressure => 115,
       Lever.waist => male ? 94 : 80,
       Lever.blood => age - 2.0,
+      Lever.leanMass => ffmiNorm(male) + 1.5,
     };
 
 /// Weeks a lever usually takes to move, for the focus plan.
@@ -486,6 +519,7 @@ TempoAge tempoAge(LongevityInputs i) {
     Lever.bloodPressure: i.systolic?.toDouble(),
     Lever.waist: i.waistCm,
     Lever.blood: (i.labDaysOld ?? 0) >= 730 ? null : i.phenoAge,
+    Lever.leanMass: i.ffmi,
   };
   final fitnessEstimated = i.vo2max != null && !i.vo2maxMeasured;
   double yearsAt(Lever l, double v) => _clampYears(
@@ -621,3 +655,58 @@ List<(Lever, double)> contributorChanges(
   ]..sort((x, y) => y.$2.abs().compareTo(x.$2.abs()));
   return out;
 }
+
+/// FRIEND registry treadmill VO₂ max by age decade (20–29 … 70–79), at the
+/// 5th, 10th, 25th, 50th, 75th, 90th and 95th percentile, ml/kg/min
+/// (Kaminsky 2015, Mayo Clin Proc, Table 2). Men first, then women.
+const _friendPct = <double>[5, 10, 25, 50, 75, 90, 95];
+const _friendMen = [
+  [29.0, 32.1, 40.1, 48.0, 55.2, 61.8, 66.3],
+  [27.2, 30.2, 35.9, 42.4, 49.2, 56.5, 59.8],
+  [24.2, 26.8, 31.9, 37.8, 45.0, 52.1, 55.6],
+  [20.9, 22.8, 27.1, 32.6, 39.7, 45.6, 50.7],
+  [17.4, 19.8, 23.7, 28.2, 34.5, 40.3, 43.0],
+  [16.3, 17.1, 20.4, 24.4, 30.4, 36.6, 39.7],
+];
+const _friendWomen = [
+  [21.7, 23.9, 30.5, 37.6, 44.7, 51.3, 56.0],
+  [19.0, 20.9, 25.3, 30.2, 36.1, 41.4, 45.8],
+  [17.0, 18.8, 22.1, 26.7, 32.4, 38.4, 41.7],
+  [16.0, 17.3, 19.9, 23.4, 27.6, 32.0, 35.9],
+  [13.4, 14.6, 17.2, 20.0, 23.8, 27.0, 29.4],
+  [13.1, 13.6, 15.6, 18.3, 20.8, 23.1, 24.1],
+];
+
+/// Where [vo2max] sits among people of your sex and age decade (P8):
+/// a percentile, 5–95 (the table doesn't resolve the tails), linear
+/// between the published columns. Under 20 uses 20–29, 80+ uses 70–79.
+double fitnessPercentile(double vo2max, int age, bool male) {
+  final row = (male
+      ? _friendMen
+      : _friendWomen)[((age.clamp(20, 79) - 20) ~/ 10)];
+  if (vo2max <= row.first) return _friendPct.first;
+  if (vo2max >= row.last) return _friendPct.last;
+  for (var i = 1; i < row.length; i++) {
+    if (vo2max <= row[i]) {
+      return _friendPct[i - 1] +
+          (_friendPct[i] - _friendPct[i - 1]) *
+              (vo2max - row[i - 1]) /
+              (row[i] - row[i - 1]);
+    }
+  }
+  return _friendPct.last;
+}
+
+enum FitnessCategory { poor, fair, good, excellent, superior }
+
+/// The usual five bands over [fitnessPercentile]: under 20 poor, 20–39
+/// fair, 40–59 good, 60–79 excellent, 80+ superior.
+FitnessCategory fitnessCategory(double percentile) => percentile < 20
+    ? FitnessCategory.poor
+    : percentile < 40
+    ? FitnessCategory.fair
+    : percentile < 60
+    ? FitnessCategory.good
+    : percentile < 80
+    ? FitnessCategory.excellent
+    : FitnessCategory.superior;

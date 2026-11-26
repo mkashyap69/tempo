@@ -2,6 +2,8 @@
 
 As of Nov 26, 2026 · Proposal for the owner. Nothing here is decided until it lands in `docs/decisions.md`.
 
+> **Status (2026-11-26): P1–P9 built** (§7), with the UI kept as it was apart from small additions. Demo mode is a build flag only (§9, question 2). Details and the numbers used are in `docs/decisions.md` 2026-11-26.
+
 Subject: **Pulse** (`github.com/adityaongit/pulse`, read at its default branch on 26 Nov 2026), an open-source recovery, strain and sleep app. Sources: its README, `AGENTS.md`, the 12 algorithm specs in `docs/algorithms/`, the scoring code in `src/core/`, the UI spec (`docs/design/spec.md`, ~400 KB), its coach and push code, and its phone screenshots. Every Pulse number quoted below was read from those files.
 
 ## Summary

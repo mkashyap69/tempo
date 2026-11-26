@@ -432,7 +432,35 @@ Future<sc.LongevityInputs> longevityInputs(
       ? null
       : await _countMinutes(db, from, to, (hrMax * .8).round()) / weeks;
 
+  // P8: lean mass from a scale's weight and body fat in Health, the last
+  // 90 days; weight averaged over the window when it has any.
+  double? ffmi;
+  final body = await db.healthRecordsBetween(
+    to.subtract(const Duration(days: 90)),
+    to,
+    kinds: const ['weight', 'bodyFat'],
+  );
+  final fats = [
+    for (final r in body..sort((a, b) => a.endMs - b.endMs))
+      if (r.kind == 'bodyFat') r.value <= 1 ? r.value * 100 : r.value,
+  ];
+  final weights = [
+    for (final r in body)
+      if (r.kind == 'weight') (r.endMs, r.value),
+  ];
+  if (fats.isNotEmpty && weights.isNotEmpty) {
+    final recent = [
+      for (final w in weights)
+        if (w.$1 >= from.millisecondsSinceEpoch) w.$2,
+    ];
+    final kg = recent.isNotEmpty
+        ? recent.reduce((a, b) => a + b) / recent.length
+        : weights.last.$2;
+    ffmi = sc.fatFreeMassIndex(kg, fats.last, p.heightCm);
+  }
+
   return sc.LongevityInputs(
+    ffmi: ffmi,
     age: p.age,
     male: p.male,
     daysOfData: withData,
@@ -461,8 +489,9 @@ Future<sc.LongevityInputs> longevityInputs(
 }
 
 /// Version of the Tempo Age method, stored on snapshots.
-const longevityAlgo =
-    4; // 2: weekly change cap; 3: v2 groups, labs; 4: SRI, caps (algo 10)
+// 2: weekly change cap; 3: v2 groups, labs; 4: SRI, caps (algo 10);
+// 5: lean mass from Health body fat (P8).
+const longevityAlgo = 5;
 
 Map<String, Object?> _contributorJson(sc.Contributor c) => {
   'lever': c.lever.name,

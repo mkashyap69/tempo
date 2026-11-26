@@ -1,3 +1,4 @@
+import 'dart:io' show Platform;
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -219,6 +220,7 @@ String leverName(sc.Lever l) => switch (l) {
   sc.Lever.bloodPressure => 'Blood pressure',
   sc.Lever.waist => 'Waist',
   sc.Lever.blood => 'Blood (PhenoAge)',
+  sc.Lever.leanMass => 'Lean mass',
 };
 
 String leverValue(sc.Lever l, double v) => switch (l) {
@@ -240,6 +242,7 @@ String leverValue(sc.Lever l, double v) => switch (l) {
   sc.Lever.bloodPressure => '${v.round()} systolic',
   sc.Lever.waist => '${v.round()} cm',
   sc.Lever.blood => '${v.toStringAsFixed(1)} yrs',
+  sc.Lever.leanMass => 'FFMI ${v.toStringAsFixed(1)}',
 };
 
 /// What to do, and what Tempo does for you, per lever.
@@ -264,6 +267,7 @@ String leverHow(sc.Lever l) => switch (l) {
   sc.Lever.waist => 'Waist follows activity, sleep and food quality.',
   sc.Lever.restingHr || sc.Lever.stress => 'Follows fitness and sleep.',
   sc.Lever.blood => 'Glucose, CRP and RDW respond to activity, sleep, food and weight. Retest after 3–6 months.',
+  sc.Lever.leanMass => 'Muscle follows strength training and enough protein. Coach keeps two strength days; Food targets set the protein.',
 };
 
 String _k(double v) =>
@@ -834,6 +838,8 @@ class _ConfidenceRow extends StatelessWidget {
     sc.Lever.waist => 'Add ${leverName(l).toLowerCase()} in Health details',
     sc.Lever.breathing => 'Night SpO₂ readings (band setting)',
     sc.Lever.strength => 'A week of logged workouts',
+    sc.Lever.leanMass =>
+      'A smart scale that writes body fat to ${Platform.isIOS ? 'Apple Health' : 'Health Connect'}',
     _ => 'More days of ${leverName(l).toLowerCase()}',
   };
 }

@@ -50,12 +50,27 @@ import 'workouts.dart';
 import 'sleep_type.dart' show SleepPlanRow;
 import 'today_tiles.dart';
 
-class TodayScreen extends ConsumerWidget {
+class TodayScreen extends ConsumerStatefulWidget {
   const TodayScreen({super.key, this.onTab});
   final ValueChanged<int>? onTab;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<TodayScreen> createState() => _TodayScreenState();
+}
+
+class _TodayScreenState extends ConsumerState<TodayScreen> {
+  /// P9: the big rings are scrolled away, so the mini rings show.
+  final _away = ValueNotifier(false);
+
+  @override
+  void dispose() {
+    _position?.removeListener(_onScroll);
+    _away.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final t = ref.watch(todayProvider).value;
     if (t == null) return Scaffold(backgroundColor: context.c.bg);
     final sync = ref.watch(syncProvider);
@@ -73,9 +88,24 @@ class TodayScreen extends ConsumerWidget {
         children: pastDayChildren(context, ref, back),
       );
     }
-    return TempoPage(
+    final page = TempoPage(
       bottom: 140, // clear the start button over the last row
       backdrop: const WeatherBackdrop(), // D3: nothing when weather is off
+      overlay: Positioned(
+        top: MediaQuery.paddingOf(context).top,
+        left: 0,
+        right: 0,
+        child: ValueListenableBuilder<bool>(
+          valueListenable: _away,
+          // Out of the tree while hidden, not just transparent.
+          builder: (context, away, _) => AnimatedSwitcher(
+            duration: TempoMotion.base,
+            child: away
+                ? MiniRingsBar(t: t, onTap: _toTop)
+                : const SizedBox.shrink(),
+          ),
+        ),
+      ),
       onRefresh: paired
           ? () {
               TempoHaptics.light(); // pull-to-sync threshold reached
@@ -92,7 +122,32 @@ class TodayScreen extends ConsumerWidget {
         source: source,
       ),
     );
+    return MiniRingsScope(report: _report, child: page);
   }
+
+  ScrollPosition? _position;
+  double? _awayAt;
+
+  void _report(ScrollPosition p, double awayAt) {
+    if (p != _position) {
+      _position?.removeListener(_onScroll);
+      _position = p..addListener(_onScroll);
+    }
+    _awayAt = awayAt;
+    _onScroll();
+  }
+
+  void _onScroll() {
+    final p = _position, at = _awayAt;
+    if (p == null || at == null || !p.hasPixels) return;
+    _away.value = p.pixels > at;
+  }
+
+  void _toTop() => _position?.animateTo(
+    0,
+    duration: TempoMotion.base,
+    curve: TempoMotion.easeOut,
+  );
 }
 
 /// Today's content, also used by tests and the light/dark variants.
@@ -330,11 +385,14 @@ abstract final class TodayBody {
       onWhy: noData || t.firstDay ? null : () => showWhySheet(context, t),
     );
     // Rating the morning (and Replay) draws the rings in again.
-    final rings = TodayRings(
-      key: ValueKey('rings-${felt.value}-${ref.watch(ringsReplayProvider)}'),
-      t: t,
-      noData: noData,
-      dim: dim,
+    // P9: the anchor shows the mini rings once these scroll away.
+    final rings = RingsAnchor(
+      child: TodayRings(
+        key: ValueKey('rings-${felt.value}-${ref.watch(ringsReplayProvider)}'),
+        t: t,
+        noData: noData,
+        dim: dim,
+      ),
     );
     final moment = noData || t.firstDay ? null : const MomentCard();
 
@@ -566,7 +624,14 @@ abstract final class TodayBody {
                   const SizedBox(height: 2),
                   Row(
                     children: [
-                      Text('Today', style: TempoType.titleM.c(c.text1)),
+                      Flexible(
+                        child: Text(
+                          'Today',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TempoType.titleM.c(c.text1),
+                        ),
+                      ),
                       // P7: never mistaken for real data.
                       if (demoMode) ...[
                         const SizedBox(width: 8),

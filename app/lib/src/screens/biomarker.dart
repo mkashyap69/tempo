@@ -41,6 +41,7 @@ String groupName(sc.AgeGroup g) => switch (g) {
   sc.Lever.bloodPressure => (90, 180),
   sc.Lever.waist => (60, 130),
   sc.Lever.blood => (age - 15.0, age + 15.0),
+  sc.Lever.leanMass => (13, 25),
 };
 
 double _yearsAt(sc.Lever l, double v, LongevityData d) => sc
@@ -313,7 +314,10 @@ class _BiomarkerState extends ConsumerState<BiomarkerScreen> {
                   RangeBar(l, x.value, d, height: 34),
                 ],
                 const SizedBox(height: 14),
-                Text(_reference(l, d), style: TempoType.bodyS.c(c.text2)),
+                Text(
+                  _reference(l, d, x.value),
+                  style: TempoType.bodyS.c(c.text2),
+                ),
                 if (x.weight < .999) ...[
                   const SizedBox(height: 6),
                   Text(_weightNote(x), style: TempoType.caption.c(c.text3)),
@@ -344,13 +348,15 @@ class _BiomarkerState extends ConsumerState<BiomarkerScreen> {
       'Shared with related measures in ${groupName(x.group).toLowerCase()}, so it counts for ${(x.weight * 100).round()} % on its own.',
   };
 
-  String _reference(sc.Lever l, LongevityData d) {
+  String _reference(sc.Lever l, LongevityData d, double v) {
     final a = d.profile.age, m = d.profile.male;
     final who = '${m ? 'men' : 'women'} around $a';
     final t = sc.leverTarget(l, age: a, male: m);
     return switch (l) {
       sc.Lever.fitness =>
-        'Typical for $who: VO₂max ${sc.vo2Norm(a, m).round()}. Target ${t.round()} (top quarter).',
+        'Typical for $who: VO₂max ${sc.vo2Norm(a, m).round()}. Target ${t.round()} (top quarter). ${fitnessLine(v, a, m)}',
+      sc.Lever.leanMass =>
+        'Typical for ${m ? 'men' : 'women'}: ${sc.ffmiNorm(m).toStringAsFixed(1)} kg/m². Target ${t.toStringAsFixed(1)}. Your lean weight (weight without fat, from your scale’s body fat) over your height squared, so it compares people of different heights.',
       sc.Lever.restingHr =>
         'Typical for $who: ${sc.rhrNorm(a, m).round()} bpm. Target ${t.round()} bpm.',
       sc.Lever.blood => 'PhenoAge equal to your age is typical. Under it means your blood reads younger.',
@@ -358,6 +364,34 @@ class _BiomarkerState extends ConsumerState<BiomarkerScreen> {
       _ => 'Target: ${leverValue(l, t)}.',
     };
   }
+}
+
+/// "Around the 60th percentile for your age and sex: good." From the FRIEND
+/// treadmill norms (P8); a watch's VO₂ max is an estimate against them.
+String fitnessLine(double vo2max, int age, bool male) {
+  final p = sc.fitnessPercentile(vo2max, age, male);
+  final word = switch (sc.fitnessCategory(p)) {
+    sc.FitnessCategory.poor => 'poor',
+    sc.FitnessCategory.fair => 'fair',
+    sc.FitnessCategory.good => 'good',
+    sc.FitnessCategory.excellent => 'excellent',
+    sc.FitnessCategory.superior => 'superior',
+  };
+  final n = p.round();
+  final th = n % 100 >= 11 && n % 100 <= 13
+      ? 'th'
+      : switch (n % 10) {
+          1 => 'st',
+          2 => 'nd',
+          3 => 'rd',
+          _ => 'th',
+        };
+  final edge = p <= 5
+      ? 'Below the 5th percentile'
+      : p >= 95
+      ? 'Above the 95th percentile'
+      : 'Around the $n$th percentile';
+  return '$edge for your age and sex: $word.';
 }
 
 String _md(DateTime t) => '${t.day} ${_mo[t.month - 1]}';
