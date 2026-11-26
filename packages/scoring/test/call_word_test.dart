@@ -24,10 +24,7 @@ CallInput input(
     shortNight: short,
     overreaching: load == LoadStatus.overreaching,
   );
-  final target = targetForState(
-    strainTarget(recovery: r, load: load),
-    state,
-  );
+  final target = targetForState(strainTarget(recovery: r, load: load), state);
   return CallInput(
     recovery: r,
     calibrating: calibrating,
@@ -86,10 +83,7 @@ void main() {
 
     test('night signals and overreaching outrank a green number', () {
       expect(callWord(input(80, rhr: RhrFlag.illness)), CallWord.rest);
-      expect(
-        callWord(input(45, load: LoadStatus.overreaching)),
-        CallWord.rest,
-      );
+      expect(callWord(input(45, load: LoadStatus.overreaching)), CallWord.rest);
     });
 
     test('labels', () {

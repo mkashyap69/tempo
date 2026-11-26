@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -7,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:scoring/scoring.dart' as sc;
 
 import '../core/format.dart';
+import '../core/session_story.dart';
 import '../core/share_card.dart';
 import '../core/route_tracker.dart' show DistanceSource, RoutePoint;
 import '../design/beating_heart.dart';
@@ -16,6 +18,7 @@ import '../design/meter.dart';
 import '../design/tokens.dart';
 import '../design/type.dart';
 import '../state/live_session.dart';
+import '../state/providers.dart';
 import 'activity_detail.dart' show effectProvider, EffectQuery;
 import 'strength_log.dart';
 
@@ -24,6 +27,30 @@ import 'strength_log.dart';
 /// an easy walk) has no work blocks to judge: it used to call
 /// `take(length - 2)` with a negative count and grey out the summary.
 @visibleForTesting
+/// Whether a guided session's work blocks landed in their zone (80 % of
+/// the planned minutes), or null when there were none to judge.
+bool? blocksLanded(LiveState s) {
+  final p = s.plan;
+  if (p == null || p.segments.length < 3) return null;
+  final work = [
+    for (final g in p.segments.sublist(1, p.segments.length - 1))
+      if (g.zone >= 3) g,
+  ];
+  if (work.isEmpty) return null;
+  final z = work.first.zone;
+  final hard = z - 1 < s.zoneSeconds.length ? s.zoneSeconds[z - 1] / 60 : 0.0;
+  return hard >= work.fold(0, (a, g) => a + g.minutes) * .8;
+}
+
+/// Tomorrow's planned session, for the summary's Next card.
+final tomorrowPlanProvider = FutureProvider<sc.Session?>((ref) async {
+  final db = ref.watch(dbProvider);
+  final n = DateTime.now();
+  final row = await db.planDay(DateTime(n.year, n.month, n.day + 1));
+  if (row == null) return null;
+  return sc.Session.fromJson(jsonDecode(row.session) as Map<String, dynamic>);
+});
+
 String landedLine(LiveState s) {
   final p = s.plan;
   if (p == null || p.segments.length < 3) return 'Session complete.';
@@ -1332,7 +1359,19 @@ class _SummaryState extends ConsumerState<_Summary> {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(s.title, style: TempoType.pageTitle.c(c.text1)),
+            Overline(s.title),
+            const SizedBox(height: 6),
+            // v3: how it went, in one line, before the numbers.
+            Text(
+              sessionHeadline(
+                guided: s.guided,
+                landed: blocksLanded(s),
+                dayStrain: s.dayStrain,
+                target: t,
+              ),
+              key: const ValueKey('session-headline'),
+              style: TempoType.pageTitle.c(c.text1),
+            ),
             const SizedBox(height: 6),
             Text.rich(
               TextSpan(
@@ -1358,6 +1397,19 @@ class _SummaryState extends ConsumerState<_Summary> {
             ),
           ],
         ),
+        if (t != null)
+          TargetStrip(
+            value: s.dayStrain - s.sessionStrain,
+            max: 21,
+            lo: t.lo,
+            hi: t.hi,
+            color: sc0.strain[0],
+            extra: s.sessionStrain,
+            extraColor: sc0.strain[2],
+            height: 14,
+            marker: false,
+            shaded: true,
+          ),
         Row(
           children: [
             Expanded(
@@ -1537,6 +1589,7 @@ class _SummaryState extends ConsumerState<_Summary> {
               ],
             ),
           ),
+        _NextCard(s: s),
         Row(
           children: [
             Expanded(
@@ -2700,6 +2753,43 @@ class _StrengthStrip extends StatelessWidget {
           ),
           const SizedBox(width: 4),
           _BandStatus(s: s),
+        ],
+      ),
+    );
+  }
+}
+
+/// After the session: the rest of today, tonight's bedtime and tomorrow.
+class _NextCard extends ConsumerWidget {
+  const _NextCard({required this.s});
+  final LiveState s;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final c = context.c;
+    final t = ref.watch(todayProvider).value;
+    final tomorrow = ref.watch(tomorrowPlanProvider).value;
+    final lines = [
+      sessionNext(dayStrain: s.dayStrain, target: s.target),
+      if (t != null) 'Lights out by ${clock12(t.bedtimeMinute)} tonight.',
+      if (tomorrow != null)
+        tomorrow.isRest
+            ? 'Tomorrow: rest.'
+            : 'Tomorrow: ${tomorrow.title.toLowerCase()}.',
+    ];
+    return Container(
+      key: const ValueKey('session-next'),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: c.surface2,
+        borderRadius: BorderRadius.circular(TempoRadii.md),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Next', style: TempoType.caption.c(c.text2)),
+          const SizedBox(height: 4),
+          Text(lines.join(' '), style: TempoType.bodyS.c(c.text1)),
         ],
       ),
     );

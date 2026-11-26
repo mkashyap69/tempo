@@ -387,6 +387,32 @@ class WorkoutDetailScreen extends ConsumerWidget {
             ],
           ),
         ),
+        if (sc.feelsWrong(p) case final fw when fw.isNotEmpty)
+          Section(
+            title: 'If it feels wrong',
+            child: CardList(
+              children: [
+                for (final f in fw)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(f.sign, style: TempoType.body.c(c.text1)),
+                        const SizedBox(height: 2),
+                        Text(
+                          '→ ${f.action}',
+                          style: TempoType.bodyS.c(c.text2),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ),
         if (!p.isRest && (easier != null || harder != null))
           Section(
             title: 'Not feeling it?',
