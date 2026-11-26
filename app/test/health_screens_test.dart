@@ -149,7 +149,7 @@ void main() {
     expect(find.text('A little about you'), findsOneWidget);
     await t.tap(find.text('Continue'));
     await settle(t, frames: 5);
-    expect(find.text('What matters most?'), findsOneWidget);
+    expect(find.text('What brings you to Tempo?'), findsOneWidget);
     await t.tap(find.text('Continue'));
     await settle(t, frames: 5);
     expect(find.text('One message a morning'), findsOneWidget);
