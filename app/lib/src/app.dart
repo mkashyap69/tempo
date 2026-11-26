@@ -185,15 +185,16 @@ class _Tab {
   final String label, icon;
 }
 
-/// Tabs by time horizon: the day, the week and goal, the long run, you.
+/// v3 tabs by question: how am I today, am I getting fitter, am I healthy,
+/// me and my data.
 const _tabs = [
   _Tab('Today', TempoIcons.today),
-  _Tab('Plan', TempoIcons.coach),
-  _Tab('Progress', TempoIcons.trends),
+  _Tab('Train', TempoIcons.coach),
+  _Tab('Health', TempoIcons.heart),
   _Tab('You', TempoIcons.profile),
 ];
 
-/// Four tabs (Today, Plan, Progress, You) around the start / log button.
+/// Four tabs (Today, Train, Health, You) around the start / log button.
 /// Syncs on open and on resume (the iOS fallback, since background wakes
 /// are not guaranteed).
 class Shell extends ConsumerStatefulWidget {

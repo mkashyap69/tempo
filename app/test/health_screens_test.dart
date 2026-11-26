@@ -59,10 +59,10 @@ void main() {
     'Activity': (() => const ActivityDetailScreen(id: 1), ['Zones'], []),
     'Baselines': (() => const BaselinesScreen(), ['Resting heart rate'], []),
     'Longevity': (() => const LongevityScreen(), ['TEMPO AGE'], []),
-    'Plan': (() => const CoachScreen(standalone: true), ['THIS WEEK'], []),
-    'Progress': (
+    'Train': (() => const CoachScreen(standalone: true), ['THIS WEEK'], []),
+    'Health': (
       () => const TrendsScreen(tab: true),
-      ['Progress', 'HRV'],
+      ['Health', 'HRV'],
       ['Stress index'],
     ),
     'Data health': (

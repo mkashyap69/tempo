@@ -13,6 +13,7 @@ import '../core/home_widgets.dart' show afterSync;
 import '../core/notifications.dart';
 import '../core/profile.dart';
 import '../core/source_check.dart';
+import '../core/today.dart' show sampleCall;
 import '../design/components.dart';
 import '../design/icons.dart';
 import '../design/tokens.dart';
@@ -671,8 +672,8 @@ class _OnboardingState extends ConsumerState<OnboardingScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _title(
-              'What matters most?',
-              'It shapes what Tempo suggests. Add a race or event any time in Plan → Goal.',
+              'What brings you to Tempo?',
+              'It shapes what Tempo suggests and how it talks to you. Add a race or event any time in Train → Goal.',
             ),
             const SizedBox(height: 20),
             GridView.count(
@@ -724,6 +725,29 @@ class _OnboardingState extends ConsumerState<OnboardingScreen> {
                     ),
                   ),
               ],
+            ),
+            const SizedBox(height: 14),
+            // v3: the lens is set here, once; no switch on Today.
+            TempoCard(
+              color: c.surface2,
+              label: 'How Tempo will sound',
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Overline('Tempo will sound like this'),
+                  const SizedBox(height: 6),
+                  Text(
+                    sampleCall(_p.goal),
+                    key: const ValueKey('voice-preview'),
+                    style: TempoType.bodyS.c(c.text1),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Change it later in You → What you’re here for.',
+                    style: TempoType.caption.c(c.text3),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 28),
             WorkoutsEditor(

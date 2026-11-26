@@ -155,10 +155,20 @@ const spo2MinNights = 7;
 enum SignalState { learning, missing, normal, off }
 
 final class SignalReading {
-  const SignalReading(this.key, this.state, {this.value, this.mean, this.z});
+  const SignalReading(
+    this.key,
+    this.state, {
+    this.value,
+    this.mean,
+    this.z,
+    this.sd,
+  });
   final String key;
   final SignalState state;
   final double? value, mean;
+
+  /// The spread [z] was measured against (floored like [bodySignals] does).
+  final double? sd;
 
   /// Signed so that positive is worse.
   final double? z;
@@ -244,6 +254,7 @@ BodySignals bodySignals(
         value: v,
         mean: mean,
         z: z,
+        sd: sd,
       ),
     );
   }
@@ -381,3 +392,31 @@ int? recoveryDrop(List<Minute> minutes, DateTime end, {required int hrMax}) {
   if (peak < hrMax * recoveryMinPeak) return null;
   return peak - after;
 }
+
+// ---- Your normal (v3 Body check) -------------------------------------------
+
+/// z for the middle 80 % of a normal spread, the same "your normal" the
+/// Baselines screen shows.
+const normalBandZ = 1.2816;
+
+/// Where last night sits against your own normal, in words.
+enum NormalPlace { learning, missing, inNormal, better, outside }
+
+/// The middle 80 % of your nights for [r], or null before it's judged.
+({double lo, double hi})? normalBand(SignalReading r) {
+  final m = r.mean, sd = r.sd;
+  if (m == null || sd == null) return null;
+  return (lo: m - normalBandZ * sd, hi: m + normalBandZ * sd);
+}
+
+/// [SignalState.off] is outside; a value past the band on the good side is
+/// better than usual; anything else is in your normal.
+NormalPlace normalPlace(SignalReading r) => switch (r.state) {
+  SignalState.learning => NormalPlace.learning,
+  SignalState.missing => NormalPlace.missing,
+  SignalState.off => NormalPlace.outside,
+  SignalState.normal =>
+    r.z != null && r.z! <= -normalBandZ
+        ? NormalPlace.better
+        : NormalPlace.inNormal,
+};

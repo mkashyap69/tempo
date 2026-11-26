@@ -20,10 +20,12 @@ import 'coach_settings.dart';
 import 'goal.dart';
 import 'coach_parts.dart';
 import 'nav.dart';
+import 'plan_changes.dart';
 import 'plan_parts.dart';
 import 'shared.dart';
 import 'weekly_plan.dart';
 import 'weekly_review.dart';
+import 'workouts.dart';
 
 /// The current week: plan rows and actual strain per day.
 class WeekView {
@@ -114,14 +116,14 @@ class CoachScreen extends ConsumerWidget {
       bottom: standalone ? 48 : 100,
       children: [
         if (standalone)
-          const DetailHeader(title: 'Plan', trailing: GoalPill())
+          const DetailHeader(title: 'Train', trailing: GoalPill())
         else
           SizedBox(
             height: 44,
             child: Row(
               children: [
                 Expanded(
-                  child: Text('Plan', style: TempoType.pageTitle.c(c.text1)),
+                  child: Text('Train', style: TempoType.pageTitle.c(c.text1)),
                 ),
                 const GoalPill(),
               ],
@@ -146,8 +148,20 @@ class CoachScreen extends ConsumerWidget {
         const PlanGoalCard(),
         LoadNote(t: t, monotony: x?.monotony ?? false),
         if (x != null) FocusSummary(x),
+        // v3 Train: fitness and history live with the plan.
+        const CardioLoadCard(),
         CardList(
           children: [
+            ListRow(
+              'Plan changes',
+              sub: 'What the coach or you changed, and why',
+              onTap: () => push(context, const PlanChangesScreen()),
+            ),
+            ListRow(
+              'Workouts',
+              sub: 'Every session, with strain, zones and lifts',
+              onTap: () => push(context, const WorkoutsScreen()),
+            ),
             ListRow(
               'Week in review',
               sub: 'Planned vs done, health minimums, Tempo Age',

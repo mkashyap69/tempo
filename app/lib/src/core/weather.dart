@@ -4,6 +4,8 @@ import 'dart:io';
 import 'package:geolocator/geolocator.dart';
 import 'package:store/store.dart' as st;
 
+import 'net_ledger.dart';
+
 import 'profile.dart';
 
 /// Weather on Today (D3, decisions.md 2026-11-24): the sky over you,
@@ -113,9 +115,12 @@ Future<Weather?> currentWeather(
   final had = _cached(await db.setting(Keys.weatherLast));
   if (had != null && t.difference(had.at) < weatherFresh) return had;
   final where = await (locate ?? _locate)();
-  final body = where == null
-      ? null
-      : await (fetch ?? _get)(weatherUri(where.$1, where.$2));
+  String? body;
+  if (where != null) {
+    // v3 ledger: counted whether or not the lookup succeeds.
+    await recordNetCall(db, 'weather', at: t);
+    body = await (fetch ?? _get)(weatherUri(where.$1, where.$2));
+  }
   final w = body == null ? null : parseWeather(body, t);
   if (w == null) {
     return had != null && t.difference(had.at) < weatherStale ? had : null;

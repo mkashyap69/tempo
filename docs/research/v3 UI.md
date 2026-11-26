@@ -1,6 +1,6 @@
 # v3 UI and UX
 
-As of Nov 26, 2026 · Proposal for the owner. Nothing here is decided until it lands in `docs/decisions.md`.
+As of Nov 26, 2026 · **Built** (`docs/decisions.md` 2026-11-26, v3): tabs, call word and Why, Body check and Metric, Plan changes, Privacy and the network ledger, the onboarding question. What the canvas shows but wasn't built is listed there.
 
 Mock-ups: claude.ai artifact `EJZX9kuSQtciU4a9ta8MTy` ("Tempo v3 — every screen", 35 boards on 7 pages). Builds on `User flow and journey.md` (F1) and keeps the design tokens in `app/lib/src/design/tokens.dart`.
 

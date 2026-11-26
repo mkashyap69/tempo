@@ -84,7 +84,7 @@ void main() {
 
   final screens = <String, (Widget Function(), String)>{
     'Today': (() => const TodayScreen(), 'Today'),
-    'Plan': (() => const CoachScreen(standalone: true), 'THIS WEEK'),
+    'Train': (() => const CoachScreen(standalone: true), 'THIS WEEK'),
     'Cardio load': (() => const CardioLoadScreen(), 'WHAT TO DO THIS WEEK'),
     'Workout detail': (() => const WorkoutDetailScreen(), 'WHY THIS, TODAY'),
     'Weekly plan': (
@@ -104,7 +104,7 @@ void main() {
       'Overnight heart rate',
     ),
     'Trends': (() => const TrendsScreen(), 'Sleep score'),
-    'Progress': (() => const TrendsScreen(tab: true), 'Progress'),
+    'Health': (() => const TrendsScreen(tab: true), 'Health'),
     'Longevity': (() => const LongevityScreen(), 'TEMPO AGE'),
     'Biomarker': (() => const BiomarkerScreen(sc.Lever.steps), 'Daily steps'),
     'Blood tests': (() => const LabsScreen(), 'Add a blood test'),
@@ -702,12 +702,13 @@ void main() {
       await teardown(t, db);
     });
 
-    testWidgets('Progress: week, Tempo Age, discoveries, trends, history', (
+    testWidgets('Health: body check, week, Tempo Age, discoveries, trends', (
       t,
     ) async {
       final db = (await t.runAsync(() => seededDb(days: 30)))!;
       await render(t, db, const TrendsScreen(tab: true), h: 9000);
-      expect(find.text('Progress'), findsOneWidget);
+      expect(find.text('Health'), findsOneWidget);
+      expect(find.text('BODY CHECK · LAST NIGHT'), findsOneWidget);
       expect(find.text('TEMPO AGE'), findsOneWidget);
       expect(find.text('DISCOVERIES'), findsOneWidget);
       expect(find.text('Time in zones'), findsOneWidget);
@@ -806,7 +807,7 @@ void main() {
       expect(find.text('RECOVERY'), findsOneWidget);
       expect(find.text('STRAIN'), findsOneWidget);
       expect(find.text('SLEEP'), findsOneWidget);
-      // Charts moved to Progress; Today leads with the decision.
+      // Charts moved to Health; Today leads with the decision.
       expect(find.text('Time in zones'), findsNothing);
       expect(find.textContaining('Tonight: bed by'), findsOneWidget);
       await teardown(t, db);

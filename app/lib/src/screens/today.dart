@@ -1062,15 +1062,24 @@ Future<void> showWhySheet(BuildContext context, TodayData t) =>
       builder: (ctx) {
         final c = ctx.c;
         final cs = contributors(ctx, t);
+        final input = callInput(t);
+        final word = sc.callWord(input);
+        final shift = sc.callShift(input);
         final title = t.calibrating
             ? 'Why no score yet?'
             : t.recovery == null
             ? 'Today'
+            : word != null
+            ? 'Why ${sc.callWordLabel(word)} today'
             : 'Why ${t.recovery!.round()}%?';
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(title, style: TempoType.titleM.c(c.text1)),
+            if (word != null) ...[
+              const SizedBox(height: 14),
+              CallLadder(word: word),
+            ],
             const SizedBox(height: 14),
             Text(recoveryWhy(t, cs), style: TempoType.body.c(c.text2)),
             const SizedBox(height: 14),
@@ -1104,7 +1113,34 @@ Future<void> showWhySheet(BuildContext context, TodayData t) =>
                   ],
                 ),
               ),
-            const SizedBox(height: 4),
+            if (shift != null) ...[
+              const SizedBox(height: 4),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: c.surface2,
+                  borderRadius: BorderRadius.circular(TempoRadii.md),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'What would change it',
+                      style: TempoType.caption.c(c.text2),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(shift, style: TempoType.bodyS.c(c.text1)),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Recovery uses only body signals. How you feel and your notes shape the advice, never the score.',
+                style: TempoType.caption.c(c.text3),
+              ),
+              const SizedBox(height: 14),
+            ] else
+              const SizedBox(height: 4),
             TempoButton(
               'See full breakdown',
               kind: ButtonKind.secondary,
@@ -1270,3 +1306,56 @@ String doneTitle(TodayData t) {
 String doneSub(TodayData t) => _coveredBy(t) != null
     ? 'Counted as today’s ${t.plan!.title.toLowerCase()}. Keep the rest of the day easy.'
     : 'Nice work. Keep the rest of the day easy.';
+
+/// Rest → Push as five steps, today's lit (v3 Why sheet).
+class CallLadder extends StatelessWidget {
+  const CallLadder({super.key, required this.word});
+  final sc.CallWord word;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c, s = context.s;
+    const order = [
+      sc.CallWord.rest,
+      sc.CallWord.ease,
+      sc.CallWord.steady,
+      sc.CallWord.build,
+      sc.CallWord.push,
+    ];
+    final lit = switch (word) {
+      sc.CallWord.rest => s.recLow,
+      sc.CallWord.ease || sc.CallWord.steady => s.recMid,
+      _ => s.recHigh,
+    };
+    return Semantics(
+      label: 'Today is ${sc.callWordLabel(word)}, on a scale from Rest to Push',
+      excludeSemantics: true,
+      child: Row(
+        children: [
+          for (final (i, w) in order.indexed) ...[
+            if (i > 0) const SizedBox(width: 4),
+            Expanded(
+              child: Column(
+                children: [
+                  Container(
+                    height: 6,
+                    decoration: BoxDecoration(
+                      color: w == word ? lit : c.surface3,
+                      borderRadius: BorderRadius.circular(3),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    sc.callWordLabel(w),
+                    maxLines: 1,
+                    style: TempoType.caption.c(w == word ? c.text1 : c.text3),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}

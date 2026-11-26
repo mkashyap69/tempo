@@ -284,12 +284,34 @@ class CallLine extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.c;
     final call = callFor(t, noData: noData, health: health);
+    final word = callWordFor(t, noData: noData, health: health);
     return Pressable(
       label: 'Why today’s call',
       onTap: onWhy,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // v3: the day in one word, then the sentence.
+          if (word != null) ...[
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  sc.callWordLabel(word),
+                  key: const ValueKey('call-word'),
+                  style: TempoType.scoreM.c(callColor(context, call.tone)),
+                ),
+                if (onWhy != null) ...[
+                  const SizedBox(width: 10),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 5),
+                    child: Text('Why?', style: TempoType.label.c(c.text3)),
+                  ),
+                ],
+              ],
+            ),
+            const SizedBox(height: 6),
+          ],
           Text.rich(
             TextSpan(
               children: [

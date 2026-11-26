@@ -189,28 +189,42 @@ bool plainWords(Profile p) =>
 
 /// Today's call, the one sentence Today, Plan, the morning notification and
 /// the widgets all show (scoring `dailyCall`).
-sc.DailyCall callFor(TodayData t, {bool noData = false, bool health = false}) {
+sc.DailyCall callFor(TodayData t, {bool noData = false, bool health = false}) =>
+    sc.dailyCall(callInput(t, noData: noData, health: health));
+
+/// v3: today's word above the call (Push · Build · Steady · Ease · Rest),
+/// from the same input as [callFor], so they never disagree.
+sc.CallWord? callWordFor(
+  TodayData t, {
+  bool noData = false,
+  bool health = false,
+}) => sc.callWord(callInput(t, noData: noData, health: health));
+
+/// What Today's call is decided from.
+sc.CallInput callInput(
+  TodayData t, {
+  bool noData = false,
+  bool health = false,
+}) {
   final p = t.plan;
-  return sc.dailyCall(
-    sc.CallInput(
-      noData: noData,
-      health: health || t.source != sc.bandSource,
-      stale: t.stale,
-      firstDay: t.firstDay,
-      calibrating: t.calibrating,
-      nights: t.nights,
-      recovery: t.recovery,
-      state: t.state,
-      rhr: t.rhrFlag,
-      shortNight: t.shortNight,
-      load: t.load.status,
-      daysSinceHard: t.daysSinceHard,
-      target: t.target,
-      bedtime: clock12(t.bedtimeMinute),
-      planTitle: p == null || p.isRest ? null : p.title,
-      planHard: p?.isHard ?? false,
-      plainWords: plainWords(t.profile),
-    ),
+  return sc.CallInput(
+    noData: noData,
+    health: health || t.source != sc.bandSource,
+    stale: t.stale,
+    firstDay: t.firstDay,
+    calibrating: t.calibrating,
+    nights: t.nights,
+    recovery: t.recovery,
+    state: t.state,
+    rhr: t.rhrFlag,
+    shortNight: t.shortNight,
+    load: t.load.status,
+    daysSinceHard: t.daysSinceHard,
+    target: t.target,
+    bedtime: clock12(t.bedtimeMinute),
+    planTitle: p == null || p.isRest ? null : p.title,
+    planHard: p?.isHard ?? false,
+    plainWords: plainWords(t.profile),
   );
 }
 
@@ -515,4 +529,24 @@ Future<Slots> loadSlots(st.TempoDb db) async {
     slot = starts.length >= 3 && sc.medianClock(starts) < 12 * 60 ? 'am' : 'pm';
   }
   return Slots(slot, am, pm);
+}
+
+/// How Tempo will sound for [goal] (onboarding's preview): a typical good
+/// morning written by the real call, in the words that priority gets.
+String sampleCall(sc.Goal goal) {
+  const target = sc.StrainTarget(11, 14);
+  final c = sc.dailyCall(
+    sc.CallInput(
+      recovery: 78,
+      nights: 30,
+      state: sc.DayState.go,
+      load: sc.LoadStatus.maintaining,
+      daysSinceHard: 2,
+      target: target,
+      planTitle: 'Tempo run',
+      planHard: true,
+      plainWords: goal == sc.Goal.wellbeing || goal == sc.Goal.fatLoss,
+    ),
+  );
+  return c.text;
 }

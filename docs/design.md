@@ -19,7 +19,7 @@ each board to the code that implements it.
 | Board | Code |
 | --- | --- |
 | Today (dark, light, motion, all states) | `screens/today.dart` (phases), `screens/today_parts.dart` (check-in, call, not today, day progress, learning, lesson, night 14, welcome back, week row, tomorrow, tonight line), `screens/highlight.dart` (today's insight, Monday card, Discoveries), `screens/shared.dart` |
-| 13 Coach home (+ states) → Plan tab (This week / Goal) | `screens/coach.dart` |
+| 13 Coach home (+ states) → Train tab (This week / Goal; v3) | `screens/coach.dart` |
 | Flow redesign mock-ups (claude.ai artifact `3UEgT7p95NrLJxX5REjemB`) | Today phases as above; Plan `screens/coach.dart`; start / log sheet `screens/nav.dart` (`showStartSheet`); Progress `screens/trends.dart` (tab mode); Week in review `screens/weekly_review.dart`; You `screens/settings.dart` |
 | 14 Cardio load (+ explainer sheet, all four statuses) | `screens/cardio_load.dart` |
 | 15 Suggested workout | `screens/workout_detail.dart` |
@@ -46,6 +46,16 @@ each board to the code that implements it.
 | 12 Widgets | Android `kotlin/.../TempoWidgets.kt` + `res/layout/tempo_widget_*.xml`; iOS `ios/TempoWidget/`; data from `core/home_widgets.dart` |
 | Design boards review (D1: every kind of day, reveal and moments, details, native touches, beta) | Move or skip `screens/move_skip.dart`; reveal, earlier days and moments `screens/today_more.dart`; rings explainer `screens/today_charts.dart` (`showRingsExplainer`); Week story `screens/week_story.dart`; Feedback `screens/feedback.dart` |
 | States × screens | rules applied per screen; covered by `app/test/screens_test.dart` |
+
+## v3 (claude.ai artifact `EJZX9kuSQtciU4a9ta8MTy`)
+
+| Board | Code |
+| --- | --- |
+| Today: call word, Why this call | `screens/today_parts.dart` (`CallLine`), `screens/today.dart` (`showWhySheet`, `CallLadder`), `scoring` `callWord` / `callShift` |
+| Train tab, Plan changes | `screens/coach.dart`, `screens/plan_changes.dart`, `core/plan_changes.dart` |
+| Health tab: Body check, any number explained | `screens/body_check.dart` (`BodyCheckCard`, `MetricScreen`, `NormalStrip`), `core/metric_info.dart`, `scoring` `normalBand` |
+| Privacy and network calls | `screens/privacy.dart`, `core/net_ledger.dart` |
+| What brings you here (onboarding) | `screens/onboarding.dart` (goal step), `core/today.dart` (`sampleCall`) |
 
 ## Flows
 

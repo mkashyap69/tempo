@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:scoring/scoring.dart' as sc;
 import 'package:store/store.dart' as st;
 
+import 'body_check.dart';
 import '../core/coach_service.dart';
 import '../core/data_source.dart';
 import '../core/body.dart' show loadWeights;
@@ -366,7 +367,7 @@ class _TrendsState extends ConsumerState<TrendsScreen> {
             height: 44,
             child: Align(
               alignment: Alignment.centerLeft,
-              child: Text('Progress', style: TempoType.pageTitle.c(c.text1)),
+              child: Text('Health', style: TempoType.pageTitle.c(c.text1)),
             ),
           )
         else
@@ -383,6 +384,8 @@ class _TrendsState extends ConsumerState<TrendsScreen> {
             ),
           ),
         if (widget.tab) ...[
+          // v3: am I healthy? Every overnight signal against your normal.
+          const BodyCheckCard(),
           const _WeekCard(),
           if (today != null && today.everSlept) ...[
             WeekRecoveryStrain(t: today),

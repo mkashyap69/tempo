@@ -45,6 +45,7 @@ import 'journal_customise.dart';
 import 'feedback.dart';
 import 'learn.dart';
 import 'nav.dart';
+import 'privacy.dart';
 import 'week_template.dart';
 import 'onboarding.dart' show AvailabilityEditor, WorkoutsEditor;
 import 'pairing.dart';
@@ -630,13 +631,13 @@ class SettingsScreen extends ConsumerWidget {
         ]),
         group('Training', [
           ListRow(
-            'Priority',
-            sub: 'What workouts lean toward. Race goals are in Plan → Goal.',
+            'What you’re here for',
+            sub: 'Shapes your workouts and how Tempo talks to you. Race goals are in Train → Goal.',
             value: goalLabel(p.goal),
             onTap: () async {
               final g = await pickOption<sc.Goal>(
                 context,
-                title: 'What matters most?',
+                title: 'What brings you to Tempo?',
                 options: sc.Goal.values,
                 label: goalLabel,
                 selected: p.goal,
@@ -958,6 +959,11 @@ class SettingsScreen extends ConsumerWidget {
           ),
         ]),
         group('Your data', [
+          ListRow(
+            'Privacy and network calls',
+            sub: 'Where your data lives, and every call Tempo made this week',
+            onTap: () => push(context, const PrivacyScreen()),
+          ),
           ListRow(
             'Export',
             value: 'CSV or JSON',

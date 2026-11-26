@@ -299,3 +299,77 @@ DayPhase dayPhase({
   if (sessionDone) return DayPhase.done;
   return nowMinute < 12 * 60 ? DayPhase.morning : DayPhase.day;
 }
+
+/// v3: the day in one word, above the call's sentence (docs/research/v3 UI.md).
+enum CallWord { push, build, steady, ease, rest }
+
+String callWordLabel(CallWord w) => switch (w) {
+  CallWord.push => 'Push',
+  CallWord.build => 'Build',
+  CallWord.steady => 'Steady',
+  CallWord.ease => 'Ease',
+  CallWord.rest => 'Rest',
+};
+
+/// Recovery from which a go day with fresh legs and a calm load is Push.
+const pushFrom = 85.0;
+
+/// Today's word, or null while there is nothing to decide on (no data,
+/// stale, first day, learning, last night not in yet). Follows the same
+/// day state as [dailyCall], so the word and the sentence never disagree.
+CallWord? callWord(CallInput i) {
+  final c = dailyCall(i);
+  switch (c.reason) {
+    case CallReason.none:
+    case CallReason.noData:
+    case CallReason.stale:
+    case CallReason.firstDay:
+    case CallReason.calibrating:
+    case CallReason.waiting:
+      return null;
+    default:
+  }
+  final r = i.recovery!;
+  if (i.state == DayState.rest || i.target.cap) return CallWord.rest;
+  if (i.state == DayState.easeOff) {
+    return c.reason == CallReason.steady ? CallWord.steady : CallWord.ease;
+  }
+  if (r >= pushFrom &&
+      i.load != LoadStatus.overreaching &&
+      i.load != LoadStatus.learning &&
+      (i.daysSinceHard == null || i.daysSinceHard! >= 3)) {
+    return CallWord.push;
+  }
+  if (r >= 67) return CallWord.build;
+  return r >= 34 ? CallWord.steady : CallWord.ease;
+}
+
+/// "What would have changed it": the nearest thing that moves today's word,
+/// in the coach's own thresholds ([dayState]). Null when there's no word.
+String? callShift(CallInput i) {
+  final w = callWord(i);
+  if (w == null) return null;
+  final c = dailyCall(i);
+  return switch (w) {
+    CallWord.push =>
+      'Recovery under ${pushFrom.round()}, or a hard session in the last three days, would make it Build.',
+    CallWord.build =>
+      'Recovery ${pushFrom.round()} or more with three days since a hard session would make it Push. Recovery under 67, a hard session in the last two days, a short night or resting heart rate above usual would make it Ease.',
+    CallWord.steady => 'Recovery 67 or more, with two days since a hard session, would make it Build. 33 or less would make it Rest.',
+    CallWord.ease => switch (c.reason) {
+      CallReason.recentHard => 'Two days since your last hard session, with recovery 67 or more, makes it Build again.',
+      CallReason.shortNight =>
+        'A full night, with recovery 67 or more, makes it Build again.',
+      CallReason.highRhr => 'Resting heart rate back to usual, with recovery 67 or more, makes it Build again.',
+      CallReason.loadHot =>
+        'A few easier days bring your load back down; then Build returns.',
+      _ => 'Recovery 50 or more would make it Steady; 33 or less would make it Rest.',
+    },
+    CallWord.rest => switch (c.reason) {
+      CallReason.illness =>
+        'Night heart rate back to usual lifts the rest day.',
+      CallReason.overreaching => 'A few easier days bring your load back down; then training picks up again.',
+      _ => 'Recovery above 33 would make it Ease or Steady.',
+    },
+  };
+}
