@@ -12,7 +12,7 @@ Make Tempo clearly different from the strap, the ring, the big-tech tracker and 
 
 | # | Idea | What it means on screen | Why the field doesn't have it |
 | --- | --- | --- | --- |
-| 1 | **Two lenses, one engine** | Everyday or Athlete, set in onboarding from "what brings you here", switchable on Today and in You. The rings keep one name per number (decision 2026-10-31); the lens changes only the words under them and the coach's sentences: "well rested, a brisk 40 fits" vs "HRV and sleep helped, 6.8 to go". | Competitors speak athlete to everyone. |
+| 1 | **Two lenses, one engine** | Everyday or Athlete, decided once in onboarding by "What brings you to Tempo?" (feel better, move more, understand my numbers → Everyday; train for an event, get stronger → Athlete). No switch on Today; changing "What you're here for" in You → Training changes it. The rings keep one name per number (decision 2026-10-31); the lens changes only the words under them and the coach's sentences: "well rested, a brisk 40 fits" vs "HRV and sleep helped, 6.8 to go". | Competitors speak athlete to everyone. |
 | 2 | **A call, not three dials** | Today opens on one word (Push · Build · Steady · Ease · Rest), one sentence, the two signals that decided it, and a button. "Why?" opens the reasoning, including what would have changed it. | Competitors lead with dials. |
 | 3 | **The rings, kept** | Today's three nested rings (`TodayRings`: recovery outside in its state colour, strain /21 with today's target as two ticks, sleep as a share of need) stay as built, with the legend, the hold-to-explain sheet and the mini rings bar. They open every phase of Today and the widgets; v3 removes what repeated them (score tiles, a separate effort bar). | Strain is shown after the fact. |
 | 4 | **Your normal, not the internet's** | Every body signal on a strip of your 60-day normal. Each opens one template: what it is, your normal, why it moved, what to do, when it's worth a doctor's view, what moves yours, and the data source. | Raw numbers and population charts. |
@@ -33,7 +33,7 @@ Make Tempo clearly different from the strap, the ring, the big-tech tracker and 
 | Train | Am I getting fitter? | Plan + Progress → Trends (fitness, cardio load), History, strength |
 | (+) | I want to start or note something | Start / Log sheet, plus Experiment |
 | Health | Am I healthy, and what moves it? | Progress → Tempo Age, Trends (body, sleep), Discoveries, Labs; Week in review |
-| You | Me, my data, my settings | You, plus lens and the network ledger |
+| You | Me, my data, my settings | You, plus the network ledger |
 
 Week in review opens from Today on Mondays and lives under Health.
 
@@ -60,17 +60,17 @@ Most of v3 is presentation over data Tempo already computes (daily call, strain 
 
 ## Suggested order
 
-1. **V1 Today**: rings unchanged on top, then the call card (no numbers the rings already show), lens and vocabulary. Gate: 5-second test, 9 of 10 right, with both lenses.
+1. **V1 Today**: rings unchanged on top, then the call card (no numbers the rings already show), and the lens vocabulary set from onboarding. Gate: 5-second test, 9 of 10 right, with both lenses.
 2. **V2 Health**: Body check strips, one metric template for all signals, Tempo Age as a range. Gate: half of testers open a "what this means" page in week 1.
 3. **V3 Train**: merge Plan and fitness into Train, plan change log with Undo. Gate: 4 weeks with the log on, athletes keep the plan after a change.
 4. **V4 Evening and moments**: evening Today, forecast, wind-down, notifications in one voice. Gate: 14 evenings of forecast against the morning.
-5. **V5 First run**: "what brings you here" sets the lens; first read shows what's ready.
+5. **V5 First run**: first read shows what's ready. (The "what brings you here" question ships with V1, since it sets the lens.)
 
 ## Open questions
 
 0. The rings' centre word is the recovery state (Primed · Steady · Low) and the call is the decision (Push · Build · Steady · Ease · Rest). Keep both, or show the call word in the centre? "Steady" appears in both lists.
 
-1. Lens: a hard setting, or derived from the goal with a switch? (Mock-ups: set from the goal, switchable.)
+1. Existing users: map their stored priority to a lens on upgrade (wellbeing and fat loss → Everyday, as `plainWords` does today), or ask the onboarding question once?
 2. Is "Train" the right name for Everyday users whose goal is "feel better"? Alternative: "Move".
 3. Which typical ranges (HRV, VO₂ max, blood markers) do we cite, and who reviews the "when to see a doctor" wording?
 4. Does the weather call stay (it's on the ledger), or move behind a setting?
