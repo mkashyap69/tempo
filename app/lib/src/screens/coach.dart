@@ -22,6 +22,7 @@ import 'coach_parts.dart';
 import 'nav.dart';
 import 'plan_changes.dart';
 import 'plan_parts.dart';
+import 'train_v3.dart';
 import 'shared.dart';
 import 'weekly_plan.dart';
 import 'weekly_review.dart';
@@ -143,13 +144,17 @@ class CoachScreen extends ConsumerWidget {
               onTap: () => ref.read(syncProvider.notifier).syncNow(),
             ),
           ),
+        // v3 (canvas "Train"): day strip and today, the week as an
+        // agenda, what changed, the goal, strength, quick start; then
+        // fitness and the rest.
         PlanDaysSection(t),
         PlanWeekCard(t),
+        const PlanChangesSummary(),
         const PlanGoalCard(),
-        LoadNote(t: t, monotony: x?.monotony ?? false),
-        if (x != null) FocusSummary(x),
-        // v3 Train: fitness and history live with the plan.
+        const FreshnessMini(),
+        const QuickStartRow(),
         const CardioLoadCard(),
+        if (x != null) FocusSummary(x),
         CardList(
           children: [
             ListRow(

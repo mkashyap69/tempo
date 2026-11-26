@@ -376,19 +376,145 @@ class PlanWeekCard extends ConsumerWidget {
             const SizedBox(height: 12),
             _MissedLine(n: missed.length),
           ],
-          for (var i = today + 1; i < 7; i++) ...[
-            const SizedBox(height: 12),
-            const Hair(),
-            _UpcomingRow(w: w, d: days[i], i: i, today: today, paused: paused),
-          ],
-          if (today > 0) ...[
-            const SizedBox(height: 16),
-            const Overline('Earlier'),
-            for (var i = 0; i < today; i++) _PastRow(d: days[i], i: i),
+          // v3 (canvas "Train"): the week as an agenda, Monday to Sunday,
+          // one line a day; a day ahead opens Move or skip.
+          const SizedBox(height: 8),
+          for (var i = 0; i < 7; i++)
+            _AgendaRow(w: w, d: days[i], i: i, today: today, paused: paused),
+          if (!paused) ...[
+            const SizedBox(height: 8),
+            Text(
+              'Tap a day ahead to move or skip it.',
+              style: TempoType.caption.c(c.text3),
+            ),
           ],
         ],
       ),
     );
+  }
+}
+
+/// One day of the week agenda: date, session, what changed or its shape,
+/// and a status on the right.
+class _AgendaRow extends ConsumerWidget {
+  const _AgendaRow({
+    required this.w,
+    required this.d,
+    required this.i,
+    required this.today,
+    required this.paused,
+  });
+  final WeekView w;
+  final DayCredit d;
+  final int i, today;
+  final bool paused;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final c = context.c, s = context.s;
+    final x = d.session;
+    final skipped = d.status == sc.Intent.skipped.name;
+    final past = i < today, isToday = i == today;
+    final was = w.original(i);
+    final changed = was != null && was.key != x.key;
+    final reason = (w.rows.length > i ? w.rows[i].reason : null)
+        ?.replaceFirst(RegExp(r'^[·▲■▼\s]+'), '')
+        .trim();
+    final (String? pill, Color pillColor) = x.isRest
+        ? (null, c.text3)
+        : past
+        ? (d.credit >= 1
+              ? ('Done', s.recHigh)
+              : d.credit > 0
+              ? ('Done, easier', s.recHigh)
+              : skipped
+              ? ('Let go', c.text3)
+              : ('Missed', c.text2))
+        : isToday
+        ? (d.credit > 0 ? ('Done', s.recHigh) : ('Today', s.strain[2]))
+        : skipped
+        ? ('Skipped', c.text3)
+        : (null, c.text3);
+    final sub = changed
+        ? 'Changed from ${was.title.toLowerCase()}${reason == null || reason.isEmpty ? '' : ' · $reason'}'
+        : x.isRest
+        ? (x.note.isEmpty ? 'Recover' : x.note)
+        : x.sport == sc.Sport.strength
+        ? sc.effortCue(x)
+        : x.structure;
+    final canMove =
+        !paused && !past && !isToday && !x.isRest && x.key != 'race';
+    final row = Container(
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+      decoration: BoxDecoration(
+        color: isToday ? c.surface2 : null,
+        borderRadius: BorderRadius.circular(TempoRadii.md),
+      ),
+      child: Row(
+        children: [
+          _DateCol(d.date, muted: past),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  x.isRest ? 'Rest' : '${x.title} · ${x.minutes} min',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TempoType.label
+                      .c(past || skipped || x.isRest ? c.text2 : c.text1)
+                      .tnum,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  sub,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TempoType.caption
+                      .c(changed ? s.loadBuilding : c.text3)
+                      .tnum,
+                ),
+              ],
+            ),
+          ),
+          if (pill != null) ...[
+            const SizedBox(width: 8),
+            TempoBadge(pill, small: true, color: pillColor),
+          ] else if (canMove || skipped) ...[
+            const SizedBox(width: 8),
+            TempoIcon(TempoIcons.chevron, size: 14, color: c.text3),
+          ],
+        ],
+      ),
+    );
+    if (skipped && !past && !paused) {
+      return Pressable(
+        label: 'Plan ${x.title} again',
+        onTap: () async {
+          final db = ref.read(dbProvider);
+          await CoachService(db).setIntent(d.date, sc.Intent.planned);
+          await saveSkipReason(db, d.date, null);
+          await _changed(ref);
+        },
+        child: row,
+      );
+    }
+    if (canMove) {
+      return Pressable(
+        label: 'Move or skip ${x.title}',
+        onTap: () => showMoveOrSkipSheet(context, ref, d.date),
+        child: row,
+      );
+    }
+    if (isToday && !x.isRest) {
+      return Pressable(
+        label: 'Today: ${x.title}',
+        onTap: () => push(context, const WorkoutDetailScreen()),
+        child: row,
+      );
+    }
+    return row;
   }
 }
 
@@ -455,144 +581,6 @@ class _DateCol extends StatelessWidget {
             '${date.day}',
             style: TempoType.label.c(muted ? c.text2 : c.text1).tnum,
           ),
-        ],
-      ),
-    );
-  }
-}
-
-class _UpcomingRow extends ConsumerWidget {
-  const _UpcomingRow({
-    required this.w,
-    required this.d,
-    required this.i,
-    required this.today,
-    required this.paused,
-  });
-  final WeekView w;
-  final DayCredit d;
-  final int i, today;
-  final bool paused;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final c = context.c;
-    final s = d.session;
-    final skipped = d.status == sc.Intent.skipped.name;
-    final was = w.original(i);
-    final race = s.key == 'race';
-    return Padding(
-      padding: const EdgeInsets.only(top: 12),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _DateCol(d.date),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (!s.isRest) ...[
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    children: sessionTags(context, s),
-                  ),
-                  const SizedBox(height: 6),
-                ],
-                Text(
-                  s.isRest ? 'Rest' : '${s.title} · ${s.minutes} min',
-                  style: TempoType.label.c(skipped ? c.text3 : c.text1).tnum,
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  s.isRest
-                      ? (s.note.isEmpty ? 'Recover' : s.note)
-                      : skipped
-                      ? 'Skipped'
-                      : s.sport == sc.Sport.strength
-                      ? sc.effortCue(s)
-                      : s.structure,
-                  style: TempoType.bodyS.c(c.text2).tnum,
-                ),
-                if (was != null && was.key != s.key) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                    'Was ${was.title.toLowerCase()}',
-                    style: TempoType.caption.c(c.text3),
-                  ),
-                ],
-                if (!s.isRest && !race && !paused) ...[
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: skipped
-                        ? [
-                            TempoButton(
-                              'Undo skip',
-                              small: true,
-                              kind: ButtonKind.secondary,
-                              onTap: () async {
-                                final db = ref.read(dbProvider);
-                                await CoachService(db)
-                                    .setIntent(d.date, sc.Intent.planned);
-                                await saveSkipReason(db, d.date, null);
-                                await _changed(ref);
-                              },
-                            ),
-                          ]
-                        : [
-                            TempoButton(
-                              'Move or skip',
-                              small: true,
-                              kind: ButtonKind.secondary,
-                              onTap: () =>
-                                  showMoveOrSkipSheet(context, ref, d.date),
-                            ),
-                          ],
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PastRow extends StatelessWidget {
-  const _PastRow({required this.d, required this.i});
-  final DayCredit d;
-  final int i;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.c, s = context.s;
-    final x = d.session;
-    final (label, col) = x.isRest
-        ? ('Rest', c.text3)
-        : d.credit >= 1
-        ? ('Done ✓', s.recHigh)
-        : d.credit > 0
-        ? ('Done, easier', s.recHigh)
-        : d.status == sc.Intent.skipped.name
-        ? ('Let go', c.text3)
-        : ('Missed', c.text2);
-    return Padding(
-      padding: const EdgeInsets.only(top: 10),
-      child: Row(
-        children: [
-          _DateCol(d.date, muted: true),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              x.isRest ? 'Rest' : '${x.title} · ${x.minutes} min',
-              style: TempoType.bodyS.c(c.text2).tnum,
-            ),
-          ),
-          Text(label, style: TempoType.caption.c(col)),
         ],
       ),
     );

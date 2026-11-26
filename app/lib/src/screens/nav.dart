@@ -3,10 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:scoring/scoring.dart' as sc;
+import 'package:store/store.dart' as st;
 
 import '../core/day_tags.dart' show addQuickTag;
 import '../core/format.dart' show clockOf;
 import '../core/profile.dart';
+import '../core/today.dart' show TodayData;
 import '../design/components.dart';
 import '../design/icons.dart';
 import '../design/tokens.dart';
@@ -134,8 +136,17 @@ Future<void> requestBluetooth() async {
 /// Up to three sports for one-tap quick start (D3): the ones you did most
 /// in the last 30 days, else the ones you like. Strength opens the log, so
 /// it isn't offered here.
-Future<List<sc.Sport>> quickStartSports(WidgetRef ref) async {
-  final db = ref.read(dbProvider);
+Future<List<sc.Sport>> quickStartSports(WidgetRef ref) =>
+    _quickStart(ref.read(dbProvider), () => ref.read(todayProvider.future));
+
+/// [quickStartSports] from a provider.
+Future<List<sc.Sport>> quickStartSportsFor(Ref ref) =>
+    _quickStart(ref.read(dbProvider), () => ref.read(todayProvider.future));
+
+Future<List<sc.Sport>> _quickStart(
+  st.TempoDb db,
+  Future<TodayData> Function() today,
+) async {
   final now = DateTime.now();
   final count = <sc.Sport, int>{};
   try {
@@ -151,7 +162,7 @@ Future<List<sc.Sport>> quickStartSports(WidgetRef ref) async {
   final ranked = count.keys.toList()
     ..sort((a, b) => count[b]!.compareTo(count[a]!));
   if (ranked.length < 3) {
-    final t = await ref.read(todayProvider.future);
+    final t = await today();
     for (final s in sportOrder) {
       if (ranked.length >= 3) break;
       if (s != sc.Sport.strength &&
