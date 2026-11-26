@@ -47,4 +47,26 @@ void main() {
     expect(fitnessCategory(19.9), FitnessCategory.poor);
     expect(fitnessCategory(40), FitnessCategory.good);
   });
+
+  test('body fat from the waist (Relative Fat Mass)', () {
+    // 178 cm, 105 cm waist, a man: 64 − 20 × 178 / 105.
+    expect(relativeFatMass(178, 105, true), closeTo(30.10, .01));
+    expect(relativeFatMass(165, 80, false), closeTo(34.75, .01));
+    expect(relativeFatMass(178, 10, true), isNull);
+  });
+
+  test('an estimated lean mass counts at half', () {
+    const i = LongevityInputs(age: 35, male: true, daysOfData: 30, ffmi: 21);
+    const e = LongevityInputs(
+      age: 35,
+      male: true,
+      daysOfData: 30,
+      ffmi: 21,
+      ffmiEstimated: true,
+    );
+    final full = tempoAge(i).contributors.single;
+    final half = tempoAge(e).contributors.single;
+    expect(half.years, closeTo(full.years * estimatedLeanWeight, 1e-9));
+    expect(half.weak, isTrue);
+  });
 }

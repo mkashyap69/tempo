@@ -165,6 +165,7 @@ final class LongevityInputs {
     this.phenoAge,
     this.labDaysOld,
     this.ffmi,
+    this.ffmiEstimated = false,
   });
   final int age;
   final bool male;
@@ -218,6 +219,25 @@ final class LongevityInputs {
   /// Fat-free mass index, kg/m² ([fatFreeMassIndex]); null without body
   /// fat or height.
   final double? ffmi;
+
+  /// [ffmi]'s body fat was estimated from the waist ([relativeFatMass]),
+  /// not measured by a scale: it counts at [estimatedLeanWeight], since the
+  /// waist is a lever of its own.
+  final bool ffmiEstimated;
+}
+
+/// Lean mass's weight when its body fat comes from the waist.
+const estimatedLeanWeight = .5;
+
+/// Body fat %, estimated from height and waist: Relative Fat Mass,
+/// 64 − 20 × height ÷ waist (+ 12 for women) (Woolcott 2018, Sci Rep,
+/// checked against DXA in NHANES; about ±5 points for one person). For
+/// when no scale writes body fat. Null for a waist or height out of range.
+double? relativeFatMass(int heightCm, double waistCm, bool male) {
+  if (heightCm < 120 || waistCm < 40 || waistCm > 200) return null;
+  return (64 - 20 * heightCm / waistCm + (male ? 0 : 12))
+      .clamp(3.0, 65.0)
+      .toDouble();
 }
 
 /// Fat-free mass index, kg/m²: the lean part of body weight over height
@@ -531,6 +551,7 @@ TempoAge tempoAge(LongevityInputs i) {
     Lever.restingHr when i.vo2max != null && !i.vo2maxMeasured =>
       derivedRhrWeight,
     Lever.blood => labRecency(i.labDaysOld ?? 0),
+    Lever.leanMass when i.ffmiEstimated => estimatedLeanWeight,
     _ => 1,
   };
   final present = [

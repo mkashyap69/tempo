@@ -432,35 +432,44 @@ Future<sc.LongevityInputs> longevityInputs(
       ? null
       : await _countMinutes(db, from, to, (hrMax * .8).round()) / weeks;
 
-  // P8: lean mass from a scale's weight and body fat in Health, the last
-  // 90 days; weight averaged over the window when it has any.
-  double? ffmi;
+  // P8: lean mass from weight and body fat. Weight: Health's over the
+  // window (else its latest in 90 days), else the profile's. Body fat: a
+  // scale's latest in Health, else estimated from the waist in Health
+  // details (Relative Fat Mass), which counts at half weight.
   final body = await db.healthRecordsBetween(
     to.subtract(const Duration(days: 90)),
     to,
     kinds: const ['weight', 'bodyFat'],
   );
+  body.sort((a, b) => a.endMs - b.endMs);
   final fats = [
-    for (final r in body..sort((a, b) => a.endMs - b.endMs))
+    for (final r in body)
       if (r.kind == 'bodyFat') r.value <= 1 ? r.value * 100 : r.value,
   ];
   final weights = [
     for (final r in body)
       if (r.kind == 'weight') (r.endMs, r.value),
   ];
-  if (fats.isNotEmpty && weights.isNotEmpty) {
-    final recent = [
-      for (final w in weights)
-        if (w.$1 >= from.millisecondsSinceEpoch) w.$2,
-    ];
-    final kg = recent.isNotEmpty
-        ? recent.reduce((a, b) => a + b) / recent.length
-        : weights.last.$2;
-    ffmi = sc.fatFreeMassIndex(kg, fats.last, p.heightCm);
-  }
+  final recent = [
+    for (final w in weights)
+      if (w.$1 >= from.millisecondsSinceEpoch) w.$2,
+  ];
+  final kg = recent.isNotEmpty
+      ? recent.reduce((a, b) => a + b) / recent.length
+      : weights.isNotEmpty
+      ? weights.last.$2
+      : p.weightKg;
+  final waist = manual.waist;
+  final fat = fats.isNotEmpty
+      ? fats.last
+      : waist == null
+      ? null
+      : sc.relativeFatMass(p.heightCm, waist, p.male);
+  final ffmi = fat == null ? null : sc.fatFreeMassIndex(kg, fat, p.heightCm);
 
   return sc.LongevityInputs(
     ffmi: ffmi,
+    ffmiEstimated: ffmi != null && fats.isEmpty,
     age: p.age,
     male: p.male,
     daysOfData: withData,
@@ -490,8 +499,9 @@ Future<sc.LongevityInputs> longevityInputs(
 
 /// Version of the Tempo Age method, stored on snapshots.
 // 2: weekly change cap; 3: v2 groups, labs; 4: SRI, caps (algo 10);
-// 5: lean mass from Health body fat (P8).
-const longevityAlgo = 5;
+// 5: lean mass from Health body fat (P8); 6: or from profile weight and
+// the waist.
+const longevityAlgo = 6;
 
 Map<String, Object?> _contributorJson(sc.Contributor c) => {
   'lever': c.lever.name,

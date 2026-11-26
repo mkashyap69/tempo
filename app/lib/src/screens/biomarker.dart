@@ -344,6 +344,7 @@ class _BiomarkerState extends ConsumerState<BiomarkerScreen> {
   static String _weightNote(sc.Contributor x) => switch (x.lever) {
     sc.Lever.restingHr => 'Counted lightly: your VO₂ max is estimated from it, so most of its effect is already there.',
     sc.Lever.blood => 'An older test counts for less: full weight for 6 months, none after 2 years.',
+    sc.Lever.leanMass => 'Counted at half: body fat is estimated from your waist (which counts on its own too). A scale that writes body fat to Health makes it a measurement.',
     _ =>
       'Shared with related measures in ${groupName(x.group).toLowerCase()}, so it counts for ${(x.weight * 100).round()} % on its own.',
   };
@@ -356,7 +357,7 @@ class _BiomarkerState extends ConsumerState<BiomarkerScreen> {
       sc.Lever.fitness =>
         'Typical for $who: VO₂max ${sc.vo2Norm(a, m).round()}. Target ${t.round()} (top quarter). ${fitnessLine(v, a, m)}',
       sc.Lever.leanMass =>
-        'Typical for ${m ? 'men' : 'women'}: ${sc.ffmiNorm(m).toStringAsFixed(1)} kg/m². Target ${t.toStringAsFixed(1)}. Your lean weight (weight without fat, from your scale’s body fat) over your height squared, so it compares people of different heights.',
+        'Typical for ${m ? 'men' : 'women'}: ${sc.ffmiNorm(m).toStringAsFixed(1)} kg/m². Target ${t.toStringAsFixed(1)}. Your lean weight (weight without fat, from a scale’s body fat or estimated from your waist) over your height squared, so it compares people of different heights.',
       sc.Lever.restingHr =>
         'Typical for $who: ${sc.rhrNorm(a, m).round()} bpm. Target ${t.round()} bpm.',
       sc.Lever.blood => 'PhenoAge equal to your age is typical. Under it means your blood reads younger.',

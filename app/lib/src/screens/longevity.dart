@@ -839,7 +839,7 @@ class _ConfidenceRow extends StatelessWidget {
     sc.Lever.breathing => 'Night SpO₂ readings (band setting)',
     sc.Lever.strength => 'A week of logged workouts',
     sc.Lever.leanMass =>
-      'A smart scale that writes body fat to ${Platform.isIOS ? 'Apple Health' : 'Health Connect'}',
+      'Add your waist in Health details, or use a scale that writes body fat to ${Platform.isIOS ? 'Apple Health' : 'Health Connect'}',
     _ => 'More days of ${leverName(l).toLowerCase()}',
   };
 }
