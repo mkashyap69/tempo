@@ -10,6 +10,7 @@ import 'package:store/store.dart';
 import 'backup.dart' show BackupService;
 import 'band_link.dart' show acquireFileLock, releaseFileLock;
 import 'data_source.dart';
+import 'demo.dart' show healthReader;
 import 'health_reader.dart';
 import 'longevity_service.dart' show updateLongevity;
 import 'minutes.dart';
@@ -87,7 +88,7 @@ class HealthSyncService {
     DateTime Function()? clock,
     this.background = false,
     this.useLock = true,
-  }) : reader = reader ?? PluginHealthReader(),
+  }) : reader = reader ?? healthReader(),
        _now = clock ?? DateTime.now;
 
   final TempoDb db;

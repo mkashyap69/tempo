@@ -237,6 +237,16 @@ void main() {
     test('illness: 10 % over or three nights at +5', () {
       expect(rhrFlag(nights([66.5, 60, 60, 60, 60, 60, 60])), RhrFlag.illness);
       expect(rhrFlag(nights([65, 65, 65, 60, 60, 60, 60])), RhrFlag.illness);
+      // P3: one high night after a drink is elevated, not illness; three
+      // nights in a row still are.
+      expect(
+        rhrFlag(nights([66.5, 60, 60, 60, 60, 60, 60]), confounded: true),
+        RhrFlag.elevated,
+      );
+      expect(
+        rhrFlag(nights([65, 65, 65, 60, 60, 60, 60]), confounded: true),
+        RhrFlag.illness,
+      );
     });
     test('no reading tonight → none', () {
       expect(rhrFlag(nights([null, 70, 70])), RhrFlag.none);

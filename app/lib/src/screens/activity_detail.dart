@@ -83,8 +83,12 @@ class _ActivityData {
     this.strideFromBand = false,
     this.measured = false,
     this.zoneRest,
+    this.typical,
   });
   final st.Workout w;
+
+  /// Usual zone shares for this sport over the 30 days before (P5).
+  final List<({double lo, double hi})>? typical;
 
   /// Resting HR for reserve zones (Profile), else null: % of max HR.
   final double? zoneRest;
@@ -144,6 +148,18 @@ final _activityProvider = FutureProvider.family<_ActivityData?, int>((
         (p, q) =>
             (p.start - w.start).abs().compareTo((q.start - w.start).abs()),
       );
+  // P5: the usual zone mix of this sport in the 30 days before it.
+  List<num> zonesOf(st.Workout x) => (jsonDecode(x.zones) as List).cast<num>();
+  final typical = w.sport == null
+      ? null
+      : sc.typicalZoneShares([
+          for (final x in all)
+            if (x.id != w.id &&
+                x.sport == w.sport &&
+                x.start < w.start &&
+                x.start >= w.start - 30 * 86400)
+              zonesOf(x),
+        ]);
   final similar = [w, ...others.take(4)]
     ..sort((p, q) => q.start.compareTo(p.start));
   // Pace and cadence only mean something for a walk or a run. Games and
@@ -189,8 +205,38 @@ final _activityProvider = FutureProvider.family<_ActivityData?, int>((
     strideFromBand: fromBand,
     measured: measured,
     zoneRest: profile.zonesByReserve ? (s?.rhr ?? 60) : null,
+    typical: typical,
   );
 });
+
+/// "More Z4 and less Z2 than your usual runs" against the middle half of
+/// this sport's last 30 days (P5), "Your usual mix of zones" when inside it,
+/// or null without a typical range.
+String? _vsTypical(
+  List<int> zones,
+  List<({double lo, double hi})>? typical,
+  String? sport,
+) {
+  if (typical == null || zones.length != 5 || zones.every((z) => z == 0)) {
+    return null;
+  }
+  final d = sc.zoneShareVsTypical(zones, typical);
+  String list(int sign) => [
+    for (var i = 0; i < 5; i++)
+      if (d[i] == sign) 'Z${i + 1}',
+  ].join(', ');
+  final more = list(1), less = list(-1);
+  final label = sportLabelFor(sport);
+  final usual = '${label == 'HIIT' ? label : label.toLowerCase()} sessions';
+  if (more.isEmpty && less.isEmpty) {
+    return 'Your usual mix of zones for $usual (last 30 days).';
+  }
+  final parts = [
+    if (more.isNotEmpty) 'more time in $more',
+    if (less.isNotEmpty) 'less in $less',
+  ].join(' and ');
+  return '${parts[0].toUpperCase()}${parts.substring(1)} than your usual $usual (last 30 days).';
+}
 
 class ActivityDetailScreen extends ConsumerWidget {
   const ActivityDetailScreen({super.key, required this.id});
@@ -422,6 +468,10 @@ class ActivityDetailScreen extends ConsumerWidget {
                     ),
                 ],
               ),
+              if (_vsTypical(zones, data.typical, w.sport) case final l?) ...[
+                const SizedBox(height: 10),
+                Text(l, style: TempoType.bodyS.c(c.text2)),
+              ],
             ],
           ),
         ),

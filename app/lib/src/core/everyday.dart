@@ -58,6 +58,16 @@ Future<Rhythm> loadRhythm(st.TempoDb db, {DateTime? now}) async {
 
 // ---- Body signals ------------------------------------------------------------
 
+/// The journal entries from the day before [day] that can move the night's
+/// vitals on their own (P3, [sc.bodyConfounders]), answered yes.
+Future<List<String>> bodyConfoundersFor(st.TempoDb db, DateTime day) async {
+  final rows = await db.journalFor(DateTime(day.year, day.month, day.day - 1));
+  return [
+    for (final r in rows)
+      if (r.value && sc.bodyConfounders.contains(r.tag)) r.tag,
+  ];
+}
+
 /// Body signals for the night ending on [day]'s morning, against up to 60
 /// earlier nights of the same source (paused days left out).
 Future<sc.BodySignals> loadBodySignals(
@@ -120,7 +130,8 @@ Future<sc.BodySignals> loadBodySignals(
   double? nightTemp(({DateTime a, DateTime b})? n) =>
       n == null ? null : hs.nightTemperature(resp, n.a, n.b);
 
-  return sc.bodySignals([
+  final confounders = await bodyConfoundersFor(db, d);
+  return sc.bodySignals(confounders: confounders, [
     sc.SignalInput(
       key: 'rhr',
       value: score?.rhr,

@@ -550,9 +550,13 @@ final class RecoveryShare {
     required this.normal,
     required this.z,
     required this.push,
+    this.weight = 0,
   });
   final String key;
   final double value, normal;
+
+  /// The part's weight in the score (before renormalising), 0 when unknown.
+  final double weight;
 
   /// Signed z as the score used it (minimum spread, capped): + helped.
   final double z;
@@ -638,12 +642,28 @@ List<RecoveryShare> recoveryBreakdown(
         value: x.input.value!,
         normal: x.input.baseline!.mean,
         z: x.input.z!.clamp(-p.recovery.zCap, p.recovery.zCap),
+        weight: x.input.weight,
         push:
             x.input.weight *
             x.input.z!.clamp(-p.recovery.zCap, p.recovery.zCap) /
             w,
       ),
   ];
+}
+
+/// What each part of [parts] moved the score, in recovery points (P2,
+/// docs/research/Pulse comparison.md §7): today's score minus the score
+/// with that part at your normal (z = 0, its weight kept), before any vitals
+/// penalty. The curve bends, so the points of several parts don't add up
+/// exactly to the score's distance from 50. Keys as [RecoveryShare.key].
+Map<String, double> recoveryPoints(
+  List<RecoveryShare> parts, {
+  RecoveryParams p = const RecoveryParams(),
+}) {
+  double curve(double s) => 100 / (1 + exp(-p.slope * s));
+  final total = parts.fold<double>(0, (a, x) => a + x.push);
+  final now = curve(total);
+  return {for (final x in parts) x.key: now - curve(total - x.push)};
 }
 
 /// The smallest spread each recovery input's baseline is given (algo 11),

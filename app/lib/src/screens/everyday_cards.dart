@@ -109,6 +109,23 @@ class RhythmCard extends ConsumerWidget {
   }
 }
 
+/// "a drink and a sauna" from [sc.bodyConfounders] keys.
+String _confounderWords(List<String> keys) {
+  final w = [
+    for (final k in keys)
+      switch (k) {
+        'alcohol' => 'a drink',
+        'late_meal' => 'a late meal',
+        'sauna' => 'a sauna or hot bath',
+        'travel' => 'travel',
+        _ => k,
+      },
+  ];
+  return w.length == 1
+      ? w.single
+      : '${w.take(w.length - 1).join(', ')} and ${w.last}';
+}
+
 /// Recovery screen: each overnight signal against your own normal.
 class BodySignalsSection extends ConsumerWidget {
   const BodySignalsSection({super.key});
@@ -123,6 +140,8 @@ class BodySignalsSection extends ConsumerWidget {
         'Tempo needs $signalNights nights to know your normal for each signal.',
       sc.BodyLevel.normal =>
         'Everything Tempo measures overnight was in your normal range.',
+      sc.BodyLevel.watch when b.explainedBy.isNotEmpty =>
+        '${b.off.length} signals are outside your normal, but you logged ${_confounderWords(b.explainedBy)} yesterday, which can do that for a night. Tempo isn’t calling a rest day for it; if they’re still off tomorrow, it will.',
       sc.BodyLevel.watch => 'One signal is outside your normal. Alone it’s often a late meal, a drink or a hot room.',
       sc.BodyLevel.rest => 'Several signals moved the wrong way together. That often comes a day or two before feeling ill: go easy and sleep early.',
     };

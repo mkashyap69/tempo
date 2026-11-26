@@ -5,8 +5,8 @@ import 'package:scoring/scoring.dart' as sc;
 import 'package:store/store.dart' as st;
 
 import '../core/data_source.dart';
+import '../core/demo.dart' show demoMode, healthReader;
 import '../core/feel.dart';
-import '../core/health_reader.dart';
 import '../core/format.dart';
 import '../core/profile.dart' show Keys;
 import '../core/pause.dart';
@@ -175,7 +175,7 @@ abstract final class TodayBody {
             : 'Tempo reads heart rate, sleep and steps from Health Connect. Allow them, and Tempo reads again.',
         action: 'Allow',
         onAction: () async {
-          await PluginHealthReader().connect();
+          await healthReader().connect();
           await ref.read(syncProvider.notifier).syncNow();
         },
       );
@@ -564,7 +564,16 @@ abstract final class TodayBody {
                 children: [
                   Overline(dayLong(t.day)),
                   const SizedBox(height: 2),
-                  Text('Today', style: TempoType.titleM.c(c.text1)),
+                  Row(
+                    children: [
+                      Text('Today', style: TempoType.titleM.c(c.text1)),
+                      // P7: never mistaken for real data.
+                      if (demoMode) ...[
+                        const SizedBox(width: 8),
+                        const TempoBadge('Demo', small: true),
+                      ],
+                    ],
+                  ),
                 ],
               ),
             ),

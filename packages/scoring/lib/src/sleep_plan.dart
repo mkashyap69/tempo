@@ -141,3 +141,44 @@ int briefMinute(int set, int? usualWake, {int after = 15}) =>
     usualWake == null || clockDiff(usualWake + after, set) <= 0
     ? set
     : (usualWake + after) % 1440;
+
+/// Shares of tonight's need offered as bedtimes (P6): the full need, and
+/// two shorter nights for when the full one doesn't fit.
+const bedtimeShares = [1.0, .85, .7];
+
+/// Bedtimes (minutes after midnight) for each of [bedtimeShares] of
+/// [needHours], waking at [wakeMinute]; latest last.
+List<({double share, int minute})> bedtimeOptions(
+  double needHours,
+  int wakeMinute, {
+  int latency = fallAsleepMinutes,
+}) => [
+  for (final s in bedtimeShares)
+    (
+      share: s,
+      minute: bedtimeMinute(needHours * s, wakeMinute, latency: latency),
+    ),
+];
+
+/// Nights of the same kind (weekday or weekend) [wakeFor] needs before it
+/// uses only them.
+const wakeKindMinNights = 3;
+
+/// Your usual wake time for [morning]: the median wake of the [nights]
+/// (wake date, wake minute) whose morning is the same kind, a work day
+/// (Monday–Friday) or a weekend, once there are [wakeKindMinNights] of
+/// them; else the median of all. Null with fewer than [usualMinNights].
+/// Weekend mornings usually run later, so one median would ask for too
+/// early a bed on Friday and too late on Sunday (P6).
+int? wakeFor(DateTime morning, List<(DateTime, int)> nights) {
+  if (nights.length < usualMinNights) return null;
+  bool weekend(DateTime d) =>
+      d.weekday == DateTime.saturday || d.weekday == DateTime.sunday;
+  final same = [
+    for (final n in nights)
+      if (weekend(n.$1) == weekend(morning)) n.$2,
+  ];
+  return same.length >= wakeKindMinNights
+      ? medianClock(same)
+      : medianClock([for (final n in nights) n.$2]);
+}

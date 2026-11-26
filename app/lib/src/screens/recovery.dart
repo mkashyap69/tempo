@@ -193,6 +193,11 @@ class RecoveryScreen extends ConsumerWidget {
                                       style: TextStyle(color: c.text1),
                                     ),
                                     TextSpan(text: ' · normal ${x.base}'),
+                                    if (pointsLabel(x.points) case final l?)
+                                      TextSpan(
+                                        text: ' · $l',
+                                        style: TextStyle(color: x.color),
+                                      ),
                                   ],
                                 ),
                                 style: TempoType.bodyS.c(c.text2).tnum,
@@ -224,6 +229,8 @@ class RecoveryScreen extends ConsumerWidget {
             ],
           ),
         ),
+        if (otherPointsLine(t) case final l?)
+          Text('Also in the score: $l.', style: TempoType.caption.c(c.text3)),
         const BodySignalsSection(),
         const CycleNote(),
         TempoCard(

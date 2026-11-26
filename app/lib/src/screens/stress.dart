@@ -4,6 +4,7 @@ import 'package:scoring/scoring.dart' as sc;
 import 'package:store/store.dart' as st;
 
 import '../core/coach_service.dart';
+import '../core/data_source.dart';
 import '../core/format.dart';
 import '../core/minutes.dart';
 import '../design/chart.dart';
@@ -15,8 +16,27 @@ import '../design/type.dart';
 import '../state/providers.dart';
 
 class _StressData {
-  _StressData(this.day, this.split, this.sleeps, this.pairs, this.last);
+  _StressData(
+    this.day,
+    this.split,
+    this.sleeps,
+    this.pairs,
+    this.last, {
+    this.fromHr = false,
+    this.provisional = false,
+    this.hrPerHour,
+  });
   final DateTime day;
+
+  /// Read from heart rate (Health sources, P1) instead of the band's index.
+  final bool fromHr;
+
+  /// Heart-rate stress whose quiet reference is still learning.
+  final bool provisional;
+
+  /// Minutes with heart rate per waking hour when that was too few for a
+  /// full picture; null when enough (or the band).
+  final double? hrPerHour;
 
   /// The day's readings, awake and asleep kept apart.
   final sc.StressDay split;
@@ -35,6 +55,7 @@ final _stressProvider = FutureProvider.family<_StressData, DateTime>((
 ) async {
   ref.watch(dbTickProvider);
   final db = ref.watch(dbProvider);
+  if ((await loadDataSource(db)).isHealth) return _hrStress(db, day);
   final readings = [
     for (final x in await loadStress(db, day, day.add(const Duration(days: 1))))
       sc.StressReading(st.fromTs(x.ts), x.value),
@@ -70,6 +91,72 @@ final _stressProvider = FutureProvider.family<_StressData, DateTime>((
     last,
   );
 });
+
+/// Days of history the quiet daytime heart rate is learned from.
+const _quietDays = 14;
+
+/// Heart-rate stress for a Health source (P1): [day] scored against the
+/// quiet daytime heart rate of the [_quietDays] days before it.
+Future<_StressData> _hrStress(st.TempoDb db, DateTime day) async {
+  final from = day.subtract(const Duration(days: _quietDays));
+  final to = day.add(const Duration(days: 1));
+  final mins = (await loadMinutes(
+    db,
+    from.subtract(const Duration(hours: 12)),
+    to.add(const Duration(hours: 12)),
+  )).minutes;
+  final sleeps = sc.detectSessions(
+    mins,
+    sc.SleepParams(minSessionMinutes: const sc.SleepParams().minNapMinutes),
+  );
+  final workouts = [
+    for (final w in await db.workoutsBetween(
+      from.subtract(const Duration(hours: 6)),
+      to,
+    ))
+      (st.fromTs(w.start), st.fromTs(w.end)),
+  ];
+  List<sc.Minute> of(DateTime d) {
+    final e = d.add(const Duration(days: 1));
+    return [
+      for (final m in mins)
+        if (!m.ts.isBefore(d) && m.ts.isBefore(e)) m,
+    ];
+  }
+
+  final prior = <double?>[];
+  for (var i = _quietDays; i >= 1; i--) {
+    final d = DateTime(day.year, day.month, day.day - i);
+    final still = sc.stillAwakeMinutes(
+      of(d),
+      sleeps: sleeps,
+      workouts: workouts,
+    );
+    prior.add(sc.quietDaytimeHr(of(d), still));
+  }
+  final today = sc.hrStressDay(
+    of(day),
+    sleeps: sleeps,
+    workouts: workouts,
+    priorQuiet: prior,
+  );
+  final daySleeps = [
+    for (final s in sleeps)
+      if (s.end.isAfter(day) && s.start.isBefore(to)) s,
+  ];
+  return _StressData(
+    day,
+    sc.splitStress(today.readings, daySleeps),
+    daySleeps,
+    const [],
+    null,
+    fromHr: true,
+    provisional: today.provisional,
+    hrPerHour: today.coverage.enough || today.coverage.wakingHours == 0
+        ? null
+        : today.coverage.perHour,
+  );
+}
 
 /// Zoom on the day: all of it, or one 6-hour quarter.
 const _windows = [(0, 24), (0, 6), (6, 12), (12, 18), (18, 24)];
@@ -126,9 +213,9 @@ class _StressScreenState extends ConsumerState<StressScreen> {
     return TempoPage(
       children: [
         DetailHeader(
-          title: 'Stress index',
+          title: d.fromHr ? 'Stress' : 'Stress index',
           subtitle: dayShort(_day),
-          trailing: const TempoBadge('≈ proxy'),
+          trailing: TempoBadge(d.fromHr ? '≈ from heart rate' : '≈ proxy'),
         ),
         Row(
           children: [
@@ -171,7 +258,11 @@ class _StressScreenState extends ConsumerState<StressScreen> {
             const SizedBox(height: 8),
             Text(
               avg == null
-                  ? (isToday
+                  ? (d.fromHr
+                        ? (isToday
+                              ? 'No still, awake time with heart rate today yet. Tempo reads stress while you sit still.'
+                              : 'No still, awake time with heart rate this day.')
+                        : isToday
                         ? 'No awake stress readings today yet. The band measures about every 5 minutes while you\'re still.'
                         : 'No awake stress readings this day.')
                   : '${switch (_level(avg.round())) {
@@ -299,121 +390,131 @@ class _StressScreenState extends ConsumerState<StressScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Measured time: each reading stands for the band\'s 5-minute step.',
+                d.fromHr
+                    ? 'Measured time: still, awake minutes, in 5-minute steps. Moving, workouts and sleep are left out.'
+                    : 'Measured time: each reading stands for the band\'s 5-minute step.',
                 style: TempoType.caption.c(c.text3),
               ),
             ],
           ),
         ),
-        TempoCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                'Sleep-time stress and your recovery',
-                style: TempoType.label.c(c.text1),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Last 60 nights. Calmer nights are usually followed by greener mornings.',
-                style: TempoType.bodyS.c(c.text2),
-              ),
-              const SizedBox(height: 12),
-              if (d.pairs.length < 7)
-                const TempoEmpty(
-                  'This chart fills in after a week of scored mornings.',
-                  kind: EmptyKind.trend,
-                )
-              else
-                SvgChart(
-                  height: 230,
-                  semantics: 'Overnight stress against next-morning recovery',
-                  draw: (ink, box) {
-                    final lo =
-                            d.pairs
-                                .map((p) => p.$1)
-                                .reduce((a, b) => a < b ? a : b) -
-                            2,
-                        hi =
-                            d.pairs
-                                .map((p) => p.$1)
-                                .reduce((a, b) => a > b ? a : b) +
-                            2;
-                    double px(double v) => 40 + (v - lo) / (hi - lo) * 480;
-                    double py(double r) => 200 - r * 2;
-                    ink.line(
-                      const Offset(40, 200),
-                      const Offset(520, 200),
-                      ink.c.line,
-                    );
-                    ink.line(
-                      const Offset(40, 0),
-                      const Offset(40, 200),
-                      ink.c.line,
-                    );
-                    for (final p in d.pairs) {
-                      ink.dot(
-                        Offset(px(p.$1), py(p.$2)),
-                        6,
-                        ink.s.recoveryFor(p.$2),
-                        opacity: .9,
-                      );
-                    }
-                    if (d.last != null) {
-                      ink.ring(
-                        Offset(px(d.last!.$1), py(d.last!.$2)),
-                        11,
-                        ink.c.text1,
-                        w: 2.5,
-                      );
-                    }
-                    ink.text('${lo.round()} calm', const Offset(40, 222));
-                    ink.text(
-                      '${hi.round()} stressed',
-                      const Offset(520, 222),
-                      align: TextAlign.right,
-                    );
-                    ink.text(
-                      '100',
-                      const Offset(34, 14),
-                      align: TextAlign.right,
-                    );
-                    ink.text(
-                      '0',
-                      const Offset(34, 200),
-                      align: TextAlign.right,
-                    );
-                  },
+        if (!d.fromHr)
+          TempoCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'Sleep-time stress and your recovery',
+                  style: TempoType.label.c(c.text1),
                 ),
-              if (calmRec != null && hiRec != null) ...[
-                const SizedBox(height: 12),
-                Text.rich(
-                  TextSpan(
-                    children: [
-                      TextSpan(
-                        text:
-                            'Nights under ${calmCut!.round()}: recovery averages ',
-                      ),
-                      TextSpan(
-                        text: '${calmRec.round()}%',
-                        style: TextStyle(color: s.recoveryFor(calmRec)),
-                      ),
-                      TextSpan(text: '. Over ${stressCut!.round()}: '),
-                      TextSpan(
-                        text: '${hiRec.round()}%',
-                        style: TextStyle(color: s.recoveryFor(hiRec)),
-                      ),
-                      const TextSpan(text: '. Ringed = last night.'),
-                    ],
-                  ),
+                const SizedBox(height: 4),
+                Text(
+                  'Last 60 nights. Calmer nights are usually followed by greener mornings.',
                   style: TempoType.bodyS.c(c.text2),
                 ),
+                const SizedBox(height: 12),
+                if (d.pairs.length < 7)
+                  const TempoEmpty(
+                    'This chart fills in after a week of scored mornings.',
+                    kind: EmptyKind.trend,
+                  )
+                else
+                  SvgChart(
+                    height: 230,
+                    semantics: 'Overnight stress against next-morning recovery',
+                    draw: (ink, box) {
+                      final lo =
+                              d.pairs
+                                  .map((p) => p.$1)
+                                  .reduce((a, b) => a < b ? a : b) -
+                              2,
+                          hi =
+                              d.pairs
+                                  .map((p) => p.$1)
+                                  .reduce((a, b) => a > b ? a : b) +
+                              2;
+                      double px(double v) => 40 + (v - lo) / (hi - lo) * 480;
+                      double py(double r) => 200 - r * 2;
+                      ink.line(
+                        const Offset(40, 200),
+                        const Offset(520, 200),
+                        ink.c.line,
+                      );
+                      ink.line(
+                        const Offset(40, 0),
+                        const Offset(40, 200),
+                        ink.c.line,
+                      );
+                      for (final p in d.pairs) {
+                        ink.dot(
+                          Offset(px(p.$1), py(p.$2)),
+                          6,
+                          ink.s.recoveryFor(p.$2),
+                          opacity: .9,
+                        );
+                      }
+                      if (d.last != null) {
+                        ink.ring(
+                          Offset(px(d.last!.$1), py(d.last!.$2)),
+                          11,
+                          ink.c.text1,
+                          w: 2.5,
+                        );
+                      }
+                      ink.text('${lo.round()} calm', const Offset(40, 222));
+                      ink.text(
+                        '${hi.round()} stressed',
+                        const Offset(520, 222),
+                        align: TextAlign.right,
+                      );
+                      ink.text(
+                        '100',
+                        const Offset(34, 14),
+                        align: TextAlign.right,
+                      );
+                      ink.text(
+                        '0',
+                        const Offset(34, 200),
+                        align: TextAlign.right,
+                      );
+                    },
+                  ),
+                if (calmRec != null && hiRec != null) ...[
+                  const SizedBox(height: 12),
+                  Text.rich(
+                    TextSpan(
+                      children: [
+                        TextSpan(
+                          text:
+                              'Nights under ${calmCut!.round()}: recovery averages ',
+                        ),
+                        TextSpan(
+                          text: '${calmRec.round()}%',
+                          style: TextStyle(color: s.recoveryFor(calmRec)),
+                        ),
+                        TextSpan(text: '. Over ${stressCut!.round()}: '),
+                        TextSpan(
+                          text: '${hiRec.round()}%',
+                          style: TextStyle(color: s.recoveryFor(hiRec)),
+                        ),
+                        const TextSpan(text: '. Ringed = last night.'),
+                      ],
+                    ),
+                    style: TempoType.bodyS.c(c.text2),
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
-        ),
+        if (d.fromHr && d.hrPerHour != null)
+          Text(
+            'Your watch recorded heart rate about ${d.hrPerHour!.round()} minutes an hour this day, so this view is patchy. Watches measure more often when a workout or breathing session is running.',
+            style: TempoType.bodyS.c(c.text2),
+          ),
         Text(
-          'The band computes this index from beat-to-beat heart-rate variation. Tempo treats it as a stand-in for HRV and only compares it with your own history.',
+          d.fromHr
+              ? 'Tempo reads stress from your heart rate while you sit still and awake, against your own quiet daytime heart rate${d.provisional ? ' (still learning: it needs 4 days)' : ''}. It\'s an estimate from heart rate, not a measure of how you feel, and it never feeds your scores.'
+              : 'The band computes this index from beat-to-beat heart-rate variation. Tempo treats it as a stand-in for HRV and only compares it with your own history.',
           style: TempoType.caption.c(c.text3),
         ),
       ],

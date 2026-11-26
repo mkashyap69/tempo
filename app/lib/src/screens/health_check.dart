@@ -5,6 +5,7 @@ import 'package:health_source/health_source.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../core/data_source.dart';
+import '../core/demo.dart' show healthReader;
 import '../core/format.dart';
 import '../core/health_check.dart';
 import '../core/health_reader.dart';
@@ -48,7 +49,7 @@ class _HealthCheckState extends ConsumerState<HealthCheckScreen> {
       if (!source.isHealth) {
         throw StateError('Tempo reads the band, not Health, on this phone.');
       }
-      final r = await checkHealth(db, widget.reader ?? PluginHealthReader());
+      final r = await checkHealth(db, widget.reader ?? healthReader());
       final names = await sourceNames(db);
       if (mounted) {
         setState(() {

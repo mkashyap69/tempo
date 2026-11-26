@@ -169,8 +169,14 @@ final class SignalReading {
 enum BodyLevel { learning, normal, watch, rest }
 
 final class BodySignals {
-  const BodySignals(this.readings, this.level);
+  const BodySignals(this.readings, this.level, {this.explainedBy = const []});
   final List<SignalReading> readings;
+
+  /// Yesterday's journal entries that can move night vitals on their own
+  /// ([bodyConfounders]) when two or more signals were off: the level is
+  /// then held at [BodyLevel.watch] instead of [BodyLevel.rest] (P3).
+  /// Empty otherwise.
+  final List<String> explainedBy;
 
   /// [BodyLevel.watch] with one signal off, [BodyLevel.rest] with two or
   /// more: several vitals moving the wrong way together is what precedes
@@ -190,11 +196,28 @@ const signalMinNights = 14;
 /// Standard deviations the wrong way that make a signal off.
 const signalOffZ = 2.0;
 
+/// Journal entries that raise resting HR, breathing rate or night
+/// temperature and lower HRV for a night on their own, so several signals
+/// off after one of them is weaker evidence of illness: alcohol (Pietilä
+/// 2018), a late meal, a sauna or hot bath, and travel across time zones.
+/// Mishra 2020 and Radin 2020 name alcohol as a confounder of their
+/// illness signals. Keys as in the journal catalogue.
+const bodyConfounders = ['alcohol', 'late_meal', 'sauna', 'travel'];
+
 /// Compares each signal with its own history: off when it sits at least
 /// [signalOffZ] SDs and [SignalInput.minDelta] the wrong way. The SD is
 /// floored at half of minDelta so a flat history can't make noise look
 /// huge. Better-than-usual values are normal.
-BodySignals bodySignals(List<SignalInput> inputs) {
+///
+/// [confounders] are yesterday's journal entries answered yes. When two or
+/// more signals are off and any of them is in [bodyConfounders], the level
+/// is held at [BodyLevel.watch] and [BodySignals.explainedBy] names them:
+/// the signals still show, but Tempo doesn't call a rest day or send the
+/// health alert for a night a drink can explain.
+BodySignals bodySignals(
+  List<SignalInput> inputs, {
+  Iterable<String> confounders = const [],
+}) {
   final out = <SignalReading>[];
   for (final i in inputs) {
     if (i.history.length < i.minNights) {
@@ -235,6 +258,15 @@ BodySignals bodySignals(List<SignalInput> inputs) {
       : offN == 1
       ? BodyLevel.watch
       : BodyLevel.normal;
+  if (level == BodyLevel.rest) {
+    final why = [
+      for (final k in bodyConfounders)
+        if (confounders.contains(k)) k,
+    ];
+    if (why.isNotEmpty) {
+      return BodySignals(out, BodyLevel.watch, explainedBy: why);
+    }
+  }
   return BodySignals(out, level);
 }
 

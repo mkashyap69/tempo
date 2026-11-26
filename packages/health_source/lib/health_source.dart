@@ -4,6 +4,7 @@
 /// Both go through the same [HealthGrid], so they map data identically.
 library;
 
+export 'src/demo.dart';
 export 'src/grid.dart';
 export 'src/record.dart';
 export 'src/reconcile.dart';

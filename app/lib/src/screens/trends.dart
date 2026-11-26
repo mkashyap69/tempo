@@ -436,6 +436,8 @@ class _TrendsState extends ConsumerState<TrendsScreen> {
                 TempoIcons.baselines,
                 () => const BaselinesScreen(),
               ),
+              // Health sources read it from heart rate (P1).
+              ('Stress', TempoIcons.stress, () => const StressScreen()),
             ];
             Widget tile((String, String, Widget Function()) e) => Pressable(
               label: e.$1,
@@ -464,7 +466,7 @@ class _TrendsState extends ConsumerState<TrendsScreen> {
                 ),
               ),
             );
-            // An even 2 × 2 grid: every tile the same width and height.
+            // An even grid of two columns: every tile the same width and height.
             return Column(
               children: [
                 for (var r = 0; r < items.length; r += 2) ...[
@@ -473,7 +475,11 @@ class _TrendsState extends ConsumerState<TrendsScreen> {
                     children: [
                       Expanded(child: tile(items[r])),
                       const SizedBox(width: 8),
-                      Expanded(child: tile(items[r + 1])),
+                      Expanded(
+                        child: r + 1 < items.length
+                            ? tile(items[r + 1])
+                            : const SizedBox(),
+                      ),
                     ],
                   ),
                 ],

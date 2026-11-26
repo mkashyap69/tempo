@@ -629,6 +629,13 @@ class _SleepScreenState extends ConsumerState<SleepScreen> {
 
 /// Tonight: bedtime, how tonight's need adds up, a reminder and the smart
 /// alarm. On Sleep, and on Today in the evening.
+/// "Can't make it? Bed by 12:02 for 85 % of tonight's need, or 1:14 for
+/// 70 %." (P6): the shorter nights of [sc.bedtimeOptions].
+String _shorterNights(TodayData t) {
+  final o = sc.bedtimeOptions(t.needTonight, t.wakeMinute);
+  return 'Can’t make it? Bed by ${clock12(o[1].minute)} for 85 % of tonight’s need, or ${clock12(o[2].minute)} for 70 %.';
+}
+
 class TonightCard extends ConsumerWidget {
   const TonightCard({super.key, required this.t});
   final TodayData t;
@@ -730,6 +737,17 @@ class TonightCard extends ConsumerWidget {
             ),
             style: TempoType.bodyS.c(c.text2).tnum,
           ),
+          if (late == null) ...[
+            const SizedBox(height: 10),
+            Text(_shorterNights(t), style: TempoType.bodyS.c(c.text2).tnum),
+          ],
+          if (t.forecast case final f? when late == null) ...[
+            const SizedBox(height: 10),
+            Text(
+              'Tomorrow’s recovery, likely ${f.low.round()}–${f.high.round()}% if you’re in bed by ${clock12(t.bedtimeMinute)}${f.hourLessCost >= 1 ? '. An hour less sleep costs about ${f.hourLessCost.round()} points' : ''}.',
+              style: TempoType.bodyS.c(c.text1).tnum,
+            ),
+          ],
           const SizedBox(height: 14),
           Row(
             children: [

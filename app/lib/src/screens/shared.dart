@@ -21,8 +21,13 @@ class Contributor {
     required this.left,
     required this.width,
     required this.effect,
+    this.points,
   });
   final String key, name, value, base, verdict, glyph;
+
+  /// What this input moved today's score, in points (P2); null when the
+  /// score didn't use it.
+  final double? points;
   final bool proxy;
   final Color color;
   final double left, width;
@@ -35,6 +40,9 @@ List<Contributor> contributors(BuildContext context, TodayData t) {
   final s = context.s, c = context.c;
   final score = t.score;
   final calib = t.calibrating;
+  final pts = calib
+      ? const <String, double>{}
+      : sc.recoveryPoints(t.recoveryShares);
   Contributor make(
     String key,
     String name,
@@ -105,6 +113,7 @@ List<Contributor> contributors(BuildContext context, TodayData t) {
       left: z >= 0 ? .5 : .5 - w,
       width: w,
       effect: z * weight,
+      points: pts[key],
     );
   }
 
@@ -198,6 +207,7 @@ List<Contributor> contributors(BuildContext context, TodayData t) {
       left: sl.left,
       width: sl.width,
       effect: sl.effect,
+      points: sl.points,
     );
   }
   // Name the biggest mover.
@@ -220,10 +230,35 @@ List<Contributor> contributors(BuildContext context, TodayData t) {
         left: top.left,
         width: top.width,
         effect: top.effect,
+        points: top.points,
       );
     }
   }
   return list;
+}
+
+/// "−10 points" / "+4 points"; null under half a point.
+String? pointsLabel(double? p) => p == null || p.abs() < .5
+    ? null
+    : '${p > 0 ? '+' : '−'}${p.abs().round()} ${p.abs().round() == 1 ? 'point' : 'points'}';
+
+/// Points from the parts the input rows don't show (HRV trend, recent
+/// sleep, yesterday's load), as one line, or null when none moved it.
+String? otherPointsLine(TodayData t) {
+  if (t.calibrating) return null;
+  final pts = sc.recoveryPoints(t.recoveryShares);
+  final named = {
+    'trend': 'HRV trend',
+    'balance': 'recent sleep',
+    'load': 'yesterday’s load',
+  };
+  final parts = [
+    for (final e in named.entries)
+      if (pointsLabel(pts[e.key]) case final l?) '${e.value} $l',
+  ];
+  if (parts.isEmpty) return null;
+  final line = parts.join(' · ');
+  return '${line[0].toUpperCase()}${line.substring(1)}';
 }
 
 /// Plain-language "why" for a recovery score.

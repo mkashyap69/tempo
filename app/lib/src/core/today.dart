@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math' as math;
 
 import 'package:scoring/scoring.dart' as sc;
 import 'package:store/store.dart' as st;
@@ -19,6 +20,7 @@ class TodayData {
     required this.score,
     required this.history,
     this.recoveryShares = const [],
+    this.forecast,
     required this.nights,
     required this.everSlept,
     required this.load,
@@ -85,6 +87,10 @@ class TodayData {
 
   /// What moved today's recovery, as the score computed it (V5).
   final List<sc.RecoveryShare> recoveryShares;
+
+  /// Tomorrow's recovery if you're in bed at [bedtimeMinute] (P4); null
+  /// while calibrating or with under a week of mornings.
+  final sc.RecoveryForecast? forecast;
 
   /// Nights captured toward the 14-night baseline (0–14).
   final int nights;
@@ -308,7 +314,16 @@ Future<TodayData> loadToday(st.TempoDb db, {DateTime? at}) async {
     for (final d in recent30.take(14))
       if (d.sleepEnd != null) _clock(st.fromTs(d.sleepEnd!)),
   ];
-  final wake = set ?? (ends.isEmpty ? 7 * 60 : sc.medianClock(ends));
+  // P6: tomorrow's usual wake, from mornings of the same kind (work day or
+  // weekend) over the last four weeks, else the last 14 nights.
+  final tomorrow = DateTime(day.year, day.month, day.day + 1);
+  final kindWake = sc.wakeFor(tomorrow, [
+    for (final d in recent30.take(28))
+      if (d.sleepEnd != null)
+        (DateTime.parse(d.date), _clock(st.fromTs(d.sleepEnd!))),
+  ]);
+  final wake =
+      set ?? kindWake ?? (ends.isEmpty ? 7 * 60 : sc.medianClock(ends));
   final lastSyncRaw = await db.setting(Keys.lastSync);
   // Tempo Coach: when today's session is planned, whether it happened,
   // and what still fits if its slot passed.
@@ -409,11 +424,24 @@ Future<TodayData> loadToday(st.TempoDb db, {DateTime? at}) async {
           (score?.hrvKind == null || d.hrvKind == score!.hrvKind))
         d.hrv,
   ]);
+  // P4: tomorrow's recovery from tonight's planned sleep.
+  final forecast =
+      kept.isNotEmpty && kept.first.date == day && !kept.first.calibrating
+      ? sc.recoveryForecast(
+          today: kept.first,
+          history: kept.skip(1).toList(),
+          sleepHours: math.min(
+            sc.sleepIfBedNow(bedtime, wake),
+            needTonight + .5,
+          ),
+        )
+      : null;
   return TodayData(
     day: day,
     score: score,
     history: history,
     recoveryShares: shares,
+    forecast: forecast,
     nights: nights,
     everSlept: everSlept,
     load: load,

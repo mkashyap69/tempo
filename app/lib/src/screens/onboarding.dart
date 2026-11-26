@@ -6,6 +6,7 @@ import 'package:scoring/scoring.dart' as sc;
 
 import '../core/coach_service.dart';
 import '../core/data_source.dart';
+import '../core/demo.dart' show healthReader;
 import '../core/health_reader.dart';
 import '../core/health_sync.dart';
 import '../core/home_widgets.dart' show afterSync;
@@ -117,7 +118,7 @@ class _OnboardingState extends ConsumerState<OnboardingScreen> {
     setState(() => _connecting = true);
     HealthConnectResult res;
     try {
-      res = await PluginHealthReader().connect();
+      res = await healthReader().connect();
     } catch (_) {
       res = HealthConnectResult.unavailable;
     }

@@ -7,6 +7,7 @@ import 'package:store/store.dart' as st;
 
 import '../core/band_link.dart' show deviceIdKey;
 import '../core/data_source.dart';
+import '../core/demo.dart' show healthReader;
 import '../core/health_reader.dart';
 import '../core/profile.dart' show Keys;
 import '../core/score_service.dart';
@@ -25,7 +26,7 @@ Future<bool> connectHealth(
   HealthReader? reader,
 }) async {
   final target = DataSource.platformHealth;
-  final r = reader ?? PluginHealthReader();
+  final r = reader ?? healthReader();
   HealthConnectResult res;
   try {
     res = await r.connect();

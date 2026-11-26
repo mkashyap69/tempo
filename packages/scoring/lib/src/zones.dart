@@ -8,6 +8,8 @@ library;
 
 import 'dart:math';
 
+import 'baseline.dart' show quantile;
+
 /// Lower bound of Z1..Z5 as a fraction of max HR (or of reserve).
 const zoneLowerPct = [0.5, 0.6, 0.7, 0.8, 0.9];
 
@@ -80,4 +82,49 @@ List<int> zoneSecondsFromSamples(
     out[max(zoneFor(hr, hrMax, hrRest: hrRest), 1) - 1] += held;
   }
   return out;
+}
+
+/// Sessions with zone time a typical range needs (P5).
+const typicalZoneMinSessions = 3;
+
+/// The usual share of zone time in each of the five zones across [past]
+/// sessions of the same sport (each five numbers, minutes or seconds, Z1
+/// first): the 25th to 75th percentile of each zone's share, so one odd
+/// session doesn't stretch it. Null under [typicalZoneMinSessions] sessions
+/// with any zone time. P5, docs/research/Pulse comparison.md §7.
+List<({double lo, double hi})>? typicalZoneShares(List<List<num>> past) {
+  final shares = [
+    for (final z in past)
+      if (z.length == 5 && z.fold<num>(0, (a, b) => a + b) > 0)
+        [for (final x in z) x / z.fold<num>(0, (a, b) => a + b)],
+  ];
+  if (shares.length < typicalZoneMinSessions) return null;
+  return [
+    for (var i = 0; i < 5; i++)
+      (
+        lo: quantile([for (final s in shares) s[i]], .25)!,
+        hi: quantile([for (final s in shares) s[i]], .75)!,
+      ),
+  ];
+}
+
+/// Per zone: +1 when [now]'s share is above [typical], −1 below, 0 inside.
+/// A share within [margin] of the range counts as inside, so a minute or
+/// two of difference never reads as "more than usual".
+List<int> zoneShareVsTypical(
+  List<num> now,
+  List<({double lo, double hi})> typical, {
+  double margin = .03,
+}) {
+  final total = now.fold<num>(0, (a, b) => a + b);
+  return [
+    for (var i = 0; i < 5; i++)
+      total == 0
+          ? 0
+          : now[i] / total > typical[i].hi + margin
+          ? 1
+          : now[i] / total < typical[i].lo - margin
+          ? -1
+          : 0,
+  ];
 }

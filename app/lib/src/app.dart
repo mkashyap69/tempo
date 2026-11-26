@@ -10,6 +10,7 @@ import 'core/band_link.dart' show deviceIdKey;
 import 'core/coach_extras.dart' show stepsToday;
 import 'core/coach_notifier.dart';
 import 'core/data_source.dart';
+import 'core/demo.dart';
 import 'core/home_widgets.dart';
 import 'core/notifications.dart';
 import 'core/profile.dart';
@@ -59,6 +60,16 @@ class TempoApp extends ConsumerWidget {
   );
 }
 
+/// Seeds the demo database once ([seedDemo]); only watched in demo builds.
+final _demoSeedProvider = FutureProvider<void>((ref) async {
+  try {
+    await seedDemo(ref.watch(dbProvider));
+  } catch (e) {
+    debugPrint('demo: $e');
+  }
+  ref.invalidate(settingProvider(Keys.onboarded));
+});
+
 /// Splash count-in → onboarding (first run) → tabs.
 class Root extends ConsumerStatefulWidget {
   const Root({super.key});
@@ -73,7 +84,9 @@ class _RootState extends ConsumerState<Root> {
   Widget build(BuildContext context) {
     final onboarded = ref.watch(settingProvider(Keys.onboarded));
     final paired = ref.watch(settingProvider(deviceIdKey));
-    final ready = onboarded.hasValue && paired.hasValue;
+    // P7: a demo build sets itself up before the first screen.
+    final seeded = !demoMode || ref.watch(_demoSeedProvider).hasValue;
+    final ready = onboarded.hasValue && paired.hasValue && seeded;
     Widget body;
     if (!_splashDone || !ready) {
       body = Splash(

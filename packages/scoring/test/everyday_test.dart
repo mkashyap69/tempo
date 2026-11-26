@@ -172,6 +172,34 @@ void main() {
       );
     });
 
+    test('a drink or a sauna holds two signals off at watch (P3)', () {
+      final resp = SignalInput(
+        key: 'resp',
+        value: 17.5,
+        history: [for (var i = 0; i < 20; i++) 14.0 + (i % 2) * .4],
+        higherIsWorse: true,
+        minDelta: 1,
+      );
+      final drink = bodySignals([rhr(62), resp], confounders: ['alcohol']);
+      expect(drink.level, BodyLevel.watch);
+      expect(drink.explainedBy, ['alcohol']);
+      expect(drink.off.length, 2);
+      final two = bodySignals(
+        [rhr(62), resp],
+        confounders: ['travel', 'sauna', 'meditation'],
+      );
+      expect(two.explainedBy, ['sauna', 'travel']);
+      // Entries that don't move vitals change nothing.
+      final calm = bodySignals([rhr(62), resp], confounders: ['meditation']);
+      expect(calm.level, BodyLevel.rest);
+      expect(calm.explainedBy, isEmpty);
+      // One signal off stays watch with nothing to explain.
+      expect(
+        bodySignals([rhr(62)], confounders: ['alcohol']).explainedBy,
+        isEmpty,
+      );
+    });
+
     test('lower-is-worse signals', () {
       final spo2 = SignalInput(
         key: 'spo2',

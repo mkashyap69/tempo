@@ -198,7 +198,12 @@ const rhrElevatedBpm = 5.0, rhrIllnessRatio = 1.10, rhrBaselineMin = 21;
 
 /// [nightly] is resting HR per night, newest (today) first. The baseline
 /// is days 8–60, so a bad week doesn't move its own yardstick.
-RhrFlag rhrFlag(List<double?> nightly) {
+///
+/// [confounded]: yesterday's journal has an entry that raises resting HR
+/// for a night on its own ([bodyConfounders]: alcohol, a late meal, a
+/// sauna, travel). One night at 110 % then reads elevated, not illness
+/// (P3); three nights in a row at +5 bpm still read illness.
+RhrFlag rhrFlag(List<double?> nightly, {bool confounded = false}) {
   if (nightly.isEmpty || nightly.first == null) return RhrFlag.none;
   final base = [
     for (final v in nightly.skip(7).take(53))
@@ -211,7 +216,7 @@ RhrFlag rhrFlag(List<double?> nightly) {
   );
   final today = nightly.first!;
   final run = nightly.take(3).toList();
-  if (today >= rhrIllnessRatio * m ||
+  if ((today >= rhrIllnessRatio * m && !confounded) ||
       (run.length == 3 &&
           run.every((v) => v != null && v >= m + rhrElevatedBpm))) {
     return RhrFlag.illness;

@@ -8,6 +8,7 @@ import 'package:store/store.dart' as st;
 
 import 'block_service.dart';
 import 'data_source.dart';
+import 'everyday.dart' show bodyConfoundersFor;
 import 'longevity_service.dart' show loadFocus;
 import 'pause.dart';
 import 'profile.dart';
@@ -279,7 +280,7 @@ class CoachService {
       for (final d in history)
         if (!isPaused(pauses, DateTime.parse(d.date)) && d.source == source)
           d.rhr,
-    ]);
+    ], confounded: (await bodyConfoundersFor(db, day)).isNotEmpty);
     final short = sc.shortSleep(score?.sleptHours, score?.needHours);
     final base = sc.dayState(
       recovery: score?.recovery,
