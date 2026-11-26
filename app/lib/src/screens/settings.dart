@@ -44,6 +44,7 @@ import 'health_check.dart';
 import 'journal_customise.dart';
 import 'feedback.dart';
 import 'learn.dart';
+import '../core/version.dart';
 import 'nav.dart';
 import 'privacy.dart';
 import 'week_template.dart';
@@ -1318,7 +1319,8 @@ class _VersionLineState extends ConsumerState<_VersionLine> {
     behavior: HitTestBehavior.opaque,
     onTap: _tap,
     child: Text(
-      'Tempo 1.0 · A wellness tool, not a medical device.',
+      '$versionLabel\nA wellness tool, not a medical device.',
+      key: const ValueKey('version-line'),
       textAlign: TextAlign.center,
       style: TempoType.caption.c(context.c.text3),
     ),

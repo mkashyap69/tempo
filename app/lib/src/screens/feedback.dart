@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:scoring/scoring.dart' as sc;
 import 'package:share_plus/share_plus.dart';
 
+import '../core/version.dart';
 import '../core/format.dart';
 import '../design/components.dart';
 import '../design/tokens.dart';
@@ -71,7 +72,7 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
     final source = ref.read(dataSourceProvider);
     final sync = ref.read(syncProvider);
     return {
-      'App': 'Tempo 1.0',
+      'App': 'Tempo $appVersion ($appBuild)',
       'Scoring': 'algo ${sc.algoVersion}',
       'Phone': '${Platform.operatingSystem} ${Platform.operatingSystemVersion}',
       'Reads from': source.label,

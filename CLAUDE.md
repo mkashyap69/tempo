@@ -32,6 +32,7 @@ Recovery, strain and sleep app built in Flutter, heading for a beta release. It 
 - Protocol parsers get golden tests built from captured packets.
 - Health plugin behaviour (types, units, ids, failures) is `TODO(verify)` until seen on a real phone, like BLE details.
 - Keep `docs/decisions.md` up to date. Add one line per decision, with the date.
+- Bump the app version with every app change and show it in You; the rules are in `AGENTS.md` → Versioning.
 
 ## Current phase
 

@@ -186,7 +186,7 @@ void main() {
       await settle(t);
       expect(find.text('Health data check'), findsNothing);
       expect(find.text('Band explorer'), findsNothing);
-      final version = find.textContaining('Tempo 1.0');
+      final version = find.byKey(const ValueKey('version-line'));
       for (var i = 0; i < 7; i++) {
         await t.tap(version);
         await t.pump(const Duration(milliseconds: 100));
