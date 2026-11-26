@@ -1321,7 +1321,18 @@ class TempoPage extends StatelessWidget {
             left: 0,
             right: 0,
             height: MediaQuery.of(context).padding.top,
-            child: ColoredBox(color: context.c.bg),
+            // Opaque, so content scrolls under it unseen; with a backdrop
+            // the same sky is drawn into it, so it runs to the top edge.
+            child: ClipRect(
+              child: Stack(
+                clipBehavior: Clip.hardEdge,
+                children: [
+                  Positioned.fill(child: ColoredBox(color: context.c.bg)),
+                  if (backdrop != null)
+                    Positioned(top: 0, left: 0, right: 0, child: backdrop!),
+                ],
+              ),
+            ),
           ),
           ?overlay,
         ],

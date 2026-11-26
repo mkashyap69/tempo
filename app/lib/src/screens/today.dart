@@ -1086,29 +1086,37 @@ class WhyMoveRow extends StatelessWidget {
           onTap: onPlan,
         ),
       ],
-      // Links, not buttons: Start is the one primary action (D4).
-      Wrap(
-        alignment: WrapAlignment.center,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        children: [
-          TempoButton(
-            'Why this session',
-            small: true,
-            fontSize: 14,
-            kind: ButtonKind.text,
-            onTap: onWhy,
-          ),
-          if (onMove != null) ...[
-            Text('·', style: TempoType.bodyS.c(context.c.text3)),
-            TempoButton(
-              'Move or skip',
-              small: true,
-              fontSize: 14,
-              kind: ButtonKind.text,
-              onTap: onMove,
+      // Two outlined buttons under Start: lighter than Start, but clearly
+      // tappable (D5).
+      Padding(
+        padding: const EdgeInsets.only(top: 10),
+        child: Row(
+          children: [
+            Expanded(
+              child: TempoButton(
+                'Why this session',
+                small: true,
+                fontSize: 14,
+                kind: ButtonKind.ghost,
+                expand: true,
+                onTap: onWhy,
+              ),
             ),
+            if (onMove != null) ...[
+              const SizedBox(width: 10),
+              Expanded(
+                child: TempoButton(
+                  'Move or skip',
+                  small: true,
+                  fontSize: 14,
+                  kind: ButtonKind.ghost,
+                  expand: true,
+                  onTap: onMove,
+                ),
+              ),
+            ],
           ],
-        ],
+        ),
       ),
     ],
   );
