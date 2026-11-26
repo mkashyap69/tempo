@@ -55,6 +55,9 @@ each board to the code that implements it.
 | Train tab, Plan changes | `screens/coach.dart`, `screens/plan_changes.dart`, `core/plan_changes.dart` |
 | Health tab: Body check, any number explained | `screens/body_check.dart` (`BodyCheckCard`, `MetricScreen`, `NormalStrip`), `core/metric_info.dart`, `scoring` `normalBand` |
 | Privacy and network calls | `screens/privacy.dart`, `core/net_ledger.dart` |
+| Plan changes Undo | `core/plan_changes.dart` (`undoPlanChange`, `undoSkip`), `screens/plan_changes.dart` |
+| Session: if it feels wrong; after the session | `screens/workout_detail.dart`, `scoring` `feelsWrong`; `screens/live_workout.dart` (`_Summary`, `_NextCard`), `core/session_story.dart` |
+| Discoveries: experiment so far, try next | `screens/journal.dart` (`experimentSoFar`), `screens/highlight.dart` (`DiscoveriesSection`), `scoring` `experimentSuggestions` |
 | What brings you here (onboarding) | `screens/onboarding.dart` (goal step), `core/today.dart` (`sampleCall`) |
 
 ## Flows

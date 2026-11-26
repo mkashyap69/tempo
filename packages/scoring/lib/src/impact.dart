@@ -586,3 +586,37 @@ String lastTimeLine(LastTime l, String name) {
       : '${parts.length == 1 ? parts.single : '${parts.sublist(0, parts.length - 1).join(', ')} and ${parts.last}'} than your other days';
   return '$when ${name.toLowerCase()}: $what.';
 }
+
+// ---- What to try next (v3 Discoveries) ----------------------------------------
+
+/// A 14-day experiment worth running: do [key] every day when it helps,
+/// skip it when it hurts. [effect] is its measured effect on the outcome.
+typedef ExperimentIdea = ({
+  String key,
+  bool doIt,
+  double effect,
+  ImpactConfidence confidence,
+});
+
+/// Experiments to suggest from [impacts], biggest effect first: only habits
+/// whose effect is at least [minEffect] and at least low confidence, none
+/// in [exclude] (the running one, ones already tried), at most [max].
+List<ExperimentIdea> experimentSuggestions(
+  List<Impact> impacts, {
+  Set<String> exclude = const {},
+  int max = 3,
+}) {
+  final ok = [
+    for (final i in impacts)
+      if (!exclude.contains(i.key) &&
+          i.effect.abs() >= minEffect(i.outcome) &&
+          (i.confidence == ImpactConfidence.low ||
+              i.confidence == ImpactConfidence.moderate ||
+              i.confidence == ImpactConfidence.high))
+        i,
+  ]..sort((a, b) => b.effect.abs().compareTo(a.effect.abs()));
+  return [
+    for (final i in ok.take(max))
+      (key: i.key, doIt: i.helps, effect: i.effect, confidence: i.confidence),
+  ];
+}

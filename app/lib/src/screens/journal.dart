@@ -708,6 +708,17 @@ class _ExperimentCard extends ConsumerWidget {
           ),
           const SizedBox(height: 8),
           Text(experimentTitle(e, name), style: TempoType.titleM.c(c.text1)),
+          // v3: the result so far, before the 14 days are up.
+          if (ref.watch(impactDaysProvider).value case final days?) ...[
+            const SizedBox(height: 6),
+            Text(
+              experimentSoFar(
+                sc.experimentResult(e, days, sc.Outcome.recovery),
+              ),
+              key: const ValueKey('experiment-so-far'),
+              style: TempoType.bodyS.c(c.text1),
+            ),
+          ],
           const SizedBox(height: 4),
           Text(
             'Log it each morning. Tempo compares these ${e.days} days with the ${e.days} before, adjusted for strain and weekends.',
@@ -735,6 +746,18 @@ class _ExperimentCard extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// "So far: +4 recovery vs the 14 days before · moderate confidence", or
+/// how many days are still needed to compare.
+String experimentSoFar(sc.ExperimentResult r) {
+  if (r.confidence == sc.ImpactConfidence.notEnough) {
+    final need = sc.experimentMinDays;
+    return r.daysBefore < need
+        ? 'So far: too early to tell. Tempo needs $need days with scores before the experiment to compare against (has ${r.daysBefore}).'
+        : 'So far: too early to tell. ${r.daysDuring} of $need days in; a first read comes at day $need.';
+  }
+  return 'So far: ${effectText(r.outcome, r.effect)} recovery against the ${r.daysBefore} days before · ${confidenceWord(r.confidence).toLowerCase()}.';
 }
 
 String experimentTitle(sc.Experiment e, String name) => e.doIt

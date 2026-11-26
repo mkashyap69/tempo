@@ -492,6 +492,23 @@ class DiscoveriesSection extends ConsumerWidget {
           sub: 'Insight · ${_ago(e.day)}',
           onTap: () => push(context, const InsightArchiveScreen()),
         ),
+      // v3: what to test next, biggest measured effect first; one
+      // experiment runs at a time.
+      if (j != null && j.experiment == null && impacts != null)
+        for (final idea in sc.experimentSuggestions(impacts.$1, max: 2))
+          ListRow(
+            'Try 14 days ${idea.doIt ? 'of' : 'without'} ${(impacts.$2.def(idea.key)?.name ?? idea.key).toLowerCase()}',
+            sub:
+                '${effectText(sc.Outcome.recovery, idea.effect)} recovery when you do · ${confidenceWord(idea.confidence).toLowerCase()}',
+            value: 'Start',
+            onTap: () async {
+              final db = ref.read(dbProvider);
+              await startExperiment(db, idea.key, idea.doIt);
+              if (context.mounted) {
+                showTempoToast(context, 'Experiment started');
+              }
+            },
+          ),
     ];
     return Section(
       title: 'Discoveries',

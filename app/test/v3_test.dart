@@ -13,7 +13,9 @@ import 'package:tempo/src/core/profile.dart' show Keys;
 import 'package:tempo/src/core/plan_changes.dart';
 import 'package:tempo/src/core/today.dart' show sampleCall;
 import 'package:tempo/src/screens/body_check.dart';
+import 'package:tempo/src/core/journal.dart' show startExperiment;
 import 'package:tempo/src/screens/coach.dart';
+import 'package:tempo/src/screens/journal.dart';
 import 'package:tempo/src/screens/plan_changes.dart';
 import 'package:tempo/src/screens/privacy.dart';
 import 'package:tempo/src/screens/today.dart';
@@ -190,6 +192,41 @@ void main() {
     });
   });
 
+  group('experiment so far', () {
+    sc.ExperimentResult res(
+      int before,
+      int during,
+      sc.ImpactConfidence c, {
+      double effect = 4,
+    }) => sc.ExperimentResult(
+      outcome: sc.Outcome.recovery,
+      effect: effect,
+      low: effect - 2,
+      high: effect + 2,
+      daysBefore: before,
+      daysDuring: during,
+      adherence: 1,
+      confidence: c,
+    );
+
+    test('too early until a week each side', () {
+      expect(
+        experimentSoFar(res(14, 3, sc.ImpactConfidence.notEnough)),
+        contains('3 of 7 days in'),
+      );
+      expect(
+        experimentSoFar(res(2, 9, sc.ImpactConfidence.notEnough)),
+        contains('has 2'),
+      );
+    });
+
+    test('then the effect against the days before', () {
+      final t = experimentSoFar(res(14, 9, sc.ImpactConfidence.moderate));
+      expect(t, startsWith('So far: '));
+      expect(t, contains('against the 14 days before'));
+    });
+  });
+
   group('network ledger', () {
     final now = DateTime(2026, 11, 26, 12);
 
@@ -343,6 +380,18 @@ void main() {
     expect(find.text('Weather for Today'), findsOneWidget);
     expect(find.text('2'), findsOneWidget);
     expect(find.text('Encrypted backup'), findsOneWidget);
+    await teardown(t, db);
+  });
+
+  testWidgets('a running experiment says how it is going so far', (t) async {
+    final db = (await t.runAsync(() async {
+      final db = await seededDb(days: 30);
+      await startExperiment(db, 'alcohol', false);
+      return db;
+    }))!;
+    await render(t, db, const JournalScreen(standalone: true), h: 4000);
+    expect(find.byKey(const ValueKey('experiment-so-far')), findsOneWidget);
+    expect(find.textContaining('So far: too early to tell'), findsOneWidget);
     await teardown(t, db);
   });
 }
