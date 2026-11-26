@@ -18,7 +18,6 @@ import '../design/tokens.dart';
 import '../design/type.dart';
 import '../state/providers.dart';
 import 'coach_parts.dart' show statusLabel, statusColor;
-import 'day_targets.dart';
 import 'everyday_cards.dart';
 import 'coach_parts.dart'
     show
@@ -433,8 +432,6 @@ abstract final class TodayBody {
         ? const WeekReviewCard()
         : const TodayInsightCard();
     final latest = t.workouts.isEmpty ? null : t.workouts.last;
-    // D2: what's left today, ticked from data where Tempo can see it.
-    final targets = DayTargetsCard(day: t.day);
     // D3: after a workout marked sore or painful, what the plan can do.
     const followUp = ReflectFollowUpCard();
 
@@ -456,7 +453,6 @@ abstract final class TodayBody {
               ),
             rings,
             call,
-            targets,
             LearningCard(t: t, checkins: checkins),
             if (!t.firstDay) LessonCard(t: t),
             ?session,
@@ -497,7 +493,6 @@ abstract final class TodayBody {
             ?session,
             ...coachNotes,
             followUp,
-            targets,
             insight,
             const LastTimeCard(),
             const TodayTiles(),
@@ -521,7 +516,6 @@ abstract final class TodayBody {
             ?session,
             ...coachNotes,
             followUp,
-            targets,
             insight,
             const LastTimeCard(),
             const TodayTiles(),
@@ -539,7 +533,6 @@ abstract final class TodayBody {
             if (latest != null) RecoveryHrCard(workoutId: latest.id),
             ...coachNotes,
             followUp,
-            targets,
             TonightLine(t: t),
             insight,
             const LastTimeCard(),
@@ -1094,8 +1087,9 @@ class WhyMoveRow extends StatelessWidget {
         ),
       ],
       // Links, not buttons: Start is the one primary action (D4).
-      Row(
-        mainAxisAlignment: MainAxisAlignment.center,
+      Wrap(
+        alignment: WrapAlignment.center,
+        crossAxisAlignment: WrapCrossAlignment.center,
         children: [
           TempoButton(
             'Why this session',

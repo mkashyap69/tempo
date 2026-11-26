@@ -153,6 +153,10 @@ abstract final class Keys {
   /// {at, code, day}. Off by default.
   static const weather = 'weather_on';
   static const weatherLast = 'weather_last';
+
+  /// Today's message cards put away (D5): JSON {date, ids}; only today's
+  /// date counts, so they come back with tomorrow's messages.
+  static const dismissedToday = 'today_dismissed';
 }
 
 /// Everything the user tells Tempo in onboarding and Profile.

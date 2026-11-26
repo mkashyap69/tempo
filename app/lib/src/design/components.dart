@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 
 import 'icons.dart';
@@ -1274,10 +1275,10 @@ class TempoPage extends StatelessWidget {
         bottom + (footer == null ? MediaQuery.of(context).padding.bottom : 0),
       ),
       children: [
-        for (final (i, w) in children.indexed) ...[
-          if (i > 0) SizedBox(height: gap),
-          w,
-        ],
+        // A card with nothing to say today draws nothing, and its gap goes
+        // with it, so the spacing between visible cards stays even.
+        for (final (i, w) in children.indexed)
+          GapBefore(gap: i > 0 ? gap : 0, child: w),
       ],
     );
     if (onRefresh != null) {
@@ -1530,5 +1531,49 @@ class PrivacyNote extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+/// Puts [gap] above [child], but only when the child takes up height: a
+/// widget that renders nothing (SizedBox.shrink) leaves no stray gap.
+class GapBefore extends SingleChildRenderObjectWidget {
+  const GapBefore({super.key, required this.gap, super.child});
+  final double gap;
+
+  @override
+  RenderObject createRenderObject(BuildContext context) =>
+      _RenderGapBefore(gap);
+
+  @override
+  void updateRenderObject(BuildContext context, RenderObject renderObject) =>
+      (renderObject as _RenderGapBefore).gap = gap;
+}
+
+class _RenderGapBefore extends RenderShiftedBox {
+  _RenderGapBefore(this._gap) : super(null);
+  double _gap;
+  set gap(double v) {
+    if (v == _gap) return;
+    _gap = v;
+    markNeedsLayout();
+  }
+
+  @override
+  void performLayout() {
+    final c = child;
+    if (c == null) {
+      size = constraints.smallest;
+      return;
+    }
+    final inner = constraints.maxHeight.isFinite
+        ? constraints.copyWith(
+            minHeight: 0,
+            maxHeight: (constraints.maxHeight - _gap).clamp(0, double.infinity),
+          )
+        : constraints.copyWith(minHeight: 0);
+    c.layout(inner, parentUsesSize: true);
+    final g = c.size.height > 0 ? _gap : 0.0;
+    (c.parentData! as BoxParentData).offset = Offset(0, g);
+    size = constraints.constrain(Size(c.size.width, c.size.height + g));
   }
 }

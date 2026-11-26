@@ -22,6 +22,7 @@ import 'coach.dart' show CoachTab, openCoachAt;
 import 'everyday_cards.dart';
 import 'journal.dart';
 import 'longevity.dart';
+import 'message_card.dart';
 import 'nav.dart';
 import 'recovery.dart';
 import 'sleep.dart';
@@ -282,27 +283,38 @@ class LastTimeCard extends ConsumerWidget {
     final v = ref.watch(lastTimeProvider).value;
     if (v == null) return const SizedBox.shrink();
     final (l, name) = v;
-    final c = context.c;
+    final sc0 = context.s;
     final evening = DateTime.now().hour >= 17;
-    return TempoCard(
-      label: 'Last time: $name',
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Overline(evening ? 'Tonight, last time' : 'After yesterday'),
-          const SizedBox(height: 8),
-          Text(
-            sc.lastTimeLine(l, name),
-            style: TempoType.bodyS.c(c.text1).tnum,
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'A plain before-and-after from your own nights, not adjusted for '
-            'anything else that day.',
-            style: TempoType.caption.c(c.text3),
-          ),
-        ],
-      ),
+    Marker m(String what, double d, String unit, {required bool upIsGood}) {
+      final good = (d > 0) == upIsGood;
+      final n = d.abs();
+      return (
+        glyph: d > 0 ? '▲' : '▼',
+        text:
+            '${n < 10 && unit == 'h' ? n.toStringAsFixed(1) : n.round()}$unit $what',
+        color: good ? sc0.recHigh : sc0.recLow,
+      );
+    }
+
+    return MessageCard(
+      id: 'lasttime:${l.key}',
+      icon: TempoIcons.journal,
+      color: sc0.sleepChannel,
+      overline: evening ? 'Tonight, last time' : 'After yesterday',
+      title: name,
+      body: sc.lastTimeLine(l, name),
+      markers: [
+        if (l.rhr case final d? when d.abs() >= 1)
+          m('resting HR', d, ' bpm', upIsGood: false),
+        if (l.recovery case final d? when d.abs() >= 1)
+          m('recovery', d, '', upIsGood: true),
+        if (l.slept case final d? when d.abs() >= .1)
+          m('sleep', d, 'h', upIsGood: true),
+      ],
+      footnote:
+          'Your own nights before and after, not adjusted for anything else.',
+      actionLabel: 'See your journal',
+      onAction: () => push(context, const JournalScreen(standalone: true)),
     );
   }
 }
@@ -354,7 +366,7 @@ Future<void> runInsightAction(
   }
 }
 
-/// Today's insight: one card, one action.
+/// Today's insight: one card, one action, put away with ✕ or a swipe (D5).
 class TodayInsightCard extends ConsumerWidget {
   const TodayInsightCard({super.key});
 
@@ -362,40 +374,34 @@ class TodayInsightCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final h = ref.watch(todayHighlightProvider).value;
     if (h == null) return const SizedBox.shrink();
-    final c = context.c;
-    final tag = _tagColor(context, h.kind);
-    return TempoCard(
-      label: 'Today’s insight: ${h.title}',
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              const Expanded(child: Overline('Today’s insight')),
-              TempoBadge(h.tag, color: tag),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Text(h.title, style: TempoType.titleM.c(c.text1).tnum),
-          const SizedBox(height: 4),
-          Text(h.body, style: TempoType.bodyS.c(c.text2).tnum),
-          const SizedBox(height: 14),
-          // A link, not a button: Start on the plan card is the one primary
-          // action on Today.
-          Align(
-            alignment: Alignment.centerLeft,
-            child: TempoButton(
-              '${h.actionLabel} ›',
-              small: true,
-              kind: ButtonKind.text,
-              onTap: () => runInsightAction(context, ref, h.action),
-            ),
-          ),
-        ],
-      ),
+    return MessageCard(
+      id: 'insight:${h.key}',
+      icon: insightIcon(h.kind),
+      color: _tagColor(context, h.kind),
+      overline: 'Today’s insight',
+      tag: h.tag,
+      title: h.title,
+      body: h.body,
+      actionLabel: h.actionLabel,
+      onAction: () => runInsightAction(context, ref, h.action),
     );
   }
 }
+
+/// The icon in an insight's circle.
+String insightIcon(sc.HighlightKind k) => switch (k) {
+  sc.HighlightKind.bodySignal => TempoIcons.heartRate,
+  sc.HighlightKind.sleepDebt ||
+  sc.HighlightKind.regularity ||
+  sc.HighlightKind.socialJetlag => TempoIcons.sleep,
+  sc.HighlightKind.experimentDone ||
+  sc.HighlightKind.journalImpact => TempoIcons.journal,
+  sc.HighlightKind.load => TempoIcons.load,
+  sc.HighlightKind.tempoAge => TempoIcons.longevity,
+  sc.HighlightKind.stillStretch || sc.HighlightKind.brisk => TempoIcons.steps,
+  sc.HighlightKind.personalBest => TempoIcons.trends,
+  sc.HighlightKind.strength => TempoIcons.strength,
+};
 
 /// Monday on Today: last week in review, until opened or put away.
 class WeekReviewCard extends ConsumerWidget {
