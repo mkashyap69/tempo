@@ -19,6 +19,27 @@ import '../state/live_session.dart';
 import 'activity_detail.dart' show effectProvider, EffectQuery;
 import 'strength_log.dart';
 
+/// The summary's line on how a guided session's work blocks landed. A
+/// session with no warm-up, work and cool-down (one steady block, such as
+/// an easy walk) has no work blocks to judge: it used to call
+/// `take(length - 2)` with a negative count and grey out the summary.
+@visibleForTesting
+String landedLine(LiveState s) {
+  final p = s.plan;
+  if (p == null || p.segments.length < 3) return 'Session complete.';
+  final work = [
+    for (final g in p.segments.sublist(1, p.segments.length - 1))
+      if (g.zone >= 3) g,
+  ];
+  if (work.isEmpty) return 'Session complete.';
+  final z = work.first.zone;
+  final hard = z - 1 < s.zoneSeconds.length ? s.zoneSeconds[z - 1] / 60 : 0.0;
+  final planned = work.fold(0, (a, g) => a + g.minutes);
+  return hard >= planned * .8
+      ? 'The work blocks landed in Z$z.'
+      : 'About ${hard.round()} of $planned planned minutes landed in Z$z.';
+}
+
 /// Reads at arm's length: 132 px HR, 72 px controls.
 class LiveWorkoutScreen extends ConsumerWidget {
   const LiveWorkoutScreen({super.key});
@@ -1275,7 +1296,10 @@ class _SummaryState extends ConsumerState<_Summary> {
   Widget build(BuildContext context) {
     final s = widget.s;
     final c = context.c, sc0 = context.s;
-    final zm = [for (final z in s.zoneSeconds) (z / 60).round()];
+    final zm = [
+      for (var i = 0; i < 5; i++)
+        i < s.zoneSeconds.length ? (s.zoneSeconds[i] / 60).round() : 0,
+    ];
     final effect = ref
         .watch(effectProvider(EffectQuery(s.sport?.name, s.sessionStrain)))
         .value;
@@ -1546,19 +1570,7 @@ class _SummaryState extends ConsumerState<_Summary> {
     );
   }
 
-  static String _landed(LiveState s) {
-    final p = s.plan!;
-    final work = [
-      for (final g in p.segments.skip(1).take(p.segments.length - 2))
-        if (g.zone >= 3) g,
-    ];
-    if (work.isEmpty) return 'Session complete.';
-    final hard = (s.zoneSeconds[work.first.zone - 1]) / 60;
-    final planned = work.fold(0, (a, g) => a + g.minutes);
-    return hard >= planned * .8
-        ? 'The work blocks landed in Z${work.first.zone}.'
-        : 'About ${hard.round()} of $planned planned minutes landed in Z${work.first.zone}.';
-  }
+  static String _landed(LiveState s) => landedLine(s);
 }
 
 // ---------------------------------------------------------------------------
