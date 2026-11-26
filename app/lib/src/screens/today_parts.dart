@@ -34,8 +34,13 @@ class MorningCheckIn extends ConsumerStatefulWidget {
     required this.askFeel,
     this.showDone = true,
     this.recovery,
+    this.journal = true,
   });
   final DateTime day;
+
+  /// Ask yesterday's journal questions here too. Today doesn't (0.6.1): it
+  /// asks only how you feel; the journal is under (+) → Check in.
+  final bool journal;
 
   /// This morning's recovery, for the line that answers the rating (null
   /// while learning or out of date).
@@ -66,7 +71,11 @@ class _MorningCheckInState extends ConsumerState<MorningCheckIn> {
     final j = ref.watch(journalProvider).value;
     final felt = ref.watch(feelProvider(st.dateKey(widget.day))).value;
     final c = context.c;
-    final journalOpen = j != null && !j.checkedIn && j.config.asked.isNotEmpty;
+    final journalOpen =
+        widget.journal &&
+        j != null &&
+        !j.checkedIn &&
+        j.config.asked.isNotEmpty;
     if (!widget.askFeel && !journalOpen) {
       if (!widget.showDone || felt == null && (j == null || !j.checkedIn)) {
         return const SizedBox.shrink();

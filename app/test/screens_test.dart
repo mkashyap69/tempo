@@ -825,9 +825,9 @@ void main() {
       addTearDown(() => testHour = 9);
       final db = (await t.runAsync(() => seededDb(days: 30)))!;
       await render(t, db, const TodayScreen(), h: 2600);
-      // Strain against its target lives under the rings; v3 tells the day
-      // as a short timeline under the plan.
-      expect(find.text('YOUR DAY SO FAR'), findsOneWidget);
+      // Strain against its target lives under the rings; the day-so-far
+      // timeline left Today in 0.6.1 (too crowded).
+      expect(find.text('YOUR DAY SO FAR'), findsNothing);
       expect(find.text('STRAIN'), findsOneWidget);
       expect(find.text('EFFORT'), findsNothing);
       // How you feel is a morning question; the journal can still wait.
