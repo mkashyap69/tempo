@@ -29,11 +29,12 @@ import 'coach_parts.dart'
         SlotHintCard,
         SwapNote,
         coachExtrasProvider;
-import 'goal.dart' show TodayGoalLine;
 import 'highlight.dart';
 import 'journal.dart' show journalProvider;
 import 'sleep.dart' show TonightCard;
 import 'today_parts.dart';
+import 'today_v3.dart';
+import 'day_timeline.dart';
 import 'move_skip.dart' show showMoveOrSkipSheet;
 import 'nav.dart';
 import 'notes.dart' show ReflectFollowUpCard;
@@ -47,8 +48,6 @@ import 'workout_detail.dart';
 import 'today_charts.dart';
 import 'today_more.dart';
 import 'workouts.dart';
-import 'sleep_type.dart' show SleepPlanRow;
-import 'today_tiles.dart';
 
 class TodayScreen extends ConsumerStatefulWidget {
   const TodayScreen({super.key, this.onTab});
@@ -378,7 +377,8 @@ abstract final class TodayBody {
     final checkins = ref.watch(journalProvider).value?.count ?? 0;
     final x = ref.watch(coachExtrasProvider).value;
 
-    final call = CallLine(
+    // v3: the call is a card under the rings (word, sentence, signals).
+    final call = CallCard(
       t: t,
       noData: noData,
       health: source.isHealth,
@@ -394,7 +394,6 @@ abstract final class TodayBody {
         dim: dim,
       ),
     );
-    final moment = noData || t.firstDay ? null : const MomentCard();
 
     // D4: when the planned session simply moves later today, the plan card
     // says so itself instead of a second "Still time today" card.
@@ -495,6 +494,14 @@ abstract final class TodayBody {
 
     // Rings first, then the day's one line, then the session (31 Oct
     // layout: no repeated numbers, no "Your day so far", no "Also today").
+    // v3 (canvas "Today"): rings, the call, today's move, what the coach
+    // changed, the day so far, one insight, the week. Streaks and moments,
+    // last time, tiles, the sleep plan and last night live on Health; the
+    // goal on Train.
+    final story = DaySoFarCard(
+      t: t,
+      onTimeline: () => push(context, const DayTimelineScreen()),
+    );
     final List<Widget> body;
     if (noData) {
       body = [rings, call];
@@ -514,7 +521,6 @@ abstract final class TodayBody {
             LearningCard(t: t, checkins: checkins),
             if (!t.firstDay) LessonCard(t: t),
             ?session,
-            if (!t.firstDay) LastNightStrip(t: t),
           ];
         case sc.DayPhase.rest:
           body = [
@@ -525,42 +531,20 @@ abstract final class TodayBody {
                 showDone: morning,
                 recovery: t.stale ? null : t.recovery,
               ),
-            // Evening: tonight is what's left to do; one box, not three.
-            if (evening) TonightCard(t: t),
             rings,
-            call,
+            if (evening) TonightCard(t: t) else call,
             if (!evening) ?session,
-            if (!evening) LastNightStrip(t: t),
-            // A rest day is when resting HR and HRV matter most.
-            const TodayTiles(),
+            story,
+            if (!evening) insight,
+            if (!evening) const WeekRow(),
           ];
         case sc.DayPhase.morning:
-          body = [
-            if (showGraduation) const GraduationCard(),
-            if (away != null) WelcomeBackCard(days: away),
-            if (checkIn)
-              MorningCheckIn(
-                day: t.day,
-                askFeel: askFeel,
-                showDone: morning,
-                recovery: t.stale ? null : t.recovery,
-              ),
-            rings,
-            call,
-            ?moment,
-            ?session,
-            ...coachNotes,
-            followUp,
-            insight,
-            const LastTimeCard(),
-            const TodayTiles(),
-            const SleepPlanRow(),
-            const TodayGoalLine(),
-            const WeekRow(),
-            LastNightStrip(t: t),
-          ];
         case sc.DayPhase.day:
           body = [
+            if (phase == sc.DayPhase.morning && showGraduation)
+              const GraduationCard(),
+            if (phase == sc.DayPhase.morning && away != null)
+              WelcomeBackCard(days: away),
             if (checkIn)
               MorningCheckIn(
                 day: t.day,
@@ -570,41 +554,32 @@ abstract final class TodayBody {
               ),
             rings,
             call,
-            ?moment,
             ?session,
             ...coachNotes,
             followUp,
+            story,
             insight,
-            const LastTimeCard(),
-            const TodayTiles(),
-            TonightLine(t: t),
-            const SleepPlanRow(),
-            const TodayGoalLine(),
             const WeekRow(),
           ];
         case sc.DayPhase.done:
           body = [
             rings,
             call,
-            ?moment,
             ?session,
             if (latest != null) RecoveryHrCard(workoutId: latest.id),
             ...coachNotes,
             followUp,
-            TonightLine(t: t),
+            story,
             insight,
-            const LastTimeCard(),
-            const TodayTiles(),
+            const WeekRow(),
           ];
         case sc.DayPhase.evening:
           body = [
-            TonightCard(t: t),
             rings,
-            const SleepPlanRow(),
+            TonightCard(t: t),
             if (!done) ?session,
             ...coachNotes,
-            const LastTimeCard(),
-            const TodayTiles(),
+            story,
           ];
       }
     }

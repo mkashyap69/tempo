@@ -21,6 +21,7 @@ Every change that ships in the app gets a new version, so a build on a phone can
 | --- | --- |
 | 0.0.1+1 | Everything before versioning (v2 UI) |
 | 0.3.0+2 | v3 UI: tabs Today · Train · (+) · Health · You, the call word, Body check, Plan changes with Undo, Privacy ledger, onboarding question, "If it feels wrong", after-session story, experiment suggestions; the version shown in You |
+| 0.4.0+3 | Today and Health rebuilt to the v3 canvas: rings, call card, today's move, your day so far, one insight, the week; Health opens on Body check, then moments, Tempo Age, sleep, at a glance and Discoveries, with the charts one level down under Trends |
 
 Add a row with every bump.
 

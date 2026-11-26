@@ -5,7 +5,12 @@ import 'package:scoring/scoring.dart' as sc;
 import 'package:store/store.dart' as st;
 
 import 'body_check.dart';
+import 'highlight.dart' show LastTimeCard, DiscoveriesSection;
+import 'today_tiles.dart' show TodayTiles;
+import 'sleep_type.dart' show SleepPlanRow;
+import 'today_more.dart' show MomentCard;
 import '../core/coach_service.dart';
+import '../core/today.dart' show TodayData;
 import '../core/data_source.dart';
 import '../core/body.dart' show loadWeights;
 import '../core/format.dart';
@@ -20,7 +25,6 @@ import 'baselines.dart';
 import 'calendar.dart';
 import 'coach.dart' show CardioLoadCard;
 import 'day_timeline.dart';
-import 'highlight.dart' show DiscoveriesSection;
 import 'longevity.dart' show TempoAgeSummary;
 import 'nav.dart';
 import 'night_detail.dart';
@@ -29,7 +33,7 @@ import 'sleep.dart';
 import 'strain.dart';
 import 'stress.dart';
 import 'today_charts.dart'
-    show LoadGaugeCard, WeekRecoveryStrain, ZoneDonutCard;
+    show LoadGaugeCard, WeekRecoveryStrain, ZoneDonutCard, LastNightStrip;
 import 'weekly_review.dart';
 import 'workouts.dart';
 
@@ -358,6 +362,7 @@ class _TrendsState extends ConsumerState<TrendsScreen> {
     final data = ref.watch(trendsProvider(_range)).value;
     final today = ref.watch(todayProvider).value;
     final debt = today?.debt;
+    if (widget.tab) return _health(context, today);
     return TempoPage(
       gap: 18,
       bottom: widget.tab ? 100 : 48,
@@ -383,26 +388,20 @@ class _TrendsState extends ConsumerState<TrendsScreen> {
               ),
             ),
           ),
-        if (widget.tab) ...[
-          // v3: am I healthy? Every overnight signal against your normal.
-          const BodyCheckCard(),
-          const _WeekCard(),
-          if (today != null && today.everSlept) ...[
-            WeekRecoveryStrain(t: today),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(child: ZoneDonutCard(t: today)),
-                const SizedBox(width: 10),
-                Expanded(child: LoadGaugeCard(t: today)),
-              ],
-            ),
-          ],
-          const TempoAgeSummary(),
-          const DiscoveriesSection(),
-          Text('Trends', style: TempoType.titleM.c(c.text1)),
+        // The week's bars, zones and load sit with the charts, one level
+        // under Health (v3).
+        if (today != null && today.everSlept) ...[
+          WeekRecoveryStrain(t: today),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: ZoneDonutCard(t: today)),
+              const SizedBox(width: 10),
+              Expanded(child: LoadGaugeCard(t: today)),
+            ],
+          ),
         ],
-        if (!widget.tab) const CardioLoadCard(),
+        const CardioLoadCard(),
         TempoSegmented<int>(
           values: const [7, 30, 90, 182, 365, 0],
           labels: const ['7d', '30d', '90d', '6m', '1y', 'All'],
@@ -497,6 +496,69 @@ class _TrendsState extends ConsumerState<TrendsScreen> {
 
 /// The week so far (or, on Monday, last week) in one card: opens the
 /// week in review.
+/// v3 Health tab (canvas "Health"): am I healthy, and what moves it?
+/// Body check, then Tempo Age, sleep, the numbers at a glance and what
+/// moves them; the charts are one level down.
+extension on _TrendsState {
+  Widget _health(BuildContext context, TodayData? today) {
+    final c = context.c;
+    return TempoPage(
+      gap: 18,
+      bottom: 100,
+      children: [
+        SizedBox(
+          height: 44,
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: Text('Health', style: TempoType.pageTitle.c(c.text1)),
+          ),
+        ),
+        const BodyCheckCard(),
+        const MomentCard(),
+        const TempoAgeSummary(),
+        if (today != null && today.everSlept) LastNightStrip(t: today),
+        const SleepPlanRow(),
+        const TodayTiles(),
+        const DiscoveriesSection(),
+        const LastTimeCard(),
+        const _WeekCard(),
+        Section(
+          title: 'More',
+          child: CardList(
+            children: [
+              ListRow(
+                'Trends',
+                sub: 'Every number over 7 days to a year, with your week',
+                onTap: () => push(context, const TrendsScreen()),
+              ),
+              ListRow(
+                'Workouts',
+                onTap: () => push(context, const WorkoutsScreen()),
+              ),
+              ListRow(
+                'Day timeline',
+                onTap: () => push(context, const DayTimelineScreen()),
+              ),
+              ListRow(
+                'Calendar',
+                onTap: () => push(context, const CalendarScreen()),
+              ),
+              ListRow(
+                'Baselines',
+                onTap: () => push(context, const BaselinesScreen()),
+              ),
+              ListRow(
+                'Stress',
+                onTap: () => push(context, const StressScreen()),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _WeekCard extends ConsumerWidget {
   const _WeekCard();
 

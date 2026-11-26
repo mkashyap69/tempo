@@ -204,9 +204,10 @@ void main() {
       await teardown(t, db);
     });
 
-    testWidgets('Today: at a glance, edited', (t) async {
+    testWidgets('Health: at a glance, edited', (t) async {
       final db = (await t.runAsync(() => seededDb(days: 30)))!;
-      await render(t, db, const TodayScreen(), h: 4200);
+      // v3: the tiles moved from Today to Health.
+      await render(t, db, const TrendsScreen(tab: true), h: 6000);
       expect(find.text('At a glance'), findsOneWidget);
       // Every tile by default, minus what the rings already show.
       for (final n in ['Resting HR', 'Steps', 'Brisk minutes']) {
@@ -243,13 +244,13 @@ void main() {
     });
   });
 
-  testWidgets('Today: a tile opens in place with its trend', (t) async {
+  testWidgets('Health: a tile opens in place with its trend', (t) async {
     final db = (await t.runAsync(() async {
       final d = await seededDb(days: 30);
       await d.putSetting(Keys.todayTilesAll, '1');
       return d;
     }))!;
-    await render(t, db, const TodayScreen(), h: 4200);
+    await render(t, db, const TrendsScreen(tab: true), h: 6000);
     await t.tap(find.bySemanticsLabel(RegExp(r'^Resting HR .*')).first);
     await settle(t);
     expect(find.text('How it’s worked out'), findsOneWidget);
@@ -711,11 +712,17 @@ void main() {
       expect(find.text('BODY CHECK · LAST NIGHT'), findsOneWidget);
       expect(find.text('TEMPO AGE'), findsOneWidget);
       expect(find.text('DISCOVERIES'), findsOneWidget);
-      expect(find.text('Time in zones'), findsOneWidget);
-      for (final s in ['Workouts', 'Day timeline', 'Calendar', 'Baselines']) {
+      // v3: the charts, zones and load are one level down, under Trends.
+      expect(find.text('Time in zones'), findsNothing);
+      for (final s in [
+        'Trends',
+        'Workouts',
+        'Day timeline',
+        'Calendar',
+        'Baselines',
+      ]) {
         expect(find.text(s), findsOneWidget);
       }
-      expect(find.text('Cardio load'), findsOneWidget);
       expect(find.byTooltip('Back'), findsNothing);
       await teardown(t, db);
     });
@@ -818,8 +825,9 @@ void main() {
       addTearDown(() => testHour = 9);
       final db = (await t.runAsync(() => seededDb(days: 30)))!;
       await render(t, db, const TodayScreen(), h: 2600);
-      // Strain against its target lives under the rings now.
-      expect(find.text('YOUR DAY SO FAR'), findsNothing);
+      // Strain against its target lives under the rings; v3 tells the day
+      // as a short timeline under the plan.
+      expect(find.text('YOUR DAY SO FAR'), findsOneWidget);
       expect(find.text('STRAIN'), findsOneWidget);
       expect(find.text('EFFORT'), findsNothing);
       // How you feel is a morning question; the journal can still wait.
@@ -832,12 +840,13 @@ void main() {
       addTearDown(() => testHour = 9);
       final db = (await t.runAsync(() => seededDb(days: 30)))!;
       await render(t, db, const TodayScreen(), h: 2600);
-      // The title stays "Today"; the tonight card leads, above the rings.
+      // The title stays "Today"; v3 keeps the rings on top and tonight
+      // right under them.
       expect(find.text('Today'), findsOneWidget);
       expect(find.text('TONIGHT'), findsOneWidget);
       expect(
         t.getTopLeft(find.text('TONIGHT')).dy,
-        lessThan(t.getTopLeft(find.text('RECOVERY')).dy),
+        greaterThan(t.getTopLeft(find.text('RECOVERY')).dy),
       );
       expect(find.text('YOUR DAY'), findsNothing);
       await teardown(t, db);
