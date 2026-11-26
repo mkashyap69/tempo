@@ -503,7 +503,7 @@ extension on _TrendsState {
   Widget _health(BuildContext context, TodayData? today) {
     final c = context.c;
     return TempoPage(
-      gap: 18,
+      gap: 14,
       bottom: 100,
       children: [
         SizedBox(

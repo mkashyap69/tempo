@@ -114,6 +114,7 @@ class CoachScreen extends ConsumerWidget {
     final c = context.c;
 
     return TempoPage(
+      gap: 14,
       bottom: standalone ? 48 : 100,
       children: [
         if (standalone)

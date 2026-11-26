@@ -16,6 +16,7 @@ import '../design/meter.dart';
 import '../design/tokens.dart';
 import '../design/type.dart';
 import '../state/providers.dart';
+import 'move_skip.dart' show showMoveOrSkipSheet;
 import 'nav.dart';
 import 'picks.dart' show PickDetailView;
 import 'shared.dart';
@@ -161,13 +162,28 @@ class WorkoutDetailScreen extends ConsumerWidget {
     return TempoPage(
       gap: 22,
       bottom: 24,
+      // v3 (canvas "Session"): Start, with Move or skip beside it.
       footer: p.isRest
           ? null
-          : TempoButton(
-              'Start ${p.title.toLowerCase()}',
-              icon: TempoIcons.play,
-              expand: true,
-              onTap: () => openLive(context, ref, plan: p),
+          : Row(
+              children: [
+                Expanded(
+                  child: TempoButton(
+                    'Start',
+                    icon: TempoIcons.play,
+                    expand: true,
+                    onTap: () => openLive(context, ref, plan: p),
+                  ),
+                ),
+                if (t.pause == null) ...[
+                  const SizedBox(width: 10),
+                  TempoButton(
+                    'Move or skip',
+                    kind: ButtonKind.secondary,
+                    onTap: () => showMoveOrSkipSheet(context, ref, t.day),
+                  ),
+                ],
+              ],
             ),
       children: [
         DetailHeader(
@@ -353,11 +369,6 @@ class WorkoutDetailScreen extends ConsumerWidget {
             ),
           ),
         ],
-        if (p.detail != null)
-          Section(
-            title: 'What to do',
-            child: TempoCard(child: PickDetailView(session: p)),
-          ),
         Section(
           title: 'Why this, today',
           child: CardList(
@@ -387,6 +398,11 @@ class WorkoutDetailScreen extends ConsumerWidget {
             ],
           ),
         ),
+        if (p.detail != null)
+          Section(
+            title: 'What to do',
+            child: TempoCard(child: PickDetailView(session: p)),
+          ),
         if (sc.feelsWrong(p) case final fw when fw.isNotEmpty)
           Section(
             title: 'If it feels wrong',

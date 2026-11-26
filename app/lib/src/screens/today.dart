@@ -42,12 +42,10 @@ import 'pairing.dart';
 import 'picks.dart';
 import 'recovery.dart';
 import 'shared.dart';
-import 'strain.dart';
 import 'weather_backdrop.dart';
 import 'workout_detail.dart';
 import 'today_charts.dart';
 import 'today_more.dart';
-import 'workouts.dart';
 
 class TodayScreen extends ConsumerStatefulWidget {
   const TodayScreen({super.key, this.onTab});
@@ -88,6 +86,7 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
       );
     }
     final page = TempoPage(
+      gap: 14, // v3: the canvas's tighter rhythm between cards
       bottom: 140, // clear the start button over the last row
       backdrop: const WeatherBackdrop(), // D3: nothing when weather is off
       overlay: Positioned(
@@ -664,26 +663,8 @@ abstract final class TodayBody {
       // Quiet unless several overnight signals are off together.
       BodySignalsAlert(onOpen: () => push(context, const RecoveryScreen())),
       ...body,
-      if (t.workouts.isNotEmpty && phase != sc.DayPhase.evening)
-        Section(
-          title: 'Today’s workouts',
-          trailing: Pressable(
-            label: 'All workouts',
-            onTap: () => push(context, const WorkoutsScreen()),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Text('All ›', style: TempoType.bodyS.c(c.text2)),
-            ),
-          ),
-          child: CardList(
-            children: [
-              for (final (i, w) in t.workouts.indexed) ...[
-                if (i > 0) const Hair(),
-                ActivityRow(w: w),
-              ],
-            ],
-          ),
-        ),
+      // v3: today's activities are in Your day so far; all of them are
+      // under Train → Workouts.
     ];
   }
 

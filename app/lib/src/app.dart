@@ -517,12 +517,13 @@ class _NavBar extends StatelessWidget {
                 child: Pressable(
                   label: 'Start or log',
                   onTap: onAdd,
+                  // v3: a rounded square, the one solid thing in the bar.
                   child: Container(
-                    width: 40,
-                    height: 40,
+                    width: 42,
+                    height: 42,
                     decoration: BoxDecoration(
                       color: c.text1,
-                      shape: BoxShape.circle,
+                      borderRadius: BorderRadius.circular(14),
                     ),
                     alignment: Alignment.center,
                     child: TempoIcon(

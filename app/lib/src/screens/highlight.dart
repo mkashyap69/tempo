@@ -124,6 +124,9 @@ Future<sc.HighlightFacts> highlightFacts(
     final top = list.where(
       (i) =>
           i.shown &&
+          // The card says "after you log it" and offers going without it:
+          // only habits you log, never automatic ones like Zone 2 training.
+          config.asked.any((d) => d.key == i.key) &&
           (i.confidence == sc.ImpactConfidence.high ||
               i.confidence == sc.ImpactConfidence.moderate),
     );

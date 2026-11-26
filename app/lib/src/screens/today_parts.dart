@@ -55,6 +55,10 @@ class _MorningCheckInState extends ConsumerState<MorningCheckIn> {
   final _draft = <String, bool>{};
   final _amounts = <String, double?>{};
 
+  /// v3: yesterday's questions fold into one line until opened, so the
+  /// morning card is the feel question first (canvas "Morning reveal").
+  bool _open = false;
+
   DateTime get _yesterday => widget.day.subtract(const Duration(days: 1));
 
   @override
@@ -149,62 +153,84 @@ class _MorningCheckInState extends ConsumerState<MorningCheckIn> {
               const Hair(),
             ],
             const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'Yesterday, quickly',
-                    style: TempoType.label.c(c.text1),
+            Pressable(
+              label: _open ? 'Yesterday, quickly' : 'Note yesterday',
+              onTap: () => setState(() => _open = !_open),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Yesterday, quickly',
+                          style: TempoType.label.c(c.text1),
+                        ),
+                        if (!_open)
+                          Text(
+                            [for (final d in asked.take(3)) d.name].join(', ') +
+                                (asked.length > 3 ? ' …' : ''),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TempoType.caption.c(c.text2),
+                          ),
+                      ],
+                    ),
                   ),
-                ),
-                TempoButton(
-                  'More',
-                  kind: ButtonKind.text,
-                  small: true,
-                  onTap: () =>
-                      push(context, const JournalScreen(standalone: true)),
-                ),
-              ],
-            ),
-            for (final d in asked)
-              JournalEntryRow(
-                d,
-                answer: answers[d.key],
-                amount: amounts[d.key],
-                fromHealth: false,
-                onAnswer: (v) => setState(() => _draft[d.key] = v),
-                onAmount: (v) => setState(() => _amounts[d.key] = v),
+                  if (_open)
+                    TempoButton(
+                      'More',
+                      kind: ButtonKind.text,
+                      small: true,
+                      onTap: () =>
+                          push(context, const JournalScreen(standalone: true)),
+                    )
+                  else
+                    TempoIcon(TempoIcons.down, size: 16, color: c.text3),
+                ],
               ),
-            const SizedBox(height: 12),
-            TempoButton(
-              'Save check-in',
-              expand: true,
-              onTap: !dirty
-                  ? null
-                  : () async {
-                      await saveCheckin(
-                        ref.read(dbProvider),
-                        _yesterday,
-                        j.config,
-                        answers: {
-                          for (final d in asked)
-                            if (d.kind == sc.EntryKind.yesNo &&
-                                answers[d.key] != null)
-                              d.key: answers[d.key]!,
-                        },
-                        amounts: {
-                          for (final d in asked)
-                            if (d.kind != sc.EntryKind.yesNo &&
-                                amounts.containsKey(d.key))
-                              d.key: amounts[d.key],
-                        },
-                      );
-                      setState(() {
-                        _draft.clear();
-                        _amounts.clear();
-                      });
-                    },
             ),
+            if (_open)
+              for (final d in asked)
+                JournalEntryRow(
+                  d,
+                  answer: answers[d.key],
+                  amount: amounts[d.key],
+                  fromHealth: false,
+                  onAnswer: (v) => setState(() => _draft[d.key] = v),
+                  onAmount: (v) => setState(() => _amounts[d.key] = v),
+                ),
+            if (_open) const SizedBox(height: 12),
+            if (_open)
+              TempoButton(
+                'Save check-in',
+                expand: true,
+                onTap: !dirty
+                    ? null
+                    : () async {
+                        await saveCheckin(
+                          ref.read(dbProvider),
+                          _yesterday,
+                          j.config,
+                          answers: {
+                            for (final d in asked)
+                              if (d.kind == sc.EntryKind.yesNo &&
+                                  answers[d.key] != null)
+                                d.key: answers[d.key]!,
+                          },
+                          amounts: {
+                            for (final d in asked)
+                              if (d.kind != sc.EntryKind.yesNo &&
+                                  amounts.containsKey(d.key))
+                                d.key: amounts[d.key],
+                          },
+                        );
+                        setState(() {
+                          _draft.clear();
+                          _amounts.clear();
+                        });
+                      },
+              ),
           ],
         ],
       ),
