@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:scoring/scoring.dart' as sc;
@@ -8,6 +9,7 @@ import 'package:store/store.dart';
 import 'package:tempo/src/core/coach_service.dart' show dayOf;
 import 'package:tempo/src/core/metric_info.dart';
 import 'package:tempo/src/core/net_ledger.dart';
+import 'package:tempo/src/core/profile.dart' show Keys;
 import 'package:tempo/src/core/plan_changes.dart';
 import 'package:tempo/src/core/today.dart' show sampleCall;
 import 'package:tempo/src/screens/body_check.dart';
@@ -29,12 +31,13 @@ PlanDay row(
   String? reason,
   String status = 'planned',
   String? source,
+  int stamp = 1700000000,
 }) => PlanDay(
   date: date,
   session: session,
   original: original,
   reason: reason,
-  adaptedAt: original == null ? null : 1700000000,
+  adaptedAt: original == null ? null : stamp,
   general: false,
   status: status,
   statusSource: source,
@@ -89,6 +92,101 @@ void main() {
         ]),
         isEmpty,
       );
+    });
+  });
+
+  group('undo', () {
+    final today = DateTime(2026, 11, 26);
+
+    test('days changed with one stamp are one change', () {
+      final out = planChanges([
+        row(
+          '2026-11-26',
+          session: session('easy_run'),
+          original: session('threshold_run'),
+          stamp: 5,
+        ),
+        row(
+          '2026-11-28',
+          session: session('threshold_run'),
+          original: session('easy_run'),
+          stamp: 5,
+        ),
+        row(
+          '2026-11-24',
+          session: session('easy_walk'),
+          original: session('long_run'),
+          stamp: 3,
+        ),
+      ], today: today);
+      final sat = out.firstWhere((r) => r.day.day == 28);
+      expect(sat.together, [DateTime(2026, 11, 26)]);
+      expect(sat.canUndo, isTrue);
+      expect(out.firstWhere((r) => r.day.day == 24).canUndo, isFalse);
+    });
+
+    test('a change that reaches back before today stays', () {
+      final out = planChanges([
+        row(
+          '2026-11-25',
+          session: session('easy_run'),
+          original: session('threshold_run'),
+          stamp: 7,
+        ),
+        row(
+          '2026-11-27',
+          session: session('threshold_run'),
+          original: session('easy_run'),
+          stamp: 7,
+        ),
+      ], today: today);
+      expect(out.every((r) => !r.canUndo), isTrue);
+    });
+
+    test('undo puts both days back and drops a held-back session', () async {
+      final db = TempoDb(NativeDatabase.memory());
+      addTearDown(db.close);
+      final thu = DateTime(2026, 11, 26), sat = DateTime(2026, 11, 28);
+      Future<void> put(DateTime d, String now, String first) => db.putPlanDay(
+        PlanDaysCompanion.insert(
+          date: dateKey(d),
+          session: session(now),
+          original: Value(session(first)),
+          reason: const Value('■ HRV low'),
+          adaptedAt: const Value(42),
+          general: false,
+        ),
+      );
+      await put(thu, 'easy_run', 'threshold_run');
+      await put(sat, 'threshold_run', 'easy_run');
+      await db.putSetting(Keys.carried, session('threshold_run'));
+      final days = await undoPlanChange(db, 42);
+      expect(days, [thu, sat]);
+      final rows = await db.planBetween(thu, sat);
+      expect(rows.first.session, session('threshold_run'));
+      expect(rows.first.original, isNull);
+      expect(rows.first.reason, isNull);
+      expect(rows.last.session, session('easy_run'));
+      expect(await db.setting(Keys.carried), '');
+      expect(planChanges(rows, today: thu), isEmpty);
+    });
+
+    test('a skipped day can be planned again', () async {
+      final db = TempoDb(NativeDatabase.memory());
+      addTearDown(db.close);
+      final thu = DateTime(2026, 11, 26);
+      await db.putPlanDay(
+        PlanDaysCompanion.insert(
+          date: dateKey(thu),
+          session: session('easy_run'),
+          general: false,
+        ),
+      );
+      await db.setPlanIntent(thu, 'skipped', source: 'user');
+      final before = planChanges(await db.planBetween(thu, thu), today: thu);
+      expect(before.single.canUndo, isTrue);
+      await undoSkip(db, thu);
+      expect(planChanges(await db.planBetween(thu, thu), today: thu), isEmpty);
     });
   });
 

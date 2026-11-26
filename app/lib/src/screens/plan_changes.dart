@@ -18,7 +18,7 @@ final planChangesProvider = FutureProvider<List<PlanChangeRow>>((ref) async {
     today.subtract(const Duration(days: 28)),
     today.add(const Duration(days: 7)),
   );
-  return planChanges(rows);
+  return planChanges(rows, today: today);
 });
 
 /// v3 Plan changes: what the coach (or you) changed, and why.
@@ -33,7 +33,7 @@ class PlanChangesScreen extends ConsumerWidget {
       children: [
         const DetailHeader(title: 'Plan changes'),
         Text(
-          'Every day that differs from what was first planned, with the reason. Move a day back to its first slot to clear the change.',
+          'Every day that differs from what was first planned, with the reason. Undo puts every day of a change back to its first plan.',
           style: TempoType.bodyS.c(c.text2),
         ),
         if (rows == null)
@@ -49,14 +49,15 @@ class PlanChangesScreen extends ConsumerWidget {
   }
 }
 
-class PlanChangeTile extends StatelessWidget {
+class PlanChangeTile extends ConsumerWidget {
   const PlanChangeTile(this.r, {super.key});
   final PlanChangeRow r;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final c = context.c, s = context.s;
     final who = r.by == ChangeBy.coach ? 'Coach' : 'You';
+    final undo = r.canUndo && (r.stamp != null || r.skipped);
     return TempoCard(
       label: '${dayShort(r.day)}: ${r.why}',
       child: Column(
@@ -98,6 +99,42 @@ class PlanChangeTile extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(r.why, style: TempoType.bodyS.c(c.text2)),
+          if (r.together.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              'Changed together with ${r.together.map(dayShort).join(', ')}.',
+              style: TempoType.caption.c(c.text3),
+            ),
+          ],
+          if (undo) ...[
+            const SizedBox(height: 10),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TempoButton(
+                r.skipped && r.stamp == null ? 'Plan it again' : 'Undo',
+                small: true,
+                fontSize: 14,
+                kind: ButtonKind.secondary,
+                onTap: () async {
+                  final db = ref.read(dbProvider);
+                  final List<DateTime> days;
+                  if (r.stamp != null) {
+                    days = await undoPlanChange(db, r.stamp!);
+                  } else {
+                    await undoSkip(db, r.day);
+                    days = [r.day];
+                  }
+                  ref.invalidate(todayProvider);
+                  if (context.mounted) {
+                    showTempoToast(
+                      context,
+                      'Back to the first plan: ${days.map(dayShort).join(', ')}',
+                    );
+                  }
+                },
+              ),
+            ),
+          ],
         ],
       ),
     );
