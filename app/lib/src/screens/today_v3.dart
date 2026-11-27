@@ -290,3 +290,66 @@ class DaySoFarCard extends StatelessWidget {
     );
   }
 }
+
+/// What Today's Next up card is built from.
+sc.NextUp? nextUpFor(TodayData t, DateTime now) {
+  final p = t.plan;
+  final planOpen =
+      p != null &&
+      !p.isRest &&
+      (t.status == sc.DayStatus.pending ||
+          t.status == sc.DayStatus.moved ||
+          t.status == sc.DayStatus.missedSlot);
+  final likes = t.profile.likes;
+  return sc.nextUp(
+    nowMinute: now.hour * 60 + now.minute,
+    bedtimeMinute: t.bedtimeMinute,
+    bedtime: clock12(t.bedtimeMinute),
+    strain: t.strain,
+    target: t.target,
+    planOpen: planOpen,
+    hrRest: t.rhrBase?.mean ?? 60,
+    hrMax: t.profile.effectiveMaxHr.toDouble(),
+    likes: likes.contains(sc.Sport.cycling) && !likes.contains(sc.Sport.running)
+        ? sc.Sport.cycling
+        : sc.Sport.running,
+    needHours: t.needTonight > 0 ? t.needTonight : null,
+    forecast: t.forecast,
+  );
+}
+
+/// v3 Today (0.7.0): one card under the plan that changes with the day.
+/// Before mid-afternoon, the effort today has left and what would fill it;
+/// after, tonight's bedtime and what tomorrow looks like. Nothing when
+/// there's nothing to say.
+class NextUpCard extends StatelessWidget {
+  const NextUpCard({super.key, required this.t, this.onTap});
+  final TodayData t;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final n = nextUpFor(t, appNow());
+    if (n == null) return const SizedBox.shrink();
+    final c = context.c, s = context.s;
+    final tone = n.kind == sc.NextUpKind.room ? s.strain[2] : s.sleepChannel;
+    return TempoCard(
+      key: const ValueKey('next-up'),
+      label: n.title,
+      onTap: onTap,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Overline(
+            n.kind == sc.NextUpKind.room ? 'Room today' : 'Tonight',
+            color: tone,
+          ),
+          const SizedBox(height: 8),
+          Text(n.title, style: TempoType.titleM.c(c.text1)),
+          const SizedBox(height: 4),
+          Text(n.body, style: TempoType.bodyS.c(c.text2)),
+        ],
+      ),
+    );
+  }
+}

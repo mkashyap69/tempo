@@ -394,4 +394,24 @@ void main() {
     expect(find.textContaining('So far: too early to tell'), findsOneWidget);
     await teardown(t, db);
   });
+
+  testWidgets('Next up turns to tonight in the afternoon', (t) async {
+    testHour = 16;
+    addTearDown(() => testHour = 9);
+    final db = (await t.runAsync(() => seededDb(days: 30)))!;
+    await render(t, db, const TodayScreen(), h: 3000);
+    expect(find.byKey(const ValueKey('next-up')), findsOneWidget);
+    expect(find.textContaining('Lights out by'), findsWidgets);
+    expect(find.text('YOUR DAY SO FAR'), findsNothing);
+    await teardown(t, db);
+  });
+
+  testWidgets('Next up stays out of the evening', (t) async {
+    testHour = 22;
+    addTearDown(() => testHour = 9);
+    final db = (await t.runAsync(() => seededDb(days: 30)))!;
+    await render(t, db, const TodayScreen(), h: 3000);
+    expect(find.byKey(const ValueKey('next-up')), findsNothing);
+    await teardown(t, db);
+  });
 }

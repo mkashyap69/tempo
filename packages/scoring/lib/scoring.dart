@@ -44,6 +44,7 @@ export 'src/sleep_plan.dart';
 export 'src/sleep_stages.dart';
 export 'src/strain.dart';
 export 'src/feels_wrong.dart';
+export 'src/next_up.dart';
 export 'src/strength.dart';
 export 'src/stress_day.dart';
 export 'src/types.dart';

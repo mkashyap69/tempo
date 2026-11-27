@@ -31,7 +31,8 @@ import 'coach_parts.dart'
         coachExtrasProvider;
 import 'highlight.dart';
 import 'journal.dart' show journalProvider;
-import 'sleep.dart' show TonightCard;
+import 'sleep.dart' show SleepScreen, TonightCard;
+import 'strain.dart' show StrainScreen;
 import 'today_parts.dart';
 import 'today_v3.dart';
 import 'move_skip.dart' show showMoveOrSkipSheet;
@@ -498,6 +499,17 @@ abstract final class TodayBody {
     // journal is under (+) → Check in. Streaks and moments,
     // last time, tiles, the sleep plan and last night live on Health; the
     // goal on Train.
+    // 0.7.0: where Your day so far was, one card that changes with the
+    // day: effort left (taps through to Strain), then tonight (to Sleep).
+    final nextUp = NextUpCard(
+      t: t,
+      onTap: () => push(
+        context,
+        now.hour * 60 + now.minute >= sc.nextUpTonightFrom
+            ? const SleepScreen()
+            : const StrainScreen(),
+      ),
+    );
     final List<Widget> body;
     if (noData) {
       body = [rings, call];
@@ -532,6 +544,7 @@ abstract final class TodayBody {
             rings,
             if (evening) TonightCard(t: t) else call,
             if (!evening) ?session,
+            if (!evening) nextUp,
             if (!evening) insight,
             if (!evening) const WeekRow(),
           ];
@@ -555,6 +568,7 @@ abstract final class TodayBody {
             ?session,
             ...coachNotes,
             followUp,
+            nextUp,
             insight,
             const WeekRow(),
           ];
@@ -566,6 +580,7 @@ abstract final class TodayBody {
             if (latest != null) RecoveryHrCard(workoutId: latest.id),
             ...coachNotes,
             followUp,
+            nextUp,
             insight,
             const WeekRow(),
           ];
