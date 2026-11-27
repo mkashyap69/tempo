@@ -1,0 +1,32 @@
+{
+  "name": "tempo-backend",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Tempo's Cloud Run api and workers: billing, entitlements, events, feedback, account deletion (docs/research/Backend plan.md).",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@apple/app-store-server-library": "^1.5.0",
+    "express": "^4.21.2",
+    "firebase-admin": "^13.4.0",
+    "google-auth-library": "^9.15.1",
+    "googleapis": "^148.0.0",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^22.15.3",
+    "@types/supertest": "^6.0.3",
+    "supertest": "^7.1.0",
+    "typescript": "^5.8.3",
+    "vitest": "^3.1.1"
+  }
+}

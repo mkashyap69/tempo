@@ -15,6 +15,7 @@ import '../design/icons.dart';
 import '../design/tokens.dart';
 import '../design/type.dart';
 import '../state/providers.dart';
+import '../billing/pro.dart';
 
 /// The coach's blue label, on everything the coach says (v3).
 class CoachLabel extends StatelessWidget {
@@ -67,6 +68,8 @@ class QuickReplyRow extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Coach behaviour is Tempo Pro (launch plan §3).
+    if (!ref.watch(proProvider)) return const SizedBox.shrink();
     final plan = openPlan(t);
     if (plan == null) return const SizedBox.shrink();
     final c = context.c;
@@ -297,6 +300,8 @@ class CoachSuggestCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Coach behaviour is Tempo Pro (launch plan §3).
+    if (!ref.watch(proProvider)) return const SizedBox.shrink();
     final p = Proposal.parse(ref.watch(settingProvider(proposalKey)).value);
     if (p == null || p.changes.isEmpty) return const SizedBox.shrink();
     final c = context.c, s = context.s;

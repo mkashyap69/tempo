@@ -4,6 +4,8 @@ import 'dart:ui' show Color;
 
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 
+import 'build_info.dart';
+
 /// Tempo's accent on notifications (the strain orange of the app and the
 /// widgets).
 const tempoAccent = Color(0xFFFFB066);
@@ -49,6 +51,8 @@ abstract final class BackgroundGuard {
     bool band = true,
     bool location = false,
   }) async {
+    // Store builds declare no connectedDevice service type (L-O5).
+    band = band && BuildInfo.bandAllowed;
     if (!Platform.isAndroid || !(band || location)) return false;
     try {
       _init();
@@ -103,10 +107,17 @@ abstract final class BackgroundGuard {
     }
   }
 
-  /// Shows the system "allow background activity" prompt.
+  /// Shows the system "allow background activity" prompt. Store builds
+  /// don't declare REQUEST_IGNORE_BATTERY_OPTIMIZATIONS (Play restricts it),
+  /// so they open the battery-optimisation settings list instead, where the
+  /// user picks Tempo. Returns whether Tempo is exempt afterwards.
   static Future<bool> requestBatteryExemption() async {
     if (!Platform.isAndroid) return true;
     try {
+      if (!BuildInfo.restrictedAndroidPermissions) {
+        await FlutterForegroundTask.openIgnoreBatteryOptimizationSettings();
+        return await FlutterForegroundTask.isIgnoringBatteryOptimizations;
+      }
       return await FlutterForegroundTask.requestIgnoreBatteryOptimization();
     } catch (_) {
       return false;

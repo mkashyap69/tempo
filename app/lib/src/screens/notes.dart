@@ -13,6 +13,7 @@ import '../design/tokens.dart';
 import '../design/type.dart';
 import '../state/providers.dart';
 import 'week_template.dart' show pickLimit;
+import '../billing/pro.dart';
 
 /// One note (D3): routine, exercise or session.
 final noteProvider = FutureProvider.family<String?, (NoteScope, String)>((
@@ -229,6 +230,8 @@ class ReflectFollowUpCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Coach behaviour is Tempo Pro (launch plan §3).
+    if (!ref.watch(proProvider)) return const SizedBox.shrink();
     final call = ref.watch(reflectCallProvider).value;
     if (call == null) return const SizedBox.shrink();
     final c = context.c;

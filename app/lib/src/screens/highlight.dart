@@ -29,6 +29,8 @@ import 'sleep.dart';
 import 'strain.dart';
 import 'strength_log.dart';
 import 'weekly_review.dart';
+import '../billing/pro.dart';
+import 'paywall.dart';
 
 /// One shown insight as kept in [Keys.highlightLog]: kind, key, day and
 /// title, and (from the archive, 24 Nov) its text, tag and action so the
@@ -459,6 +461,13 @@ class DiscoveriesSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    if (!ref.watch(proProvider)) {
+      return const ProLock(
+        title: 'Discoveries',
+        body: 'Which of your habits move your recovery and sleep, by how much, and how sure Tempo is.',
+        entry: PaywallEntry.other,
+      );
+    }
     final impacts = ref.watch(impactsProvider(sc.Outcome.recovery)).value;
     final j = ref.watch(journalProvider).value;
     final log = ref.watch(_logProvider).value ?? const [];

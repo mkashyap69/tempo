@@ -12,5 +12,14 @@
 	<true/>
 	<key>com.apple.developer.healthkit.access</key>
 	<array/>
+	<!-- Optional account (L-O1): Sign in with Apple, required on iOS
+	     whenever Google sign-in is offered (guideline 4.8). -->
+	<key>com.apple.developer.applesignin</key>
+	<array>
+		<string>Default</string>
+	</array>
+	<!-- App Check (App Attest) on calls to the backend. -->
+	<key>com.apple.developer.devicecheck.appattest-environment</key>
+	<string>production</string>
 </dict>
 </plist>

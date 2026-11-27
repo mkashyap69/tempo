@@ -9,6 +9,8 @@ abstract final class Keys {
   static const profile = 'profile_v2';
   static const legacyProfile = 'profile';
   static const onboarded = 'onboarded';
+  // Pro, as the backend last said (billing/entitlement.dart); device-local.
+  static const proEntitlement = 'pro_entitlement';
   static const theme = 'theme'; // system | dark | light
   static const morningCall = 'morning_call'; // HH:mm or off
   static const bedtimeNudge = 'bedtime_nudge'; // minutes before, or off

@@ -30,6 +30,7 @@ Every change that ships in the app gets a new version, so a build on a phone can
 | 0.9.0+9 | The coach asks before changing the plan: Coach suggests on Today with Accept / Keep my plan; unanswered, it applies at its deadline |
 | 0.10.0+10 | The coach replies after a session: rate the effort and it answers, with what it will do next |
 | 0.11.0+11 | Plan next week with me: busy days and the long day for next week only, with a live preview; on Train from Friday and on Today on Sundays |
+| 0.12.0+12 | Launch work merged onto v3: store builds (`TEMPO_STORE`), the optional account (Firebase), Pro purchases verified by the backend, the paywall, You → Account, and Pro locks on Train, the coach on Today (session, suggestions, quick replies, follow-ups, plan next week, the reply after a session), Health's Discoveries, long Trends, Tempo Age, the sleep plan, cardio load, the week story, strength progression and coach notifications |
 
 Add a row with every bump.
 

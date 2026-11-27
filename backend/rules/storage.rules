@@ -1,0 +1,19 @@
+rules_version = '2';
+// gs://<project>-sync: encrypted segments only, under the owner's prefix
+// (Backend plan → Cloud Storage). App Check is enforced in the console.
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /u/{uid}/d/{device}/{file} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow create, update: if request.auth != null && request.auth.uid == uid
+        && file.matches('^[0-9]{10}[.]seg$')
+        && request.resource.size > 0 && request.resource.size < 8 * 1024 * 1024
+        && request.resource.contentType == 'application/octet-stream';
+      // Compaction replaces small segments with one; versioning keeps the old for 30 days.
+      allow delete: if request.auth != null && request.auth.uid == uid;
+    }
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

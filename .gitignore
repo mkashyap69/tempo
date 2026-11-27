@@ -17,3 +17,4 @@ pubspec.lock
 .venv/
 __pycache__/
 *.pyc
+!.env.store.example

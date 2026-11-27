@@ -1217,6 +1217,13 @@ void main() {
         await loadToday(db, at: today.add(const Duration(hours: 11))),
       );
       expect(w['session_level'], 'done');
+      // Free: the widget points to Pro instead of showing the plan.
+      w = sessionWidgetData(
+        await loadToday(db, at: today.add(const Duration(hours: 6))),
+        pro: false,
+      );
+      expect(w['session_title'], 'Your plan');
+      expect(w['session_level'], 'rest');
     });
 
     test('afterSync adapts, refreshes widgets and reschedules', () async {

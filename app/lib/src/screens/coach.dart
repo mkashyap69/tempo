@@ -28,6 +28,8 @@ import 'shared.dart';
 import 'weekly_plan.dart';
 import 'weekly_review.dart';
 import 'workouts.dart';
+import '../billing/pro.dart';
+import 'paywall.dart';
 
 /// The current week: plan rows and actual strain per day.
 class WeekView {
@@ -238,6 +240,13 @@ class CardioLoadCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    if (!ref.watch(proProvider)) {
+      return const ProLock(
+        title: 'Cardio load',
+        body: 'Fitness against fatigue over six weeks: whether you’re building, holding or overreaching.',
+        entry: PaywallEntry.trends,
+      );
+    }
     final t = ref.watch(todayProvider).value;
     if (t == null) return const SizedBox.shrink();
     final x = ref.watch(coachExtrasProvider).value;

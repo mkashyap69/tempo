@@ -13,6 +13,8 @@ import '../design/type.dart';
 import 'coach_parts.dart' show statusColor, statusGlyph;
 import 'weekly_report.dart';
 import 'weekly_review.dart' show weekReviewProvider;
+import '../billing/pro.dart';
+import 'paywall.dart';
 
 /// Week in review as four pages you tap through: the sessions, recovery
 /// and sleep, the effort, and what's next. The scrolling review stays
@@ -42,6 +44,15 @@ class _WeekStoryState extends ConsumerState<WeekStoryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (!ref.watch(proProvider)) {
+      return const ProGate(
+        title: 'Week story',
+        lockTitle: 'Your week, as a story',
+        body: 'Four pages on the week: what you did, how your body answered, what worked and what’s next. The short weekly report stays free.',
+        entry: PaywallEntry.weekReview,
+        child: SizedBox.shrink(),
+      );
+    }
     final key = st.dateKey(widget.monday);
     final r = ref.watch(weekReviewProvider(key)).value;
     final report = ref.watch(weekReportProvider(key)).value;

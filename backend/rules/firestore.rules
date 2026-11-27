@@ -1,0 +1,52 @@
+rules_version = '2';
+// Backend plan → Data model. The app reads its own account docs and writes
+// only its device and sync manifest; everything else goes through `api`
+// (Admin SDK, which these rules don't apply to). App Check is enforced for
+// Firestore in the Firebase console. No health data is ever stored here.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    match /users/{uid} {
+      allow read: if signedIn(uid);
+    }
+
+    match /entitlements/{uid} {
+      allow read: if signedIn(uid);
+    }
+
+    // devices/{uid}/items/{deviceId}
+    match /devices/{uid}/items/{deviceId} {
+      allow read: if signedIn(uid);
+      allow create, update: if signedIn(uid)
+        && request.resource.data.keys().hasOnly(['platform', 'appVersion', 'source', 'lastSeen', 'cursors'])
+        && request.resource.data.platform in ['ios', 'android']
+        && request.resource.data.appVersion is string && request.resource.data.appVersion.size() <= 32
+        && request.resource.data.source in ['apple_health', 'health_connect', 'band']
+        && request.resource.data.lastSeen is timestamp
+        && (!('cursors' in request.resource.data) || request.resource.data.cursors is map);
+      allow delete: if signedIn(uid);
+    }
+
+    // sync_manifests/{uid}: key version, the recovery-wrapped data key
+    // (ciphertext; the server can't open it) and per-device segment counts.
+    match /sync_manifests/{uid} {
+      allow read: if signedIn(uid);
+      allow create, update: if signedIn(uid)
+        && request.resource.data.keys().hasOnly(['keyVersion', 'wrapped', 'devices', 'updatedAt'])
+        && request.resource.data.keyVersion is int && request.resource.data.keyVersion >= 1
+        && request.resource.data.wrapped is map
+        && request.resource.data.wrapped.keys().hasOnly(['recovery'])
+        && request.resource.data.devices is map
+        && request.resource.data.updatedAt is timestamp
+        // The key version only moves forward.
+        && (resource == null || request.resource.data.keyVersion >= resource.data.keyVersion);
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

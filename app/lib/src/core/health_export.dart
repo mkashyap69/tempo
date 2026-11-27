@@ -4,6 +4,7 @@ import 'package:health/health.dart';
 import 'package:scoring/scoring.dart' as sc;
 import 'package:store/store.dart';
 
+import 'build_info.dart';
 import 'data_source.dart';
 import 'minutes.dart';
 import 'profile.dart' show Keys;
@@ -22,15 +23,19 @@ class HealthExport {
   Health? _health;
   Health get _h => _health ??= Health();
 
+  /// Sleep is written only for band nights, so store builds (no band, no
+  /// WRITE_SLEEP on Android) ask for workouts alone.
   static List<HealthDataType> get types => [
     HealthDataType.WORKOUT,
-    Platform.isAndroid
-        ? HealthDataType.SLEEP_SESSION
-        : HealthDataType.SLEEP_IN_BED,
-    HealthDataType.SLEEP_LIGHT,
-    HealthDataType.SLEEP_DEEP,
-    HealthDataType.SLEEP_REM,
-    HealthDataType.SLEEP_AWAKE,
+    if (BuildInfo.bandAllowed) ...[
+      Platform.isAndroid
+          ? HealthDataType.SLEEP_SESSION
+          : HealthDataType.SLEEP_IN_BED,
+      HealthDataType.SLEEP_LIGHT,
+      HealthDataType.SLEEP_DEEP,
+      HealthDataType.SLEEP_REM,
+      HealthDataType.SLEEP_AWAKE,
+    ],
   ];
 
   Future<bool> get enabled async => await db.setting(Keys.healthExport) == '1';

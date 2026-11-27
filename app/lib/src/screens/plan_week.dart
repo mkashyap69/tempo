@@ -10,6 +10,7 @@ import '../design/tokens.dart';
 import '../design/type.dart';
 import '../state/providers.dart';
 import 'coach_replies.dart' show CoachLabel;
+import '../billing/pro.dart';
 
 const _names = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
@@ -30,6 +31,8 @@ class PlanNextWeekCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Coach behaviour is Tempo Pro (launch plan §3).
+    if (!ref.watch(proProvider)) return const SizedBox.shrink();
     if (DateTime.now().weekday < from) return const SizedBox.shrink();
     final c = context.c;
     final done = ref.watch(_nextOverrideProvider).value != null;

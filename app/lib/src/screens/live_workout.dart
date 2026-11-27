@@ -23,6 +23,7 @@ import '../state/providers.dart';
 import 'activity_detail.dart' show effectProvider, EffectQuery;
 import 'coach_replies.dart' show CoachLabel;
 import 'strength_log.dart';
+import '../billing/pro.dart';
 
 /// The summary's line on how a guided session's work blocks landed. A
 /// session with no warm-up, work and cool-down (one steady block, such as
@@ -2817,6 +2818,8 @@ class _CoachReplyCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Coach behaviour is Tempo Pro (launch plan §3).
+    if (!ref.watch(proProvider)) return const SizedBox.shrink();
     final c = context.c, sc0 = context.s;
     final trend = ref.watch(_effortProvider).value ?? sc.Effort.unknown;
     final planned = s.plan?.intensity ?? sc.intensityForStrain(s.sessionStrain);
