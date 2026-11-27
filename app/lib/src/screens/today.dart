@@ -35,6 +35,7 @@ import 'sleep.dart' show SleepScreen, TonightCard;
 import 'strain.dart' show StrainScreen;
 import 'today_parts.dart';
 import 'today_v3.dart';
+import 'coach_replies.dart' show CoachSuggestCard;
 import 'move_skip.dart' show showMoveOrSkipSheet;
 import 'nav.dart';
 import 'notes.dart' show ReflectFollowUpCard;
@@ -543,6 +544,7 @@ abstract final class TodayBody {
               ),
             rings,
             if (evening) TonightCard(t: t) else call,
+            if (!evening) const CoachSuggestCard(),
             if (!evening) ?session,
             if (!evening) nextUp,
             if (!evening) insight,
@@ -565,6 +567,7 @@ abstract final class TodayBody {
               ),
             rings,
             call,
+            const CoachSuggestCard(),
             ?session,
             ...coachNotes,
             followUp,
@@ -576,6 +579,7 @@ abstract final class TodayBody {
           body = [
             rings,
             call,
+            const CoachSuggestCard(),
             ?session,
             if (latest != null) RecoveryHrCard(workoutId: latest.id),
             ...coachNotes,

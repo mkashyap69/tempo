@@ -11,6 +11,7 @@ import 'data_source.dart';
 import 'everyday.dart' show bodyConfoundersFor;
 import 'longevity_service.dart' show loadFocus;
 import 'pause.dart';
+import 'coach_proposal.dart';
 import 'profile.dart';
 import 'score_service.dart' show hrIntervalKey;
 
@@ -431,6 +432,8 @@ class CoachService {
   Future<List<sc.PlanChange>> adaptToday() async {
     final today = dayOf(DateTime.now());
     final key = st.dateKey(today);
+    // 0.9.0: an unanswered suggestion applies itself at its deadline.
+    await resolveProposal(db, DateTime.now());
     if (await db.setting(Keys.planAdapted) == key) return const [];
     if (isPaused(await loadPauses(db), today)) return const [];
     final score = await db.scoreFor(today);
@@ -456,26 +459,38 @@ class CoachService {
       available: profile.days,
       effort: await effort(today),
     );
-    final now = st.toTs(DateTime.now());
-    for (final ch in a.changes) {
-      final d = mondayOf(today).add(Duration(days: ch.dayIndex));
-      final prev = rows[ch.dayIndex];
-      await db.putPlanDay(
-        st.PlanDaysCompanion.insert(
-          date: st.dateKey(d),
-          session: jsonEncode(ch.to.toJson()),
-          original: Value(prev.original ?? prev.session),
-          reason: Value('${_glyph(ch.state)} ${ch.reason}'),
-          adaptedAt: Value(now),
-          general: prev.general,
-          algoVersion: const Value(sc.coachDayAlgo),
-        ),
+    final carriedJson = a.carried == null
+        ? ''
+        : jsonEncode(a.carried!.toJson());
+    if (a.changes.isEmpty) {
+      await db.putSetting(Keys.carried, carriedJson);
+    } else {
+      // 0.9.0: the coach asks first. Today shows the changes with Accept
+      // and Keep my plan; unanswered, they apply at the deadline.
+      final now = DateTime.now();
+      await db.putSetting(
+        proposalKey,
+        Proposal(
+          day: key,
+          deadline: proposalDeadline(
+            nowMinute: now.hour * 60 + now.minute,
+            plannedMinute: rows[today.weekday - 1].plannedMinute,
+          ),
+          carried: carriedJson,
+          changes: [
+            for (final ch in a.changes)
+              ProposalChange(
+                date: st.dateKey(
+                  mondayOf(today).add(Duration(days: ch.dayIndex)),
+                ),
+                from: rows[ch.dayIndex].session,
+                to: jsonEncode(ch.to.toJson()),
+                reason: '${_glyph(ch.state)} ${ch.reason}',
+              ),
+          ],
+        ).toJson(),
       );
     }
-    await db.putSetting(
-      Keys.carried,
-      a.carried == null ? '' : jsonEncode(a.carried!.toJson()),
-    );
     await db.putSetting(Keys.planAdapted, key);
     return a.changes;
   }

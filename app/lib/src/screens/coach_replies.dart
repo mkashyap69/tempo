@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:scoring/scoring.dart' as sc;
 
+import '../core/coach_proposal.dart';
 import '../core/coach_service.dart';
+import '../core/format.dart' show clock12;
 import '../core/plan_changes.dart' show undoPlanChange;
 import '../core/profile.dart' show Keys;
 import '../core/today.dart';
@@ -283,4 +285,147 @@ Future<int?> _apply(WidgetRef ref, sc.Session plan, sc.ReplyOffer o) async {
   final row = await db.planDay(dayOf(DateTime.now()));
   ref.invalidate(todayProvider);
   return row?.adaptedAt;
+}
+
+const _days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+/// v3 interactive coach 2 (0.9.0): what the morning adaptation would change,
+/// asked first. Accept writes it (Undo in the toast and Plan changes);
+/// Keep my plan drops it; unanswered, it applies at its deadline.
+class CoachSuggestCard extends ConsumerWidget {
+  const CoachSuggestCard({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final p = Proposal.parse(ref.watch(settingProvider(proposalKey)).value);
+    if (p == null || p.changes.isEmpty) return const SizedBox.shrink();
+    final c = context.c, s = context.s;
+    final one = p.changes.length == 1 ? p.changes.first : null;
+    String day(String date) => _days[DateTime.parse(date).weekday - 1];
+    return Container(
+      key: const ValueKey('coach-suggests'),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: c.surface1,
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          stops: const [0, .7],
+          colors: [
+            Color.alphaBlend(s.loadBuilding.withValues(alpha: .10), c.surface1),
+            c.surface1,
+          ],
+        ),
+        borderRadius: BorderRadius.circular(TempoRadii.lg),
+        border: Border.all(color: s.loadBuilding.withValues(alpha: .5)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              const Expanded(child: CoachLabel('Coach suggests')),
+              Text(
+                'applies at ${clock12(p.deadline)}',
+                style: TempoType.caption.c(c.text3),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            one != null
+                ? 'Swap ${day(one.date)}’s ${one.fromTitle.toLowerCase()} for ${one.toTitle.toLowerCase()}.'
+                : 'A change to ${p.changes.length} days this week.',
+            style: TempoType.titleM.c(c.text1),
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: c.surface2,
+              borderRadius: BorderRadius.circular(TempoRadii.md),
+            ),
+            child: Column(
+              children: [
+                for (final ch in p.changes)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 5),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SizedBox(
+                          width: 36,
+                          child: Text(
+                            day(ch.date),
+                            style: TempoType.bodyS.c(c.text2),
+                          ),
+                        ),
+                        Expanded(
+                          child: Text(
+                            ch.fromTitle,
+                            style: TempoType.bodyS.copyWith(
+                              color: c.text3,
+                              decoration: TextDecoration.lineThrough,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            ch.toTitle,
+                            style: TempoType.bodyS.c(s.loadBuilding),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text('Why: ${p.why}', style: TempoType.bodyS.c(c.text2)),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: TempoButton(
+                  'Accept',
+                  expand: true,
+                  onTap: () async {
+                    final db = ref.read(dbProvider);
+                    final stamp = await acceptProposal(db, p);
+                    ref.invalidate(todayProvider);
+                    if (!context.mounted) return;
+                    showTempoToast(
+                      context,
+                      'Plan changed',
+                      action: 'Undo',
+                      onAction: () async {
+                        await undoPlanChange(db, stamp);
+                        ref.invalidate(todayProvider);
+                      },
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: TempoButton(
+                  'Keep my plan',
+                  kind: ButtonKind.secondary,
+                  expand: true,
+                  onTap: () async {
+                    await declineProposal(ref.read(dbProvider));
+                    if (context.mounted) {
+                      showTempoToast(context, 'Kept your plan');
+                    }
+                  },
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 }
