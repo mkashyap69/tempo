@@ -1,8 +1,8 @@
 /// The app's version, shown at the bottom of You so a build can be told
 /// apart at a glance. Must match `version:` in app/pubspec.yaml (a test
 /// checks); bump both with every change (AGENTS.md → Versioning).
-const appVersion = '0.10.0';
-const appBuild = 10;
+const appVersion = '0.11.0';
+const appBuild = 11;
 
 /// What this version line of the UI is called.
 const appUiLabel = 'v3 UI';

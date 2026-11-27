@@ -23,6 +23,7 @@ import 'nav.dart';
 import 'plan_changes.dart';
 import 'plan_parts.dart';
 import 'train_v3.dart';
+import 'plan_week.dart';
 import 'shared.dart';
 import 'weekly_plan.dart';
 import 'weekly_review.dart';
@@ -150,6 +151,7 @@ class CoachScreen extends ConsumerWidget {
         // fitness and the rest.
         PlanDaysSection(t),
         PlanWeekCard(t),
+        const PlanNextWeekCard(),
         const PlanChangesSummary(),
         const PlanGoalCard(),
         const FreshnessMini(),

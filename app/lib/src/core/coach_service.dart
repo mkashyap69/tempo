@@ -12,6 +12,7 @@ import 'everyday.dart' show bodyConfoundersFor;
 import 'longevity_service.dart' show loadFocus;
 import 'pause.dart';
 import 'coach_proposal.dart';
+import 'week_override.dart';
 import 'profile.dart';
 import 'score_service.dart' show hrIntervalKey;
 
@@ -92,32 +93,10 @@ class CoachService {
     final sun = mon.add(const Duration(days: 6));
     final existing = await db.planBetween(mon, sun);
     if (existing.length == 7 && !rebuild) return existing;
-    final profile = await loadAppProfile(db) ?? const Profile();
-    final latest = await db.scoresBefore(
-      dayOf(day).add(const Duration(days: 1)),
-      limit: 1,
+    final (week, general, block) = await buildWeek(
+      mon,
+      override: await loadWeekOverride(db, mon),
     );
-    final general = latest.isEmpty || latest.first.calibrating;
-    final focus = await loadFocus(db);
-    // No progression while the baseline is still being learned.
-    final block = general ? null : await blockWeekFor(db, mon);
-    final planned = sc.weekPlan(
-      profile.prefs,
-      general: general,
-      focus: focus != null && focus.activeOn(mon.add(const Duration(days: 6)))
-          ? focus.lever
-          : null,
-      block: block,
-    );
-    // Around an injury, each day as its limit allows (U3).
-    final week = [
-      for (var i = 0; i < 7; i++)
-        sc.limited(
-          planned[i],
-          await limitOn(db, mon.add(Duration(days: i))),
-          likes: profile.likes,
-        ),
-    ];
     final today = dayOf(DateTime.now());
     final have = {for (final e in existing) e.date: e};
     for (var i = 0; i < 7; i++) {
@@ -138,6 +117,42 @@ class CoachService {
       );
     }
     return db.planBetween(mon, sun);
+  }
+
+  /// The week starting [mon] as the coach would plan it, with [override]
+  /// (0.11.0, Plan next week with me) on top of the profile. Returns the
+  /// sessions, whether it's a general (learning) week and the block.
+  Future<(List<sc.Session>, bool, sc.BlockWeek?)> buildWeek(
+    DateTime mon, {
+    WeekOverride? override,
+  }) async {
+    final profile = await loadAppProfile(db) ?? const Profile();
+    final latest = await db.scoresBefore(
+      dayOf(DateTime.now()).add(const Duration(days: 1)),
+      limit: 1,
+    );
+    final general = latest.isEmpty || latest.first.calibrating;
+    final focus = await loadFocus(db);
+    // No progression while the baseline is still being learned.
+    final block = general ? null : await blockWeekFor(db, mon);
+    final planned = sc.weekPlan(
+      prefsForWeek(profile.prefs, override),
+      general: general,
+      focus: focus != null && focus.activeOn(mon.add(const Duration(days: 6)))
+          ? focus.lever
+          : null,
+      block: block,
+    );
+    // Around an injury, each day as its limit allows (U3).
+    final week = [
+      for (var i = 0; i < 7; i++)
+        sc.limited(
+          planned[i],
+          await limitOn(db, mon.add(Duration(days: i))),
+          likes: profile.likes,
+        ),
+    ];
+    return (week, general, block);
   }
 
   /// Days since the last session with ≥ 5 min in Z4–Z5, or null.

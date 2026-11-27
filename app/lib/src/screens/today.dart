@@ -36,6 +36,7 @@ import 'strain.dart' show StrainScreen;
 import 'today_parts.dart';
 import 'today_v3.dart';
 import 'coach_replies.dart' show CoachSuggestCard;
+import 'plan_week.dart' show PlanNextWeekCard;
 import 'move_skip.dart' show showMoveOrSkipSheet;
 import 'nav.dart';
 import 'notes.dart' show ReflectFollowUpCard;
@@ -573,6 +574,8 @@ abstract final class TodayBody {
             followUp,
             nextUp,
             insight,
+            // 0.11.0: Sundays, the coach offers to plan next week.
+            const PlanNextWeekCard(from: DateTime.sunday),
             const WeekRow(),
           ];
         case sc.DayPhase.done:

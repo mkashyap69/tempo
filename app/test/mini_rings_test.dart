@@ -11,7 +11,9 @@ void main() {
   setUpAll(loadFonts);
   testWidgets('mini rings show after the rings scroll away', (t) async {
     final db = (await t.runAsync(() => seededDb(days: 30)))!;
-    t.view.physicalSize = const Size(390, 844);
+    // A short screen, so even a short Today (a rest day) scrolls the rings
+    // out of view.
+    t.view.physicalSize = const Size(390, 520);
     t.view.devicePixelRatio = 1;
     addTearDown(t.view.reset);
     await t.pumpWidget(harness(db, const TodayScreen()));

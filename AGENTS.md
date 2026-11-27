@@ -29,6 +29,7 @@ Every change that ships in the app gets a new version, so a build on a phone can
 | 0.8.0+8 | Coach quick replies on the call card: Short on time (with a time row), Feeling flat, Up for more; preview, Use this or Keep my plan, Undo |
 | 0.9.0+9 | The coach asks before changing the plan: Coach suggests on Today with Accept / Keep my plan; unanswered, it applies at its deadline |
 | 0.10.0+10 | The coach replies after a session: rate the effort and it answers, with what it will do next |
+| 0.11.0+11 | Plan next week with me: busy days and the long day for next week only, with a live preview; on Train from Friday and on Today on Sundays |
 
 Add a row with every bump.
 
