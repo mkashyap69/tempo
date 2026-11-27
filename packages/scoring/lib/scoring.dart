@@ -46,6 +46,7 @@ export 'src/strain.dart';
 export 'src/feels_wrong.dart';
 export 'src/next_up.dart';
 export 'src/quick_reply.dart';
+export 'src/session_reply.dart';
 export 'src/strength.dart';
 export 'src/stress_day.dart';
 export 'src/types.dart';

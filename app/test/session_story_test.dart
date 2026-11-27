@@ -130,4 +130,47 @@ void main() {
     expect(find.text('Sharp or growing pain'), findsOneWidget);
     await teardown(t, db);
   });
+
+  testWidgets('rating the effort gets an answer from the coach', (t) async {
+    final db = TempoDb(NativeDatabase.memory());
+    t.view.physicalSize = const Size(390, 2400);
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.reset);
+    final plan = sc.sessionTemplate('easy_run');
+    await t.pumpWidget(
+      harness(
+        db,
+        ProviderScope(
+          overrides: [
+            liveSessionProvider.overrideWith(
+              () => _Ended(
+                LiveState(
+                  phase: LivePhase.ended,
+                  sport: plan.sport,
+                  title: plan.title,
+                  plan: plan,
+                  elapsed: const Duration(minutes: 40),
+                  zoneSeconds: const [600.0, 1800.0, 0.0, 0.0, 0.0],
+                ),
+              ),
+            ),
+          ],
+          child: const LiveWorkoutScreen(),
+        ),
+      ),
+    );
+    await t.pump(const Duration(milliseconds: 300));
+    expect(find.byKey(const ValueKey('coach-reply')), findsNothing);
+    await t.tap(find.text('9').last);
+    await t.pump(const Duration(milliseconds: 300));
+    await t.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 50)),
+    );
+    await t.pump(const Duration(milliseconds: 300));
+    expect(find.byKey(const ValueKey('coach-reply')), findsOneWidget);
+    expect(find.text('Harder than planned.'), findsOneWidget);
+    expect(find.textContaining('isn’t a pattern'), findsOneWidget);
+    await t.pumpWidget(const SizedBox());
+    await t.runAsync(db.close);
+  });
 }

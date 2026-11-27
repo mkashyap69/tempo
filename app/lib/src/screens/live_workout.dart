@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:scoring/scoring.dart' as sc;
 
+import '../core/coach_service.dart' show CoachService;
 import '../core/format.dart';
 import '../core/session_story.dart';
 import '../core/share_card.dart';
@@ -20,6 +21,7 @@ import '../design/type.dart';
 import '../state/live_session.dart';
 import '../state/providers.dart';
 import 'activity_detail.dart' show effectProvider, EffectQuery;
+import 'coach_replies.dart' show CoachLabel;
 import 'strength_log.dart';
 
 /// The summary's line on how a guided session's work blocks landed. A
@@ -1544,6 +1546,8 @@ class _SummaryState extends ConsumerState<_Summary> {
             ],
           ),
         ),
+        // 0.10.0: the coach answers the rating.
+        if (_rpe != null) _CoachReplyCard(s: s, rpe: _rpe!),
         if (effect != null && effect.n >= 3)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -2790,6 +2794,51 @@ class _NextCard extends ConsumerWidget {
           Text('Next', style: TempoType.caption.c(c.text2)),
           const SizedBox(height: 4),
           Text(lines.join(' '), style: TempoType.bodyS.c(c.text1)),
+        ],
+      ),
+    );
+  }
+}
+
+/// The coach's effort trend with the session just rated counted (it reads
+/// saved ratings, so it updates once the rating is written).
+final _effortProvider = FutureProvider.autoDispose<sc.Effort>((ref) {
+  ref.watch(dbTickProvider);
+  final n = DateTime.now();
+  return CoachService(ref.watch(dbProvider))
+      .effort(DateTime(n.year, n.month, n.day + 1));
+});
+
+/// After the rating: the coach's one-line answer and what it will do.
+class _CoachReplyCard extends ConsumerWidget {
+  const _CoachReplyCard({required this.s, required this.rpe});
+  final LiveState s;
+  final int rpe;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final c = context.c, sc0 = context.s;
+    final trend = ref.watch(_effortProvider).value ?? sc.Effort.unknown;
+    final planned = s.plan?.intensity ?? sc.intensityForStrain(s.sessionStrain);
+    final r = sc.sessionReply(rpe: rpe, planned: planned, trend: trend);
+    return Container(
+      key: const ValueKey('coach-reply'),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: c.surface1,
+        borderRadius: BorderRadius.circular(TempoRadii.lg),
+        border: Border.all(color: sc0.loadBuilding.withValues(alpha: .5)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const CoachLabel('Coach'),
+          const SizedBox(height: 8),
+          Text(r.line, style: TempoType.titleM.c(c.text1)),
+          if (r.next != null) ...[
+            const SizedBox(height: 6),
+            Text(r.next!, style: TempoType.bodyS.c(c.text2)),
+          ],
         ],
       ),
     );
