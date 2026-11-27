@@ -8,6 +8,7 @@ import '../core/today.dart';
 import '../design/components.dart';
 import '../design/tokens.dart';
 import '../design/type.dart';
+import 'coach_replies.dart';
 import 'shared.dart';
 
 /// v3 Today: the call as a card under the rings. The word, the sentence,
@@ -109,6 +110,8 @@ class CallCard extends StatelessWidget {
                 children: [for (final x in chips) _SignalChip(x)],
               ),
             ],
+            // 0.8.0: answer the coach in one tap.
+            if (!noData && word != null) QuickReplyRow(t: t),
           ],
         ),
       ),

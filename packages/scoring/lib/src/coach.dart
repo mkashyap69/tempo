@@ -835,6 +835,9 @@ Session scaled(Session s, double f, {int? cap}) {
   return fitMinutes(r, cap);
 }
 
+/// How many interval reps [s] has, or null when it isn't intervals.
+int? repCount(Session s) => _repeats(s.segments)?.$2;
+
 /// The first run of a repeated (work, recover) pair: (start, reps), or
 /// null when the session has none.
 (int, int)? _repeats(List<Segment> segs) {

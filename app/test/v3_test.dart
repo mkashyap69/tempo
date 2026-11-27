@@ -15,6 +15,11 @@ import 'package:tempo/src/core/today.dart' show sampleCall;
 import 'package:tempo/src/screens/body_check.dart';
 import 'package:tempo/src/core/journal.dart' show startExperiment;
 import 'package:tempo/src/screens/coach.dart';
+import 'package:tempo/src/screens/coach_replies.dart' show openPlan;
+import 'package:tempo/src/core/today.dart' show loadToday;
+
+import 'support/health_fake.dart' show healthDb;
+
 import 'package:tempo/src/screens/journal.dart';
 import 'package:tempo/src/screens/plan_changes.dart';
 import 'package:tempo/src/screens/privacy.dart';
@@ -412,6 +417,38 @@ void main() {
     final db = (await t.runAsync(() => seededDb(days: 30)))!;
     await render(t, db, const TodayScreen(), h: 3000);
     expect(find.byKey(const ValueKey('next-up')), findsNothing);
+    await teardown(t, db);
+  });
+
+  testWidgets('a quick reply previews, then swaps today with Undo', (t) async {
+    final db = (await t.runAsync(() => healthDb()))!;
+    final today = (await t.runAsync(() => loadToday(db)))!;
+    final plan = openPlan(today);
+    await render(t, db, const TodayScreen(), h: 3200);
+    if (plan == null || plan.minutes <= 20) {
+      // A done or rest day: no replies to offer.
+      expect(find.byKey(const ValueKey('reply-shortOnTime')), findsNothing);
+      await teardown(t, db);
+      return;
+    }
+    await t.tap(find.byKey(const ValueKey('reply-shortOnTime')));
+    await settle(t);
+    expect(find.byKey(const ValueKey('reply-headline')), findsOneWidget);
+    expect(find.text('Keep my plan'), findsOneWidget);
+    await t.tap(find.text('Use this'));
+    for (var i = 0; i < 8; i++) {
+      await t.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 20)),
+      );
+      await t.pump(const Duration(milliseconds: 100));
+    }
+    // The toast offers Undo right away.
+    expect(find.text('Undo'), findsOneWidget);
+    final row = (await t.runAsync(() => db.planDay(today.day)))!;
+    expect(row.original, isNotNull);
+    expect(row.reason, contains('Short on time'));
+    expect(row.statusSource, 'user');
+    await t.pump(const Duration(seconds: 5)); // let the toast go
     await teardown(t, db);
   });
 }

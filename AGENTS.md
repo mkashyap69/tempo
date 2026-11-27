@@ -26,6 +26,7 @@ Every change that ships in the app gets a new version, so a build on a phone can
 | 0.6.0+5 | Session page: Start with Move or skip in the footer, Why this today above how; visual pass to the canvas System board: 14 px between cards on Today, Train and Health, the (+) as a rounded square; Today without the workouts list, the morning check-in folds yesterday's questions into one line; insights and experiment ideas only for habits you log |
 | 0.6.1+6 | Today lighter: Your day so far and Yesterday, quickly are off Today (the journal is under (+) → Check in) |
 | 0.7.0+7 | Today: Next up card under the plan — strain left and what fills it before 15:00, tonight's bedtime and tomorrow's forecast after |
+| 0.8.0+8 | Coach quick replies on the call card: Short on time (with a time row), Feeling flat, Up for more; preview, Use this or Keep my plan, Undo |
 
 Add a row with every bump.
 
