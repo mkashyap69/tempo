@@ -15,6 +15,8 @@ import 'package:tempo/src/core/today.dart' show sampleCall;
 import 'package:tempo/src/screens/body_check.dart';
 import 'package:tempo/src/core/journal.dart' show startExperiment;
 import 'package:tempo/src/screens/coach.dart';
+import 'package:tempo/src/screens/discoveries.dart';
+import 'package:tempo/src/screens/weekly_review.dart';
 import 'package:tempo/src/screens/coach_replies.dart' show openPlan;
 import 'package:tempo/src/core/today.dart' show loadToday;
 
@@ -449,6 +451,44 @@ void main() {
     expect(row.reason, contains('Short on time'));
     expect(row.statusSource, 'user');
     await t.pump(const Duration(seconds: 5)); // let the toast go
+    await teardown(t, db);
+  });
+
+  testWidgets('Health shows the four tiles; a signal shows its 30 days', (
+    t,
+  ) async {
+    final db = (await t.runAsync(() => healthDb()))!;
+    await render(t, db, const TrendsScreen(tab: true), h: 7000);
+    expect(find.byKey(const ValueKey('health-tiles')), findsOneWidget);
+    for (final l in ['Sleep · 7 nights', 'Fitness', 'Weight', 'Blood']) {
+      expect(find.text(l), findsOneWidget);
+    }
+    await render(t, db, const MetricScreen(signalKey: 'rhr'), h: 2400);
+    expect(find.byKey(const ValueKey('metric-chart')), findsOneWidget);
+    await teardown(t, db);
+  });
+
+  testWidgets('Discoveries has its own screen', (t) async {
+    final db = (await t.runAsync(() async {
+      final db = await seededDb(days: 30);
+      await startExperiment(db, 'alcohol', false);
+      return db;
+    }))!;
+    await render(t, db, const DiscoveriesScreen(), h: 2400);
+    expect(find.text('What moves your numbers'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('discoveries-experiment')),
+      findsOneWidget,
+    );
+    expect(find.text('EFFECT ON NEXT-MORNING RECOVERY'), findsOneWidget);
+    await teardown(t, db);
+  });
+
+  testWidgets('Week in review tells the week as a story', (t) async {
+    final db = (await t.runAsync(() => seededDb(days: 30)))!;
+    await render(t, db, const WeeklyReviewScreen(), h: 4000);
+    expect(find.byKey(const ValueKey('week-story')), findsOneWidget);
+    expect(find.text('ONE THING FOR NEXT WEEK'), findsOneWidget);
     await teardown(t, db);
   });
 }

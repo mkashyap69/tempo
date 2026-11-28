@@ -5,6 +5,7 @@ import 'package:scoring/scoring.dart' as sc;
 import 'package:store/store.dart' as st;
 
 import 'body_check.dart';
+import 'health_v3.dart' show HealthTiles;
 import 'highlight.dart' show LastTimeCard, DiscoveriesSection;
 import 'today_tiles.dart' show TodayTiles;
 import 'sleep_type.dart' show SleepPlanRow;
@@ -33,7 +34,7 @@ import 'sleep.dart';
 import 'strain.dart';
 import 'stress.dart';
 import 'today_charts.dart'
-    show LoadGaugeCard, WeekRecoveryStrain, ZoneDonutCard, LastNightStrip;
+    show LoadGaugeCard, WeekRecoveryStrain, ZoneDonutCard;
 import 'weekly_review.dart';
 import 'workouts.dart';
 
@@ -516,11 +517,13 @@ extension on _TrendsState {
         const BodyCheckCard(),
         const MomentCard(),
         const TempoAgeSummary(),
-        if (today != null && today.everSlept) LastNightStrip(t: today),
+        // v3 (canvas "Health"): sleep, fitness, weight and blood.
+        const HealthTiles(),
         const SleepPlanRow(),
-        const TodayTiles(),
         const DiscoveriesSection(),
         const LastTimeCard(),
+        // Your own pick of numbers, under the canvas's four.
+        const TodayTiles(),
         const _WeekCard(),
         Section(
           title: 'More',

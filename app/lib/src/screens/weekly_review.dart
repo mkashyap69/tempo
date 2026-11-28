@@ -123,6 +123,9 @@ class WeeklyReviewScreen extends ConsumerWidget {
           expand: true,
           onTap: () => push(context, WeekStoryScreen(monday: mon)),
         ),
+        // v3 (canvas "Week in review"): recovery and sleep against last
+        // week, the win, one thing for next week.
+        _WeekStory(r: r),
         if (report != null)
           TempoCard(
             child: Column(
@@ -370,6 +373,168 @@ class _NextWeek extends ConsumerWidget {
             ),
         ],
       ),
+    );
+  }
+}
+
+/// This week's and last week's scores.
+final _twoWeeksProvider =
+    FutureProvider.family<(List<st.DailyScore>, List<st.DailyScore>), DateTime>(
+      (ref, mon) async {
+        ref.watch(dbTickProvider);
+        final db = ref.watch(dbProvider);
+        return (
+          await db.scoresBetween(mon, mon.add(const Duration(days: 6))),
+          await db.scoresBetween(
+            mon.subtract(const Duration(days: 7)),
+            mon.subtract(const Duration(days: 1)),
+          ),
+        );
+      },
+    );
+
+class _WeekStory extends ConsumerWidget {
+  const _WeekStory({required this.r});
+  final WeekReview r;
+
+  static const _days = [
+    'Monday',
+    'Tuesday',
+    'Wednesday',
+    'Thursday',
+    'Friday',
+    'Saturday',
+    'Sunday',
+  ];
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final weeks = ref.watch(_twoWeeksProvider(r.monday)).value;
+    final t = ref.watch(todayProvider).value;
+    if (weeks == null) return const SizedBox.shrink();
+    final c = context.c, s = context.s;
+    double? avg(Iterable<double?> xs) {
+      final v = [
+        for (final x in xs)
+          if (x != null && x > 0) x,
+      ];
+      return v.isEmpty ? null : v.reduce((a, b) => a + b) / v.length;
+    }
+
+    final (now, before) = weeks;
+    final rec = avg(now.map((d) => d.recovery));
+    final recBefore = avg(before.map((d) => d.recovery));
+    final sleep = avg(now.map((d) => d.sleptHours));
+    final sleepBefore = avg(before.map((d) => d.sleptHours));
+    final need = avg(now.map((d) => d.needHours));
+    (double, String)? best(double? Function(st.DailyScore) f) {
+      st.DailyScore? top;
+      for (final d in now) {
+        final v = f(d);
+        if (v != null && (top == null || v > f(top)!)) top = d;
+      }
+      return top == null
+          ? null
+          : (f(top)!, _days[DateTime.parse(top.date).weekday - 1]);
+    }
+
+    final win = weekWin(
+      days: r.days,
+      moderateMinutes: r.moderateMinutes,
+      bestSleep: best((d) => d.sleptHours),
+      bestRecovery: best((d) => d.recovery),
+    );
+    final next = weekNextThing(
+      avgSleep: sleep,
+      need: need,
+      strengthDays: r.strengthDays,
+      moderateMinutes: r.moderateMinutes,
+      bedtime: t == null ? 'your bedtime' : clock12(t.bedtimeMinute),
+    );
+    String delta(double a, double? b, String Function(double) f) {
+      if (b == null) return '';
+      final d = a - b;
+      return d.abs() < .05
+          ? ' · same as last week'
+          : ' · ${d > 0 ? '▲' : '▼'} ${f(d.abs())}';
+    }
+
+    Widget row(String k, String v) => Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Expanded(child: Text(k, style: TempoType.bodyS.c(c.text2))),
+          Text(v, style: TempoType.bodyS.c(c.text1).tnum),
+        ],
+      ),
+    );
+    return Column(
+      key: const ValueKey('week-story'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (rec != null || sleep != null)
+          TempoCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Overline('Recovery and sleep'),
+                const SizedBox(height: 8),
+                if (rec != null)
+                  row(
+                    'Average recovery',
+                    '${rec.round()}${delta(rec, recBefore, (d) => '${d.round()}')}',
+                  ),
+                if (sleep != null)
+                  row(
+                    'Average sleep',
+                    '${hmShort(sleep)}${delta(sleep, sleepBefore, (d) => '${(d * 60).round()} m')}',
+                  ),
+              ],
+            ),
+          ),
+        if (win != null) ...[
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: c.surface1,
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                stops: const [0, .8],
+                colors: [
+                  Color.alphaBlend(
+                    s.recHigh.withValues(alpha: .10),
+                    c.surface1,
+                  ),
+                  c.surface1,
+                ],
+              ),
+              borderRadius: BorderRadius.circular(TempoRadii.lg),
+              border: Border.all(color: c.line),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Overline('Win of the week', color: s.recHigh),
+                const SizedBox(height: 6),
+                Text(win, style: TempoType.titleM.c(c.text1)),
+              ],
+            ),
+          ),
+        ],
+        const SizedBox(height: 12),
+        TempoCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Overline('One thing for next week', color: s.recMid),
+              const SizedBox(height: 6),
+              Text(next, style: TempoType.body.c(c.text1)),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

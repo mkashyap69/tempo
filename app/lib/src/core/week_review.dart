@@ -135,3 +135,69 @@ Future<WeekReview> loadWeekReview(st.TempoDb db, {DateTime? at}) async {
     nudgesAnswered: answered.length,
   );
 }
+
+// ---- v3 week story (canvas "Week in review") --------------------------------
+
+String _hmw(double h) {
+  final m = (h * 60).round();
+  return '${m ~/ 60} h ${(m % 60).toString().padLeft(2, '0')} m';
+}
+
+/// The week's best thing, or null when there's nothing worth naming yet.
+/// [days] are the week's planned days; [bestSleep] the longest night and
+/// its weekday name; [bestRecovery] the best morning and its weekday name.
+String? weekWin({
+  required List<ReviewDay> days,
+  required int moderateMinutes,
+  (double, String)? bestSleep,
+  (double, String)? bestRecovery,
+}) {
+  const done = {
+    sc.DayStatus.done,
+    sc.DayStatus.doneEasier,
+    sc.DayStatus.doneHarder,
+  };
+  final planned = days.where((d) => !d.session.isRest && d.status != null);
+  final hard = planned.where((d) => d.session.isHard).toList();
+  if (planned.length >= 3 && planned.every((d) => done.contains(d.status))) {
+    return 'Every planned session done.';
+  }
+  if (hard.isNotEmpty && hard.every((d) => done.contains(d.status))) {
+    return hard.length == 1
+        ? 'The week’s key session, done.'
+        : 'All ${hard.length} key sessions done.';
+  }
+  if (moderateMinutes >= 150) {
+    return '$moderateMinutes active minutes: the WHO minimum, met.';
+  }
+  if (bestSleep != null && bestSleep.$1 >= 7.5) {
+    return 'Best night: ${_hmw(bestSleep.$1)} on ${bestSleep.$2}.';
+  }
+  if (bestRecovery != null && bestRecovery.$1 >= 67) {
+    return 'Recovery reached ${bestRecovery.$1.round()} on ${bestRecovery.$2}.';
+  }
+  return null;
+}
+
+/// One thing for next week: the biggest gap first (sleep, then strength,
+/// then active minutes).
+String weekNextThing({
+  double? avgSleep,
+  double? need,
+  required int strengthDays,
+  required int moderateMinutes,
+  required String bedtime,
+}) {
+  if (avgSleep != null && need != null && need - avgSleep >= .5) {
+    return 'Sleep: you averaged ${_hmw(need - avgSleep)} short of your need. Aim for lights out by $bedtime.';
+  }
+  if (strengthDays < 2) {
+    return strengthDays == 0
+        ? 'Two strength days: 20 minutes each counts.'
+        : 'One more strength day: 20 minutes counts.';
+  }
+  if (moderateMinutes < 150) {
+    return '${150 - moderateMinutes} more active minutes reaches the WHO minimum.';
+  }
+  return 'Keep it going: the same again next week.';
+}

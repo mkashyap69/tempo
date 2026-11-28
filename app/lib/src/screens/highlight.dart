@@ -18,6 +18,7 @@ import '../design/tokens.dart';
 import '../design/type.dart';
 import '../state/providers.dart';
 import 'baselines.dart';
+import 'discoveries.dart';
 import 'coach.dart' show CoachTab, openCoachAt;
 import 'everyday_cards.dart';
 import 'journal.dart';
@@ -519,20 +520,13 @@ class DiscoveriesSection extends ConsumerWidget {
     ];
     return Section(
       title: 'Discoveries',
+      // v3: Discoveries has its own screen.
       trailing: Pressable(
-        label: log.isEmpty ? 'Journal' : 'All insights',
-        onTap: () => push(
-          context,
-          log.isEmpty
-              ? const JournalScreen(standalone: true)
-              : const InsightArchiveScreen(),
-        ),
+        label: 'All discoveries',
+        onTap: () => push(context, const DiscoveriesScreen()),
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 4),
-          child: Text(
-            log.isEmpty ? 'Journal ›' : 'All insights ›',
-            style: TempoType.bodyS.c(c.text2),
-          ),
+          child: Text('All ›', style: TempoType.bodyS.c(c.text2)),
         ),
       ),
       child: rows.isEmpty

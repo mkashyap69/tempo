@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:scoring/scoring.dart' as sc;
@@ -8,6 +10,7 @@ import '../design/components.dart';
 import '../design/tokens.dart';
 import '../design/type.dart';
 import 'baselines.dart';
+import 'health_v3.dart' show NormalBandChart, scores30Provider;
 import 'everyday_cards.dart' show bodySignalsProvider;
 import 'nav.dart';
 
@@ -256,6 +259,47 @@ class MetricScreen extends ConsumerWidget {
             style: TempoType.caption.c(c.text2),
           ),
         ],
+        // v3: the last 30 days against your normal (signals kept on the
+        // daily score; the others are read from night samples).
+        if (const {'rhr', 'hrv', 'stress'}.contains(signalKey))
+          if (ref.watch(scores30Provider).value case final days?
+              when days.isNotEmpty)
+            TempoCard(
+              key: const ValueKey('metric-chart'),
+              padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Overline('Last ${days.length} days'),
+                  const SizedBox(height: 10),
+                  NormalBandChart(
+                    values: [
+                      for (final d in days)
+                        switch (signalKey) {
+                          'rhr' => d.rhr,
+                          'hrv' => d.hrv,
+                          _ => d.hrvProxy,
+                        },
+                    ],
+                    lo: band == null
+                        ? null
+                        : signalKey == 'hrv'
+                        ? math.exp(band.lo)
+                        : band.lo,
+                    hi: band == null
+                        ? null
+                        : signalKey == 'hrv'
+                        ? math.exp(band.hi)
+                        : band.hi,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'The grey band is your normal; the dot is last night.',
+                    style: TempoType.caption.c(c.text3),
+                  ),
+                ],
+              ),
+            ),
         if (info != null) block('What it is', info.what),
         block('What to do', placeAdvice(place)),
         if (info != null) block('What moves it', info.moves),
