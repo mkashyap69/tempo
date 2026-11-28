@@ -31,6 +31,7 @@ Every change that ships in the app gets a new version, so a build on a phone can
 | 0.10.0+10 | The coach replies after a session: rate the effort and it answers, with what it will do next |
 | 0.11.0+11 | Plan next week with me: busy days and the long day for next week only, with a live preview; on Train from Friday and on Today on Sundays |
 | 0.12.0+12 | Health to the canvas: sleep, fitness, weight and blood tiles; a 30-day chart with your normal on Any number, explained; Discoveries as its own screen with effect bars; Week in review tells the week (recovery and sleep vs last week, win of the week, one thing for next week) |
+| 0.13.0+13 | Train to the canvas: This week · Goal · Fitness · History switcher; session Other options for today (easier, harder, the same work in another sport); After the session shows the heart-rate drop; Goal predicts your finish from your race time with the block as a bar |
 
 Add a row with every bump.
 

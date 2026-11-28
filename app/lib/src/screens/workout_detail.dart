@@ -118,6 +118,24 @@ class WorkoutDetailScreen extends ConsumerWidget {
     final harder = harderKey == null || harderKey == p.key
         ? null
         : sc.fitMinutes(sc.sessionTemplate(harderKey), t.profile.maxMinutes);
+    // v3 (canvas "Session"): the same work in another sport you like.
+    sc.Sport? otherSport;
+    for (final sp in t.profile.likes) {
+      if (sp != p.sport && sp != sc.Sport.strength && sp != sc.Sport.yoga) {
+        otherSport = sp;
+        break;
+      }
+    }
+    final other = otherSport == null || p.isRest
+        ? null
+        : sc.fitMinutes(
+            sc.sessionTemplate(
+              p.isHard
+                  ? (sc.hardKeyFor(otherSport) ?? _easy(otherSport))
+                  : _easy(otherSport),
+            ),
+            t.profile.maxMinutes,
+          );
     double est(sc.Session x) => sc.sessionStrain(
       x,
       hrMax: hrMax,
@@ -429,14 +447,30 @@ class WorkoutDetailScreen extends ConsumerWidget {
               ],
             ),
           ),
-        if (!p.isRest && (easier != null || harder != null))
+        if (!p.isRest && (easier != null || harder != null || other != null))
           Section(
-            title: 'Not feeling it?',
-            child: Row(
+            title: 'Other options for today',
+            child: Column(
               children: [
-                if (easier != null) alt('Easier', easier),
-                if (easier != null && harder != null) const SizedBox(width: 10),
-                if (harder != null) alt('Harder', harder),
+                Row(
+                  children: [
+                    if (easier != null) alt('Easier', easier),
+                    if (easier != null && harder != null)
+                      const SizedBox(width: 10),
+                    if (harder != null) alt('Harder', harder),
+                  ],
+                ),
+                if (other != null) ...[
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      alt(
+                        'Same work, ${sportLabel(otherSport).toLowerCase()}',
+                        other,
+                      ),
+                    ],
+                  ),
+                ],
               ],
             ),
           ),

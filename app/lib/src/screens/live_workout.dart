@@ -22,6 +22,7 @@ import '../state/live_session.dart';
 import '../state/providers.dart';
 import 'activity_detail.dart' show effectProvider, EffectQuery;
 import 'coach_replies.dart' show CoachLabel;
+import 'everyday_cards.dart' show RecoveryHrCard;
 import 'strength_log.dart';
 
 /// The summary's line on how a guided session's work blocks landed. A
@@ -1593,6 +1594,8 @@ class _SummaryState extends ConsumerState<_Summary> {
               ],
             ),
           ),
+        // v3 (canvas "After the session"): what it did, beyond strain.
+        if (s.workoutId != null) RecoveryHrCard(workoutId: s.workoutId!),
         _NextCard(s: s),
         Row(
           children: [

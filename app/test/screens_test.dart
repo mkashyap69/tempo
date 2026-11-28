@@ -588,8 +588,9 @@ void main() {
         expect(find.text('No training goal'), findsOneWidget);
         expect(find.text('Set a goal'), findsOneWidget); // the header pill
         expect(find.text('Week in review'), findsOneWidget);
-        // No tab switcher and no gauges any more.
-        expect(find.text('Goal'), findsNothing);
+        // v3 (0.13.0): the canvas switcher is back as links to Goal,
+        // Fitness and History (not tabs within the page); no gauges.
+        expect(find.byKey(const ValueKey('train-switcher')), findsOneWidget);
         expect(find.text('Sessions'), findsNothing);
         await t.tap(find.text('Strain by day'));
         await settle(t);

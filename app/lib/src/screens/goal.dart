@@ -685,6 +685,8 @@ class GoalBody extends ConsumerWidget {
             ),
           ],
         ),
+        // v3 (canvas "Goal"): predicted finish and where you are.
+        if (b.isEvent) _PredictionCard(v: v),
         if (w != null) _VerdictCard(v: v),
         if (b.goal == sc.BlockGoal.strength) _MainLiftsCard(since: b.start),
         if (v.weeks.isNotEmpty) _WeeksCard(v: v),
@@ -1445,6 +1447,94 @@ class _MainLiftsCard extends ConsumerWidget {
             'estimate from your heaviest sets.',
             style: TempoType.caption.c(c.text3),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Race distance in metres for a race goal, else null.
+double? goalMetres(sc.BlockGoal g) => switch (g) {
+  sc.BlockGoal.run5k => 5000,
+  sc.BlockGoal.run10k => 10000,
+  sc.BlockGoal.half => 21097.5,
+  sc.BlockGoal.marathon => 42195,
+  _ => null,
+};
+
+String raceClock(double seconds) {
+  final t = seconds.round();
+  final h = t ~/ 3600, m = (t % 3600) ~/ 60, sec = t % 60;
+  final mm = m.toString().padLeft(2, '0'), ss = sec.toString().padLeft(2, '0');
+  return h > 0 ? '$h:$mm:$ss' : '$m:$ss';
+}
+
+/// v3 Goal: the predicted finish from your race time (VDOT, the same as
+/// your paces) and the block so far as a bar.
+class _PredictionCard extends ConsumerWidget {
+  const _PredictionCard({required this.v});
+  final GoalView v;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final c = context.c, s = context.s;
+    final t = ref.watch(todayProvider).value;
+    final metres = goalMetres(v.block.goal);
+    final vdot = t?.profile.vdot;
+    final predicted = metres == null || vdot == null
+        ? null
+        : sc.raceSeconds(vdot, metres);
+    final total = v.block.weeks;
+    final now = v.week?.index;
+    return TempoCard(
+      key: const ValueKey('goal-prediction'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Overline('Predicted finish'),
+          const SizedBox(height: 6),
+          if (predicted != null) ...[
+            Text(raceClock(predicted), style: TempoType.scoreL.c(c.text1)),
+            const SizedBox(height: 4),
+            Text(
+              'From your race time, the same maths as your paces. It sharpens as you add newer races.',
+              style: TempoType.caption.c(c.text2),
+            ),
+          ] else
+            Text(
+              'Add a recent race time in You → Training and Tempo predicts your finish from it.',
+              style: TempoType.bodyS.c(c.text2),
+            ),
+          if (total > 0) ...[
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                for (var i = 0; i < total; i++) ...[
+                  if (i > 0) const SizedBox(width: 3),
+                  Expanded(
+                    child: Container(
+                      height: 18,
+                      decoration: BoxDecoration(
+                        color: now == null
+                            ? c.surface3
+                            : i < now
+                            ? s.loadBuilding
+                            : i == now
+                            ? c.text1
+                            : c.surface3,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              now == null ? '$total weeks' : 'Week ${now + 1} of $total',
+              style: TempoType.caption.c(c.text2),
+            ),
+          ],
         ],
       ),
     );

@@ -146,6 +146,19 @@ class CoachScreen extends ConsumerWidget {
               onTap: () => ref.read(syncProvider.notifier).syncNow(),
             ),
           ),
+        // v3 (canvas "Train"): This week · Goal · Fitness · History.
+        TempoSegmented<int>(
+          key: const ValueKey('train-switcher'),
+          values: const [0, 1, 2, 3],
+          labels: const ['This week', 'Goal', 'Fitness', 'History'],
+          selected: 0,
+          onChanged: (i) => switch (i) {
+            1 => push(context, const GoalScreen()),
+            2 => push(context, const CardioLoadScreen()),
+            3 => push(context, const WorkoutsScreen()),
+            _ => null,
+          },
+        ),
         // v3 (canvas "Train"): day strip and today, the week as an
         // agenda, what changed, the goal, strength, quick start; then
         // fitness and the rest.

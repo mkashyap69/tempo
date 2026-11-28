@@ -15,6 +15,11 @@ import 'package:tempo/src/core/today.dart' show sampleCall;
 import 'package:tempo/src/screens/body_check.dart';
 import 'package:tempo/src/core/journal.dart' show startExperiment;
 import 'package:tempo/src/screens/coach.dart';
+import 'package:tempo/src/screens/goal.dart';
+import 'package:tempo/src/screens/workout_detail.dart';
+import 'package:tempo/src/core/block_service.dart' show saveBlock;
+import 'package:tempo/src/core/profile.dart'
+    show loadAppProfile, saveAppProfile;
 import 'package:tempo/src/screens/discoveries.dart';
 import 'package:tempo/src/screens/weekly_review.dart';
 import 'package:tempo/src/screens/coach_replies.dart' show openPlan;
@@ -489,6 +494,40 @@ void main() {
     await render(t, db, const WeeklyReviewScreen(), h: 4000);
     expect(find.byKey(const ValueKey('week-story')), findsOneWidget);
     expect(find.text('ONE THING FOR NEXT WEEK'), findsOneWidget);
+    await teardown(t, db);
+  });
+
+  testWidgets('Train has the switcher; the session lists other options', (
+    t,
+  ) async {
+    final db = (await t.runAsync(() => healthDb()))!;
+    await render(t, db, const CoachScreen(standalone: true), h: 5000);
+    expect(find.byKey(const ValueKey('train-switcher')), findsOneWidget);
+    for (final l in ['This week', 'Goal', 'Fitness', 'History']) {
+      expect(find.text(l), findsWidgets);
+    }
+    await render(t, db, const WorkoutDetailScreen(), h: 3000);
+    expect(find.text('OTHER OPTIONS FOR TODAY'), findsOneWidget);
+    await teardown(t, db);
+  });
+
+  testWidgets('a race goal predicts the finish from your race time', (t) async {
+    final db = (await t.runAsync(() async {
+      final db = await healthDb();
+      await saveBlock(
+        db,
+        sc.BlockGoal.half,
+        event: DateTime.now().add(const Duration(days: 76)),
+      );
+      final p = (await loadAppProfile(db))!;
+      await saveAppProfile(db, p.copyWith(paceRace: () => (10000, 47 * 60)));
+      return db;
+    }))!;
+    await render(t, db, const GoalScreen(), h: 4000);
+    expect(find.byKey(const ValueKey('goal-prediction')), findsOneWidget);
+    expect(find.text('PREDICTED FINISH'), findsOneWidget);
+    // A 47:00 10K is about a 1:44 half by VDOT.
+    expect(find.textContaining('1:4'), findsWidgets);
     await teardown(t, db);
   });
 }
